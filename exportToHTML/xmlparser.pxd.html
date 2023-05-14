@@ -1,0 +1,266 @@
+<html>
+<head>
+<title>xmlparser.pxd</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #a9b7c6;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+xmlparser.pxd</font>
+</center></td></tr></table>
+<pre><span class="s0">from libc.string cimport const_char</span>
+
+<span class="s0">from lxml.includes.tree cimport (</span>
+    <span class="s0">xmlDoc, xmlNode, xmlDict, xmlDtd, xmlChar, const_xmlChar)</span>
+<span class="s0">from lxml.includes.tree cimport xmlInputReadCallback, xmlInputCloseCallback</span>
+<span class="s0">from lxml.includes.xmlerror cimport xmlError, xmlStructuredErrorFunc</span>
+
+
+<span class="s0">cdef extern from &quot;libxml/parser.h&quot;:</span>
+    <span class="s0">ctypedef void (*startElementNsSAX2Func)(void* ctx,</span>
+                                            <span class="s0">const_xmlChar* localname,</span>
+                                            <span class="s0">const_xmlChar* prefix,</span>
+                                            <span class="s0">const_xmlChar* URI,</span>
+                                            <span class="s0">int nb_namespaces,</span>
+                                            <span class="s0">const_xmlChar** namespaces,</span>
+                                            <span class="s0">int nb_attributes,</span>
+                                            <span class="s0">int nb_defaulted,</span>
+                                            <span class="s0">const_xmlChar** attributes)</span>
+
+    <span class="s0">ctypedef void (*endElementNsSAX2Func)(void* ctx,</span>
+                                          <span class="s0">const_xmlChar* localname,</span>
+                                          <span class="s0">const_xmlChar* prefix,</span>
+                                          <span class="s0">const_xmlChar* URI)</span>
+
+    <span class="s0">ctypedef void (*startElementSAXFunc)(void* ctx, const_xmlChar* name, const_xmlChar** atts)</span>
+
+    <span class="s0">ctypedef void (*endElementSAXFunc)(void* ctx, const_xmlChar* name)</span>
+
+    <span class="s0">ctypedef void (*charactersSAXFunc)(void* ctx, const_xmlChar* ch, int len)</span>
+
+    <span class="s0">ctypedef void (*cdataBlockSAXFunc)(void* ctx, const_xmlChar* value, int len)</span>
+
+    <span class="s0">ctypedef void (*commentSAXFunc)(void* ctx, const_xmlChar* value)</span>
+
+    <span class="s0">ctypedef void (*processingInstructionSAXFunc)(void* ctx, </span>
+                                                  <span class="s0">const_xmlChar* target,</span>
+                                                  <span class="s0">const_xmlChar* data)</span>
+
+    <span class="s0">ctypedef void (*internalSubsetSAXFunc)(void* ctx, </span>
+                                            <span class="s0">const_xmlChar* name,</span>
+                                            <span class="s0">const_xmlChar* externalID,</span>
+                                            <span class="s0">const_xmlChar* systemID)</span>
+
+    <span class="s0">ctypedef void (*endDocumentSAXFunc)(void* ctx)</span>
+
+    <span class="s0">ctypedef void (*startDocumentSAXFunc)(void* ctx)</span>
+
+    <span class="s0">ctypedef void (*referenceSAXFunc)(void * ctx, const_xmlChar* name)</span>
+
+    <span class="s0">cdef int XML_SAX2_MAGIC</span>
+
+<span class="s0">cdef extern from &quot;libxml/tree.h&quot;:</span>
+    <span class="s0">ctypedef struct xmlParserInput:</span>
+        <span class="s0">int line</span>
+        <span class="s0">int length</span>
+        <span class="s0">const_xmlChar* base</span>
+        <span class="s0">const_xmlChar* cur</span>
+        <span class="s0">const_xmlChar* end</span>
+        <span class="s0">const_char *filename</span>
+
+    <span class="s0">ctypedef struct xmlParserInputBuffer:</span>
+        <span class="s0">void* context</span>
+        <span class="s0">xmlInputReadCallback  readcallback</span>
+        <span class="s0">xmlInputCloseCallback closecallback</span>
+
+    <span class="s0">ctypedef struct xmlSAXHandlerV1:</span>
+        <span class="s0"># same as xmlSAXHandler, but without namespaces</span>
+        <span class="s0">pass</span>
+
+    <span class="s0">ctypedef struct xmlSAXHandler:</span>
+        <span class="s0">internalSubsetSAXFunc           internalSubset</span>
+        <span class="s0">startElementNsSAX2Func          startElementNs</span>
+        <span class="s0">endElementNsSAX2Func            endElementNs</span>
+        <span class="s0">startElementSAXFunc             startElement</span>
+        <span class="s0">endElementSAXFunc               endElement</span>
+        <span class="s0">charactersSAXFunc               characters</span>
+        <span class="s0">cdataBlockSAXFunc               cdataBlock</span>
+        <span class="s0">referenceSAXFunc                reference</span>
+        <span class="s0">commentSAXFunc                  comment</span>
+        <span class="s0">processingInstructionSAXFunc	processingInstruction</span>
+        <span class="s0">startDocumentSAXFunc            startDocument</span>
+        <span class="s0">endDocumentSAXFunc              endDocument</span>
+        <span class="s0">int                             initialized</span>
+        <span class="s0">xmlStructuredErrorFunc          serror</span>
+        <span class="s0">void*                           _private</span>
+
+
+<span class="s0">cdef extern from &quot;libxml/SAX2.h&quot; nogil:</span>
+    <span class="s0">cdef void xmlSAX2StartDocument(void* ctxt)</span>
+
+
+<span class="s0">cdef extern from &quot;libxml/xmlIO.h&quot; nogil:</span>
+    <span class="s0">cdef xmlParserInputBuffer* xmlAllocParserInputBuffer(int enc)</span>
+
+
+<span class="s0">cdef extern from &quot;libxml/parser.h&quot;:</span>
+
+    <span class="s0">cdef xmlDict* xmlDictCreate() nogil</span>
+    <span class="s0">cdef xmlDict* xmlDictCreateSub(xmlDict* subdict) nogil</span>
+    <span class="s0">cdef void xmlDictFree(xmlDict* sub) nogil</span>
+    <span class="s0">cdef int xmlDictReference(xmlDict* dict) nogil</span>
+    
+    <span class="s0">cdef int XML_COMPLETE_ATTRS  # SAX option for adding DTD default attributes</span>
+    <span class="s0">cdef int XML_SKIP_IDS        # SAX option for not building an XML ID dict</span>
+
+    <span class="s0">ctypedef enum xmlParserInputState:</span>
+        <span class="s0">XML_PARSER_EOF = -1  # nothing is to be parsed</span>
+        <span class="s0">XML_PARSER_START = 0  # nothing has been parsed</span>
+        <span class="s0">XML_PARSER_MISC = 1  # Misc* before int subset</span>
+        <span class="s0">XML_PARSER_PI = 2  # Within a processing instruction</span>
+        <span class="s0">XML_PARSER_DTD = 3  # within some DTD content</span>
+        <span class="s0">XML_PARSER_PROLOG = 4  # Misc* after internal subset</span>
+        <span class="s0">XML_PARSER_COMMENT = 5  # within a comment</span>
+        <span class="s0">XML_PARSER_START_TAG = 6  # within a start tag</span>
+        <span class="s0">XML_PARSER_CONTENT = 7  # within the content</span>
+        <span class="s0">XML_PARSER_CDATA_SECTION = 8  # within a CDATA section</span>
+        <span class="s0">XML_PARSER_END_TAG = 9  # within a closing tag</span>
+        <span class="s0">XML_PARSER_ENTITY_DECL = 10  # within an entity declaration</span>
+        <span class="s0">XML_PARSER_ENTITY_VALUE = 11  # within an entity value in a decl</span>
+        <span class="s0">XML_PARSER_ATTRIBUTE_VALUE = 12  # within an attribute value</span>
+        <span class="s0">XML_PARSER_SYSTEM_LITERAL = 13  # within a SYSTEM value</span>
+        <span class="s0">XML_PARSER_EPILOG = 14  # the Misc* after the last end tag</span>
+        <span class="s0">XML_PARSER_IGNORE = 15  # within an IGNORED section</span>
+        <span class="s0">XML_PARSER_PUBLIC_LITERAL = 16  # within a PUBLIC value</span>
+
+
+    <span class="s0">ctypedef struct xmlParserCtxt:</span>
+        <span class="s0">xmlDoc* myDoc</span>
+        <span class="s0">xmlDict* dict</span>
+        <span class="s0">int dictNames</span>
+        <span class="s0">void* _private</span>
+        <span class="s0">bint wellFormed</span>
+        <span class="s0">bint recovery</span>
+        <span class="s0">int options</span>
+        <span class="s0">bint disableSAX</span>
+        <span class="s0">int errNo</span>
+        <span class="s0">xmlParserInputState instate</span>
+        <span class="s0">bint replaceEntities</span>
+        <span class="s0">int loadsubset  # != 0 if enabled, int value == why</span>
+        <span class="s0">bint validate</span>
+        <span class="s0">xmlError lastError</span>
+        <span class="s0">xmlNode* node</span>
+        <span class="s0">xmlSAXHandler* sax</span>
+        <span class="s0">void* userData</span>
+        <span class="s0">int* spaceTab</span>
+        <span class="s0">int spaceMax</span>
+        <span class="s0">bint html</span>
+        <span class="s0">bint progressive</span>
+        <span class="s0">int inSubset</span>
+        <span class="s0">int charset</span>
+        <span class="s0">xmlParserInput* input</span>
+
+    <span class="s0">ctypedef enum xmlParserOption:</span>
+        <span class="s0">XML_PARSE_RECOVER = 1 # recover on errors</span>
+        <span class="s0">XML_PARSE_NOENT = 2 # substitute entities</span>
+        <span class="s0">XML_PARSE_DTDLOAD = 4 # load the external subset</span>
+        <span class="s0">XML_PARSE_DTDATTR = 8 # default DTD attributes</span>
+        <span class="s0">XML_PARSE_DTDVALID = 16 # validate with the DTD</span>
+        <span class="s0">XML_PARSE_NOERROR = 32 # suppress error reports</span>
+        <span class="s0">XML_PARSE_NOWARNING = 64 # suppress warning reports</span>
+        <span class="s0">XML_PARSE_PEDANTIC = 128 # pedantic error reporting</span>
+        <span class="s0">XML_PARSE_NOBLANKS = 256 # remove blank nodes</span>
+        <span class="s0">XML_PARSE_SAX1 = 512 # use the SAX1 interface internally</span>
+        <span class="s0">XML_PARSE_XINCLUDE = 1024 # Implement XInclude substitution</span>
+        <span class="s0">XML_PARSE_NONET = 2048 # Forbid network access</span>
+        <span class="s0">XML_PARSE_NODICT = 4096 # Do not reuse the context dictionary</span>
+        <span class="s0">XML_PARSE_NSCLEAN = 8192 # remove redundant namespaces declarations</span>
+        <span class="s0">XML_PARSE_NOCDATA = 16384 # merge CDATA as text nodes</span>
+        <span class="s0">XML_PARSE_NOXINCNODE = 32768 # do not generate XINCLUDE START/END nodes</span>
+        <span class="s0"># libxml2 2.6.21+ only:</span>
+        <span class="s0">XML_PARSE_COMPACT = 65536 # compact small text nodes</span>
+        <span class="s0"># libxml2 2.7.0+ only:</span>
+        <span class="s0">XML_PARSE_OLD10 = 131072 # parse using XML-1.0 before update 5</span>
+        <span class="s0">XML_PARSE_NOBASEFIX = 262144 # do not fixup XINCLUDE xml:base uris</span>
+        <span class="s0">XML_PARSE_HUGE = 524288 # relax any hardcoded limit from the parser</span>
+        <span class="s0"># libxml2 2.7.3+ only:</span>
+        <span class="s0">XML_PARSE_OLDSAX = 1048576 # parse using SAX2 interface before 2.7.0</span>
+        <span class="s0"># libxml2 2.8.0+ only:</span>
+        <span class="s0">XML_PARSE_IGNORE_ENC = 2097152 # ignore internal document encoding hint</span>
+        <span class="s0"># libxml2 2.9.0+ only:</span>
+        <span class="s0">XML_PARSE_BIG_LINES = 4194304 # Store big lines numbers in text PSVI field</span>
+
+    <span class="s0">cdef void xmlInitParser() nogil</span>
+    <span class="s0">cdef void xmlCleanupParser() nogil</span>
+
+    <span class="s0">cdef int xmlLineNumbersDefault(int onoff) nogil</span>
+    <span class="s0">cdef xmlParserCtxt* xmlNewParserCtxt() nogil</span>
+    <span class="s0">cdef xmlParserInput* xmlNewIOInputStream(xmlParserCtxt* ctxt,</span>
+                                             <span class="s0">xmlParserInputBuffer* input,</span>
+                                             <span class="s0">int enc) nogil</span>
+    <span class="s0">cdef int xmlCtxtUseOptions(xmlParserCtxt* ctxt, int options) nogil</span>
+    <span class="s0">cdef void xmlFreeParserCtxt(xmlParserCtxt* ctxt) nogil</span>
+    <span class="s0">cdef void xmlCtxtReset(xmlParserCtxt* ctxt) nogil</span>
+    <span class="s0">cdef void xmlClearParserCtxt(xmlParserCtxt* ctxt) nogil</span>
+    <span class="s0">cdef int xmlParseChunk(xmlParserCtxt* ctxt,</span>
+                           <span class="s0">char* chunk, int size, int terminate) nogil</span>
+    <span class="s0">cdef xmlDoc* xmlCtxtReadDoc(xmlParserCtxt* ctxt,</span>
+                                <span class="s0">char* cur, char* URL, char* encoding,</span>
+                                <span class="s0">int options) nogil</span>
+    <span class="s0">cdef xmlDoc* xmlCtxtReadFile(xmlParserCtxt* ctxt,</span>
+                                 <span class="s0">char* filename, char* encoding,</span>
+                                 <span class="s0">int options) nogil</span>
+    <span class="s0">cdef xmlDoc* xmlCtxtReadIO(xmlParserCtxt* ctxt, </span>
+                               <span class="s0">xmlInputReadCallback ioread, </span>
+                               <span class="s0">xmlInputCloseCallback ioclose, </span>
+                               <span class="s0">void* ioctx,</span>
+                               <span class="s0">char* URL, char* encoding,</span>
+                               <span class="s0">int options) nogil</span>
+    <span class="s0">cdef xmlDoc* xmlCtxtReadMemory(xmlParserCtxt* ctxt,</span>
+                                   <span class="s0">char* buffer, int size,</span>
+                                   <span class="s0">char* filename, const_char* encoding,</span>
+                                   <span class="s0">int options) nogil</span>
+
+<span class="s0"># iterparse:</span>
+
+    <span class="s0">cdef xmlParserCtxt* xmlCreatePushParserCtxt(xmlSAXHandler* sax,</span>
+                                                <span class="s0">void* user_data,</span>
+                                                <span class="s0">char* chunk,</span>
+                                                <span class="s0">int size,</span>
+                                                <span class="s0">char* filename) nogil</span>
+
+    <span class="s0">cdef int xmlCtxtResetPush(xmlParserCtxt* ctxt,</span>
+                              <span class="s0">char* chunk,</span>
+                              <span class="s0">int size,</span>
+                              <span class="s0">char* filename,</span>
+                              <span class="s0">char* encoding) nogil</span>
+
+<span class="s0"># entity loaders:</span>
+
+    <span class="s0">ctypedef xmlParserInput* (*xmlExternalEntityLoader)(</span>
+        <span class="s0">const_char * URL, const_char * ID, xmlParserCtxt* context) nogil</span>
+    <span class="s0">cdef xmlExternalEntityLoader xmlGetExternalEntityLoader() nogil</span>
+    <span class="s0">cdef void xmlSetExternalEntityLoader(xmlExternalEntityLoader f) nogil</span>
+
+<span class="s0"># DTDs:</span>
+
+    <span class="s0">cdef xmlDtd* xmlParseDTD(const_xmlChar* ExternalID, const_xmlChar* SystemID) nogil</span>
+    <span class="s0">cdef xmlDtd* xmlIOParseDTD(xmlSAXHandler* sax,</span>
+                               <span class="s0">xmlParserInputBuffer* input,</span>
+                               <span class="s0">int enc) nogil</span>
+
+<span class="s0">cdef extern from &quot;libxml/parserInternals.h&quot;:</span>
+    <span class="s0">cdef xmlParserInput* xmlNewInputStream(xmlParserCtxt* ctxt)</span>
+    <span class="s0">cdef xmlParserInput* xmlNewStringInputStream(xmlParserCtxt* ctxt, </span>
+                                                 <span class="s0">char* buffer) nogil</span>
+    <span class="s0">cdef xmlParserInput* xmlNewInputFromFile(xmlParserCtxt* ctxt, </span>
+                                             <span class="s0">char* filename) nogil</span>
+    <span class="s0">cdef void xmlFreeInputStream(xmlParserInput* input) nogil</span>
+    <span class="s0">cdef int xmlSwitchEncoding(xmlParserCtxt* ctxt, int enc) nogil</span>
+</pre>
+</body>
+</html>

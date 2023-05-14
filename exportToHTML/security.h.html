@@ -1,0 +1,125 @@
+<html>
+<head>
+<title>security.h</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+.s4 { color: #6897bb;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+security.h</font>
+</center></td></tr></table>
+<pre><span class="s0">/* 
+ * Summary: interface for the libxslt security framework 
+ * Description: the libxslt security framework allow to restrict 
+ *              the access to new resources (file or URL) from 
+ *              the stylesheet at runtime. 
+ * 
+ * Copy: See Copyright for the status of this software. 
+ * 
+ * Author: Daniel Veillard 
+ */</span>
+
+<span class="s2">#ifndef </span><span class="s1">__XML_XSLT_SECURITY_H__</span>
+<span class="s2">#define </span><span class="s1">__XML_XSLT_SECURITY_H__</span>
+
+<span class="s2">#include </span><span class="s1">&lt;libxml/tree.h&gt;</span>
+<span class="s2">#include </span><span class="s3">&quot;xsltexports.h&quot;</span>
+<span class="s2">#include </span><span class="s3">&quot;xsltInternals.h&quot;</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s2">extern </span><span class="s3">&quot;C&quot; </span><span class="s1">{</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * xsltSecurityPref: 
+ * 
+ * structure to indicate the preferences for security in the XSLT 
+ * transformation. 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xsltSecurityPrefs xsltSecurityPrefs;</span>
+<span class="s2">typedef </span><span class="s1">xsltSecurityPrefs *xsltSecurityPrefsPtr;</span>
+
+<span class="s0">/** 
+ * xsltSecurityOption: 
+ * 
+ * the set of option that can be configured 
+ */</span>
+<span class="s2">typedef enum </span><span class="s1">{</span>
+    <span class="s1">XSLT_SECPREF_READ_FILE = </span><span class="s4">1</span><span class="s1">,</span>
+    <span class="s1">XSLT_SECPREF_WRITE_FILE,</span>
+    <span class="s1">XSLT_SECPREF_CREATE_DIRECTORY,</span>
+    <span class="s1">XSLT_SECPREF_READ_NETWORK,</span>
+    <span class="s1">XSLT_SECPREF_WRITE_NETWORK</span>
+<span class="s1">} xsltSecurityOption;</span>
+
+<span class="s0">/** 
+ * xsltSecurityCheck: 
+ * 
+ * User provided function to check the value of a string like a file 
+ * path or an URL ... 
+ */</span>
+<span class="s2">typedef int </span><span class="s1">(*xsltSecurityCheck)	(xsltSecurityPrefsPtr sec,</span>
+					 <span class="s1">xsltTransformContextPtr ctxt,</span>
+					 <span class="s2">const char </span><span class="s1">*value);</span>
+
+<span class="s0">/* 
+ * Module interfaces 
+ */</span>
+<span class="s1">XSLTPUBFUN xsltSecurityPrefsPtr XSLTCALL</span>
+		    <span class="s1">xsltNewSecurityPrefs	(</span><span class="s2">void</span><span class="s1">);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		    <span class="s1">xsltFreeSecurityPrefs	(xsltSecurityPrefsPtr sec);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+		    <span class="s1">xsltSetSecurityPrefs	(xsltSecurityPrefsPtr sec,</span>
+						 <span class="s1">xsltSecurityOption option,</span>
+						 <span class="s1">xsltSecurityCheck func);</span>
+<span class="s1">XSLTPUBFUN xsltSecurityCheck XSLTCALL</span>
+		    <span class="s1">xsltGetSecurityPrefs	(xsltSecurityPrefsPtr sec,</span>
+						 <span class="s1">xsltSecurityOption option);</span>
+
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		    <span class="s1">xsltSetDefaultSecurityPrefs	(xsltSecurityPrefsPtr sec);</span>
+<span class="s1">XSLTPUBFUN xsltSecurityPrefsPtr XSLTCALL</span>
+		    <span class="s1">xsltGetDefaultSecurityPrefs	(</span><span class="s2">void</span><span class="s1">);</span>
+
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+		    <span class="s1">xsltSetCtxtSecurityPrefs	(xsltSecurityPrefsPtr sec,</span>
+						 <span class="s1">xsltTransformContextPtr ctxt);</span>
+
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+		    <span class="s1">xsltSecurityAllow		(xsltSecurityPrefsPtr sec,</span>
+						 <span class="s1">xsltTransformContextPtr ctxt,</span>
+						 <span class="s2">const char </span><span class="s1">*value);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+		    <span class="s1">xsltSecurityForbid		(xsltSecurityPrefsPtr sec,</span>
+						 <span class="s1">xsltTransformContextPtr ctxt,</span>
+						 <span class="s2">const char </span><span class="s1">*value);</span>
+<span class="s0">/* 
+ * internal interfaces 
+ */</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+		    <span class="s1">xsltCheckWrite		(xsltSecurityPrefsPtr sec,</span>
+						 <span class="s1">xsltTransformContextPtr ctxt,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *URL);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+		    <span class="s1">xsltCheckRead		(xsltSecurityPrefsPtr sec,</span>
+						 <span class="s1">xsltTransformContextPtr ctxt,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *URL);</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s1">}</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#endif </span><span class="s0">/* __XML_XSLT_SECURITY_H__ */</span>
+
+</pre>
+</body>
+</html>

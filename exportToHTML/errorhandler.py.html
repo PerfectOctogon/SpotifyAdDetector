@@ -1,0 +1,267 @@
+<html>
+<head>
+<title>errorhandler.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #629755; font-style: italic;}
+.s4 { color: #6897bb;}
+.s5 { color: #6a8759;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+errorhandler.py</font>
+</center></td></tr></table>
+<pre><span class="s0"># Licensed to the Software Freedom Conservancy (SFC) under one</span>
+<span class="s0"># or more contributor license agreements.  See the NOTICE file</span>
+<span class="s0"># distributed with this work for additional information</span>
+<span class="s0"># regarding copyright ownership.  The SFC licenses this file</span>
+<span class="s0"># to you under the Apache License, Version 2.0 (the</span>
+<span class="s0"># &quot;License&quot;); you may not use this file except in compliance</span>
+<span class="s0"># with the License.  You may obtain a copy of the License at</span>
+<span class="s0">#</span>
+<span class="s0">#   http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="s0">#</span>
+<span class="s0"># Unless required by applicable law or agreed to in writing,</span>
+<span class="s0"># software distributed under the License is distributed on an</span>
+<span class="s0"># &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY</span>
+<span class="s0"># KIND, either express or implied.  See the License for the</span>
+<span class="s0"># specific language governing permissions and limitations</span>
+<span class="s0"># under the License.</span>
+
+<span class="s2">from </span><span class="s1">selenium.common.exceptions </span><span class="s2">import </span><span class="s1">(ElementClickInterceptedException</span><span class="s2">,</span>
+                                        <span class="s1">ElementNotInteractableException</span><span class="s2">,</span>
+                                        <span class="s1">ElementNotSelectableException</span><span class="s2">,</span>
+                                        <span class="s1">ElementNotVisibleException</span><span class="s2">,</span>
+                                        <span class="s1">ErrorInResponseException</span><span class="s2">,</span>
+                                        <span class="s1">InsecureCertificateException</span><span class="s2">,</span>
+                                        <span class="s1">InvalidCoordinatesException</span><span class="s2">,</span>
+                                        <span class="s1">InvalidElementStateException</span><span class="s2">,</span>
+                                        <span class="s1">InvalidSessionIdException</span><span class="s2">,</span>
+                                        <span class="s1">InvalidSelectorException</span><span class="s2">,</span>
+                                        <span class="s1">ImeNotAvailableException</span><span class="s2">,</span>
+                                        <span class="s1">ImeActivationFailedException</span><span class="s2">,</span>
+                                        <span class="s1">InvalidArgumentException</span><span class="s2">,</span>
+                                        <span class="s1">InvalidCookieDomainException</span><span class="s2">,</span>
+                                        <span class="s1">JavascriptException</span><span class="s2">,</span>
+                                        <span class="s1">MoveTargetOutOfBoundsException</span><span class="s2">,</span>
+                                        <span class="s1">NoSuchCookieException</span><span class="s2">,</span>
+                                        <span class="s1">NoSuchElementException</span><span class="s2">,</span>
+                                        <span class="s1">NoSuchFrameException</span><span class="s2">,</span>
+                                        <span class="s1">NoSuchWindowException</span><span class="s2">,</span>
+                                        <span class="s1">NoAlertPresentException</span><span class="s2">,</span>
+                                        <span class="s1">ScreenshotException</span><span class="s2">,</span>
+                                        <span class="s1">SessionNotCreatedException</span><span class="s2">,</span>
+                                        <span class="s1">StaleElementReferenceException</span><span class="s2">,</span>
+                                        <span class="s1">TimeoutException</span><span class="s2">,</span>
+                                        <span class="s1">UnableToSetCookieException</span><span class="s2">,</span>
+                                        <span class="s1">UnexpectedAlertPresentException</span><span class="s2">,</span>
+                                        <span class="s1">UnknownMethodException</span><span class="s2">,</span>
+                                        <span class="s1">WebDriverException)</span>
+
+<span class="s2">try</span><span class="s1">:</span>
+    <span class="s1">basestring</span>
+<span class="s2">except </span><span class="s1">NameError:  </span><span class="s0"># Python 3.x</span>
+    <span class="s1">basestring = str</span>
+
+
+<span class="s2">class </span><span class="s1">ErrorCode(object):</span>
+    <span class="s3">&quot;&quot;&quot; 
+    Error codes defined in the WebDriver wire protocol. 
+    &quot;&quot;&quot;</span>
+    <span class="s0"># Keep in sync with org.openqa.selenium.remote.ErrorCodes and errorcodes.h</span>
+    <span class="s1">SUCCESS = </span><span class="s4">0</span>
+    <span class="s1">NO_SUCH_ELEMENT = [</span><span class="s4">7</span><span class="s2">, </span><span class="s5">'no such element'</span><span class="s1">]</span>
+    <span class="s1">NO_SUCH_FRAME = [</span><span class="s4">8</span><span class="s2">, </span><span class="s5">'no such frame'</span><span class="s1">]</span>
+    <span class="s1">UNKNOWN_COMMAND = [</span><span class="s4">9</span><span class="s2">, </span><span class="s5">'unknown command'</span><span class="s1">]</span>
+    <span class="s1">STALE_ELEMENT_REFERENCE = [</span><span class="s4">10</span><span class="s2">, </span><span class="s5">'stale element reference'</span><span class="s1">]</span>
+    <span class="s1">ELEMENT_NOT_VISIBLE = [</span><span class="s4">11</span><span class="s2">, </span><span class="s5">'element not visible'</span><span class="s1">]</span>
+    <span class="s1">INVALID_ELEMENT_STATE = [</span><span class="s4">12</span><span class="s2">, </span><span class="s5">'invalid element state'</span><span class="s1">]</span>
+    <span class="s1">UNKNOWN_ERROR = [</span><span class="s4">13</span><span class="s2">, </span><span class="s5">'unknown error'</span><span class="s1">]</span>
+    <span class="s1">ELEMENT_IS_NOT_SELECTABLE = [</span><span class="s4">15</span><span class="s2">, </span><span class="s5">'element not selectable'</span><span class="s1">]</span>
+    <span class="s1">JAVASCRIPT_ERROR = [</span><span class="s4">17</span><span class="s2">, </span><span class="s5">'javascript error'</span><span class="s1">]</span>
+    <span class="s1">XPATH_LOOKUP_ERROR = [</span><span class="s4">19</span><span class="s2">, </span><span class="s5">'invalid selector'</span><span class="s1">]</span>
+    <span class="s1">TIMEOUT = [</span><span class="s4">21</span><span class="s2">, </span><span class="s5">'timeout'</span><span class="s1">]</span>
+    <span class="s1">NO_SUCH_WINDOW = [</span><span class="s4">23</span><span class="s2">, </span><span class="s5">'no such window'</span><span class="s1">]</span>
+    <span class="s1">INVALID_COOKIE_DOMAIN = [</span><span class="s4">24</span><span class="s2">, </span><span class="s5">'invalid cookie domain'</span><span class="s1">]</span>
+    <span class="s1">UNABLE_TO_SET_COOKIE = [</span><span class="s4">25</span><span class="s2">, </span><span class="s5">'unable to set cookie'</span><span class="s1">]</span>
+    <span class="s1">UNEXPECTED_ALERT_OPEN = [</span><span class="s4">26</span><span class="s2">, </span><span class="s5">'unexpected alert open'</span><span class="s1">]</span>
+    <span class="s1">NO_ALERT_OPEN = [</span><span class="s4">27</span><span class="s2">, </span><span class="s5">'no such alert'</span><span class="s1">]</span>
+    <span class="s1">SCRIPT_TIMEOUT = [</span><span class="s4">28</span><span class="s2">, </span><span class="s5">'script timeout'</span><span class="s1">]</span>
+    <span class="s1">INVALID_ELEMENT_COORDINATES = [</span><span class="s4">29</span><span class="s2">, </span><span class="s5">'invalid element coordinates'</span><span class="s1">]</span>
+    <span class="s1">IME_NOT_AVAILABLE = [</span><span class="s4">30</span><span class="s2">, </span><span class="s5">'ime not available'</span><span class="s1">]</span>
+    <span class="s1">IME_ENGINE_ACTIVATION_FAILED = [</span><span class="s4">31</span><span class="s2">, </span><span class="s5">'ime engine activation failed'</span><span class="s1">]</span>
+    <span class="s1">INVALID_SELECTOR = [</span><span class="s4">32</span><span class="s2">, </span><span class="s5">'invalid selector'</span><span class="s1">]</span>
+    <span class="s1">SESSION_NOT_CREATED = [</span><span class="s4">33</span><span class="s2">, </span><span class="s5">'session not created'</span><span class="s1">]</span>
+    <span class="s1">MOVE_TARGET_OUT_OF_BOUNDS = [</span><span class="s4">34</span><span class="s2">, </span><span class="s5">'move target out of bounds'</span><span class="s1">]</span>
+    <span class="s1">INVALID_XPATH_SELECTOR = [</span><span class="s4">51</span><span class="s2">, </span><span class="s5">'invalid selector'</span><span class="s1">]</span>
+    <span class="s1">INVALID_XPATH_SELECTOR_RETURN_TYPER = [</span><span class="s4">52</span><span class="s2">, </span><span class="s5">'invalid selector'</span><span class="s1">]</span>
+
+    <span class="s1">ELEMENT_NOT_INTERACTABLE = [</span><span class="s4">60</span><span class="s2">, </span><span class="s5">'element not interactable'</span><span class="s1">]</span>
+    <span class="s1">INSECURE_CERTIFICATE = [</span><span class="s5">'insecure certificate'</span><span class="s1">]</span>
+    <span class="s1">INVALID_ARGUMENT = [</span><span class="s4">61</span><span class="s2">, </span><span class="s5">'invalid argument'</span><span class="s1">]</span>
+    <span class="s1">INVALID_COORDINATES = [</span><span class="s5">'invalid coordinates'</span><span class="s1">]</span>
+    <span class="s1">INVALID_SESSION_ID = [</span><span class="s5">'invalid session id'</span><span class="s1">]</span>
+    <span class="s1">NO_SUCH_COOKIE = [</span><span class="s4">62</span><span class="s2">, </span><span class="s5">'no such cookie'</span><span class="s1">]</span>
+    <span class="s1">UNABLE_TO_CAPTURE_SCREEN = [</span><span class="s4">63</span><span class="s2">, </span><span class="s5">'unable to capture screen'</span><span class="s1">]</span>
+    <span class="s1">ELEMENT_CLICK_INTERCEPTED = [</span><span class="s4">64</span><span class="s2">, </span><span class="s5">'element click intercepted'</span><span class="s1">]</span>
+    <span class="s1">UNKNOWN_METHOD = [</span><span class="s5">'unknown method exception'</span><span class="s1">]</span>
+
+    <span class="s1">METHOD_NOT_ALLOWED = [</span><span class="s4">405</span><span class="s2">, </span><span class="s5">'unsupported operation'</span><span class="s1">]</span>
+
+
+<span class="s2">class </span><span class="s1">ErrorHandler(object):</span>
+    <span class="s3">&quot;&quot;&quot; 
+    Handles errors returned by the WebDriver server. 
+    &quot;&quot;&quot;</span>
+    <span class="s2">def </span><span class="s1">check_response(self</span><span class="s2">, </span><span class="s1">response):</span>
+        <span class="s3">&quot;&quot;&quot; 
+        Checks that a JSON response from the WebDriver does not have an error. 
+ 
+        :Args: 
+         - response - The JSON response from the WebDriver server as a dictionary 
+           object. 
+ 
+        :Raises: If the response contains an error message. 
+        &quot;&quot;&quot;</span>
+        <span class="s1">status = response.get(</span><span class="s5">'status'</span><span class="s2">, None</span><span class="s1">)</span>
+        <span class="s2">if </span><span class="s1">status </span><span class="s2">is None or </span><span class="s1">status == ErrorCode.SUCCESS:</span>
+            <span class="s2">return</span>
+        <span class="s1">value = </span><span class="s2">None</span>
+        <span class="s1">message = response.get(</span><span class="s5">&quot;message&quot;</span><span class="s2">, </span><span class="s5">&quot;&quot;</span><span class="s1">)</span>
+        <span class="s1">screen = response.get(</span><span class="s5">&quot;screen&quot;</span><span class="s2">, </span><span class="s5">&quot;&quot;</span><span class="s1">)</span>
+        <span class="s1">stacktrace = </span><span class="s2">None</span>
+        <span class="s2">if </span><span class="s1">isinstance(status</span><span class="s2">, </span><span class="s1">int):</span>
+            <span class="s1">value_json = response.get(</span><span class="s5">'value'</span><span class="s2">, None</span><span class="s1">)</span>
+            <span class="s2">if </span><span class="s1">value_json </span><span class="s2">and </span><span class="s1">isinstance(value_json</span><span class="s2">, </span><span class="s1">basestring):</span>
+                <span class="s2">import </span><span class="s1">json</span>
+                <span class="s2">try</span><span class="s1">:</span>
+                    <span class="s1">value = json.loads(value_json)</span>
+                    <span class="s2">if </span><span class="s1">len(value.keys()) == </span><span class="s4">1</span><span class="s1">:</span>
+                        <span class="s1">value = value[</span><span class="s5">'value'</span><span class="s1">]</span>
+                    <span class="s1">status = value.get(</span><span class="s5">'error'</span><span class="s2">, None</span><span class="s1">)</span>
+                    <span class="s2">if </span><span class="s1">status </span><span class="s2">is None</span><span class="s1">:</span>
+                        <span class="s1">status = value[</span><span class="s5">&quot;status&quot;</span><span class="s1">]</span>
+                        <span class="s1">message = value[</span><span class="s5">&quot;value&quot;</span><span class="s1">]</span>
+                        <span class="s2">if not </span><span class="s1">isinstance(message</span><span class="s2">, </span><span class="s1">basestring):</span>
+                            <span class="s1">value = message</span>
+                            <span class="s1">message = message.get(</span><span class="s5">'message'</span><span class="s1">)</span>
+                    <span class="s2">else</span><span class="s1">:</span>
+                        <span class="s1">message = value.get(</span><span class="s5">'message'</span><span class="s2">, None</span><span class="s1">)</span>
+                <span class="s2">except </span><span class="s1">ValueError:</span>
+                    <span class="s2">pass</span>
+
+        <span class="s1">exception_class = ErrorInResponseException</span>
+        <span class="s2">if </span><span class="s1">status </span><span class="s2">in </span><span class="s1">ErrorCode.NO_SUCH_ELEMENT:</span>
+            <span class="s1">exception_class = NoSuchElementException</span>
+        <span class="s2">elif </span><span class="s1">status </span><span class="s2">in </span><span class="s1">ErrorCode.NO_SUCH_FRAME:</span>
+            <span class="s1">exception_class = NoSuchFrameException</span>
+        <span class="s2">elif </span><span class="s1">status </span><span class="s2">in </span><span class="s1">ErrorCode.NO_SUCH_WINDOW:</span>
+            <span class="s1">exception_class = NoSuchWindowException</span>
+        <span class="s2">elif </span><span class="s1">status </span><span class="s2">in </span><span class="s1">ErrorCode.STALE_ELEMENT_REFERENCE:</span>
+            <span class="s1">exception_class = StaleElementReferenceException</span>
+        <span class="s2">elif </span><span class="s1">status </span><span class="s2">in </span><span class="s1">ErrorCode.ELEMENT_NOT_VISIBLE:</span>
+            <span class="s1">exception_class = ElementNotVisibleException</span>
+        <span class="s2">elif </span><span class="s1">status </span><span class="s2">in </span><span class="s1">ErrorCode.INVALID_ELEMENT_STATE:</span>
+            <span class="s1">exception_class = InvalidElementStateException</span>
+        <span class="s2">elif </span><span class="s1">status </span><span class="s2">in </span><span class="s1">ErrorCode.INVALID_SELECTOR \</span>
+                <span class="s2">or </span><span class="s1">status </span><span class="s2">in </span><span class="s1">ErrorCode.INVALID_XPATH_SELECTOR \</span>
+                <span class="s2">or </span><span class="s1">status </span><span class="s2">in </span><span class="s1">ErrorCode.INVALID_XPATH_SELECTOR_RETURN_TYPER:</span>
+            <span class="s1">exception_class = InvalidSelectorException</span>
+        <span class="s2">elif </span><span class="s1">status </span><span class="s2">in </span><span class="s1">ErrorCode.ELEMENT_IS_NOT_SELECTABLE:</span>
+            <span class="s1">exception_class = ElementNotSelectableException</span>
+        <span class="s2">elif </span><span class="s1">status </span><span class="s2">in </span><span class="s1">ErrorCode.ELEMENT_NOT_INTERACTABLE:</span>
+            <span class="s1">exception_class = ElementNotInteractableException</span>
+        <span class="s2">elif </span><span class="s1">status </span><span class="s2">in </span><span class="s1">ErrorCode.INVALID_COOKIE_DOMAIN:</span>
+            <span class="s1">exception_class = InvalidCookieDomainException</span>
+        <span class="s2">elif </span><span class="s1">status </span><span class="s2">in </span><span class="s1">ErrorCode.UNABLE_TO_SET_COOKIE:</span>
+            <span class="s1">exception_class = UnableToSetCookieException</span>
+        <span class="s2">elif </span><span class="s1">status </span><span class="s2">in </span><span class="s1">ErrorCode.TIMEOUT:</span>
+            <span class="s1">exception_class = TimeoutException</span>
+        <span class="s2">elif </span><span class="s1">status </span><span class="s2">in </span><span class="s1">ErrorCode.SCRIPT_TIMEOUT:</span>
+            <span class="s1">exception_class = TimeoutException</span>
+        <span class="s2">elif </span><span class="s1">status </span><span class="s2">in </span><span class="s1">ErrorCode.UNKNOWN_ERROR:</span>
+            <span class="s1">exception_class = WebDriverException</span>
+        <span class="s2">elif </span><span class="s1">status </span><span class="s2">in </span><span class="s1">ErrorCode.UNEXPECTED_ALERT_OPEN:</span>
+            <span class="s1">exception_class = UnexpectedAlertPresentException</span>
+        <span class="s2">elif </span><span class="s1">status </span><span class="s2">in </span><span class="s1">ErrorCode.NO_ALERT_OPEN:</span>
+            <span class="s1">exception_class = NoAlertPresentException</span>
+        <span class="s2">elif </span><span class="s1">status </span><span class="s2">in </span><span class="s1">ErrorCode.IME_NOT_AVAILABLE:</span>
+            <span class="s1">exception_class = ImeNotAvailableException</span>
+        <span class="s2">elif </span><span class="s1">status </span><span class="s2">in </span><span class="s1">ErrorCode.IME_ENGINE_ACTIVATION_FAILED:</span>
+            <span class="s1">exception_class = ImeActivationFailedException</span>
+        <span class="s2">elif </span><span class="s1">status </span><span class="s2">in </span><span class="s1">ErrorCode.MOVE_TARGET_OUT_OF_BOUNDS:</span>
+            <span class="s1">exception_class = MoveTargetOutOfBoundsException</span>
+        <span class="s2">elif </span><span class="s1">status </span><span class="s2">in </span><span class="s1">ErrorCode.JAVASCRIPT_ERROR:</span>
+            <span class="s1">exception_class = JavascriptException</span>
+        <span class="s2">elif </span><span class="s1">status </span><span class="s2">in </span><span class="s1">ErrorCode.SESSION_NOT_CREATED:</span>
+            <span class="s1">exception_class = SessionNotCreatedException</span>
+        <span class="s2">elif </span><span class="s1">status </span><span class="s2">in </span><span class="s1">ErrorCode.INVALID_ARGUMENT:</span>
+            <span class="s1">exception_class = InvalidArgumentException</span>
+        <span class="s2">elif </span><span class="s1">status </span><span class="s2">in </span><span class="s1">ErrorCode.NO_SUCH_COOKIE:</span>
+            <span class="s1">exception_class = NoSuchCookieException</span>
+        <span class="s2">elif </span><span class="s1">status </span><span class="s2">in </span><span class="s1">ErrorCode.UNABLE_TO_CAPTURE_SCREEN:</span>
+            <span class="s1">exception_class = ScreenshotException</span>
+        <span class="s2">elif </span><span class="s1">status </span><span class="s2">in </span><span class="s1">ErrorCode.ELEMENT_CLICK_INTERCEPTED:</span>
+            <span class="s1">exception_class = ElementClickInterceptedException</span>
+        <span class="s2">elif </span><span class="s1">status </span><span class="s2">in </span><span class="s1">ErrorCode.INSECURE_CERTIFICATE:</span>
+            <span class="s1">exception_class = InsecureCertificateException</span>
+        <span class="s2">elif </span><span class="s1">status </span><span class="s2">in </span><span class="s1">ErrorCode.INVALID_COORDINATES:</span>
+            <span class="s1">exception_class = InvalidCoordinatesException</span>
+        <span class="s2">elif </span><span class="s1">status </span><span class="s2">in </span><span class="s1">ErrorCode.INVALID_SESSION_ID:</span>
+            <span class="s1">exception_class = InvalidSessionIdException</span>
+        <span class="s2">elif </span><span class="s1">status </span><span class="s2">in </span><span class="s1">ErrorCode.UNKNOWN_METHOD:</span>
+            <span class="s1">exception_class = UnknownMethodException</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s1">exception_class = WebDriverException</span>
+        <span class="s2">if </span><span class="s1">value == </span><span class="s5">'' </span><span class="s2">or </span><span class="s1">value </span><span class="s2">is None</span><span class="s1">:</span>
+            <span class="s1">value = response[</span><span class="s5">'value'</span><span class="s1">]</span>
+        <span class="s2">if </span><span class="s1">isinstance(value</span><span class="s2">, </span><span class="s1">basestring):</span>
+            <span class="s2">if </span><span class="s1">exception_class == ErrorInResponseException:</span>
+                <span class="s2">raise </span><span class="s1">exception_class(response</span><span class="s2">, </span><span class="s1">value)</span>
+            <span class="s2">raise </span><span class="s1">exception_class(value)</span>
+        <span class="s2">if </span><span class="s1">message == </span><span class="s5">&quot;&quot; </span><span class="s2">and </span><span class="s5">'message' </span><span class="s2">in </span><span class="s1">value:</span>
+            <span class="s1">message = value[</span><span class="s5">'message'</span><span class="s1">]</span>
+
+        <span class="s1">screen = </span><span class="s2">None</span>
+        <span class="s2">if </span><span class="s5">'screen' </span><span class="s2">in </span><span class="s1">value:</span>
+            <span class="s1">screen = value[</span><span class="s5">'screen'</span><span class="s1">]</span>
+
+        <span class="s1">stacktrace = </span><span class="s2">None</span>
+        <span class="s2">if </span><span class="s5">'stackTrace' </span><span class="s2">in </span><span class="s1">value </span><span class="s2">and </span><span class="s1">value[</span><span class="s5">'stackTrace'</span><span class="s1">]:</span>
+            <span class="s1">stacktrace = []</span>
+            <span class="s2">try</span><span class="s1">:</span>
+                <span class="s2">for </span><span class="s1">frame </span><span class="s2">in </span><span class="s1">value[</span><span class="s5">'stackTrace'</span><span class="s1">]:</span>
+                    <span class="s1">line = self._value_or_default(frame</span><span class="s2">, </span><span class="s5">'lineNumber'</span><span class="s2">, </span><span class="s5">''</span><span class="s1">)</span>
+                    <span class="s1">file = self._value_or_default(frame</span><span class="s2">, </span><span class="s5">'fileName'</span><span class="s2">, </span><span class="s5">'&lt;anonymous&gt;'</span><span class="s1">)</span>
+                    <span class="s2">if </span><span class="s1">line:</span>
+                        <span class="s1">file = </span><span class="s5">&quot;%s:%s&quot; </span><span class="s1">% (file</span><span class="s2">, </span><span class="s1">line)</span>
+                    <span class="s1">meth = self._value_or_default(frame</span><span class="s2">, </span><span class="s5">'methodName'</span><span class="s2">, </span><span class="s5">'&lt;anonymous&gt;'</span><span class="s1">)</span>
+                    <span class="s2">if </span><span class="s5">'className' </span><span class="s2">in </span><span class="s1">frame:</span>
+                        <span class="s1">meth = </span><span class="s5">&quot;%s.%s&quot; </span><span class="s1">% (frame[</span><span class="s5">'className'</span><span class="s1">]</span><span class="s2">, </span><span class="s1">meth)</span>
+                    <span class="s1">msg = </span><span class="s5">&quot;    at %s (%s)&quot;</span>
+                    <span class="s1">msg = msg % (meth</span><span class="s2">, </span><span class="s1">file)</span>
+                    <span class="s1">stacktrace.append(msg)</span>
+            <span class="s2">except </span><span class="s1">TypeError:</span>
+                <span class="s2">pass</span>
+        <span class="s2">if </span><span class="s1">exception_class == ErrorInResponseException:</span>
+            <span class="s2">raise </span><span class="s1">exception_class(response</span><span class="s2">, </span><span class="s1">message)</span>
+        <span class="s2">elif </span><span class="s1">exception_class == UnexpectedAlertPresentException:</span>
+            <span class="s1">alert_text = </span><span class="s2">None</span>
+            <span class="s2">if </span><span class="s5">'data' </span><span class="s2">in </span><span class="s1">value:</span>
+                <span class="s1">alert_text = value[</span><span class="s5">'data'</span><span class="s1">].get(</span><span class="s5">'text'</span><span class="s1">)</span>
+            <span class="s2">elif </span><span class="s5">'alert' </span><span class="s2">in </span><span class="s1">value:</span>
+                <span class="s1">alert_text = value[</span><span class="s5">'alert'</span><span class="s1">].get(</span><span class="s5">'text'</span><span class="s1">)</span>
+            <span class="s2">raise </span><span class="s1">exception_class(message</span><span class="s2">, </span><span class="s1">screen</span><span class="s2">, </span><span class="s1">stacktrace</span><span class="s2">, </span><span class="s1">alert_text)</span>
+        <span class="s2">raise </span><span class="s1">exception_class(message</span><span class="s2">, </span><span class="s1">screen</span><span class="s2">, </span><span class="s1">stacktrace)</span>
+
+    <span class="s2">def </span><span class="s1">_value_or_default(self</span><span class="s2">, </span><span class="s1">obj</span><span class="s2">, </span><span class="s1">key</span><span class="s2">, </span><span class="s1">default):</span>
+        <span class="s2">return </span><span class="s1">obj[key] </span><span class="s2">if </span><span class="s1">key </span><span class="s2">in </span><span class="s1">obj </span><span class="s2">else </span><span class="s1">default</span>
+</pre>
+</body>
+</html>

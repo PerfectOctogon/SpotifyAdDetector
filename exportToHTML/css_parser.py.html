@@ -1,0 +1,1231 @@
+<html>
+<head>
+<title>css_parser.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #629755; font-style: italic;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6897bb;}
+.s4 { color: #808080;}
+.s5 { color: #6a8759;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+css_parser.py</font>
+</center></td></tr></table>
+<pre><span class="s0">&quot;&quot;&quot;CSS selector parser.&quot;&quot;&quot;</span>
+<span class="s2">import </span><span class="s1">re</span>
+<span class="s2">from </span><span class="s1">functools </span><span class="s2">import </span><span class="s1">lru_cache</span>
+<span class="s2">from </span><span class="s1">. </span><span class="s2">import </span><span class="s1">util</span>
+<span class="s2">from </span><span class="s1">. </span><span class="s2">import </span><span class="s1">css_match </span><span class="s2">as </span><span class="s1">cm</span>
+<span class="s2">from </span><span class="s1">. </span><span class="s2">import </span><span class="s1">css_types </span><span class="s2">as </span><span class="s1">ct</span>
+<span class="s2">from </span><span class="s1">.util </span><span class="s2">import </span><span class="s1">SelectorSyntaxError</span>
+<span class="s2">import </span><span class="s1">warnings</span>
+
+<span class="s1">UNICODE_REPLACEMENT_CHAR = </span><span class="s3">0xFFFD</span>
+
+<span class="s4"># Simple pseudo classes that take no parameters</span>
+<span class="s1">PSEUDO_SIMPLE = {</span>
+    <span class="s5">&quot;:any-link&quot;</span><span class="s2">,</span>
+    <span class="s5">&quot;:empty&quot;</span><span class="s2">,</span>
+    <span class="s5">&quot;:first-child&quot;</span><span class="s2">,</span>
+    <span class="s5">&quot;:first-of-type&quot;</span><span class="s2">,</span>
+    <span class="s5">&quot;:in-range&quot;</span><span class="s2">,</span>
+    <span class="s5">&quot;:out-of-range&quot;</span><span class="s2">,</span>
+    <span class="s5">&quot;:last-child&quot;</span><span class="s2">,</span>
+    <span class="s5">&quot;:last-of-type&quot;</span><span class="s2">,</span>
+    <span class="s5">&quot;:link&quot;</span><span class="s2">,</span>
+    <span class="s5">&quot;:only-child&quot;</span><span class="s2">,</span>
+    <span class="s5">&quot;:only-of-type&quot;</span><span class="s2">,</span>
+    <span class="s5">&quot;:root&quot;</span><span class="s2">,</span>
+    <span class="s5">':checked'</span><span class="s2">,</span>
+    <span class="s5">':default'</span><span class="s2">,</span>
+    <span class="s5">':disabled'</span><span class="s2">,</span>
+    <span class="s5">':enabled'</span><span class="s2">,</span>
+    <span class="s5">':indeterminate'</span><span class="s2">,</span>
+    <span class="s5">':optional'</span><span class="s2">,</span>
+    <span class="s5">':placeholder-shown'</span><span class="s2">,</span>
+    <span class="s5">':read-only'</span><span class="s2">,</span>
+    <span class="s5">':read-write'</span><span class="s2">,</span>
+    <span class="s5">':required'</span><span class="s2">,</span>
+    <span class="s5">':scope'</span><span class="s2">,</span>
+    <span class="s5">':defined'</span>
+<span class="s1">}</span>
+
+<span class="s4"># Supported, simple pseudo classes that match nothing in the Soup Sieve environment</span>
+<span class="s1">PSEUDO_SIMPLE_NO_MATCH = {</span>
+    <span class="s5">':active'</span><span class="s2">,</span>
+    <span class="s5">':current'</span><span class="s2">,</span>
+    <span class="s5">':focus'</span><span class="s2">,</span>
+    <span class="s5">':focus-visible'</span><span class="s2">,</span>
+    <span class="s5">':focus-within'</span><span class="s2">,</span>
+    <span class="s5">':future'</span><span class="s2">,</span>
+    <span class="s5">':host'</span><span class="s2">,</span>
+    <span class="s5">':hover'</span><span class="s2">,</span>
+    <span class="s5">':local-link'</span><span class="s2">,</span>
+    <span class="s5">':past'</span><span class="s2">,</span>
+    <span class="s5">':paused'</span><span class="s2">,</span>
+    <span class="s5">':playing'</span><span class="s2">,</span>
+    <span class="s5">':target'</span><span class="s2">,</span>
+    <span class="s5">':target-within'</span><span class="s2">,</span>
+    <span class="s5">':user-invalid'</span><span class="s2">,</span>
+    <span class="s5">':visited'</span>
+<span class="s1">}</span>
+
+<span class="s4"># Complex pseudo classes that take selector lists</span>
+<span class="s1">PSEUDO_COMPLEX = {</span>
+    <span class="s5">':contains'</span><span class="s2">,</span>
+    <span class="s5">':-soup-contains'</span><span class="s2">,</span>
+    <span class="s5">':-soup-contains-own'</span><span class="s2">,</span>
+    <span class="s5">':has'</span><span class="s2">,</span>
+    <span class="s5">':is'</span><span class="s2">,</span>
+    <span class="s5">':matches'</span><span class="s2">,</span>
+    <span class="s5">':not'</span><span class="s2">,</span>
+    <span class="s5">':where'</span>
+<span class="s1">}</span>
+
+<span class="s1">PSEUDO_COMPLEX_NO_MATCH = {</span>
+    <span class="s5">':current'</span><span class="s2">,</span>
+    <span class="s5">':host'</span><span class="s2">,</span>
+    <span class="s5">':host-context'</span>
+<span class="s1">}</span>
+
+<span class="s4"># Complex pseudo classes that take very specific parameters and are handled special</span>
+<span class="s1">PSEUDO_SPECIAL = {</span>
+    <span class="s5">':dir'</span><span class="s2">,</span>
+    <span class="s5">':lang'</span><span class="s2">,</span>
+    <span class="s5">':nth-child'</span><span class="s2">,</span>
+    <span class="s5">':nth-last-child'</span><span class="s2">,</span>
+    <span class="s5">':nth-last-of-type'</span><span class="s2">,</span>
+    <span class="s5">':nth-of-type'</span>
+<span class="s1">}</span>
+
+<span class="s1">PSEUDO_SUPPORTED = PSEUDO_SIMPLE | PSEUDO_SIMPLE_NO_MATCH | PSEUDO_COMPLEX | PSEUDO_COMPLEX_NO_MATCH | PSEUDO_SPECIAL</span>
+
+<span class="s4"># Sub-patterns parts</span>
+<span class="s4"># Whitespace</span>
+<span class="s1">NEWLINE = </span><span class="s5">r'(?:\r\n|(?!\r\n)[\n\f\r])'</span>
+<span class="s1">WS = </span><span class="s5">r'(?:[ \t]|{})'</span><span class="s1">.format(NEWLINE)</span>
+<span class="s4"># Comments</span>
+<span class="s1">COMMENTS = </span><span class="s5">r'(?:/\*[^*]*\*+(?:[^/*][^*]*\*+)*/)'</span>
+<span class="s4"># Whitespace with comments included</span>
+<span class="s1">WSC = </span><span class="s5">r'(?:{ws}|{comments})'</span><span class="s1">.format(ws=WS</span><span class="s2">, </span><span class="s1">comments=COMMENTS)</span>
+<span class="s4"># CSS escapes</span>
+<span class="s1">CSS_ESCAPES = </span><span class="s5">r'(?:\\(?:[a-f0-9]{{1,6}}{ws}?|[^\r\n\f]|$))'</span><span class="s1">.format(ws=WS)</span>
+<span class="s1">CSS_STRING_ESCAPES = </span><span class="s5">r'(?:\\(?:[a-f0-9]{{1,6}}{ws}?|[^\r\n\f]|$|{nl}))'</span><span class="s1">.format(ws=WS</span><span class="s2">, </span><span class="s1">nl=NEWLINE)</span>
+<span class="s4"># CSS Identifier</span>
+<span class="s1">IDENTIFIER = </span><span class="s5">r''' 
+(?:(?:-?(?:[^\x00-\x2f\x30-\x40\x5B-\x5E\x60\x7B-\x9f]|{esc})+|--) 
+(?:[^\x00-\x2c\x2e\x2f\x3A-\x40\x5B-\x5E\x60\x7B-\x9f]|{esc})*) 
+'''</span><span class="s1">.format(esc=CSS_ESCAPES)</span>
+<span class="s4"># `nth` content</span>
+<span class="s1">NTH = </span><span class="s5">r'(?:[-+])?(?:[0-9]+n?|n)(?:(?&lt;=n){ws}*(?:[-+]){ws}*(?:[0-9]+))?'</span><span class="s1">.format(ws=WSC)</span>
+<span class="s4"># Value: quoted string or identifier</span>
+<span class="s1">VALUE = </span><span class="s5">r''' 
+(?:&quot;(?:\\(?:.|{nl})|[^\\&quot;\r\n\f]+)*?&quot;|'(?:\\(?:.|{nl})|[^\\'\r\n\f]+)*?'|{ident}+) 
+'''</span><span class="s1">.format(nl=NEWLINE</span><span class="s2">, </span><span class="s1">ident=IDENTIFIER)</span>
+<span class="s4"># Attribute value comparison. `!=` is handled special as it is non-standard.</span>
+<span class="s1">ATTR = </span><span class="s5">r''' 
+(?:{ws}*(?P&lt;cmp&gt;[!~^|*$]?=){ws}*(?P&lt;value&gt;{value})(?:{ws}+(?P&lt;case&gt;[is]))?)?{ws}*\] 
+'''</span><span class="s1">.format(ws=WSC</span><span class="s2">, </span><span class="s1">value=VALUE)</span>
+
+<span class="s4"># Selector patterns</span>
+<span class="s4"># IDs (`#id`)</span>
+<span class="s1">PAT_ID = </span><span class="s5">r'\#{ident}'</span><span class="s1">.format(ident=IDENTIFIER)</span>
+<span class="s4"># Classes (`.class`)</span>
+<span class="s1">PAT_CLASS = </span><span class="s5">r'\.{ident}'</span><span class="s1">.format(ident=IDENTIFIER)</span>
+<span class="s4"># Prefix:Tag (`prefix|tag`)</span>
+<span class="s1">PAT_TAG = </span><span class="s5">r'(?P&lt;tag_ns&gt;(?:{ident}|\*)?\|)?(?P&lt;tag_name&gt;{ident}|\*)'</span><span class="s1">.format(ident=IDENTIFIER)</span>
+<span class="s4"># Attributes (`[attr]`, `[attr=value]`, etc.)</span>
+<span class="s1">PAT_ATTR = </span><span class="s5">r''' 
+\[{ws}*(?P&lt;attr_ns&gt;(?:{ident}|\*)?\|)?(?P&lt;attr_name&gt;{ident}){attr} 
+'''</span><span class="s1">.format(ws=WSC</span><span class="s2">, </span><span class="s1">ident=IDENTIFIER</span><span class="s2">, </span><span class="s1">attr=ATTR)</span>
+<span class="s4"># Pseudo class (`:pseudo-class`, `:pseudo-class(`)</span>
+<span class="s1">PAT_PSEUDO_CLASS = </span><span class="s5">r'(?P&lt;name&gt;:{ident})(?P&lt;open&gt;\({ws}*)?'</span><span class="s1">.format(ws=WSC</span><span class="s2">, </span><span class="s1">ident=IDENTIFIER)</span>
+<span class="s4"># Pseudo class special patterns. Matches `:pseudo-class(` for special case pseudo classes.</span>
+<span class="s1">PAT_PSEUDO_CLASS_SPECIAL = </span><span class="s5">r'(?P&lt;name&gt;:{ident})(?P&lt;open&gt;\({ws}*)'</span><span class="s1">.format(ws=WSC</span><span class="s2">, </span><span class="s1">ident=IDENTIFIER)</span>
+<span class="s4"># Custom pseudo class (`:--custom-pseudo`)</span>
+<span class="s1">PAT_PSEUDO_CLASS_CUSTOM = </span><span class="s5">r'(?P&lt;name&gt;:(?=--){ident})'</span><span class="s1">.format(ident=IDENTIFIER)</span>
+<span class="s4"># Closing pseudo group (`)`)</span>
+<span class="s1">PAT_PSEUDO_CLOSE = </span><span class="s5">r'{ws}*\)'</span><span class="s1">.format(ws=WSC)</span>
+<span class="s4"># Pseudo element (`::pseudo-element`)</span>
+<span class="s1">PAT_PSEUDO_ELEMENT = </span><span class="s5">r':{}'</span><span class="s1">.format(PAT_PSEUDO_CLASS)</span>
+<span class="s4"># At rule (`@page`, etc.) (not supported)</span>
+<span class="s1">PAT_AT_RULE = </span><span class="s5">r'@P{ident}'</span><span class="s1">.format(ident=IDENTIFIER)</span>
+<span class="s4"># Pseudo class `nth-child` (`:nth-child(an+b [of S]?)`, `:first-child`, etc.)</span>
+<span class="s1">PAT_PSEUDO_NTH_CHILD = </span><span class="s5">r''' 
+(?P&lt;pseudo_nth_child&gt;{name} 
+(?P&lt;nth_child&gt;{nth}|even|odd))(?:{wsc}*\)|(?P&lt;of&gt;{comments}*{ws}{wsc}*of{comments}*{ws}{wsc}*)) 
+'''</span><span class="s1">.format(name=PAT_PSEUDO_CLASS_SPECIAL</span><span class="s2">, </span><span class="s1">wsc=WSC</span><span class="s2">, </span><span class="s1">comments=COMMENTS</span><span class="s2">, </span><span class="s1">ws=WS</span><span class="s2">, </span><span class="s1">nth=NTH)</span>
+<span class="s4"># Pseudo class `nth-of-type` (`:nth-of-type(an+b)`, `:first-of-type`, etc.)</span>
+<span class="s1">PAT_PSEUDO_NTH_TYPE = </span><span class="s5">r''' 
+(?P&lt;pseudo_nth_type&gt;{name} 
+(?P&lt;nth_type&gt;{nth}|even|odd)){ws}*\) 
+'''</span><span class="s1">.format(name=PAT_PSEUDO_CLASS_SPECIAL</span><span class="s2">, </span><span class="s1">ws=WSC</span><span class="s2">, </span><span class="s1">nth=NTH)</span>
+<span class="s4"># Pseudo class language (`:lang(&quot;*-de&quot;, en)`)</span>
+<span class="s1">PAT_PSEUDO_LANG = </span><span class="s5">r'{name}(?P&lt;values&gt;{value}(?:{ws}*,{ws}*{value})*){ws}*\)'</span><span class="s1">.format(</span>
+    <span class="s1">name=PAT_PSEUDO_CLASS_SPECIAL</span><span class="s2">, </span><span class="s1">ws=WSC</span><span class="s2">, </span><span class="s1">value=VALUE</span>
+<span class="s1">)</span>
+<span class="s4"># Pseudo class direction (`:dir(ltr)`)</span>
+<span class="s1">PAT_PSEUDO_DIR = </span><span class="s5">r'{name}(?P&lt;dir&gt;ltr|rtl){ws}*\)'</span><span class="s1">.format(name=PAT_PSEUDO_CLASS_SPECIAL</span><span class="s2">, </span><span class="s1">ws=WSC)</span>
+<span class="s4"># Combining characters (`&gt;`, `~`, ` `, `+`, `,`)</span>
+<span class="s1">PAT_COMBINE = </span><span class="s5">r'{wsc}*?(?P&lt;relation&gt;[,+&gt;~]|{ws}(?![,+&gt;~])){wsc}*'</span><span class="s1">.format(ws=WS</span><span class="s2">, </span><span class="s1">wsc=WSC)</span>
+<span class="s4"># Extra: Contains (`:contains(text)`)</span>
+<span class="s1">PAT_PSEUDO_CONTAINS = </span><span class="s5">r'{name}(?P&lt;values&gt;{value}(?:{ws}*,{ws}*{value})*){ws}*\)'</span><span class="s1">.format(</span>
+    <span class="s1">name=PAT_PSEUDO_CLASS_SPECIAL</span><span class="s2">, </span><span class="s1">ws=WSC</span><span class="s2">, </span><span class="s1">value=VALUE</span>
+<span class="s1">)</span>
+
+<span class="s4"># Regular expressions</span>
+<span class="s4"># CSS escape pattern</span>
+<span class="s1">RE_CSS_ESC = re.compile(</span><span class="s5">r'(?:(\\[a-f0-9]{{1,6}}{ws}?)|(\\[^\r\n\f])|(\\$))'</span><span class="s1">.format(ws=WSC)</span><span class="s2">, </span><span class="s1">re.I)</span>
+<span class="s1">RE_CSS_STR_ESC = re.compile(</span>
+    <span class="s5">r'(?:(\\[a-f0-9]{{1,6}}{ws}?)|(\\[^\r\n\f])|(\\$)|(\\{nl}))'</span><span class="s1">.format(ws=WS</span><span class="s2">, </span><span class="s1">nl=NEWLINE)</span><span class="s2">, </span><span class="s1">re.I</span>
+<span class="s1">)</span>
+<span class="s4"># Pattern to break up `nth` specifiers</span>
+<span class="s1">RE_NTH = re.compile(</span>
+    <span class="s5">r'(?P&lt;s1&gt;[-+])?(?P&lt;a&gt;[0-9]+n?|n)(?:(?&lt;=n){ws}*(?P&lt;s2&gt;[-+]){ws}*(?P&lt;b&gt;[0-9]+))?'</span><span class="s1">.format(ws=WSC)</span><span class="s2">,</span>
+    <span class="s1">re.I</span>
+<span class="s1">)</span>
+<span class="s4"># Pattern to iterate multiple values.</span>
+<span class="s1">RE_VALUES = re.compile(</span><span class="s5">r'(?:(?P&lt;value&gt;{value})|(?P&lt;split&gt;{ws}*,{ws}*))'</span><span class="s1">.format(ws=WSC</span><span class="s2">, </span><span class="s1">value=VALUE)</span><span class="s2">, </span><span class="s1">re.X)</span>
+<span class="s4"># Whitespace checks</span>
+<span class="s1">RE_WS = re.compile(WS)</span>
+<span class="s1">RE_WS_BEGIN = re.compile(</span><span class="s5">'^{}*'</span><span class="s1">.format(WSC))</span>
+<span class="s1">RE_WS_END = re.compile(</span><span class="s5">'{}*$'</span><span class="s1">.format(WSC))</span>
+<span class="s1">RE_CUSTOM = re.compile(</span><span class="s5">r'^{}$'</span><span class="s1">.format(PAT_PSEUDO_CLASS_CUSTOM)</span><span class="s2">, </span><span class="s1">re.X)</span>
+
+<span class="s4"># Constants</span>
+<span class="s4"># List split token</span>
+<span class="s1">COMMA_COMBINATOR = </span><span class="s5">','</span>
+<span class="s4"># Relation token for descendant</span>
+<span class="s1">WS_COMBINATOR = </span><span class="s5">&quot; &quot;</span>
+
+<span class="s4"># Parse flags</span>
+<span class="s1">FLG_PSEUDO = </span><span class="s3">0x01</span>
+<span class="s1">FLG_NOT = </span><span class="s3">0x02</span>
+<span class="s1">FLG_RELATIVE = </span><span class="s3">0x04</span>
+<span class="s1">FLG_DEFAULT = </span><span class="s3">0x08</span>
+<span class="s1">FLG_HTML = </span><span class="s3">0x10</span>
+<span class="s1">FLG_INDETERMINATE = </span><span class="s3">0x20</span>
+<span class="s1">FLG_OPEN = </span><span class="s3">0x40</span>
+<span class="s1">FLG_IN_RANGE = </span><span class="s3">0x80</span>
+<span class="s1">FLG_OUT_OF_RANGE = </span><span class="s3">0x100</span>
+<span class="s1">FLG_PLACEHOLDER_SHOWN = </span><span class="s3">0x200</span>
+
+<span class="s4"># Maximum cached patterns to store</span>
+<span class="s1">_MAXCACHE = </span><span class="s3">500</span>
+
+
+<span class="s1">@lru_cache(maxsize=_MAXCACHE)</span>
+<span class="s2">def </span><span class="s1">_cached_css_compile(pattern</span><span class="s2">, </span><span class="s1">namespaces</span><span class="s2">, </span><span class="s1">custom</span><span class="s2">, </span><span class="s1">flags):</span>
+    <span class="s0">&quot;&quot;&quot;Cached CSS compile.&quot;&quot;&quot;</span>
+
+    <span class="s1">custom_selectors = process_custom(custom)</span>
+    <span class="s2">return </span><span class="s1">cm.SoupSieve(</span>
+        <span class="s1">pattern</span><span class="s2">,</span>
+        <span class="s1">CSSParser(pattern</span><span class="s2">, </span><span class="s1">custom=custom_selectors</span><span class="s2">, </span><span class="s1">flags=flags).process_selectors()</span><span class="s2">,</span>
+        <span class="s1">namespaces</span><span class="s2">,</span>
+        <span class="s1">custom</span><span class="s2">,</span>
+        <span class="s1">flags</span>
+    <span class="s1">)</span>
+
+
+<span class="s2">def </span><span class="s1">_purge_cache():</span>
+    <span class="s0">&quot;&quot;&quot;Purge the cache.&quot;&quot;&quot;</span>
+
+    <span class="s1">_cached_css_compile.cache_clear()</span>
+
+
+<span class="s2">def </span><span class="s1">process_custom(custom):</span>
+    <span class="s0">&quot;&quot;&quot;Process custom.&quot;&quot;&quot;</span>
+
+    <span class="s1">custom_selectors = {}</span>
+    <span class="s2">if </span><span class="s1">custom </span><span class="s2">is not None</span><span class="s1">:</span>
+        <span class="s2">for </span><span class="s1">key</span><span class="s2">, </span><span class="s1">value </span><span class="s2">in </span><span class="s1">custom.items():</span>
+            <span class="s1">name = util.lower(key)</span>
+            <span class="s2">if </span><span class="s1">RE_CUSTOM.match(name) </span><span class="s2">is None</span><span class="s1">:</span>
+                <span class="s2">raise </span><span class="s1">SelectorSyntaxError(</span><span class="s5">&quot;The name '{}' is not a valid custom pseudo-class name&quot;</span><span class="s1">.format(name))</span>
+            <span class="s2">if </span><span class="s1">name </span><span class="s2">in </span><span class="s1">custom_selectors:</span>
+                <span class="s2">raise </span><span class="s1">KeyError(</span><span class="s5">&quot;The custom selector '{}' has already been registered&quot;</span><span class="s1">.format(name))</span>
+            <span class="s1">custom_selectors[css_unescape(name)] = value</span>
+    <span class="s2">return </span><span class="s1">custom_selectors</span>
+
+
+<span class="s2">def </span><span class="s1">css_unescape(content</span><span class="s2">, </span><span class="s1">string=</span><span class="s2">False</span><span class="s1">):</span>
+    <span class="s0">&quot;&quot;&quot; 
+    Unescape CSS value. 
+ 
+    Strings allow for spanning the value on multiple strings by escaping a new line. 
+    &quot;&quot;&quot;</span>
+
+    <span class="s2">def </span><span class="s1">replace(m):</span>
+        <span class="s0">&quot;&quot;&quot;Replace with the appropriate substitute.&quot;&quot;&quot;</span>
+
+        <span class="s2">if </span><span class="s1">m.group(</span><span class="s3">1</span><span class="s1">):</span>
+            <span class="s1">codepoint = int(m.group(</span><span class="s3">1</span><span class="s1">)[</span><span class="s3">1</span><span class="s1">:]</span><span class="s2">, </span><span class="s3">16</span><span class="s1">)</span>
+            <span class="s2">if </span><span class="s1">codepoint == </span><span class="s3">0</span><span class="s1">:</span>
+                <span class="s1">codepoint = UNICODE_REPLACEMENT_CHAR</span>
+            <span class="s1">value = chr(codepoint)</span>
+        <span class="s2">elif </span><span class="s1">m.group(</span><span class="s3">2</span><span class="s1">):</span>
+            <span class="s1">value = m.group(</span><span class="s3">2</span><span class="s1">)[</span><span class="s3">1</span><span class="s1">:]</span>
+        <span class="s2">elif </span><span class="s1">m.group(</span><span class="s3">3</span><span class="s1">):</span>
+            <span class="s1">value = </span><span class="s5">'</span><span class="s2">\ufffd</span><span class="s5">'</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s1">value = </span><span class="s5">''</span>
+
+        <span class="s2">return </span><span class="s1">value</span>
+
+    <span class="s2">return </span><span class="s1">(RE_CSS_ESC </span><span class="s2">if not </span><span class="s1">string </span><span class="s2">else </span><span class="s1">RE_CSS_STR_ESC).sub(replace</span><span class="s2">, </span><span class="s1">content)</span>
+
+
+<span class="s2">def </span><span class="s1">escape(ident):</span>
+    <span class="s0">&quot;&quot;&quot;Escape identifier.&quot;&quot;&quot;</span>
+
+    <span class="s1">string = []</span>
+    <span class="s1">length = len(ident)</span>
+    <span class="s1">start_dash = length &gt; </span><span class="s3">0 </span><span class="s2">and </span><span class="s1">ident[</span><span class="s3">0</span><span class="s1">] == </span><span class="s5">'-'</span>
+    <span class="s2">if </span><span class="s1">length == </span><span class="s3">1 </span><span class="s2">and </span><span class="s1">start_dash:</span>
+        <span class="s4"># Need to escape identifier that is a single `-` with no other characters</span>
+        <span class="s1">string.append(</span><span class="s5">'</span><span class="s2">\\</span><span class="s5">{}'</span><span class="s1">.format(ident))</span>
+    <span class="s2">else</span><span class="s1">:</span>
+        <span class="s2">for </span><span class="s1">index</span><span class="s2">, </span><span class="s1">c </span><span class="s2">in </span><span class="s1">enumerate(ident):</span>
+            <span class="s1">codepoint = ord(c)</span>
+            <span class="s2">if </span><span class="s1">codepoint == </span><span class="s3">0x00</span><span class="s1">:</span>
+                <span class="s1">string.append(</span><span class="s5">'</span><span class="s2">\ufffd</span><span class="s5">'</span><span class="s1">)</span>
+            <span class="s2">elif </span><span class="s1">(</span><span class="s3">0x01 </span><span class="s1">&lt;= codepoint &lt;= </span><span class="s3">0x1F</span><span class="s1">) </span><span class="s2">or </span><span class="s1">codepoint == </span><span class="s3">0x7F</span><span class="s1">:</span>
+                <span class="s1">string.append(</span><span class="s5">'</span><span class="s2">\\</span><span class="s5">{:x} '</span><span class="s1">.format(codepoint))</span>
+            <span class="s2">elif </span><span class="s1">(index == </span><span class="s3">0 </span><span class="s2">or </span><span class="s1">(start_dash </span><span class="s2">and </span><span class="s1">index == </span><span class="s3">1</span><span class="s1">)) </span><span class="s2">and </span><span class="s1">(</span><span class="s3">0x30 </span><span class="s1">&lt;= codepoint &lt;= </span><span class="s3">0x39</span><span class="s1">):</span>
+                <span class="s1">string.append(</span><span class="s5">'</span><span class="s2">\\</span><span class="s5">{:x} '</span><span class="s1">.format(codepoint))</span>
+            <span class="s2">elif </span><span class="s1">(</span>
+                <span class="s1">codepoint </span><span class="s2">in </span><span class="s1">(</span><span class="s3">0x2D</span><span class="s2">, </span><span class="s3">0x5F</span><span class="s1">) </span><span class="s2">or </span><span class="s1">codepoint &gt;= </span><span class="s3">0x80 </span><span class="s2">or </span><span class="s1">(</span><span class="s3">0x30 </span><span class="s1">&lt;= codepoint &lt;= </span><span class="s3">0x39</span><span class="s1">) </span><span class="s2">or</span>
+                <span class="s1">(</span><span class="s3">0x30 </span><span class="s1">&lt;= codepoint &lt;= </span><span class="s3">0x39</span><span class="s1">) </span><span class="s2">or </span><span class="s1">(</span><span class="s3">0x41 </span><span class="s1">&lt;= codepoint &lt;= </span><span class="s3">0x5A</span><span class="s1">) </span><span class="s2">or </span><span class="s1">(</span><span class="s3">0x61 </span><span class="s1">&lt;= codepoint &lt;= </span><span class="s3">0x7A</span><span class="s1">)</span>
+            <span class="s1">):</span>
+                <span class="s1">string.append(c)</span>
+            <span class="s2">else</span><span class="s1">:</span>
+                <span class="s1">string.append(</span><span class="s5">'</span><span class="s2">\\</span><span class="s5">{}'</span><span class="s1">.format(c))</span>
+    <span class="s2">return </span><span class="s5">''</span><span class="s1">.join(string)</span>
+
+
+<span class="s2">class </span><span class="s1">SelectorPattern(object):</span>
+    <span class="s0">&quot;&quot;&quot;Selector pattern.&quot;&quot;&quot;</span>
+
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">name</span><span class="s2">, </span><span class="s1">pattern):</span>
+        <span class="s0">&quot;&quot;&quot;Initialize.&quot;&quot;&quot;</span>
+
+        <span class="s1">self.name = name</span>
+        <span class="s1">self.re_pattern = re.compile(pattern</span><span class="s2">, </span><span class="s1">re.I | re.X | re.U)</span>
+
+    <span class="s2">def </span><span class="s1">get_name(self):</span>
+        <span class="s0">&quot;&quot;&quot;Get name.&quot;&quot;&quot;</span>
+
+        <span class="s2">return </span><span class="s1">self.name</span>
+
+    <span class="s2">def </span><span class="s1">match(self</span><span class="s2">, </span><span class="s1">selector</span><span class="s2">, </span><span class="s1">index</span><span class="s2">, </span><span class="s1">flags):</span>
+        <span class="s0">&quot;&quot;&quot;Match the selector.&quot;&quot;&quot;</span>
+
+        <span class="s2">return </span><span class="s1">self.re_pattern.match(selector</span><span class="s2">, </span><span class="s1">index)</span>
+
+
+<span class="s2">class </span><span class="s1">SpecialPseudoPattern(SelectorPattern):</span>
+    <span class="s0">&quot;&quot;&quot;Selector pattern.&quot;&quot;&quot;</span>
+
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">patterns):</span>
+        <span class="s0">&quot;&quot;&quot;Initialize.&quot;&quot;&quot;</span>
+
+        <span class="s1">self.patterns = {}</span>
+        <span class="s2">for </span><span class="s1">p </span><span class="s2">in </span><span class="s1">patterns:</span>
+            <span class="s1">name = p[</span><span class="s3">0</span><span class="s1">]</span>
+            <span class="s1">pattern = p[</span><span class="s3">3</span><span class="s1">](name</span><span class="s2">, </span><span class="s1">p[</span><span class="s3">2</span><span class="s1">])</span>
+            <span class="s2">for </span><span class="s1">pseudo </span><span class="s2">in </span><span class="s1">p[</span><span class="s3">1</span><span class="s1">]:</span>
+                <span class="s1">self.patterns[pseudo] = pattern</span>
+
+        <span class="s1">self.matched_name = </span><span class="s2">None</span>
+        <span class="s1">self.re_pseudo_name = re.compile(PAT_PSEUDO_CLASS_SPECIAL</span><span class="s2">, </span><span class="s1">re.I | re.X | re.U)</span>
+
+    <span class="s2">def </span><span class="s1">get_name(self):</span>
+        <span class="s0">&quot;&quot;&quot;Get name.&quot;&quot;&quot;</span>
+
+        <span class="s2">return </span><span class="s1">self.matched_name.get_name()</span>
+
+    <span class="s2">def </span><span class="s1">match(self</span><span class="s2">, </span><span class="s1">selector</span><span class="s2">, </span><span class="s1">index</span><span class="s2">, </span><span class="s1">flags):</span>
+        <span class="s0">&quot;&quot;&quot;Match the selector.&quot;&quot;&quot;</span>
+
+        <span class="s1">pseudo = </span><span class="s2">None</span>
+        <span class="s1">m = self.re_pseudo_name.match(selector</span><span class="s2">, </span><span class="s1">index)</span>
+        <span class="s2">if </span><span class="s1">m:</span>
+            <span class="s1">name = util.lower(css_unescape(m.group(</span><span class="s5">'name'</span><span class="s1">)))</span>
+            <span class="s1">pattern = self.patterns.get(name)</span>
+            <span class="s2">if </span><span class="s1">pattern:</span>
+                <span class="s1">pseudo = pattern.match(selector</span><span class="s2">, </span><span class="s1">index</span><span class="s2">, </span><span class="s1">flags)</span>
+                <span class="s2">if </span><span class="s1">pseudo:</span>
+                    <span class="s1">self.matched_name = pattern</span>
+
+        <span class="s2">return </span><span class="s1">pseudo</span>
+
+
+<span class="s2">class </span><span class="s1">_Selector(object):</span>
+    <span class="s0">&quot;&quot;&quot; 
+    Intermediate selector class. 
+ 
+    This stores selector data for a compound selector as we are acquiring them. 
+    Once we are done collecting the data for a compound selector, we freeze 
+    the data in an object that can be pickled and hashed. 
+    &quot;&quot;&quot;</span>
+
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">**kwargs):</span>
+        <span class="s0">&quot;&quot;&quot;Initialize.&quot;&quot;&quot;</span>
+
+        <span class="s1">self.tag = kwargs.get(</span><span class="s5">'tag'</span><span class="s2">, None</span><span class="s1">)</span>
+        <span class="s1">self.ids = kwargs.get(</span><span class="s5">'ids'</span><span class="s2">, </span><span class="s1">[])</span>
+        <span class="s1">self.classes = kwargs.get(</span><span class="s5">'classes'</span><span class="s2">, </span><span class="s1">[])</span>
+        <span class="s1">self.attributes = kwargs.get(</span><span class="s5">'attributes'</span><span class="s2">, </span><span class="s1">[])</span>
+        <span class="s1">self.nth = kwargs.get(</span><span class="s5">'nth'</span><span class="s2">, </span><span class="s1">[])</span>
+        <span class="s1">self.selectors = kwargs.get(</span><span class="s5">'selectors'</span><span class="s2">, </span><span class="s1">[])</span>
+        <span class="s1">self.relations = kwargs.get(</span><span class="s5">'relations'</span><span class="s2">, </span><span class="s1">[])</span>
+        <span class="s1">self.rel_type = kwargs.get(</span><span class="s5">'rel_type'</span><span class="s2">, None</span><span class="s1">)</span>
+        <span class="s1">self.contains = kwargs.get(</span><span class="s5">'contains'</span><span class="s2">, </span><span class="s1">[])</span>
+        <span class="s1">self.lang = kwargs.get(</span><span class="s5">'lang'</span><span class="s2">, </span><span class="s1">[])</span>
+        <span class="s1">self.flags = kwargs.get(</span><span class="s5">'flags'</span><span class="s2">, </span><span class="s3">0</span><span class="s1">)</span>
+        <span class="s1">self.no_match = kwargs.get(</span><span class="s5">'no_match'</span><span class="s2">, False</span><span class="s1">)</span>
+
+    <span class="s2">def </span><span class="s1">_freeze_relations(self</span><span class="s2">, </span><span class="s1">relations):</span>
+        <span class="s0">&quot;&quot;&quot;Freeze relation.&quot;&quot;&quot;</span>
+
+        <span class="s2">if </span><span class="s1">relations:</span>
+            <span class="s1">sel = relations[</span><span class="s3">0</span><span class="s1">]</span>
+            <span class="s1">sel.relations.extend(relations[</span><span class="s3">1</span><span class="s1">:])</span>
+            <span class="s2">return </span><span class="s1">ct.SelectorList([sel.freeze()])</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s2">return </span><span class="s1">ct.SelectorList()</span>
+
+    <span class="s2">def </span><span class="s1">freeze(self):</span>
+        <span class="s0">&quot;&quot;&quot;Freeze self.&quot;&quot;&quot;</span>
+
+        <span class="s2">if </span><span class="s1">self.no_match:</span>
+            <span class="s2">return </span><span class="s1">ct.SelectorNull()</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s2">return </span><span class="s1">ct.Selector(</span>
+                <span class="s1">self.tag</span><span class="s2">,</span>
+                <span class="s1">tuple(self.ids)</span><span class="s2">,</span>
+                <span class="s1">tuple(self.classes)</span><span class="s2">,</span>
+                <span class="s1">tuple(self.attributes)</span><span class="s2">,</span>
+                <span class="s1">tuple(self.nth)</span><span class="s2">,</span>
+                <span class="s1">tuple(self.selectors)</span><span class="s2">,</span>
+                <span class="s1">self._freeze_relations(self.relations)</span><span class="s2">,</span>
+                <span class="s1">self.rel_type</span><span class="s2">,</span>
+                <span class="s1">tuple(self.contains)</span><span class="s2">,</span>
+                <span class="s1">tuple(self.lang)</span><span class="s2">,</span>
+                <span class="s1">self.flags</span>
+            <span class="s1">)</span>
+
+    <span class="s2">def </span><span class="s1">__str__(self):  </span><span class="s4"># pragma: no cover</span>
+        <span class="s0">&quot;&quot;&quot;String representation.&quot;&quot;&quot;</span>
+
+        <span class="s2">return </span><span class="s1">(</span>
+            <span class="s5">'_Selector(tag={!r}, ids={!r}, classes={!r}, attributes={!r}, nth={!r}, selectors={!r}, '</span>
+            <span class="s5">'relations={!r}, rel_type={!r}, contains={!r}, lang={!r}, flags={!r}, no_match={!r})'</span>
+        <span class="s1">).format(</span>
+            <span class="s1">self.tag</span><span class="s2">, </span><span class="s1">self.ids</span><span class="s2">, </span><span class="s1">self.classes</span><span class="s2">, </span><span class="s1">self.attributes</span><span class="s2">, </span><span class="s1">self.nth</span><span class="s2">, </span><span class="s1">self.selectors</span><span class="s2">,</span>
+            <span class="s1">self.relations</span><span class="s2">, </span><span class="s1">self.rel_type</span><span class="s2">, </span><span class="s1">self.contains</span><span class="s2">, </span><span class="s1">self.lang</span><span class="s2">, </span><span class="s1">self.flags</span><span class="s2">, </span><span class="s1">self.no_match</span>
+        <span class="s1">)</span>
+
+    <span class="s1">__repr__ = __str__</span>
+
+
+<span class="s2">class </span><span class="s1">CSSParser(object):</span>
+    <span class="s0">&quot;&quot;&quot;Parse CSS selectors.&quot;&quot;&quot;</span>
+
+    <span class="s1">css_tokens = (</span>
+        <span class="s1">SelectorPattern(</span><span class="s5">&quot;pseudo_close&quot;</span><span class="s2">, </span><span class="s1">PAT_PSEUDO_CLOSE)</span><span class="s2">,</span>
+        <span class="s1">SpecialPseudoPattern(</span>
+            <span class="s1">(</span>
+                <span class="s1">(</span>
+                    <span class="s5">&quot;pseudo_contains&quot;</span><span class="s2">,</span>
+                    <span class="s1">(</span><span class="s5">':contains'</span><span class="s2">, </span><span class="s5">':-soup-contains'</span><span class="s2">, </span><span class="s5">':-soup-contains-own'</span><span class="s1">)</span><span class="s2">,</span>
+                    <span class="s1">PAT_PSEUDO_CONTAINS</span><span class="s2">,</span>
+                    <span class="s1">SelectorPattern</span>
+                <span class="s1">)</span><span class="s2">,</span>
+                <span class="s1">(</span><span class="s5">&quot;pseudo_nth_child&quot;</span><span class="s2">, </span><span class="s1">(</span><span class="s5">':nth-child'</span><span class="s2">, </span><span class="s5">':nth-last-child'</span><span class="s1">)</span><span class="s2">, </span><span class="s1">PAT_PSEUDO_NTH_CHILD</span><span class="s2">, </span><span class="s1">SelectorPattern)</span><span class="s2">,</span>
+                <span class="s1">(</span><span class="s5">&quot;pseudo_nth_type&quot;</span><span class="s2">, </span><span class="s1">(</span><span class="s5">':nth-of-type'</span><span class="s2">, </span><span class="s5">':nth-last-of-type'</span><span class="s1">)</span><span class="s2">, </span><span class="s1">PAT_PSEUDO_NTH_TYPE</span><span class="s2">, </span><span class="s1">SelectorPattern)</span><span class="s2">,</span>
+                <span class="s1">(</span><span class="s5">&quot;pseudo_lang&quot;</span><span class="s2">, </span><span class="s1">(</span><span class="s5">':lang'</span><span class="s2">,</span><span class="s1">)</span><span class="s2">, </span><span class="s1">PAT_PSEUDO_LANG</span><span class="s2">, </span><span class="s1">SelectorPattern)</span><span class="s2">,</span>
+                <span class="s1">(</span><span class="s5">&quot;pseudo_dir&quot;</span><span class="s2">, </span><span class="s1">(</span><span class="s5">':dir'</span><span class="s2">,</span><span class="s1">)</span><span class="s2">, </span><span class="s1">PAT_PSEUDO_DIR</span><span class="s2">, </span><span class="s1">SelectorPattern)</span>
+            <span class="s1">)</span>
+        <span class="s1">)</span><span class="s2">,</span>
+        <span class="s1">SelectorPattern(</span><span class="s5">&quot;pseudo_class_custom&quot;</span><span class="s2">, </span><span class="s1">PAT_PSEUDO_CLASS_CUSTOM)</span><span class="s2">,</span>
+        <span class="s1">SelectorPattern(</span><span class="s5">&quot;pseudo_class&quot;</span><span class="s2">, </span><span class="s1">PAT_PSEUDO_CLASS)</span><span class="s2">,</span>
+        <span class="s1">SelectorPattern(</span><span class="s5">&quot;pseudo_element&quot;</span><span class="s2">, </span><span class="s1">PAT_PSEUDO_ELEMENT)</span><span class="s2">,</span>
+        <span class="s1">SelectorPattern(</span><span class="s5">&quot;at_rule&quot;</span><span class="s2">, </span><span class="s1">PAT_AT_RULE)</span><span class="s2">,</span>
+        <span class="s1">SelectorPattern(</span><span class="s5">&quot;id&quot;</span><span class="s2">, </span><span class="s1">PAT_ID)</span><span class="s2">,</span>
+        <span class="s1">SelectorPattern(</span><span class="s5">&quot;class&quot;</span><span class="s2">, </span><span class="s1">PAT_CLASS)</span><span class="s2">,</span>
+        <span class="s1">SelectorPattern(</span><span class="s5">&quot;tag&quot;</span><span class="s2">, </span><span class="s1">PAT_TAG)</span><span class="s2">,</span>
+        <span class="s1">SelectorPattern(</span><span class="s5">&quot;attribute&quot;</span><span class="s2">, </span><span class="s1">PAT_ATTR)</span><span class="s2">,</span>
+        <span class="s1">SelectorPattern(</span><span class="s5">&quot;combine&quot;</span><span class="s2">, </span><span class="s1">PAT_COMBINE)</span>
+    <span class="s1">)</span>
+
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">selector</span><span class="s2">, </span><span class="s1">custom=</span><span class="s2">None, </span><span class="s1">flags=</span><span class="s3">0</span><span class="s1">):</span>
+        <span class="s0">&quot;&quot;&quot;Initialize.&quot;&quot;&quot;</span>
+
+        <span class="s1">self.pattern = selector.replace(</span><span class="s5">'</span><span class="s2">\x00</span><span class="s5">'</span><span class="s2">, </span><span class="s5">'</span><span class="s2">\ufffd</span><span class="s5">'</span><span class="s1">)</span>
+        <span class="s1">self.flags = flags</span>
+        <span class="s1">self.debug = self.flags &amp; util.DEBUG</span>
+        <span class="s1">self.custom = {} </span><span class="s2">if </span><span class="s1">custom </span><span class="s2">is None else </span><span class="s1">custom</span>
+
+    <span class="s2">def </span><span class="s1">parse_attribute_selector(self</span><span class="s2">, </span><span class="s1">sel</span><span class="s2">, </span><span class="s1">m</span><span class="s2">, </span><span class="s1">has_selector):</span>
+        <span class="s0">&quot;&quot;&quot;Create attribute selector from the returned regex match.&quot;&quot;&quot;</span>
+
+        <span class="s1">inverse = </span><span class="s2">False</span>
+        <span class="s1">op = m.group(</span><span class="s5">'cmp'</span><span class="s1">)</span>
+        <span class="s1">case = util.lower(m.group(</span><span class="s5">'case'</span><span class="s1">)) </span><span class="s2">if </span><span class="s1">m.group(</span><span class="s5">'case'</span><span class="s1">) </span><span class="s2">else None</span>
+        <span class="s1">ns = css_unescape(m.group(</span><span class="s5">'attr_ns'</span><span class="s1">)[:-</span><span class="s3">1</span><span class="s1">]) </span><span class="s2">if </span><span class="s1">m.group(</span><span class="s5">'attr_ns'</span><span class="s1">) </span><span class="s2">else </span><span class="s5">''</span>
+        <span class="s1">attr = css_unescape(m.group(</span><span class="s5">'attr_name'</span><span class="s1">))</span>
+        <span class="s1">is_type = </span><span class="s2">False</span>
+        <span class="s1">pattern2 = </span><span class="s2">None</span>
+
+        <span class="s2">if </span><span class="s1">case:</span>
+            <span class="s1">flags = re.I </span><span class="s2">if </span><span class="s1">case == </span><span class="s5">'i' </span><span class="s2">else </span><span class="s3">0</span>
+        <span class="s2">elif </span><span class="s1">util.lower(attr) == </span><span class="s5">'type'</span><span class="s1">:</span>
+            <span class="s1">flags = re.I</span>
+            <span class="s1">is_type = </span><span class="s2">True</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s1">flags = </span><span class="s3">0</span>
+
+        <span class="s2">if </span><span class="s1">op:</span>
+            <span class="s2">if </span><span class="s1">m.group(</span><span class="s5">'value'</span><span class="s1">).startswith((</span><span class="s5">'&quot;'</span><span class="s2">, </span><span class="s5">&quot;'&quot;</span><span class="s1">)):</span>
+                <span class="s1">value = css_unescape(m.group(</span><span class="s5">'value'</span><span class="s1">)[</span><span class="s3">1</span><span class="s1">:-</span><span class="s3">1</span><span class="s1">]</span><span class="s2">, True</span><span class="s1">)</span>
+            <span class="s2">else</span><span class="s1">:</span>
+                <span class="s1">value = css_unescape(m.group(</span><span class="s5">'value'</span><span class="s1">))</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s1">value = </span><span class="s2">None</span>
+        <span class="s2">if not </span><span class="s1">op:</span>
+            <span class="s4"># Attribute name</span>
+            <span class="s1">pattern = </span><span class="s2">None</span>
+        <span class="s2">elif </span><span class="s1">op.startswith(</span><span class="s5">'^'</span><span class="s1">):</span>
+            <span class="s4"># Value start with</span>
+            <span class="s1">pattern = re.compile(</span><span class="s5">r'^%s.*' </span><span class="s1">% re.escape(value)</span><span class="s2">, </span><span class="s1">flags)</span>
+        <span class="s2">elif </span><span class="s1">op.startswith(</span><span class="s5">'$'</span><span class="s1">):</span>
+            <span class="s4"># Value ends with</span>
+            <span class="s1">pattern = re.compile(</span><span class="s5">r'.*?%s$' </span><span class="s1">% re.escape(value)</span><span class="s2">, </span><span class="s1">flags)</span>
+        <span class="s2">elif </span><span class="s1">op.startswith(</span><span class="s5">'*'</span><span class="s1">):</span>
+            <span class="s4"># Value contains</span>
+            <span class="s1">pattern = re.compile(</span><span class="s5">r'.*?%s.*' </span><span class="s1">% re.escape(value)</span><span class="s2">, </span><span class="s1">flags)</span>
+        <span class="s2">elif </span><span class="s1">op.startswith(</span><span class="s5">'~'</span><span class="s1">):</span>
+            <span class="s4"># Value contains word within space separated list</span>
+            <span class="s4"># `~=` should match nothing if it is empty or contains whitespace,</span>
+            <span class="s4"># so if either of these cases is present, use `[^\s\S]` which cannot be matched.</span>
+            <span class="s1">value = </span><span class="s5">r'[^\s\S]' </span><span class="s2">if not </span><span class="s1">value </span><span class="s2">or </span><span class="s1">RE_WS.search(value) </span><span class="s2">else </span><span class="s1">re.escape(value)</span>
+            <span class="s1">pattern = re.compile(</span><span class="s5">r'.*?(?:(?&lt;=^)|(?&lt;=[ \t\r\n\f]))%s(?=(?:[ \t\r\n\f]|$)).*' </span><span class="s1">% value</span><span class="s2">, </span><span class="s1">flags)</span>
+        <span class="s2">elif </span><span class="s1">op.startswith(</span><span class="s5">'|'</span><span class="s1">):</span>
+            <span class="s4"># Value starts with word in dash separated list</span>
+            <span class="s1">pattern = re.compile(</span><span class="s5">r'^%s(?:-.*)?$' </span><span class="s1">% re.escape(value)</span><span class="s2">, </span><span class="s1">flags)</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s4"># Value matches</span>
+            <span class="s1">pattern = re.compile(</span><span class="s5">r'^%s$' </span><span class="s1">% re.escape(value)</span><span class="s2">, </span><span class="s1">flags)</span>
+            <span class="s2">if </span><span class="s1">op.startswith(</span><span class="s5">'!'</span><span class="s1">):</span>
+                <span class="s4"># Equivalent to `:not([attr=value])`</span>
+                <span class="s1">inverse = </span><span class="s2">True</span>
+        <span class="s2">if </span><span class="s1">is_type </span><span class="s2">and </span><span class="s1">pattern:</span>
+            <span class="s1">pattern2 = re.compile(pattern.pattern)</span>
+
+        <span class="s4"># Append the attribute selector</span>
+        <span class="s1">sel_attr = ct.SelectorAttribute(attr</span><span class="s2">, </span><span class="s1">ns</span><span class="s2">, </span><span class="s1">pattern</span><span class="s2">, </span><span class="s1">pattern2)</span>
+        <span class="s2">if </span><span class="s1">inverse:</span>
+            <span class="s4"># If we are using `!=`, we need to nest the pattern under a `:not()`.</span>
+            <span class="s1">sub_sel = _Selector()</span>
+            <span class="s1">sub_sel.attributes.append(sel_attr)</span>
+            <span class="s1">not_list = ct.SelectorList([sub_sel.freeze()]</span><span class="s2">, True, False</span><span class="s1">)</span>
+            <span class="s1">sel.selectors.append(not_list)</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s1">sel.attributes.append(sel_attr)</span>
+
+        <span class="s1">has_selector = </span><span class="s2">True</span>
+        <span class="s2">return </span><span class="s1">has_selector</span>
+
+    <span class="s2">def </span><span class="s1">parse_tag_pattern(self</span><span class="s2">, </span><span class="s1">sel</span><span class="s2">, </span><span class="s1">m</span><span class="s2">, </span><span class="s1">has_selector):</span>
+        <span class="s0">&quot;&quot;&quot;Parse tag pattern from regex match.&quot;&quot;&quot;</span>
+
+        <span class="s1">prefix = css_unescape(m.group(</span><span class="s5">'tag_ns'</span><span class="s1">)[:-</span><span class="s3">1</span><span class="s1">]) </span><span class="s2">if </span><span class="s1">m.group(</span><span class="s5">'tag_ns'</span><span class="s1">) </span><span class="s2">else None</span>
+        <span class="s1">tag = css_unescape(m.group(</span><span class="s5">'tag_name'</span><span class="s1">))</span>
+        <span class="s1">sel.tag = ct.SelectorTag(tag</span><span class="s2">, </span><span class="s1">prefix)</span>
+        <span class="s1">has_selector = </span><span class="s2">True</span>
+        <span class="s2">return </span><span class="s1">has_selector</span>
+
+    <span class="s2">def </span><span class="s1">parse_pseudo_class_custom(self</span><span class="s2">, </span><span class="s1">sel</span><span class="s2">, </span><span class="s1">m</span><span class="s2">, </span><span class="s1">has_selector):</span>
+        <span class="s0">&quot;&quot;&quot; 
+        Parse custom pseudo class alias. 
+ 
+        Compile custom selectors as we need them. When compiling a custom selector, 
+        set it to `None` in the dictionary so we can avoid an infinite loop. 
+        &quot;&quot;&quot;</span>
+
+        <span class="s1">pseudo = util.lower(css_unescape(m.group(</span><span class="s5">'name'</span><span class="s1">)))</span>
+        <span class="s1">selector = self.custom.get(pseudo)</span>
+        <span class="s2">if </span><span class="s1">selector </span><span class="s2">is None</span><span class="s1">:</span>
+            <span class="s2">raise </span><span class="s1">SelectorSyntaxError(</span>
+                <span class="s5">&quot;Undefined custom selector '{}' found at postion {}&quot;</span><span class="s1">.format(pseudo</span><span class="s2">, </span><span class="s1">m.end(</span><span class="s3">0</span><span class="s1">))</span><span class="s2">,</span>
+                <span class="s1">self.pattern</span><span class="s2">,</span>
+                <span class="s1">m.end(</span><span class="s3">0</span><span class="s1">)</span>
+            <span class="s1">)</span>
+
+        <span class="s2">if not </span><span class="s1">isinstance(selector</span><span class="s2">, </span><span class="s1">ct.SelectorList):</span>
+            <span class="s1">self.custom[pseudo] = </span><span class="s2">None</span>
+            <span class="s1">selector = CSSParser(</span>
+                <span class="s1">selector</span><span class="s2">, </span><span class="s1">custom=self.custom</span><span class="s2">, </span><span class="s1">flags=self.flags</span>
+            <span class="s1">).process_selectors(flags=FLG_PSEUDO)</span>
+            <span class="s1">self.custom[pseudo] = selector</span>
+
+        <span class="s1">sel.selectors.append(selector)</span>
+        <span class="s1">has_selector = </span><span class="s2">True</span>
+        <span class="s2">return </span><span class="s1">has_selector</span>
+
+    <span class="s2">def </span><span class="s1">parse_pseudo_class(self</span><span class="s2">, </span><span class="s1">sel</span><span class="s2">, </span><span class="s1">m</span><span class="s2">, </span><span class="s1">has_selector</span><span class="s2">, </span><span class="s1">iselector</span><span class="s2">, </span><span class="s1">is_html):</span>
+        <span class="s0">&quot;&quot;&quot;Parse pseudo class.&quot;&quot;&quot;</span>
+
+        <span class="s1">complex_pseudo = </span><span class="s2">False</span>
+        <span class="s1">pseudo = util.lower(css_unescape(m.group(</span><span class="s5">'name'</span><span class="s1">)))</span>
+        <span class="s2">if </span><span class="s1">m.group(</span><span class="s5">'open'</span><span class="s1">):</span>
+            <span class="s1">complex_pseudo = </span><span class="s2">True</span>
+        <span class="s2">if </span><span class="s1">complex_pseudo </span><span class="s2">and </span><span class="s1">pseudo </span><span class="s2">in </span><span class="s1">PSEUDO_COMPLEX:</span>
+            <span class="s1">has_selector = self.parse_pseudo_open(sel</span><span class="s2">, </span><span class="s1">pseudo</span><span class="s2">, </span><span class="s1">has_selector</span><span class="s2">, </span><span class="s1">iselector</span><span class="s2">, </span><span class="s1">m.end(</span><span class="s3">0</span><span class="s1">))</span>
+        <span class="s2">elif not </span><span class="s1">complex_pseudo </span><span class="s2">and </span><span class="s1">pseudo </span><span class="s2">in </span><span class="s1">PSEUDO_SIMPLE:</span>
+            <span class="s2">if </span><span class="s1">pseudo == </span><span class="s5">':root'</span><span class="s1">:</span>
+                <span class="s1">sel.flags |= ct.SEL_ROOT</span>
+            <span class="s2">elif </span><span class="s1">pseudo == </span><span class="s5">':defined'</span><span class="s1">:</span>
+                <span class="s1">sel.flags |= ct.SEL_DEFINED</span>
+                <span class="s1">is_html = </span><span class="s2">True</span>
+            <span class="s2">elif </span><span class="s1">pseudo == </span><span class="s5">':scope'</span><span class="s1">:</span>
+                <span class="s1">sel.flags |= ct.SEL_SCOPE</span>
+            <span class="s2">elif </span><span class="s1">pseudo == </span><span class="s5">':empty'</span><span class="s1">:</span>
+                <span class="s1">sel.flags |= ct.SEL_EMPTY</span>
+            <span class="s2">elif </span><span class="s1">pseudo </span><span class="s2">in </span><span class="s1">(</span><span class="s5">':link'</span><span class="s2">, </span><span class="s5">':any-link'</span><span class="s1">):</span>
+                <span class="s1">sel.selectors.append(CSS_LINK)</span>
+            <span class="s2">elif </span><span class="s1">pseudo == </span><span class="s5">':checked'</span><span class="s1">:</span>
+                <span class="s1">sel.selectors.append(CSS_CHECKED)</span>
+            <span class="s2">elif </span><span class="s1">pseudo == </span><span class="s5">':default'</span><span class="s1">:</span>
+                <span class="s1">sel.selectors.append(CSS_DEFAULT)</span>
+            <span class="s2">elif </span><span class="s1">pseudo == </span><span class="s5">':indeterminate'</span><span class="s1">:</span>
+                <span class="s1">sel.selectors.append(CSS_INDETERMINATE)</span>
+            <span class="s2">elif </span><span class="s1">pseudo == </span><span class="s5">&quot;:disabled&quot;</span><span class="s1">:</span>
+                <span class="s1">sel.selectors.append(CSS_DISABLED)</span>
+            <span class="s2">elif </span><span class="s1">pseudo == </span><span class="s5">&quot;:enabled&quot;</span><span class="s1">:</span>
+                <span class="s1">sel.selectors.append(CSS_ENABLED)</span>
+            <span class="s2">elif </span><span class="s1">pseudo == </span><span class="s5">&quot;:required&quot;</span><span class="s1">:</span>
+                <span class="s1">sel.selectors.append(CSS_REQUIRED)</span>
+            <span class="s2">elif </span><span class="s1">pseudo == </span><span class="s5">&quot;:optional&quot;</span><span class="s1">:</span>
+                <span class="s1">sel.selectors.append(CSS_OPTIONAL)</span>
+            <span class="s2">elif </span><span class="s1">pseudo == </span><span class="s5">&quot;:read-only&quot;</span><span class="s1">:</span>
+                <span class="s1">sel.selectors.append(CSS_READ_ONLY)</span>
+            <span class="s2">elif </span><span class="s1">pseudo == </span><span class="s5">&quot;:read-write&quot;</span><span class="s1">:</span>
+                <span class="s1">sel.selectors.append(CSS_READ_WRITE)</span>
+            <span class="s2">elif </span><span class="s1">pseudo == </span><span class="s5">&quot;:in-range&quot;</span><span class="s1">:</span>
+                <span class="s1">sel.selectors.append(CSS_IN_RANGE)</span>
+            <span class="s2">elif </span><span class="s1">pseudo == </span><span class="s5">&quot;:out-of-range&quot;</span><span class="s1">:</span>
+                <span class="s1">sel.selectors.append(CSS_OUT_OF_RANGE)</span>
+            <span class="s2">elif </span><span class="s1">pseudo == </span><span class="s5">&quot;:placeholder-shown&quot;</span><span class="s1">:</span>
+                <span class="s1">sel.selectors.append(CSS_PLACEHOLDER_SHOWN)</span>
+            <span class="s2">elif </span><span class="s1">pseudo == </span><span class="s5">':first-child'</span><span class="s1">:</span>
+                <span class="s1">sel.nth.append(ct.SelectorNth(</span><span class="s3">1</span><span class="s2">, False, </span><span class="s3">0</span><span class="s2">, False, False, </span><span class="s1">ct.SelectorList()))</span>
+            <span class="s2">elif </span><span class="s1">pseudo == </span><span class="s5">':last-child'</span><span class="s1">:</span>
+                <span class="s1">sel.nth.append(ct.SelectorNth(</span><span class="s3">1</span><span class="s2">, False, </span><span class="s3">0</span><span class="s2">, False, True, </span><span class="s1">ct.SelectorList()))</span>
+            <span class="s2">elif </span><span class="s1">pseudo == </span><span class="s5">':first-of-type'</span><span class="s1">:</span>
+                <span class="s1">sel.nth.append(ct.SelectorNth(</span><span class="s3">1</span><span class="s2">, False, </span><span class="s3">0</span><span class="s2">, True, False, </span><span class="s1">ct.SelectorList()))</span>
+            <span class="s2">elif </span><span class="s1">pseudo == </span><span class="s5">':last-of-type'</span><span class="s1">:</span>
+                <span class="s1">sel.nth.append(ct.SelectorNth(</span><span class="s3">1</span><span class="s2">, False, </span><span class="s3">0</span><span class="s2">, True, True, </span><span class="s1">ct.SelectorList()))</span>
+            <span class="s2">elif </span><span class="s1">pseudo == </span><span class="s5">':only-child'</span><span class="s1">:</span>
+                <span class="s1">sel.nth.extend(</span>
+                    <span class="s1">[</span>
+                        <span class="s1">ct.SelectorNth(</span><span class="s3">1</span><span class="s2">, False, </span><span class="s3">0</span><span class="s2">, False, False, </span><span class="s1">ct.SelectorList())</span><span class="s2">,</span>
+                        <span class="s1">ct.SelectorNth(</span><span class="s3">1</span><span class="s2">, False, </span><span class="s3">0</span><span class="s2">, False, True, </span><span class="s1">ct.SelectorList())</span>
+                    <span class="s1">]</span>
+                <span class="s1">)</span>
+            <span class="s2">elif </span><span class="s1">pseudo == </span><span class="s5">':only-of-type'</span><span class="s1">:</span>
+                <span class="s1">sel.nth.extend(</span>
+                    <span class="s1">[</span>
+                        <span class="s1">ct.SelectorNth(</span><span class="s3">1</span><span class="s2">, False, </span><span class="s3">0</span><span class="s2">, True, False, </span><span class="s1">ct.SelectorList())</span><span class="s2">,</span>
+                        <span class="s1">ct.SelectorNth(</span><span class="s3">1</span><span class="s2">, False, </span><span class="s3">0</span><span class="s2">, True, True, </span><span class="s1">ct.SelectorList())</span>
+                    <span class="s1">]</span>
+                <span class="s1">)</span>
+            <span class="s1">has_selector = </span><span class="s2">True</span>
+        <span class="s2">elif </span><span class="s1">complex_pseudo </span><span class="s2">and </span><span class="s1">pseudo </span><span class="s2">in </span><span class="s1">PSEUDO_COMPLEX_NO_MATCH:</span>
+            <span class="s1">self.parse_selectors(iselector</span><span class="s2">, </span><span class="s1">m.end(</span><span class="s3">0</span><span class="s1">)</span><span class="s2">, </span><span class="s1">FLG_PSEUDO | FLG_OPEN)</span>
+            <span class="s1">sel.no_match = </span><span class="s2">True</span>
+            <span class="s1">has_selector = </span><span class="s2">True</span>
+        <span class="s2">elif not </span><span class="s1">complex_pseudo </span><span class="s2">and </span><span class="s1">pseudo </span><span class="s2">in </span><span class="s1">PSEUDO_SIMPLE_NO_MATCH:</span>
+            <span class="s1">sel.no_match = </span><span class="s2">True</span>
+            <span class="s1">has_selector = </span><span class="s2">True</span>
+        <span class="s2">elif </span><span class="s1">pseudo </span><span class="s2">in </span><span class="s1">PSEUDO_SUPPORTED:</span>
+            <span class="s2">raise </span><span class="s1">SelectorSyntaxError(</span>
+                <span class="s5">&quot;Invalid syntax for pseudo class '{}'&quot;</span><span class="s1">.format(pseudo)</span><span class="s2">,</span>
+                <span class="s1">self.pattern</span><span class="s2">,</span>
+                <span class="s1">m.start(</span><span class="s3">0</span><span class="s1">)</span>
+            <span class="s1">)</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s2">raise </span><span class="s1">NotImplementedError(</span>
+                <span class="s5">&quot;'{}' pseudo-class is not implemented at this time&quot;</span><span class="s1">.format(pseudo)</span>
+            <span class="s1">)</span>
+
+        <span class="s2">return </span><span class="s1">has_selector</span><span class="s2">, </span><span class="s1">is_html</span>
+
+    <span class="s2">def </span><span class="s1">parse_pseudo_nth(self</span><span class="s2">, </span><span class="s1">sel</span><span class="s2">, </span><span class="s1">m</span><span class="s2">, </span><span class="s1">has_selector</span><span class="s2">, </span><span class="s1">iselector):</span>
+        <span class="s0">&quot;&quot;&quot;Parse `nth` pseudo.&quot;&quot;&quot;</span>
+
+        <span class="s1">mdict = m.groupdict()</span>
+        <span class="s2">if </span><span class="s1">mdict.get(</span><span class="s5">'pseudo_nth_child'</span><span class="s1">):</span>
+            <span class="s1">postfix = </span><span class="s5">'_child'</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s1">postfix = </span><span class="s5">'_type'</span>
+        <span class="s1">mdict[</span><span class="s5">'name'</span><span class="s1">] = util.lower(css_unescape(mdict[</span><span class="s5">'name'</span><span class="s1">]))</span>
+        <span class="s1">content = util.lower(mdict.get(</span><span class="s5">'nth' </span><span class="s1">+ postfix))</span>
+        <span class="s2">if </span><span class="s1">content == </span><span class="s5">'even'</span><span class="s1">:</span>
+            <span class="s4"># 2n</span>
+            <span class="s1">s1 = </span><span class="s3">2</span>
+            <span class="s1">s2 = </span><span class="s3">0</span>
+            <span class="s1">var = </span><span class="s2">True</span>
+        <span class="s2">elif </span><span class="s1">content == </span><span class="s5">'odd'</span><span class="s1">:</span>
+            <span class="s4"># 2n+1</span>
+            <span class="s1">s1 = </span><span class="s3">2</span>
+            <span class="s1">s2 = </span><span class="s3">1</span>
+            <span class="s1">var = </span><span class="s2">True</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s1">nth_parts = RE_NTH.match(content)</span>
+            <span class="s1">s1 = </span><span class="s5">'-' </span><span class="s2">if </span><span class="s1">nth_parts.group(</span><span class="s5">'s1'</span><span class="s1">) </span><span class="s2">and </span><span class="s1">nth_parts.group(</span><span class="s5">'s1'</span><span class="s1">) == </span><span class="s5">'-' </span><span class="s2">else </span><span class="s5">''</span>
+            <span class="s1">a = nth_parts.group(</span><span class="s5">'a'</span><span class="s1">)</span>
+            <span class="s1">var = a.endswith(</span><span class="s5">'n'</span><span class="s1">)</span>
+            <span class="s2">if </span><span class="s1">a.startswith(</span><span class="s5">'n'</span><span class="s1">):</span>
+                <span class="s1">s1 += </span><span class="s5">'1'</span>
+            <span class="s2">elif </span><span class="s1">var:</span>
+                <span class="s1">s1 += a[:-</span><span class="s3">1</span><span class="s1">]</span>
+            <span class="s2">else</span><span class="s1">:</span>
+                <span class="s1">s1 += a</span>
+            <span class="s1">s2 = </span><span class="s5">'-' </span><span class="s2">if </span><span class="s1">nth_parts.group(</span><span class="s5">'s2'</span><span class="s1">) </span><span class="s2">and </span><span class="s1">nth_parts.group(</span><span class="s5">'s2'</span><span class="s1">) == </span><span class="s5">'-' </span><span class="s2">else </span><span class="s5">''</span>
+            <span class="s2">if </span><span class="s1">nth_parts.group(</span><span class="s5">'b'</span><span class="s1">):</span>
+                <span class="s1">s2 += nth_parts.group(</span><span class="s5">'b'</span><span class="s1">)</span>
+            <span class="s2">else</span><span class="s1">:</span>
+                <span class="s1">s2 = </span><span class="s5">'0'</span>
+            <span class="s1">s1 = int(s1</span><span class="s2">, </span><span class="s3">10</span><span class="s1">)</span>
+            <span class="s1">s2 = int(s2</span><span class="s2">, </span><span class="s3">10</span><span class="s1">)</span>
+
+        <span class="s1">pseudo_sel = mdict[</span><span class="s5">'name'</span><span class="s1">]</span>
+        <span class="s2">if </span><span class="s1">postfix == </span><span class="s5">'_child'</span><span class="s1">:</span>
+            <span class="s2">if </span><span class="s1">m.group(</span><span class="s5">'of'</span><span class="s1">):</span>
+                <span class="s4"># Parse the rest of `of S`.</span>
+                <span class="s1">nth_sel = self.parse_selectors(iselector</span><span class="s2">, </span><span class="s1">m.end(</span><span class="s3">0</span><span class="s1">)</span><span class="s2">, </span><span class="s1">FLG_PSEUDO | FLG_OPEN)</span>
+            <span class="s2">else</span><span class="s1">:</span>
+                <span class="s4"># Use default `*|*` for `of S`.</span>
+                <span class="s1">nth_sel = CSS_NTH_OF_S_DEFAULT</span>
+            <span class="s2">if </span><span class="s1">pseudo_sel == </span><span class="s5">':nth-child'</span><span class="s1">:</span>
+                <span class="s1">sel.nth.append(ct.SelectorNth(s1</span><span class="s2">, </span><span class="s1">var</span><span class="s2">, </span><span class="s1">s2</span><span class="s2">, False, False, </span><span class="s1">nth_sel))</span>
+            <span class="s2">elif </span><span class="s1">pseudo_sel == </span><span class="s5">':nth-last-child'</span><span class="s1">:</span>
+                <span class="s1">sel.nth.append(ct.SelectorNth(s1</span><span class="s2">, </span><span class="s1">var</span><span class="s2">, </span><span class="s1">s2</span><span class="s2">, False, True, </span><span class="s1">nth_sel))</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s2">if </span><span class="s1">pseudo_sel == </span><span class="s5">':nth-of-type'</span><span class="s1">:</span>
+                <span class="s1">sel.nth.append(ct.SelectorNth(s1</span><span class="s2">, </span><span class="s1">var</span><span class="s2">, </span><span class="s1">s2</span><span class="s2">, True, False, </span><span class="s1">ct.SelectorList()))</span>
+            <span class="s2">elif </span><span class="s1">pseudo_sel == </span><span class="s5">':nth-last-of-type'</span><span class="s1">:</span>
+                <span class="s1">sel.nth.append(ct.SelectorNth(s1</span><span class="s2">, </span><span class="s1">var</span><span class="s2">, </span><span class="s1">s2</span><span class="s2">, True, True, </span><span class="s1">ct.SelectorList()))</span>
+        <span class="s1">has_selector = </span><span class="s2">True</span>
+        <span class="s2">return </span><span class="s1">has_selector</span>
+
+    <span class="s2">def </span><span class="s1">parse_pseudo_open(self</span><span class="s2">, </span><span class="s1">sel</span><span class="s2">, </span><span class="s1">name</span><span class="s2">, </span><span class="s1">has_selector</span><span class="s2">, </span><span class="s1">iselector</span><span class="s2">, </span><span class="s1">index):</span>
+        <span class="s0">&quot;&quot;&quot;Parse pseudo with opening bracket.&quot;&quot;&quot;</span>
+
+        <span class="s1">flags = FLG_PSEUDO | FLG_OPEN</span>
+        <span class="s2">if </span><span class="s1">name == </span><span class="s5">':not'</span><span class="s1">:</span>
+            <span class="s1">flags |= FLG_NOT</span>
+        <span class="s2">if </span><span class="s1">name == </span><span class="s5">':has'</span><span class="s1">:</span>
+            <span class="s1">flags |= FLG_RELATIVE</span>
+
+        <span class="s1">sel.selectors.append(self.parse_selectors(iselector</span><span class="s2">, </span><span class="s1">index</span><span class="s2">, </span><span class="s1">flags))</span>
+        <span class="s1">has_selector = </span><span class="s2">True</span>
+        <span class="s2">return </span><span class="s1">has_selector</span>
+
+    <span class="s2">def </span><span class="s1">parse_has_combinator(self</span><span class="s2">, </span><span class="s1">sel</span><span class="s2">, </span><span class="s1">m</span><span class="s2">, </span><span class="s1">has_selector</span><span class="s2">, </span><span class="s1">selectors</span><span class="s2">, </span><span class="s1">rel_type</span><span class="s2">, </span><span class="s1">index):</span>
+        <span class="s0">&quot;&quot;&quot;Parse combinator tokens.&quot;&quot;&quot;</span>
+
+        <span class="s1">combinator = m.group(</span><span class="s5">'relation'</span><span class="s1">).strip()</span>
+        <span class="s2">if not </span><span class="s1">combinator:</span>
+            <span class="s1">combinator = WS_COMBINATOR</span>
+        <span class="s2">if </span><span class="s1">combinator == COMMA_COMBINATOR:</span>
+            <span class="s2">if not </span><span class="s1">has_selector:</span>
+                <span class="s4"># If we've not captured any selector parts, the comma is either at the beginning of the pattern</span>
+                <span class="s4"># or following another comma, both of which are unexpected. Commas must split selectors.</span>
+                <span class="s2">raise </span><span class="s1">SelectorSyntaxError(</span>
+                    <span class="s5">&quot;The combinator '{}' at postion {}, must have a selector before it&quot;</span><span class="s1">.format(combinator</span><span class="s2">, </span><span class="s1">index)</span><span class="s2">,</span>
+                    <span class="s1">self.pattern</span><span class="s2">,</span>
+                    <span class="s1">index</span>
+                <span class="s1">)</span>
+            <span class="s1">sel.rel_type = rel_type</span>
+            <span class="s1">selectors[-</span><span class="s3">1</span><span class="s1">].relations.append(sel)</span>
+            <span class="s1">rel_type = </span><span class="s5">&quot;:&quot; </span><span class="s1">+ WS_COMBINATOR</span>
+            <span class="s1">selectors.append(_Selector())</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s2">if </span><span class="s1">has_selector:</span>
+                <span class="s4"># End the current selector and associate the leading combinator with this selector.</span>
+                <span class="s1">sel.rel_type = rel_type</span>
+                <span class="s1">selectors[-</span><span class="s3">1</span><span class="s1">].relations.append(sel)</span>
+            <span class="s2">elif </span><span class="s1">rel_type[</span><span class="s3">1</span><span class="s1">:] != WS_COMBINATOR:</span>
+                <span class="s4"># It's impossible to have two whitespace combinators after each other as the patterns</span>
+                <span class="s4"># will gobble up trailing whitespace. It is also impossible to have a whitespace</span>
+                <span class="s4"># combinator after any other kind for the same reason. But we could have</span>
+                <span class="s4"># multiple non-whitespace combinators. So if the current combinator is not a whitespace,</span>
+                <span class="s4"># then we've hit the multiple combinator case, so we should fail.</span>
+                <span class="s2">raise </span><span class="s1">SelectorSyntaxError(</span>
+                    <span class="s5">'The multiple combinators at position {}'</span><span class="s1">.format(index)</span><span class="s2">,</span>
+                    <span class="s1">self.pattern</span><span class="s2">,</span>
+                    <span class="s1">index</span>
+                <span class="s1">)</span>
+            <span class="s4"># Set the leading combinator for the next selector.</span>
+            <span class="s1">rel_type = </span><span class="s5">':' </span><span class="s1">+ combinator</span>
+        <span class="s1">sel = _Selector()</span>
+
+        <span class="s1">has_selector = </span><span class="s2">False</span>
+        <span class="s2">return </span><span class="s1">has_selector</span><span class="s2">, </span><span class="s1">sel</span><span class="s2">, </span><span class="s1">rel_type</span>
+
+    <span class="s2">def </span><span class="s1">parse_combinator(self</span><span class="s2">, </span><span class="s1">sel</span><span class="s2">, </span><span class="s1">m</span><span class="s2">, </span><span class="s1">has_selector</span><span class="s2">, </span><span class="s1">selectors</span><span class="s2">, </span><span class="s1">relations</span><span class="s2">, </span><span class="s1">is_pseudo</span><span class="s2">, </span><span class="s1">index):</span>
+        <span class="s0">&quot;&quot;&quot;Parse combinator tokens.&quot;&quot;&quot;</span>
+
+        <span class="s1">combinator = m.group(</span><span class="s5">'relation'</span><span class="s1">).strip()</span>
+        <span class="s2">if not </span><span class="s1">combinator:</span>
+            <span class="s1">combinator = WS_COMBINATOR</span>
+        <span class="s2">if not </span><span class="s1">has_selector:</span>
+            <span class="s2">raise </span><span class="s1">SelectorSyntaxError(</span>
+                <span class="s5">&quot;The combinator '{}' at postion {}, must have a selector before it&quot;</span><span class="s1">.format(combinator</span><span class="s2">, </span><span class="s1">index)</span><span class="s2">,</span>
+                <span class="s1">self.pattern</span><span class="s2">,</span>
+                <span class="s1">index</span>
+            <span class="s1">)</span>
+
+        <span class="s2">if </span><span class="s1">combinator == COMMA_COMBINATOR:</span>
+            <span class="s2">if not </span><span class="s1">sel.tag </span><span class="s2">and not </span><span class="s1">is_pseudo:</span>
+                <span class="s4"># Implied `*`</span>
+                <span class="s1">sel.tag = ct.SelectorTag(</span><span class="s5">'*'</span><span class="s2">, None</span><span class="s1">)</span>
+            <span class="s1">sel.relations.extend(relations)</span>
+            <span class="s1">selectors.append(sel)</span>
+            <span class="s2">del </span><span class="s1">relations[:]</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s1">sel.relations.extend(relations)</span>
+            <span class="s1">sel.rel_type = combinator</span>
+            <span class="s2">del </span><span class="s1">relations[:]</span>
+            <span class="s1">relations.append(sel)</span>
+        <span class="s1">sel = _Selector()</span>
+
+        <span class="s1">has_selector = </span><span class="s2">False</span>
+        <span class="s2">return </span><span class="s1">has_selector</span><span class="s2">, </span><span class="s1">sel</span>
+
+    <span class="s2">def </span><span class="s1">parse_class_id(self</span><span class="s2">, </span><span class="s1">sel</span><span class="s2">, </span><span class="s1">m</span><span class="s2">, </span><span class="s1">has_selector):</span>
+        <span class="s0">&quot;&quot;&quot;Parse HTML classes and ids.&quot;&quot;&quot;</span>
+
+        <span class="s1">selector = m.group(</span><span class="s3">0</span><span class="s1">)</span>
+        <span class="s2">if </span><span class="s1">selector.startswith(</span><span class="s5">'.'</span><span class="s1">):</span>
+            <span class="s1">sel.classes.append(css_unescape(selector[</span><span class="s3">1</span><span class="s1">:]))</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s1">sel.ids.append(css_unescape(selector[</span><span class="s3">1</span><span class="s1">:]))</span>
+        <span class="s1">has_selector = </span><span class="s2">True</span>
+        <span class="s2">return </span><span class="s1">has_selector</span>
+
+    <span class="s2">def </span><span class="s1">parse_pseudo_contains(self</span><span class="s2">, </span><span class="s1">sel</span><span class="s2">, </span><span class="s1">m</span><span class="s2">, </span><span class="s1">has_selector):</span>
+        <span class="s0">&quot;&quot;&quot;Parse contains.&quot;&quot;&quot;</span>
+
+        <span class="s1">pseudo = util.lower(css_unescape(m.group(</span><span class="s5">'name'</span><span class="s1">)))</span>
+        <span class="s2">if </span><span class="s1">pseudo == </span><span class="s5">&quot;:contains&quot;</span><span class="s1">:</span>
+            <span class="s1">warnings.warn(</span>
+                <span class="s5">&quot;The pseudo class ':contains' is deprecated, ':-soup-contains' should be used moving forward.&quot;</span><span class="s2">,</span>
+                <span class="s1">FutureWarning</span>
+            <span class="s1">)</span>
+        <span class="s1">contains_own = pseudo == </span><span class="s5">&quot;:-soup-contains-own&quot;</span>
+        <span class="s1">values = css_unescape(m.group(</span><span class="s5">'values'</span><span class="s1">))</span>
+        <span class="s1">patterns = []</span>
+        <span class="s2">for </span><span class="s1">token </span><span class="s2">in </span><span class="s1">RE_VALUES.finditer(values):</span>
+            <span class="s2">if </span><span class="s1">token.group(</span><span class="s5">'split'</span><span class="s1">):</span>
+                <span class="s2">continue</span>
+            <span class="s1">value = token.group(</span><span class="s5">'value'</span><span class="s1">)</span>
+            <span class="s2">if </span><span class="s1">value.startswith((</span><span class="s5">&quot;'&quot;</span><span class="s2">, </span><span class="s5">'&quot;'</span><span class="s1">)):</span>
+                <span class="s1">value = css_unescape(value[</span><span class="s3">1</span><span class="s1">:-</span><span class="s3">1</span><span class="s1">]</span><span class="s2">, True</span><span class="s1">)</span>
+            <span class="s2">else</span><span class="s1">:</span>
+                <span class="s1">value = css_unescape(value)</span>
+            <span class="s1">patterns.append(value)</span>
+        <span class="s1">sel.contains.append(ct.SelectorContains(tuple(patterns)</span><span class="s2">, </span><span class="s1">contains_own))</span>
+        <span class="s1">has_selector = </span><span class="s2">True</span>
+        <span class="s2">return </span><span class="s1">has_selector</span>
+
+    <span class="s2">def </span><span class="s1">parse_pseudo_lang(self</span><span class="s2">, </span><span class="s1">sel</span><span class="s2">, </span><span class="s1">m</span><span class="s2">, </span><span class="s1">has_selector):</span>
+        <span class="s0">&quot;&quot;&quot;Parse pseudo language.&quot;&quot;&quot;</span>
+
+        <span class="s1">values = m.group(</span><span class="s5">'values'</span><span class="s1">)</span>
+        <span class="s1">patterns = []</span>
+        <span class="s2">for </span><span class="s1">token </span><span class="s2">in </span><span class="s1">RE_VALUES.finditer(values):</span>
+            <span class="s2">if </span><span class="s1">token.group(</span><span class="s5">'split'</span><span class="s1">):</span>
+                <span class="s2">continue</span>
+            <span class="s1">value = token.group(</span><span class="s5">'value'</span><span class="s1">)</span>
+            <span class="s2">if </span><span class="s1">value.startswith((</span><span class="s5">'&quot;'</span><span class="s2">, </span><span class="s5">&quot;'&quot;</span><span class="s1">)):</span>
+                <span class="s1">value = css_unescape(value[</span><span class="s3">1</span><span class="s1">:-</span><span class="s3">1</span><span class="s1">]</span><span class="s2">, True</span><span class="s1">)</span>
+            <span class="s2">else</span><span class="s1">:</span>
+                <span class="s1">value = css_unescape(value)</span>
+
+            <span class="s1">patterns.append(value)</span>
+
+        <span class="s1">sel.lang.append(ct.SelectorLang(patterns))</span>
+        <span class="s1">has_selector = </span><span class="s2">True</span>
+
+        <span class="s2">return </span><span class="s1">has_selector</span>
+
+    <span class="s2">def </span><span class="s1">parse_pseudo_dir(self</span><span class="s2">, </span><span class="s1">sel</span><span class="s2">, </span><span class="s1">m</span><span class="s2">, </span><span class="s1">has_selector):</span>
+        <span class="s0">&quot;&quot;&quot;Parse pseudo direction.&quot;&quot;&quot;</span>
+
+        <span class="s1">value = ct.SEL_DIR_LTR </span><span class="s2">if </span><span class="s1">util.lower(m.group(</span><span class="s5">'dir'</span><span class="s1">)) == </span><span class="s5">'ltr' </span><span class="s2">else </span><span class="s1">ct.SEL_DIR_RTL</span>
+        <span class="s1">sel.flags |= value</span>
+        <span class="s1">has_selector = </span><span class="s2">True</span>
+        <span class="s2">return </span><span class="s1">has_selector</span>
+
+    <span class="s2">def </span><span class="s1">parse_selectors(self</span><span class="s2">, </span><span class="s1">iselector</span><span class="s2">, </span><span class="s1">index=</span><span class="s3">0</span><span class="s2">, </span><span class="s1">flags=</span><span class="s3">0</span><span class="s1">):</span>
+        <span class="s0">&quot;&quot;&quot;Parse selectors.&quot;&quot;&quot;</span>
+
+        <span class="s1">sel = _Selector()</span>
+        <span class="s1">selectors = []</span>
+        <span class="s1">has_selector = </span><span class="s2">False</span>
+        <span class="s1">closed = </span><span class="s2">False</span>
+        <span class="s1">relations = []</span>
+        <span class="s1">rel_type = </span><span class="s5">&quot;:&quot; </span><span class="s1">+ WS_COMBINATOR</span>
+        <span class="s1">is_open = bool(flags &amp; FLG_OPEN)</span>
+        <span class="s1">is_pseudo = bool(flags &amp; FLG_PSEUDO)</span>
+        <span class="s1">is_relative = bool(flags &amp; FLG_RELATIVE)</span>
+        <span class="s1">is_not = bool(flags &amp; FLG_NOT)</span>
+        <span class="s1">is_html = bool(flags &amp; FLG_HTML)</span>
+        <span class="s1">is_default = bool(flags &amp; FLG_DEFAULT)</span>
+        <span class="s1">is_indeterminate = bool(flags &amp; FLG_INDETERMINATE)</span>
+        <span class="s1">is_in_range = bool(flags &amp; FLG_IN_RANGE)</span>
+        <span class="s1">is_out_of_range = bool(flags &amp; FLG_OUT_OF_RANGE)</span>
+        <span class="s1">is_placeholder_shown = bool(flags &amp; FLG_PLACEHOLDER_SHOWN)</span>
+
+        <span class="s2">if </span><span class="s1">self.debug:  </span><span class="s4"># pragma: no cover</span>
+            <span class="s2">if </span><span class="s1">is_pseudo:</span>
+                <span class="s1">print(</span><span class="s5">'    is_pseudo: True'</span><span class="s1">)</span>
+            <span class="s2">if </span><span class="s1">is_open:</span>
+                <span class="s1">print(</span><span class="s5">'    is_open: True'</span><span class="s1">)</span>
+            <span class="s2">if </span><span class="s1">is_relative:</span>
+                <span class="s1">print(</span><span class="s5">'    is_relative: True'</span><span class="s1">)</span>
+            <span class="s2">if </span><span class="s1">is_not:</span>
+                <span class="s1">print(</span><span class="s5">'    is_not: True'</span><span class="s1">)</span>
+            <span class="s2">if </span><span class="s1">is_html:</span>
+                <span class="s1">print(</span><span class="s5">'    is_html: True'</span><span class="s1">)</span>
+            <span class="s2">if </span><span class="s1">is_default:</span>
+                <span class="s1">print(</span><span class="s5">'    is_default: True'</span><span class="s1">)</span>
+            <span class="s2">if </span><span class="s1">is_indeterminate:</span>
+                <span class="s1">print(</span><span class="s5">'    is_indeterminate: True'</span><span class="s1">)</span>
+            <span class="s2">if </span><span class="s1">is_in_range:</span>
+                <span class="s1">print(</span><span class="s5">'    is_in_range: True'</span><span class="s1">)</span>
+            <span class="s2">if </span><span class="s1">is_out_of_range:</span>
+                <span class="s1">print(</span><span class="s5">'    is_out_of_range: True'</span><span class="s1">)</span>
+            <span class="s2">if </span><span class="s1">is_placeholder_shown:</span>
+                <span class="s1">print(</span><span class="s5">'    is_placeholder_shown: True'</span><span class="s1">)</span>
+
+        <span class="s2">if </span><span class="s1">is_relative:</span>
+            <span class="s1">selectors.append(_Selector())</span>
+
+        <span class="s2">try</span><span class="s1">:</span>
+            <span class="s2">while True</span><span class="s1">:</span>
+                <span class="s1">key</span><span class="s2">, </span><span class="s1">m = next(iselector)</span>
+
+                <span class="s4"># Handle parts</span>
+                <span class="s2">if </span><span class="s1">key == </span><span class="s5">&quot;at_rule&quot;</span><span class="s1">:</span>
+                    <span class="s2">raise </span><span class="s1">NotImplementedError(</span><span class="s5">&quot;At-rules found at position {}&quot;</span><span class="s1">.format(m.start(</span><span class="s3">0</span><span class="s1">)))</span>
+                <span class="s2">elif </span><span class="s1">key == </span><span class="s5">'pseudo_class_custom'</span><span class="s1">:</span>
+                    <span class="s1">has_selector = self.parse_pseudo_class_custom(sel</span><span class="s2">, </span><span class="s1">m</span><span class="s2">, </span><span class="s1">has_selector)</span>
+                <span class="s2">elif </span><span class="s1">key == </span><span class="s5">'pseudo_class'</span><span class="s1">:</span>
+                    <span class="s1">has_selector</span><span class="s2">, </span><span class="s1">is_html = self.parse_pseudo_class(sel</span><span class="s2">, </span><span class="s1">m</span><span class="s2">, </span><span class="s1">has_selector</span><span class="s2">, </span><span class="s1">iselector</span><span class="s2">, </span><span class="s1">is_html)</span>
+                <span class="s2">elif </span><span class="s1">key == </span><span class="s5">'pseudo_element'</span><span class="s1">:</span>
+                    <span class="s2">raise </span><span class="s1">NotImplementedError(</span><span class="s5">&quot;Pseudo-element found at position {}&quot;</span><span class="s1">.format(m.start(</span><span class="s3">0</span><span class="s1">)))</span>
+                <span class="s2">elif </span><span class="s1">key == </span><span class="s5">'pseudo_contains'</span><span class="s1">:</span>
+                    <span class="s1">has_selector = self.parse_pseudo_contains(sel</span><span class="s2">, </span><span class="s1">m</span><span class="s2">, </span><span class="s1">has_selector)</span>
+                <span class="s2">elif </span><span class="s1">key </span><span class="s2">in </span><span class="s1">(</span><span class="s5">'pseudo_nth_type'</span><span class="s2">, </span><span class="s5">'pseudo_nth_child'</span><span class="s1">):</span>
+                    <span class="s1">has_selector = self.parse_pseudo_nth(sel</span><span class="s2">, </span><span class="s1">m</span><span class="s2">, </span><span class="s1">has_selector</span><span class="s2">, </span><span class="s1">iselector)</span>
+                <span class="s2">elif </span><span class="s1">key == </span><span class="s5">'pseudo_lang'</span><span class="s1">:</span>
+                    <span class="s1">has_selector = self.parse_pseudo_lang(sel</span><span class="s2">, </span><span class="s1">m</span><span class="s2">, </span><span class="s1">has_selector)</span>
+                <span class="s2">elif </span><span class="s1">key == </span><span class="s5">'pseudo_dir'</span><span class="s1">:</span>
+                    <span class="s1">has_selector = self.parse_pseudo_dir(sel</span><span class="s2">, </span><span class="s1">m</span><span class="s2">, </span><span class="s1">has_selector)</span>
+                    <span class="s4"># Currently only supports HTML</span>
+                    <span class="s1">is_html = </span><span class="s2">True</span>
+                <span class="s2">elif </span><span class="s1">key == </span><span class="s5">'pseudo_close'</span><span class="s1">:</span>
+                    <span class="s2">if not </span><span class="s1">has_selector:</span>
+                        <span class="s2">raise </span><span class="s1">SelectorSyntaxError(</span>
+                            <span class="s5">&quot;Expected a selector at postion {}&quot;</span><span class="s1">.format(m.start(</span><span class="s3">0</span><span class="s1">))</span><span class="s2">,</span>
+                            <span class="s1">self.pattern</span><span class="s2">,</span>
+                            <span class="s1">m.start(</span><span class="s3">0</span><span class="s1">)</span>
+                        <span class="s1">)</span>
+                    <span class="s2">if </span><span class="s1">is_open:</span>
+                        <span class="s1">closed = </span><span class="s2">True</span>
+                        <span class="s2">break</span>
+                    <span class="s2">else</span><span class="s1">:</span>
+                        <span class="s2">raise </span><span class="s1">SelectorSyntaxError(</span>
+                            <span class="s5">&quot;Unmatched pseudo-class close at postion {}&quot;</span><span class="s1">.format(m.start(</span><span class="s3">0</span><span class="s1">))</span><span class="s2">,</span>
+                            <span class="s1">self.pattern</span><span class="s2">,</span>
+                            <span class="s1">m.start(</span><span class="s3">0</span><span class="s1">)</span>
+                        <span class="s1">)</span>
+                <span class="s2">elif </span><span class="s1">key == </span><span class="s5">'combine'</span><span class="s1">:</span>
+                    <span class="s2">if </span><span class="s1">is_relative:</span>
+                        <span class="s1">has_selector</span><span class="s2">, </span><span class="s1">sel</span><span class="s2">, </span><span class="s1">rel_type = self.parse_has_combinator(</span>
+                            <span class="s1">sel</span><span class="s2">, </span><span class="s1">m</span><span class="s2">, </span><span class="s1">has_selector</span><span class="s2">, </span><span class="s1">selectors</span><span class="s2">, </span><span class="s1">rel_type</span><span class="s2">, </span><span class="s1">index</span>
+                        <span class="s1">)</span>
+                    <span class="s2">else</span><span class="s1">:</span>
+                        <span class="s1">has_selector</span><span class="s2">, </span><span class="s1">sel = self.parse_combinator(</span>
+                            <span class="s1">sel</span><span class="s2">, </span><span class="s1">m</span><span class="s2">, </span><span class="s1">has_selector</span><span class="s2">, </span><span class="s1">selectors</span><span class="s2">, </span><span class="s1">relations</span><span class="s2">, </span><span class="s1">is_pseudo</span><span class="s2">, </span><span class="s1">index</span>
+                        <span class="s1">)</span>
+                <span class="s2">elif </span><span class="s1">key == </span><span class="s5">'attribute'</span><span class="s1">:</span>
+                    <span class="s1">has_selector = self.parse_attribute_selector(sel</span><span class="s2">, </span><span class="s1">m</span><span class="s2">, </span><span class="s1">has_selector)</span>
+                <span class="s2">elif </span><span class="s1">key == </span><span class="s5">'tag'</span><span class="s1">:</span>
+                    <span class="s2">if </span><span class="s1">has_selector:</span>
+                        <span class="s2">raise </span><span class="s1">SelectorSyntaxError(</span>
+                            <span class="s5">&quot;Tag name found at position {} instead of at the start&quot;</span><span class="s1">.format(m.start(</span><span class="s3">0</span><span class="s1">))</span><span class="s2">,</span>
+                            <span class="s1">self.pattern</span><span class="s2">,</span>
+                            <span class="s1">m.start(</span><span class="s3">0</span><span class="s1">)</span>
+                        <span class="s1">)</span>
+                    <span class="s1">has_selector = self.parse_tag_pattern(sel</span><span class="s2">, </span><span class="s1">m</span><span class="s2">, </span><span class="s1">has_selector)</span>
+                <span class="s2">elif </span><span class="s1">key </span><span class="s2">in </span><span class="s1">(</span><span class="s5">'class'</span><span class="s2">, </span><span class="s5">'id'</span><span class="s1">):</span>
+                    <span class="s1">has_selector = self.parse_class_id(sel</span><span class="s2">, </span><span class="s1">m</span><span class="s2">, </span><span class="s1">has_selector)</span>
+
+                <span class="s1">index = m.end(</span><span class="s3">0</span><span class="s1">)</span>
+        <span class="s2">except </span><span class="s1">StopIteration:</span>
+            <span class="s2">pass</span>
+
+        <span class="s2">if </span><span class="s1">is_open </span><span class="s2">and not </span><span class="s1">closed:</span>
+            <span class="s2">raise </span><span class="s1">SelectorSyntaxError(</span>
+                <span class="s5">&quot;Unclosed pseudo-class at position {}&quot;</span><span class="s1">.format(index)</span><span class="s2">,</span>
+                <span class="s1">self.pattern</span><span class="s2">,</span>
+                <span class="s1">index</span>
+            <span class="s1">)</span>
+
+        <span class="s2">if </span><span class="s1">has_selector:</span>
+            <span class="s2">if not </span><span class="s1">sel.tag </span><span class="s2">and not </span><span class="s1">is_pseudo:</span>
+                <span class="s4"># Implied `*`</span>
+                <span class="s1">sel.tag = ct.SelectorTag(</span><span class="s5">'*'</span><span class="s2">, None</span><span class="s1">)</span>
+            <span class="s2">if </span><span class="s1">is_relative:</span>
+                <span class="s1">sel.rel_type = rel_type</span>
+                <span class="s1">selectors[-</span><span class="s3">1</span><span class="s1">].relations.append(sel)</span>
+            <span class="s2">else</span><span class="s1">:</span>
+                <span class="s1">sel.relations.extend(relations)</span>
+                <span class="s2">del </span><span class="s1">relations[:]</span>
+                <span class="s1">selectors.append(sel)</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s4"># We will always need to finish a selector when `:has()` is used as it leads with combining.</span>
+            <span class="s2">raise </span><span class="s1">SelectorSyntaxError(</span>
+                <span class="s5">'Expected a selector at position {}'</span><span class="s1">.format(index)</span><span class="s2">,</span>
+                <span class="s1">self.pattern</span><span class="s2">,</span>
+                <span class="s1">index</span>
+            <span class="s1">)</span>
+
+        <span class="s4"># Some patterns require additional logic, such as default. We try to make these the</span>
+        <span class="s4"># last pattern, and append the appropriate flag to that selector which communicates</span>
+        <span class="s4"># to the matcher what additional logic is required.</span>
+        <span class="s2">if </span><span class="s1">is_default:</span>
+            <span class="s1">selectors[-</span><span class="s3">1</span><span class="s1">].flags = ct.SEL_DEFAULT</span>
+        <span class="s2">if </span><span class="s1">is_indeterminate:</span>
+            <span class="s1">selectors[-</span><span class="s3">1</span><span class="s1">].flags = ct.SEL_INDETERMINATE</span>
+        <span class="s2">if </span><span class="s1">is_in_range:</span>
+            <span class="s1">selectors[-</span><span class="s3">1</span><span class="s1">].flags = ct.SEL_IN_RANGE</span>
+        <span class="s2">if </span><span class="s1">is_out_of_range:</span>
+            <span class="s1">selectors[-</span><span class="s3">1</span><span class="s1">].flags = ct.SEL_OUT_OF_RANGE</span>
+        <span class="s2">if </span><span class="s1">is_placeholder_shown:</span>
+            <span class="s1">selectors[-</span><span class="s3">1</span><span class="s1">].flags = ct.SEL_PLACEHOLDER_SHOWN</span>
+
+        <span class="s2">return </span><span class="s1">ct.SelectorList([s.freeze() </span><span class="s2">for </span><span class="s1">s </span><span class="s2">in </span><span class="s1">selectors]</span><span class="s2">, </span><span class="s1">is_not</span><span class="s2">, </span><span class="s1">is_html)</span>
+
+    <span class="s2">def </span><span class="s1">selector_iter(self</span><span class="s2">, </span><span class="s1">pattern):</span>
+        <span class="s0">&quot;&quot;&quot;Iterate selector tokens.&quot;&quot;&quot;</span>
+
+        <span class="s4"># Ignore whitespace and comments at start and end of pattern</span>
+        <span class="s1">m = RE_WS_BEGIN.search(pattern)</span>
+        <span class="s1">index = m.end(</span><span class="s3">0</span><span class="s1">) </span><span class="s2">if </span><span class="s1">m </span><span class="s2">else </span><span class="s3">0</span>
+        <span class="s1">m = RE_WS_END.search(pattern)</span>
+        <span class="s1">end = (m.start(</span><span class="s3">0</span><span class="s1">) - </span><span class="s3">1</span><span class="s1">) </span><span class="s2">if </span><span class="s1">m </span><span class="s2">else </span><span class="s1">(len(pattern) - </span><span class="s3">1</span><span class="s1">)</span>
+
+        <span class="s2">if </span><span class="s1">self.debug:  </span><span class="s4"># pragma: no cover</span>
+            <span class="s1">print(</span><span class="s5">'## PARSING: {!r}'</span><span class="s1">.format(pattern))</span>
+        <span class="s2">while </span><span class="s1">index &lt;= end:</span>
+            <span class="s1">m = </span><span class="s2">None</span>
+            <span class="s2">for </span><span class="s1">v </span><span class="s2">in </span><span class="s1">self.css_tokens:</span>
+                <span class="s1">m = v.match(pattern</span><span class="s2">, </span><span class="s1">index</span><span class="s2">, </span><span class="s1">self.flags)</span>
+                <span class="s2">if </span><span class="s1">m:</span>
+                    <span class="s1">name = v.get_name()</span>
+                    <span class="s2">if </span><span class="s1">self.debug:  </span><span class="s4"># pragma: no cover</span>
+                        <span class="s1">print(</span><span class="s5">&quot;TOKEN: '{}' --&gt; {!r} at position {}&quot;</span><span class="s1">.format(name</span><span class="s2">, </span><span class="s1">m.group(</span><span class="s3">0</span><span class="s1">)</span><span class="s2">, </span><span class="s1">m.start(</span><span class="s3">0</span><span class="s1">)))</span>
+                    <span class="s1">index = m.end(</span><span class="s3">0</span><span class="s1">)</span>
+                    <span class="s2">yield </span><span class="s1">name</span><span class="s2">, </span><span class="s1">m</span>
+                    <span class="s2">break</span>
+            <span class="s2">if </span><span class="s1">m </span><span class="s2">is None</span><span class="s1">:</span>
+                <span class="s1">c = pattern[index]</span>
+                <span class="s4"># If the character represents the start of one of the known selector types,</span>
+                <span class="s4"># throw an exception mentioning that the known selector type is in error;</span>
+                <span class="s4"># otherwise, report the invalid character.</span>
+                <span class="s2">if </span><span class="s1">c == </span><span class="s5">'['</span><span class="s1">:</span>
+                    <span class="s1">msg = </span><span class="s5">&quot;Malformed attribute selector at position {}&quot;</span><span class="s1">.format(index)</span>
+                <span class="s2">elif </span><span class="s1">c == </span><span class="s5">'.'</span><span class="s1">:</span>
+                    <span class="s1">msg = </span><span class="s5">&quot;Malformed class selector at position {}&quot;</span><span class="s1">.format(index)</span>
+                <span class="s2">elif </span><span class="s1">c == </span><span class="s5">'#'</span><span class="s1">:</span>
+                    <span class="s1">msg = </span><span class="s5">&quot;Malformed id selector at position {}&quot;</span><span class="s1">.format(index)</span>
+                <span class="s2">elif </span><span class="s1">c == </span><span class="s5">':'</span><span class="s1">:</span>
+                    <span class="s1">msg = </span><span class="s5">&quot;Malformed pseudo-class selector at position {}&quot;</span><span class="s1">.format(index)</span>
+                <span class="s2">else</span><span class="s1">:</span>
+                    <span class="s1">msg = </span><span class="s5">&quot;Invalid character {!r} position {}&quot;</span><span class="s1">.format(c</span><span class="s2">, </span><span class="s1">index)</span>
+                <span class="s2">raise </span><span class="s1">SelectorSyntaxError(msg</span><span class="s2">, </span><span class="s1">self.pattern</span><span class="s2">, </span><span class="s1">index)</span>
+        <span class="s2">if </span><span class="s1">self.debug:  </span><span class="s4"># pragma: no cover</span>
+            <span class="s1">print(</span><span class="s5">'## END PARSING'</span><span class="s1">)</span>
+
+    <span class="s2">def </span><span class="s1">process_selectors(self</span><span class="s2">, </span><span class="s1">index=</span><span class="s3">0</span><span class="s2">, </span><span class="s1">flags=</span><span class="s3">0</span><span class="s1">):</span>
+        <span class="s0">&quot;&quot;&quot;Process selectors.&quot;&quot;&quot;</span>
+
+        <span class="s2">return </span><span class="s1">self.parse_selectors(self.selector_iter(self.pattern)</span><span class="s2">, </span><span class="s1">index</span><span class="s2">, </span><span class="s1">flags)</span>
+
+
+<span class="s4"># Precompile CSS selector lists for pseudo-classes (additional logic may be required beyond the pattern)</span>
+<span class="s4"># A few patterns are order dependent as they use patterns previous compiled.</span>
+
+<span class="s4"># CSS pattern for `:link` and `:any-link`</span>
+<span class="s1">CSS_LINK = CSSParser(</span>
+    <span class="s5">'html|*:is(a, area)[href]'</span>
+<span class="s1">).process_selectors(flags=FLG_PSEUDO | FLG_HTML)</span>
+<span class="s4"># CSS pattern for `:checked`</span>
+<span class="s1">CSS_CHECKED = CSSParser(</span>
+    <span class="s5">''' 
+    html|*:is(input[type=checkbox], input[type=radio])[checked], html|option[selected] 
+    '''</span>
+<span class="s1">).process_selectors(flags=FLG_PSEUDO | FLG_HTML)</span>
+<span class="s4"># CSS pattern for `:default` (must compile CSS_CHECKED first)</span>
+<span class="s1">CSS_DEFAULT = CSSParser(</span>
+    <span class="s5">''' 
+    :checked, 
+ 
+    /* 
+    This pattern must be at the end. 
+    Special logic is applied to the last selector. 
+    */ 
+    html|form html|*:is(button, input)[type=&quot;submit&quot;] 
+    '''</span>
+<span class="s1">).process_selectors(flags=FLG_PSEUDO | FLG_HTML | FLG_DEFAULT)</span>
+<span class="s4"># CSS pattern for `:indeterminate`</span>
+<span class="s1">CSS_INDETERMINATE = CSSParser(</span>
+    <span class="s5">''' 
+    html|input[type=&quot;checkbox&quot;][indeterminate], 
+    html|input[type=&quot;radio&quot;]:is(:not([name]), [name=&quot;&quot;]):not([checked]), 
+    html|progress:not([value]), 
+ 
+    /* 
+    This pattern must be at the end. 
+    Special logic is applied to the last selector. 
+    */ 
+    html|input[type=&quot;radio&quot;][name]:not([name='']):not([checked]) 
+    '''</span>
+<span class="s1">).process_selectors(flags=FLG_PSEUDO | FLG_HTML | FLG_INDETERMINATE)</span>
+<span class="s4"># CSS pattern for `:disabled`</span>
+<span class="s1">CSS_DISABLED = CSSParser(</span>
+    <span class="s5">''' 
+    html|*:is(input:not([type=hidden]), button, select, textarea, fieldset, optgroup, option, fieldset)[disabled], 
+    html|optgroup[disabled] &gt; html|option, 
+    html|fieldset[disabled] &gt; html|*:is(input:not([type=hidden]), button, select, textarea, fieldset), 
+    html|fieldset[disabled] &gt; 
+        html|*:not(legend:nth-of-type(1)) html|*:is(input:not([type=hidden]), button, select, textarea, fieldset) 
+    '''</span>
+<span class="s1">).process_selectors(flags=FLG_PSEUDO | FLG_HTML)</span>
+<span class="s4"># CSS pattern for `:enabled`</span>
+<span class="s1">CSS_ENABLED = CSSParser(</span>
+    <span class="s5">''' 
+    html|*:is(input:not([type=hidden]), button, select, textarea, fieldset, optgroup, option, fieldset):not(:disabled) 
+    '''</span>
+<span class="s1">).process_selectors(flags=FLG_PSEUDO | FLG_HTML)</span>
+<span class="s4"># CSS pattern for `:required`</span>
+<span class="s1">CSS_REQUIRED = CSSParser(</span>
+    <span class="s5">'html|*:is(input, textarea, select)[required]'</span>
+<span class="s1">).process_selectors(flags=FLG_PSEUDO | FLG_HTML)</span>
+<span class="s4"># CSS pattern for `:optional`</span>
+<span class="s1">CSS_OPTIONAL = CSSParser(</span>
+    <span class="s5">'html|*:is(input, textarea, select):not([required])'</span>
+<span class="s1">).process_selectors(flags=FLG_PSEUDO | FLG_HTML)</span>
+<span class="s4"># CSS pattern for `:placeholder-shown`</span>
+<span class="s1">CSS_PLACEHOLDER_SHOWN = CSSParser(</span>
+    <span class="s5">''' 
+    html|input:is( 
+        :not([type]), 
+        [type=&quot;&quot;], 
+        [type=text], 
+        [type=search], 
+        [type=url], 
+        [type=tel], 
+        [type=email], 
+        [type=password], 
+        [type=number] 
+    )[placeholder]:not([placeholder='']):is(:not([value]), [value=&quot;&quot;]), 
+    html|textarea[placeholder]:not([placeholder='']) 
+    '''</span>
+<span class="s1">).process_selectors(flags=FLG_PSEUDO | FLG_HTML | FLG_PLACEHOLDER_SHOWN)</span>
+<span class="s4"># CSS pattern default for `:nth-child` &quot;of S&quot; feature</span>
+<span class="s1">CSS_NTH_OF_S_DEFAULT = CSSParser(</span>
+    <span class="s5">'*|*'</span>
+<span class="s1">).process_selectors(flags=FLG_PSEUDO)</span>
+<span class="s4"># CSS pattern for `:read-write` (CSS_DISABLED must be compiled first)</span>
+<span class="s1">CSS_READ_WRITE = CSSParser(</span>
+    <span class="s5">''' 
+    html|*:is( 
+        textarea, 
+        input:is( 
+            :not([type]), 
+            [type=&quot;&quot;], 
+            [type=text], 
+            [type=search], 
+            [type=url], 
+            [type=tel], 
+            [type=email], 
+            [type=number], 
+            [type=password], 
+            [type=date], 
+            [type=datetime-local], 
+            [type=month], 
+            [type=time], 
+            [type=week] 
+        ) 
+    ):not([readonly], :disabled), 
+    html|*:is([contenteditable=&quot;&quot;], [contenteditable=&quot;true&quot; i]) 
+    '''</span>
+<span class="s1">).process_selectors(flags=FLG_PSEUDO | FLG_HTML)</span>
+<span class="s4"># CSS pattern for `:read-only`</span>
+<span class="s1">CSS_READ_ONLY = CSSParser(</span>
+    <span class="s5">''' 
+    html|*:not(:read-write) 
+    '''</span>
+<span class="s1">).process_selectors(flags=FLG_PSEUDO | FLG_HTML)</span>
+<span class="s4"># CSS pattern for `:in-range`</span>
+<span class="s1">CSS_IN_RANGE = CSSParser(</span>
+    <span class="s5">''' 
+    html|input:is( 
+        [type=&quot;date&quot;], 
+        [type=&quot;month&quot;], 
+        [type=&quot;week&quot;], 
+        [type=&quot;time&quot;], 
+        [type=&quot;datetime-local&quot;], 
+        [type=&quot;number&quot;], 
+        [type=&quot;range&quot;] 
+    ):is( 
+        [min], 
+        [max] 
+    ) 
+    '''</span>
+<span class="s1">).process_selectors(flags=FLG_PSEUDO | FLG_IN_RANGE | FLG_HTML)</span>
+<span class="s4"># CSS pattern for `:out-of-range`</span>
+<span class="s1">CSS_OUT_OF_RANGE = CSSParser(</span>
+    <span class="s5">''' 
+    html|input:is( 
+        [type=&quot;date&quot;], 
+        [type=&quot;month&quot;], 
+        [type=&quot;week&quot;], 
+        [type=&quot;time&quot;], 
+        [type=&quot;datetime-local&quot;], 
+        [type=&quot;number&quot;], 
+        [type=&quot;range&quot;] 
+    ):is( 
+        [min], 
+        [max] 
+    ) 
+    '''</span>
+<span class="s1">).process_selectors(flags=FLG_PSEUDO | FLG_OUT_OF_RANGE | FLG_HTML)</span>
+</pre>
+</body>
+</html>

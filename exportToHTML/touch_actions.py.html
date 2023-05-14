@@ -1,0 +1,213 @@
+<html>
+<head>
+<title>touch_actions.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #629755; font-style: italic;}
+.s3 { color: #cc7832;}
+.s4 { color: #6a8759;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+touch_actions.py</font>
+</center></td></tr></table>
+<pre><span class="s0"># Licensed to the Software Freedom Conservancy (SFC) under one</span>
+<span class="s0"># or more contributor license agreements.  See the NOTICE file</span>
+<span class="s0"># distributed with this work for additional information</span>
+<span class="s0"># regarding copyright ownership.  The SFC licenses this file</span>
+<span class="s0"># to you under the Apache License, Version 2.0 (the</span>
+<span class="s0"># &quot;License&quot;); you may not use this file except in compliance</span>
+<span class="s0"># with the License.  You may obtain a copy of the License at</span>
+<span class="s0">#</span>
+<span class="s0">#   http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="s0">#</span>
+<span class="s0"># Unless required by applicable law or agreed to in writing,</span>
+<span class="s0"># software distributed under the License is distributed on an</span>
+<span class="s0"># &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY</span>
+<span class="s0"># KIND, either express or implied.  See the License for the</span>
+<span class="s0"># specific language governing permissions and limitations</span>
+<span class="s0"># under the License.</span>
+
+<span class="s2">&quot;&quot;&quot; 
+The Touch Actions implementation 
+&quot;&quot;&quot;</span>
+
+<span class="s3">from </span><span class="s1">selenium.webdriver.remote.command </span><span class="s3">import </span><span class="s1">Command</span>
+
+
+<span class="s3">class </span><span class="s1">TouchActions(object):</span>
+    <span class="s2">&quot;&quot;&quot; 
+    Generate touch actions. Works like ActionChains; actions are stored in the 
+    TouchActions object and are fired with perform(). 
+    &quot;&quot;&quot;</span>
+
+    <span class="s3">def </span><span class="s1">__init__(self</span><span class="s3">, </span><span class="s1">driver):</span>
+        <span class="s2">&quot;&quot;&quot; 
+        Creates a new TouchActions object. 
+ 
+        :Args: 
+         - driver: The WebDriver instance which performs user actions. 
+           It should be with touchscreen enabled. 
+        &quot;&quot;&quot;</span>
+        <span class="s1">self._driver = driver</span>
+        <span class="s1">self._actions = []</span>
+
+    <span class="s3">def </span><span class="s1">perform(self):</span>
+        <span class="s2">&quot;&quot;&quot; 
+        Performs all stored actions. 
+        &quot;&quot;&quot;</span>
+        <span class="s3">for </span><span class="s1">action </span><span class="s3">in </span><span class="s1">self._actions:</span>
+            <span class="s1">action()</span>
+
+    <span class="s3">def </span><span class="s1">tap(self</span><span class="s3">, </span><span class="s1">on_element):</span>
+        <span class="s2">&quot;&quot;&quot; 
+        Taps on a given element. 
+ 
+        :Args: 
+         - on_element: The element to tap. 
+        &quot;&quot;&quot;</span>
+        <span class="s1">self._actions.append(</span><span class="s3">lambda</span><span class="s1">: self._driver.execute(</span>
+            <span class="s1">Command.SINGLE_TAP</span><span class="s3">, </span><span class="s1">{</span><span class="s4">'element'</span><span class="s1">: on_element.id}))</span>
+        <span class="s3">return </span><span class="s1">self</span>
+
+    <span class="s3">def </span><span class="s1">double_tap(self</span><span class="s3">, </span><span class="s1">on_element):</span>
+        <span class="s2">&quot;&quot;&quot; 
+        Double taps on a given element. 
+ 
+        :Args: 
+         - on_element: The element to tap. 
+        &quot;&quot;&quot;</span>
+        <span class="s1">self._actions.append(</span><span class="s3">lambda</span><span class="s1">: self._driver.execute(</span>
+            <span class="s1">Command.DOUBLE_TAP</span><span class="s3">, </span><span class="s1">{</span><span class="s4">'element'</span><span class="s1">: on_element.id}))</span>
+        <span class="s3">return </span><span class="s1">self</span>
+
+    <span class="s3">def </span><span class="s1">tap_and_hold(self</span><span class="s3">, </span><span class="s1">xcoord</span><span class="s3">, </span><span class="s1">ycoord):</span>
+        <span class="s2">&quot;&quot;&quot; 
+        Touch down at given coordinates. 
+ 
+        :Args: 
+         - xcoord: X Coordinate to touch down. 
+         - ycoord: Y Coordinate to touch down. 
+        &quot;&quot;&quot;</span>
+        <span class="s1">self._actions.append(</span><span class="s3">lambda</span><span class="s1">: self._driver.execute(</span>
+            <span class="s1">Command.TOUCH_DOWN</span><span class="s3">, </span><span class="s1">{</span>
+                <span class="s4">'x'</span><span class="s1">: int(xcoord)</span><span class="s3">,</span>
+                <span class="s4">'y'</span><span class="s1">: int(ycoord)}))</span>
+        <span class="s3">return </span><span class="s1">self</span>
+
+    <span class="s3">def </span><span class="s1">move(self</span><span class="s3">, </span><span class="s1">xcoord</span><span class="s3">, </span><span class="s1">ycoord):</span>
+        <span class="s2">&quot;&quot;&quot; 
+        Move held tap to specified location. 
+ 
+        :Args: 
+         - xcoord: X Coordinate to move. 
+         - ycoord: Y Coordinate to move. 
+        &quot;&quot;&quot;</span>
+        <span class="s1">self._actions.append(</span><span class="s3">lambda</span><span class="s1">: self._driver.execute(</span>
+            <span class="s1">Command.TOUCH_MOVE</span><span class="s3">, </span><span class="s1">{</span>
+                <span class="s4">'x'</span><span class="s1">: int(xcoord)</span><span class="s3">,</span>
+                <span class="s4">'y'</span><span class="s1">: int(ycoord)}))</span>
+        <span class="s3">return </span><span class="s1">self</span>
+
+    <span class="s3">def </span><span class="s1">release(self</span><span class="s3">, </span><span class="s1">xcoord</span><span class="s3">, </span><span class="s1">ycoord):</span>
+        <span class="s2">&quot;&quot;&quot; 
+        Release previously issued tap 'and hold' command at specified location. 
+ 
+        :Args: 
+         - xcoord: X Coordinate to release. 
+         - ycoord: Y Coordinate to release. 
+        &quot;&quot;&quot;</span>
+        <span class="s1">self._actions.append(</span><span class="s3">lambda</span><span class="s1">: self._driver.execute(</span>
+            <span class="s1">Command.TOUCH_UP</span><span class="s3">, </span><span class="s1">{</span>
+                <span class="s4">'x'</span><span class="s1">: int(xcoord)</span><span class="s3">,</span>
+                <span class="s4">'y'</span><span class="s1">: int(ycoord)}))</span>
+        <span class="s3">return </span><span class="s1">self</span>
+
+    <span class="s3">def </span><span class="s1">scroll(self</span><span class="s3">, </span><span class="s1">xoffset</span><span class="s3">, </span><span class="s1">yoffset):</span>
+        <span class="s2">&quot;&quot;&quot; 
+        Touch and scroll, moving by xoffset and yoffset. 
+ 
+        :Args: 
+         - xoffset: X offset to scroll to. 
+         - yoffset: Y offset to scroll to. 
+        &quot;&quot;&quot;</span>
+        <span class="s1">self._actions.append(</span><span class="s3">lambda</span><span class="s1">: self._driver.execute(</span>
+            <span class="s1">Command.TOUCH_SCROLL</span><span class="s3">, </span><span class="s1">{</span>
+                <span class="s4">'xoffset'</span><span class="s1">: int(xoffset)</span><span class="s3">,</span>
+                <span class="s4">'yoffset'</span><span class="s1">: int(yoffset)}))</span>
+        <span class="s3">return </span><span class="s1">self</span>
+
+    <span class="s3">def </span><span class="s1">scroll_from_element(self</span><span class="s3">, </span><span class="s1">on_element</span><span class="s3">, </span><span class="s1">xoffset</span><span class="s3">, </span><span class="s1">yoffset):</span>
+        <span class="s2">&quot;&quot;&quot; 
+        Touch and scroll starting at on_element, moving by xoffset and yoffset. 
+ 
+        :Args: 
+         - on_element: The element where scroll starts. 
+         - xoffset: X offset to scroll to. 
+         - yoffset: Y offset to scroll to. 
+        &quot;&quot;&quot;</span>
+        <span class="s1">self._actions.append(</span><span class="s3">lambda</span><span class="s1">: self._driver.execute(</span>
+            <span class="s1">Command.TOUCH_SCROLL</span><span class="s3">, </span><span class="s1">{</span>
+                <span class="s4">'element'</span><span class="s1">: on_element.id</span><span class="s3">,</span>
+                <span class="s4">'xoffset'</span><span class="s1">: int(xoffset)</span><span class="s3">,</span>
+                <span class="s4">'yoffset'</span><span class="s1">: int(yoffset)}))</span>
+        <span class="s3">return </span><span class="s1">self</span>
+
+    <span class="s3">def </span><span class="s1">long_press(self</span><span class="s3">, </span><span class="s1">on_element):</span>
+        <span class="s2">&quot;&quot;&quot; 
+        Long press on an element. 
+ 
+        :Args: 
+         - on_element: The element to long press. 
+        &quot;&quot;&quot;</span>
+        <span class="s1">self._actions.append(</span><span class="s3">lambda</span><span class="s1">: self._driver.execute(</span>
+            <span class="s1">Command.LONG_PRESS</span><span class="s3">, </span><span class="s1">{</span><span class="s4">'element'</span><span class="s1">: on_element.id}))</span>
+        <span class="s3">return </span><span class="s1">self</span>
+
+    <span class="s3">def </span><span class="s1">flick(self</span><span class="s3">, </span><span class="s1">xspeed</span><span class="s3">, </span><span class="s1">yspeed):</span>
+        <span class="s2">&quot;&quot;&quot; 
+        Flicks, starting anywhere on the screen. 
+ 
+        :Args: 
+         - xspeed: The X speed in pixels per second. 
+         - yspeed: The Y speed in pixels per second. 
+        &quot;&quot;&quot;</span>
+        <span class="s1">self._actions.append(</span><span class="s3">lambda</span><span class="s1">: self._driver.execute(</span>
+            <span class="s1">Command.FLICK</span><span class="s3">, </span><span class="s1">{</span>
+                <span class="s4">'xspeed'</span><span class="s1">: int(xspeed)</span><span class="s3">,</span>
+                <span class="s4">'yspeed'</span><span class="s1">: int(yspeed)}))</span>
+        <span class="s3">return </span><span class="s1">self</span>
+
+    <span class="s3">def </span><span class="s1">flick_element(self</span><span class="s3">, </span><span class="s1">on_element</span><span class="s3">, </span><span class="s1">xoffset</span><span class="s3">, </span><span class="s1">yoffset</span><span class="s3">, </span><span class="s1">speed):</span>
+        <span class="s2">&quot;&quot;&quot; 
+        Flick starting at on_element, and moving by the xoffset and yoffset 
+        with specified speed. 
+ 
+        :Args: 
+         - on_element: Flick will start at center of element. 
+         - xoffset: X offset to flick to. 
+         - yoffset: Y offset to flick to. 
+         - speed: Pixels per second to flick. 
+        &quot;&quot;&quot;</span>
+        <span class="s1">self._actions.append(</span><span class="s3">lambda</span><span class="s1">: self._driver.execute(</span>
+            <span class="s1">Command.FLICK</span><span class="s3">, </span><span class="s1">{</span>
+                <span class="s4">'element'</span><span class="s1">: on_element.id</span><span class="s3">,</span>
+                <span class="s4">'xoffset'</span><span class="s1">: int(xoffset)</span><span class="s3">,</span>
+                <span class="s4">'yoffset'</span><span class="s1">: int(yoffset)</span><span class="s3">,</span>
+                <span class="s4">'speed'</span><span class="s1">: int(speed)}))</span>
+        <span class="s3">return </span><span class="s1">self</span>
+
+    <span class="s0"># Context manager so TouchActions can be used in a 'with .. as' statements.</span>
+    <span class="s3">def </span><span class="s1">__enter__(self):</span>
+        <span class="s3">return </span><span class="s1">self  </span><span class="s0"># Return created instance of self.</span>
+
+    <span class="s3">def </span><span class="s1">__exit__(self</span><span class="s3">, </span><span class="s1">_type</span><span class="s3">, </span><span class="s1">_value</span><span class="s3">, </span><span class="s1">_traceback):</span>
+        <span class="s3">pass  </span><span class="s0"># Do nothing, does not require additional cleanup.</span>
+</pre>
+</body>
+</html>

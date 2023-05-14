@@ -1,0 +1,118 @@
+<html>
+<head>
+<title>bazaar.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #cc7832;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #6a8759;}
+.s3 { color: #808080;}
+.s4 { color: #6897bb;}
+.s5 { color: #629755; font-style: italic;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+bazaar.py</font>
+</center></td></tr></table>
+<pre><span class="s0">import </span><span class="s1">logging</span>
+<span class="s0">from </span><span class="s1">typing </span><span class="s0">import </span><span class="s1">List</span><span class="s0">, </span><span class="s1">Optional</span><span class="s0">, </span><span class="s1">Tuple</span>
+
+<span class="s0">from </span><span class="s1">pip._internal.utils.misc </span><span class="s0">import </span><span class="s1">HiddenText</span><span class="s0">, </span><span class="s1">display_path</span>
+<span class="s0">from </span><span class="s1">pip._internal.utils.subprocess </span><span class="s0">import </span><span class="s1">make_command</span>
+<span class="s0">from </span><span class="s1">pip._internal.utils.urls </span><span class="s0">import </span><span class="s1">path_to_url</span>
+<span class="s0">from </span><span class="s1">pip._internal.vcs.versioncontrol </span><span class="s0">import </span><span class="s1">(</span>
+    <span class="s1">AuthInfo</span><span class="s0">,</span>
+    <span class="s1">RemoteNotFoundError</span><span class="s0">,</span>
+    <span class="s1">RevOptions</span><span class="s0">,</span>
+    <span class="s1">VersionControl</span><span class="s0">,</span>
+    <span class="s1">vcs</span><span class="s0">,</span>
+<span class="s1">)</span>
+
+<span class="s1">logger = logging.getLogger(__name__)</span>
+
+
+<span class="s0">class </span><span class="s1">Bazaar(VersionControl):</span>
+    <span class="s1">name = </span><span class="s2">'bzr'</span>
+    <span class="s1">dirname = </span><span class="s2">'.bzr'</span>
+    <span class="s1">repo_name = </span><span class="s2">'branch'</span>
+    <span class="s1">schemes = (</span>
+        <span class="s2">'bzr+http'</span><span class="s0">, </span><span class="s2">'bzr+https'</span><span class="s0">, </span><span class="s2">'bzr+ssh'</span><span class="s0">, </span><span class="s2">'bzr+sftp'</span><span class="s0">, </span><span class="s2">'bzr+ftp'</span><span class="s0">,</span>
+        <span class="s2">'bzr+lp'</span><span class="s0">, </span><span class="s2">'bzr+file'</span>
+    <span class="s1">)</span>
+
+    <span class="s1">@staticmethod</span>
+    <span class="s0">def </span><span class="s1">get_base_rev_args(rev):</span>
+        <span class="s3"># type: (str) -&gt; List[str]</span>
+        <span class="s0">return </span><span class="s1">[</span><span class="s2">'-r'</span><span class="s0">, </span><span class="s1">rev]</span>
+
+    <span class="s0">def </span><span class="s1">fetch_new(self</span><span class="s0">, </span><span class="s1">dest</span><span class="s0">, </span><span class="s1">url</span><span class="s0">, </span><span class="s1">rev_options):</span>
+        <span class="s3"># type: (str, HiddenText, RevOptions) -&gt; None</span>
+        <span class="s1">rev_display = rev_options.to_display()</span>
+        <span class="s1">logger.info(</span>
+            <span class="s2">'Checking out %s%s to %s'</span><span class="s0">,</span>
+            <span class="s1">url</span><span class="s0">,</span>
+            <span class="s1">rev_display</span><span class="s0">,</span>
+            <span class="s1">display_path(dest)</span><span class="s0">,</span>
+        <span class="s1">)</span>
+        <span class="s1">cmd_args = (</span>
+            <span class="s1">make_command(</span><span class="s2">'branch'</span><span class="s0">, </span><span class="s2">'-q'</span><span class="s0">, </span><span class="s1">rev_options.to_args()</span><span class="s0">, </span><span class="s1">url</span><span class="s0">, </span><span class="s1">dest)</span>
+        <span class="s1">)</span>
+        <span class="s1">self.run_command(cmd_args)</span>
+
+    <span class="s0">def </span><span class="s1">switch(self</span><span class="s0">, </span><span class="s1">dest</span><span class="s0">, </span><span class="s1">url</span><span class="s0">, </span><span class="s1">rev_options):</span>
+        <span class="s3"># type: (str, HiddenText, RevOptions) -&gt; None</span>
+        <span class="s1">self.run_command(make_command(</span><span class="s2">'switch'</span><span class="s0">, </span><span class="s1">url)</span><span class="s0">, </span><span class="s1">cwd=dest)</span>
+
+    <span class="s0">def </span><span class="s1">update(self</span><span class="s0">, </span><span class="s1">dest</span><span class="s0">, </span><span class="s1">url</span><span class="s0">, </span><span class="s1">rev_options):</span>
+        <span class="s3"># type: (str, HiddenText, RevOptions) -&gt; None</span>
+        <span class="s1">cmd_args = make_command(</span><span class="s2">'pull'</span><span class="s0">, </span><span class="s2">'-q'</span><span class="s0">, </span><span class="s1">rev_options.to_args())</span>
+        <span class="s1">self.run_command(cmd_args</span><span class="s0">, </span><span class="s1">cwd=dest)</span>
+
+    <span class="s1">@classmethod</span>
+    <span class="s0">def </span><span class="s1">get_url_rev_and_auth(cls</span><span class="s0">, </span><span class="s1">url):</span>
+        <span class="s3"># type: (str) -&gt; Tuple[str, Optional[str], AuthInfo]</span>
+        <span class="s3"># hotfix the URL scheme after removing bzr+ from bzr+ssh:// readd it</span>
+        <span class="s1">url</span><span class="s0">, </span><span class="s1">rev</span><span class="s0">, </span><span class="s1">user_pass = super().get_url_rev_and_auth(url)</span>
+        <span class="s0">if </span><span class="s1">url.startswith(</span><span class="s2">'ssh://'</span><span class="s1">):</span>
+            <span class="s1">url = </span><span class="s2">'bzr+' </span><span class="s1">+ url</span>
+        <span class="s0">return </span><span class="s1">url</span><span class="s0">, </span><span class="s1">rev</span><span class="s0">, </span><span class="s1">user_pass</span>
+
+    <span class="s1">@classmethod</span>
+    <span class="s0">def </span><span class="s1">get_remote_url(cls</span><span class="s0">, </span><span class="s1">location):</span>
+        <span class="s3"># type: (str) -&gt; str</span>
+        <span class="s1">urls = cls.run_command(</span>
+            <span class="s1">[</span><span class="s2">'info'</span><span class="s1">]</span><span class="s0">, </span><span class="s1">show_stdout=</span><span class="s0">False, </span><span class="s1">stdout_only=</span><span class="s0">True, </span><span class="s1">cwd=location</span>
+        <span class="s1">)</span>
+        <span class="s0">for </span><span class="s1">line </span><span class="s0">in </span><span class="s1">urls.splitlines():</span>
+            <span class="s1">line = line.strip()</span>
+            <span class="s0">for </span><span class="s1">x </span><span class="s0">in </span><span class="s1">(</span><span class="s2">'checkout of branch: '</span><span class="s0">,</span>
+                      <span class="s2">'parent branch: '</span><span class="s1">):</span>
+                <span class="s0">if </span><span class="s1">line.startswith(x):</span>
+                    <span class="s1">repo = line.split(x)[</span><span class="s4">1</span><span class="s1">]</span>
+                    <span class="s0">if </span><span class="s1">cls._is_local_repository(repo):</span>
+                        <span class="s0">return </span><span class="s1">path_to_url(repo)</span>
+                    <span class="s0">return </span><span class="s1">repo</span>
+        <span class="s0">raise </span><span class="s1">RemoteNotFoundError</span>
+
+    <span class="s1">@classmethod</span>
+    <span class="s0">def </span><span class="s1">get_revision(cls</span><span class="s0">, </span><span class="s1">location):</span>
+        <span class="s3"># type: (str) -&gt; str</span>
+        <span class="s1">revision = cls.run_command(</span>
+            <span class="s1">[</span><span class="s2">'revno'</span><span class="s1">]</span><span class="s0">, </span><span class="s1">show_stdout=</span><span class="s0">False, </span><span class="s1">stdout_only=</span><span class="s0">True, </span><span class="s1">cwd=location</span><span class="s0">,</span>
+        <span class="s1">)</span>
+        <span class="s0">return </span><span class="s1">revision.splitlines()[-</span><span class="s4">1</span><span class="s1">]</span>
+
+    <span class="s1">@classmethod</span>
+    <span class="s0">def </span><span class="s1">is_commit_id_equal(cls</span><span class="s0">, </span><span class="s1">dest</span><span class="s0">, </span><span class="s1">name):</span>
+        <span class="s3"># type: (str, Optional[str]) -&gt; bool</span>
+        <span class="s5">&quot;&quot;&quot;Always assume the versions don't match&quot;&quot;&quot;</span>
+        <span class="s0">return False</span>
+
+
+<span class="s1">vcs.register(Bazaar)</span>
+</pre>
+</body>
+</html>

@@ -1,0 +1,157 @@
+<html>
+<head>
+<title>list.h</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+list.h</font>
+</center></td></tr></table>
+<pre><span class="s0">/* 
+ * Summary: lists interfaces 
+ * Description: this module implement the list support used in 
+ * various place in the library. 
+ * 
+ * Copy: See Copyright for the status of this software. 
+ * 
+ * Author: Gary Pennington &lt;Gary.Pennington@uk.sun.com&gt; 
+ */</span>
+
+<span class="s2">#ifndef </span><span class="s1">__XML_LINK_INCLUDE__</span>
+<span class="s2">#define </span><span class="s1">__XML_LINK_INCLUDE__</span>
+
+<span class="s2">#include </span><span class="s1">&lt;libxml/xmlversion.h&gt;</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s2">extern </span><span class="s3">&quot;C&quot; </span><span class="s1">{</span>
+<span class="s2">#endif</span>
+
+<span class="s2">typedef struct </span><span class="s1">_xmlLink xmlLink;</span>
+<span class="s2">typedef </span><span class="s1">xmlLink *xmlLinkPtr;</span>
+
+<span class="s2">typedef struct </span><span class="s1">_xmlList xmlList;</span>
+<span class="s2">typedef </span><span class="s1">xmlList *xmlListPtr;</span>
+
+<span class="s0">/** 
+ * xmlListDeallocator: 
+ * @lk:  the data to deallocate 
+ * 
+ * Callback function used to free data from a list. 
+ */</span>
+<span class="s2">typedef void </span><span class="s1">(*xmlListDeallocator) (xmlLinkPtr lk);</span>
+<span class="s0">/** 
+ * xmlListDataCompare: 
+ * @data0: the first data 
+ * @data1: the second data 
+ * 
+ * Callback function used to compare 2 data. 
+ * 
+ * Returns 0 is equality, -1 or 1 otherwise depending on the ordering. 
+ */</span>
+<span class="s2">typedef int  </span><span class="s1">(*xmlListDataCompare) (</span><span class="s2">const void </span><span class="s1">*data0, </span><span class="s2">const void </span><span class="s1">*data1);</span>
+<span class="s0">/** 
+ * xmlListWalker: 
+ * @data: the data found in the list 
+ * @user: extra user provided data to the walker 
+ * 
+ * Callback function used when walking a list with xmlListWalk(). 
+ * 
+ * Returns 0 to stop walking the list, 1 otherwise. 
+ */</span>
+<span class="s2">typedef int </span><span class="s1">(*xmlListWalker) (</span><span class="s2">const void </span><span class="s1">*data, </span><span class="s2">const void </span><span class="s1">*user);</span>
+
+<span class="s0">/* Creation/Deletion */</span>
+<span class="s1">XMLPUBFUN xmlListPtr XMLCALL</span>
+		<span class="s1">xmlListCreate		(xmlListDeallocator deallocator,</span>
+	                                 <span class="s1">xmlListDataCompare compare);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlListDelete		(xmlListPtr l);</span>
+
+<span class="s0">/* Basic Operators */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">* XMLCALL</span>
+		<span class="s1">xmlListSearch		(xmlListPtr l,</span>
+					 <span class="s2">void </span><span class="s1">*data);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">* XMLCALL</span>
+		<span class="s1">xmlListReverseSearch	(xmlListPtr l,</span>
+					 <span class="s2">void </span><span class="s1">*data);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlListInsert		(xmlListPtr l,</span>
+					 <span class="s2">void </span><span class="s1">*data) ;</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlListAppend		(xmlListPtr l,</span>
+					 <span class="s2">void </span><span class="s1">*data) ;</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlListRemoveFirst	(xmlListPtr l,</span>
+					 <span class="s2">void </span><span class="s1">*data);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlListRemoveLast	(xmlListPtr l,</span>
+					 <span class="s2">void </span><span class="s1">*data);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlListRemoveAll	(xmlListPtr l,</span>
+					 <span class="s2">void </span><span class="s1">*data);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlListClear		(xmlListPtr l);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlListEmpty		(xmlListPtr l);</span>
+<span class="s1">XMLPUBFUN xmlLinkPtr XMLCALL</span>
+		<span class="s1">xmlListFront		(xmlListPtr l);</span>
+<span class="s1">XMLPUBFUN xmlLinkPtr XMLCALL</span>
+		<span class="s1">xmlListEnd		(xmlListPtr l);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlListSize		(xmlListPtr l);</span>
+
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlListPopFront		(xmlListPtr l);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlListPopBack		(xmlListPtr l);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlListPushFront	(xmlListPtr l,</span>
+					 <span class="s2">void </span><span class="s1">*data);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlListPushBack		(xmlListPtr l,</span>
+					 <span class="s2">void </span><span class="s1">*data);</span>
+
+<span class="s0">/* Advanced Operators */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlListReverse		(xmlListPtr l);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlListSort		(xmlListPtr l);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlListWalk		(xmlListPtr l,</span>
+					 <span class="s1">xmlListWalker walker,</span>
+					 <span class="s2">const void </span><span class="s1">*user);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlListReverseWalk	(xmlListPtr l,</span>
+					 <span class="s1">xmlListWalker walker,</span>
+					 <span class="s2">const void </span><span class="s1">*user);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlListMerge		(xmlListPtr l1,</span>
+					 <span class="s1">xmlListPtr l2);</span>
+<span class="s1">XMLPUBFUN xmlListPtr XMLCALL</span>
+		<span class="s1">xmlListDup		(</span><span class="s2">const </span><span class="s1">xmlListPtr old);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlListCopy		(xmlListPtr cur,</span>
+					 <span class="s2">const </span><span class="s1">xmlListPtr old);</span>
+<span class="s0">/* Link operators */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">* XMLCALL</span>
+		<span class="s1">xmlLinkGetData          (xmlLinkPtr lk);</span>
+
+<span class="s0">/* xmlListUnique() */</span>
+<span class="s0">/* xmlListSwap */</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s1">}</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#endif </span><span class="s0">/* __XML_LINK_INCLUDE__ */</span>
+</pre>
+</body>
+</html>

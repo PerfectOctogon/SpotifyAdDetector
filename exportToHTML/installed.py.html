@@ -1,0 +1,42 @@
+<html>
+<head>
+<title>installed.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #cc7832;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #629755; font-style: italic;}
+.s3 { color: #808080;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+installed.py</font>
+</center></td></tr></table>
+<pre><span class="s0">from </span><span class="s1">typing </span><span class="s0">import </span><span class="s1">Optional</span>
+
+<span class="s0">from </span><span class="s1">pip._vendor.pkg_resources </span><span class="s0">import </span><span class="s1">Distribution</span>
+
+<span class="s0">from </span><span class="s1">pip._internal.distributions.base </span><span class="s0">import </span><span class="s1">AbstractDistribution</span>
+<span class="s0">from </span><span class="s1">pip._internal.index.package_finder </span><span class="s0">import </span><span class="s1">PackageFinder</span>
+
+
+<span class="s0">class </span><span class="s1">InstalledDistribution(AbstractDistribution):</span>
+    <span class="s2">&quot;&quot;&quot;Represents an installed package. 
+ 
+    This does not need any preparation as the required information has already 
+    been computed. 
+    &quot;&quot;&quot;</span>
+
+    <span class="s0">def </span><span class="s1">get_pkg_resources_distribution(self):</span>
+        <span class="s3"># type: () -&gt; Optional[Distribution]</span>
+        <span class="s0">return </span><span class="s1">self.req.satisfied_by</span>
+
+    <span class="s0">def </span><span class="s1">prepare_distribution_metadata(self</span><span class="s0">, </span><span class="s1">finder</span><span class="s0">, </span><span class="s1">build_isolation):</span>
+        <span class="s3"># type: (PackageFinder, bool) -&gt; None</span>
+        <span class="s0">pass</span>
+</pre>
+</body>
+</html>

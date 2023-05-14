@@ -1,0 +1,152 @@
+<html>
+<head>
+<title>xpath.pxd</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #a9b7c6;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+xpath.pxd</font>
+</center></td></tr></table>
+<pre><span class="s0">from lxml.includes cimport tree</span>
+<span class="s0">from lxml.includes cimport xmlerror</span>
+
+<span class="s0">from libc.string cimport const_char</span>
+<span class="s0">from lxml.includes.tree cimport xmlChar, const_xmlChar</span>
+
+<span class="s0">cdef extern from &quot;libxml/xpath.h&quot;:</span>
+    <span class="s0">ctypedef enum xmlXPathObjectType:</span>
+        <span class="s0">XPATH_UNDEFINED = 0</span>
+        <span class="s0">XPATH_NODESET = 1</span>
+        <span class="s0">XPATH_BOOLEAN = 2</span>
+        <span class="s0">XPATH_NUMBER = 3</span>
+        <span class="s0">XPATH_STRING = 4</span>
+        <span class="s0">XPATH_POINT = 5</span>
+        <span class="s0">XPATH_RANGE = 6</span>
+        <span class="s0">XPATH_LOCATIONSET = 7</span>
+        <span class="s0">XPATH_USERS = 8</span>
+        <span class="s0">XPATH_XSLT_TREE = 9</span>
+
+    <span class="s0">ctypedef enum xmlXPathError:</span>
+        <span class="s0">XPATH_EXPRESSION_OK = 0</span>
+        <span class="s0">XPATH_NUMBER_ERROR = 1</span>
+        <span class="s0">XPATH_UNFINISHED_LITERAL_ERROR = 2</span>
+        <span class="s0">XPATH_START_LITERAL_ERROR = 3</span>
+        <span class="s0">XPATH_VARIABLE_REF_ERROR = 4</span>
+        <span class="s0">XPATH_UNDEF_VARIABLE_ERROR = 5</span>
+        <span class="s0">XPATH_INVALID_PREDICATE_ERROR = 6</span>
+        <span class="s0">XPATH_EXPR_ERROR = 7</span>
+        <span class="s0">XPATH_UNCLOSED_ERROR = 8</span>
+        <span class="s0">XPATH_UNKNOWN_FUNC_ERROR = 9</span>
+        <span class="s0">XPATH_INVALID_OPERAND = 10</span>
+        <span class="s0">XPATH_INVALID_TYPE = 11</span>
+        <span class="s0">XPATH_INVALID_ARITY = 12</span>
+        <span class="s0">XPATH_INVALID_CTXT_SIZE = 13</span>
+        <span class="s0">XPATH_INVALID_CTXT_POSITION = 14</span>
+        <span class="s0">XPATH_MEMORY_ERROR = 15</span>
+        <span class="s0">XPTR_SYNTAX_ERROR = 16</span>
+        <span class="s0">XPTR_RESOURCE_ERROR = 17</span>
+        <span class="s0">XPTR_SUB_RESOURCE_ERROR = 18</span>
+        <span class="s0">XPATH_UNDEF_PREFIX_ERROR = 19</span>
+        <span class="s0">XPATH_ENCODING_ERROR = 20</span>
+        <span class="s0">XPATH_INVALID_CHAR_ERROR = 21</span>
+        <span class="s0">XPATH_INVALID_CTXT = 22</span>
+
+    <span class="s0">ctypedef struct xmlNodeSet:</span>
+        <span class="s0">int nodeNr</span>
+        <span class="s0">int nodeMax</span>
+        <span class="s0">tree.xmlNode** nodeTab</span>
+        
+    <span class="s0">ctypedef struct xmlXPathObject:</span>
+        <span class="s0">xmlXPathObjectType type</span>
+        <span class="s0">xmlNodeSet* nodesetval</span>
+        <span class="s0">bint boolval</span>
+        <span class="s0">double floatval</span>
+        <span class="s0">xmlChar* stringval</span>
+
+    <span class="s0">ctypedef struct xmlXPathContext:</span>
+        <span class="s0">tree.xmlDoc* doc</span>
+        <span class="s0">tree.xmlNode* node</span>
+        <span class="s0">tree.xmlDict* dict</span>
+        <span class="s0">tree.xmlHashTable* nsHash</span>
+        <span class="s0">const_xmlChar* function</span>
+        <span class="s0">const_xmlChar* functionURI</span>
+        <span class="s0">xmlerror.xmlStructuredErrorFunc error</span>
+        <span class="s0">xmlerror.xmlError lastError</span>
+        <span class="s0">void* userData</span>
+
+    <span class="s0">ctypedef struct xmlXPathParserContext:</span>
+        <span class="s0">xmlXPathContext* context</span>
+        <span class="s0">xmlXPathObject* value</span>
+        <span class="s0">tree.xmlNode* ancestor</span>
+        <span class="s0">int error</span>
+
+    <span class="s0">ctypedef struct xmlXPathCompExpr</span>
+
+    <span class="s0">ctypedef void (*xmlXPathFunction)(xmlXPathParserContext* ctxt, int nargs) nogil</span>
+    <span class="s0">ctypedef xmlXPathFunction (*xmlXPathFuncLookupFunc)(void* ctxt,</span>
+                                                        <span class="s0">const_xmlChar* name,</span>
+                                                        <span class="s0">const_xmlChar* ns_uri) nogil</span>
+    
+    <span class="s0">cdef xmlXPathContext* xmlXPathNewContext(tree.xmlDoc* doc) nogil</span>
+    <span class="s0">cdef xmlXPathObject* xmlXPathEvalExpression(const_xmlChar* str,</span>
+                                                <span class="s0">xmlXPathContext* ctxt) nogil</span>
+    <span class="s0">cdef xmlXPathObject* xmlXPathCompiledEval(xmlXPathCompExpr* comp,</span>
+                                              <span class="s0">xmlXPathContext* ctxt) nogil</span>
+    <span class="s0">cdef xmlXPathCompExpr* xmlXPathCompile(const_xmlChar* str) nogil</span>
+    <span class="s0">cdef xmlXPathCompExpr* xmlXPathCtxtCompile(xmlXPathContext* ctxt,</span>
+                                               <span class="s0">const_xmlChar* str) nogil</span>
+    <span class="s0">cdef void xmlXPathFreeContext(xmlXPathContext* ctxt) nogil</span>
+    <span class="s0">cdef void xmlXPathFreeCompExpr(xmlXPathCompExpr* comp) nogil</span>
+    <span class="s0">cdef void xmlXPathFreeObject(xmlXPathObject* obj) nogil</span>
+    <span class="s0">cdef int xmlXPathRegisterNs(xmlXPathContext* ctxt,</span>
+                                <span class="s0">const_xmlChar* prefix, const_xmlChar* ns_uri) nogil</span>
+    
+    <span class="s0">cdef xmlNodeSet* xmlXPathNodeSetCreate(tree.xmlNode* val) nogil</span>
+    <span class="s0">cdef void xmlXPathFreeNodeSet(xmlNodeSet* val) nogil</span>
+
+
+<span class="s0">cdef extern from &quot;libxml/xpathInternals.h&quot;:</span>
+    <span class="s0">cdef int xmlXPathRegisterFunc(xmlXPathContext* ctxt,</span>
+                                  <span class="s0">const_xmlChar* name,</span>
+                                  <span class="s0">xmlXPathFunction f) nogil</span>
+    <span class="s0">cdef int xmlXPathRegisterFuncNS(xmlXPathContext* ctxt,</span>
+                                    <span class="s0">const_xmlChar* name,</span>
+                                    <span class="s0">const_xmlChar* ns_uri,</span>
+                                    <span class="s0">xmlXPathFunction f) nogil</span>
+    <span class="s0">cdef void xmlXPathRegisterFuncLookup(xmlXPathContext *ctxt,</span>
+                                         <span class="s0">xmlXPathFuncLookupFunc f,</span>
+                                         <span class="s0">void *funcCtxt) nogil</span>
+    <span class="s0">cdef int xmlXPathRegisterVariable(xmlXPathContext *ctxt, </span>
+                                      <span class="s0">const_xmlChar* name,</span>
+                                      <span class="s0">xmlXPathObject* value) nogil</span>
+    <span class="s0">cdef int xmlXPathRegisterVariableNS(xmlXPathContext *ctxt, </span>
+                                        <span class="s0">const_xmlChar* name,</span>
+                                        <span class="s0">const_xmlChar* ns_uri,</span>
+                                        <span class="s0">xmlXPathObject* value) nogil</span>
+    <span class="s0">cdef void xmlXPathRegisteredVariablesCleanup(xmlXPathContext *ctxt) nogil</span>
+    <span class="s0">cdef void xmlXPathRegisteredNsCleanup(xmlXPathContext *ctxt) nogil</span>
+    <span class="s0">cdef xmlXPathObject* valuePop (xmlXPathParserContext *ctxt) nogil</span>
+    <span class="s0">cdef int valuePush(xmlXPathParserContext* ctxt, xmlXPathObject *value) nogil</span>
+    
+    <span class="s0">cdef xmlXPathObject* xmlXPathNewCString(const_char *val) nogil</span>
+    <span class="s0">cdef xmlXPathObject* xmlXPathWrapCString(const_char * val) nogil</span>
+    <span class="s0">cdef xmlXPathObject* xmlXPathNewString(const_xmlChar *val) nogil</span>
+    <span class="s0">cdef xmlXPathObject* xmlXPathWrapString(const_xmlChar * val) nogil</span>
+    <span class="s0">cdef xmlXPathObject* xmlXPathNewFloat(double val) nogil</span>
+    <span class="s0">cdef xmlXPathObject* xmlXPathNewBoolean(int val) nogil</span>
+    <span class="s0">cdef xmlXPathObject* xmlXPathNewNodeSet(tree.xmlNode* val) nogil</span>
+    <span class="s0">cdef xmlXPathObject* xmlXPathNewValueTree(tree.xmlNode* val) nogil</span>
+    <span class="s0">cdef void xmlXPathNodeSetAdd(xmlNodeSet* cur,</span>
+                                  <span class="s0">tree.xmlNode* val) nogil</span>
+    <span class="s0">cdef void xmlXPathNodeSetAddUnique(xmlNodeSet* cur,</span>
+                                        <span class="s0">tree.xmlNode* val) nogil</span>
+    <span class="s0">cdef xmlXPathObject* xmlXPathWrapNodeSet(xmlNodeSet* val) nogil</span>
+    <span class="s0">cdef void xmlXPathErr(xmlXPathParserContext* ctxt, int error) nogil</span>
+</pre>
+</body>
+</html>

@@ -1,0 +1,76 @@
+<html>
+<head>
+<title>_setmixin.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #cc7832;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #629755; font-style: italic;}
+.s3 { color: #6897bb;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+_setmixin.py</font>
+</center></td></tr></table>
+<pre><span class="s0">try</span><span class="s1">:</span>
+    <span class="s0">from </span><span class="s1">collections.abc </span><span class="s0">import </span><span class="s1">MutableSet</span>
+<span class="s0">except </span><span class="s1">ImportError:</span>
+    <span class="s0">from </span><span class="s1">collections </span><span class="s0">import </span><span class="s1">MutableSet</span>
+
+
+<span class="s0">class </span><span class="s1">SetMixin(MutableSet):</span>
+
+    <span class="s2">&quot;&quot;&quot; 
+    Mix-in for sets.  You must define __iter__, add, remove 
+    &quot;&quot;&quot;</span>
+
+    <span class="s0">def </span><span class="s1">__len__(self):</span>
+        <span class="s1">length = </span><span class="s3">0</span>
+        <span class="s0">for </span><span class="s1">item </span><span class="s0">in </span><span class="s1">self:</span>
+            <span class="s1">length += </span><span class="s3">1</span>
+        <span class="s0">return </span><span class="s1">length</span>
+
+    <span class="s0">def </span><span class="s1">__contains__(self</span><span class="s0">, </span><span class="s1">item):</span>
+        <span class="s0">for </span><span class="s1">has_item </span><span class="s0">in </span><span class="s1">self:</span>
+            <span class="s0">if </span><span class="s1">item == has_item:</span>
+                <span class="s0">return True</span>
+        <span class="s0">return False</span>
+
+    <span class="s1">issubset = MutableSet.__le__</span>
+    <span class="s1">issuperset = MutableSet.__ge__</span>
+
+    <span class="s1">union = MutableSet.__or__</span>
+    <span class="s1">intersection = MutableSet.__and__</span>
+    <span class="s1">difference = MutableSet.__sub__</span>
+    <span class="s1">symmetric_difference = MutableSet.__xor__</span>
+
+    <span class="s0">def </span><span class="s1">copy(self):</span>
+        <span class="s0">return </span><span class="s1">set(self)</span>
+
+    <span class="s0">def </span><span class="s1">update(self</span><span class="s0">, </span><span class="s1">other):</span>
+        <span class="s1">self |= other</span>
+
+    <span class="s0">def </span><span class="s1">intersection_update(self</span><span class="s0">, </span><span class="s1">other):</span>
+        <span class="s1">self &amp;= other</span>
+
+    <span class="s0">def </span><span class="s1">difference_update(self</span><span class="s0">, </span><span class="s1">other):</span>
+        <span class="s1">self -= other</span>
+
+    <span class="s0">def </span><span class="s1">symmetric_difference_update(self</span><span class="s0">, </span><span class="s1">other):</span>
+        <span class="s1">self ^= other</span>
+
+    <span class="s0">def </span><span class="s1">discard(self</span><span class="s0">, </span><span class="s1">item):</span>
+        <span class="s0">try</span><span class="s1">:</span>
+            <span class="s1">self.remove(item)</span>
+        <span class="s0">except </span><span class="s1">KeyError:</span>
+            <span class="s0">pass</span>
+
+    <span class="s1">@classmethod</span>
+    <span class="s0">def </span><span class="s1">_from_iterable(cls</span><span class="s0">, </span><span class="s1">it):</span>
+        <span class="s0">return </span><span class="s1">set(it)</span>
+</pre>
+</body>
+</html>

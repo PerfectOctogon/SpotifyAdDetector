@@ -1,0 +1,208 @@
+<html>
+<head>
+<title>xslt.pxd</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #a9b7c6;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+xslt.pxd</font>
+</center></td></tr></table>
+<pre><span class="s0">from lxml.includes.tree cimport xmlDoc, xmlNode, xmlDict, xmlChar, const_xmlChar, xmlOutputBuffer</span>
+<span class="s0">from lxml.includes.xmlerror cimport xmlGenericErrorFunc</span>
+<span class="s0">from lxml.includes.xpath cimport xmlXPathContext, xmlXPathFunction</span>
+
+<span class="s0">from libc.string cimport const_char</span>
+
+<span class="s0">cdef extern from &quot;libxslt/xslt.h&quot;:</span>
+    <span class="s0">cdef int xsltLibxsltVersion</span>
+    <span class="s0">cdef int xsltMaxDepth</span>
+
+<span class="s0">cdef extern from &quot;libxslt/xsltconfig.h&quot;:</span>
+    <span class="s0">cdef int LIBXSLT_VERSION</span>
+
+<span class="s0">cdef extern from &quot;libxslt/xsltInternals.h&quot;:</span>
+    <span class="s0">ctypedef enum xsltTransformState:</span>
+        <span class="s0">XSLT_STATE_OK       # 0</span>
+        <span class="s0">XSLT_STATE_ERROR    # 1</span>
+        <span class="s0">XSLT_STATE_STOPPED  # 2</span>
+
+    <span class="s0">ctypedef struct xsltDocument:</span>
+        <span class="s0">xmlDoc* doc</span>
+
+    <span class="s0">ctypedef struct xsltStylesheet:</span>
+        <span class="s0">xmlChar* encoding</span>
+        <span class="s0">xmlDoc* doc</span>
+        <span class="s0">int errors</span>
+
+    <span class="s0">ctypedef struct xsltTransformContext:</span>
+        <span class="s0">xsltStylesheet* style</span>
+        <span class="s0">xmlXPathContext* xpathCtxt</span>
+        <span class="s0">xsltDocument* document</span>
+        <span class="s0">void* _private</span>
+        <span class="s0">xmlDict* dict</span>
+        <span class="s0">int profile</span>
+        <span class="s0">xmlNode* node</span>
+        <span class="s0">xmlDoc* output</span>
+        <span class="s0">xmlNode* insert</span>
+        <span class="s0">xmlNode* inst</span>
+        <span class="s0">xsltTransformState state</span>
+
+    <span class="s0">ctypedef struct xsltStackElem</span>
+
+    <span class="s0">ctypedef struct xsltTemplate</span>
+
+    <span class="s0">cdef xsltStylesheet* xsltParseStylesheetDoc(xmlDoc* doc) nogil</span>
+    <span class="s0">cdef void xsltFreeStylesheet(xsltStylesheet* sheet) nogil</span>
+
+<span class="s0">cdef extern from &quot;libxslt/imports.h&quot;:</span>
+    <span class="s0"># actually defined in &quot;etree_defs.h&quot;</span>
+    <span class="s0">cdef void LXML_GET_XSLT_ENCODING(const_xmlChar* result_var, xsltStylesheet* style)</span>
+
+<span class="s0">cdef extern from &quot;libxslt/extensions.h&quot;:</span>
+    <span class="s0">ctypedef void (*xsltTransformFunction)(xsltTransformContext* ctxt,</span>
+                                           <span class="s0">xmlNode* context_node,</span>
+                                           <span class="s0">xmlNode* inst,</span>
+                                           <span class="s0">void* precomp_unused) nogil</span>
+
+    <span class="s0">cdef int xsltRegisterExtFunction(xsltTransformContext* ctxt,</span>
+                                     <span class="s0">const_xmlChar* name,</span>
+                                     <span class="s0">const_xmlChar* URI,</span>
+                                     <span class="s0">xmlXPathFunction function) nogil</span>
+    <span class="s0">cdef int xsltRegisterExtModuleFunction(const_xmlChar* name, const_xmlChar* URI,</span>
+                                           <span class="s0">xmlXPathFunction function) nogil</span>
+    <span class="s0">cdef int xsltUnregisterExtModuleFunction(const_xmlChar* name, const_xmlChar* URI)</span>
+    <span class="s0">cdef xmlXPathFunction xsltExtModuleFunctionLookup(</span>
+        <span class="s0">const_xmlChar* name, const_xmlChar* URI) nogil</span>
+    <span class="s0">cdef int xsltRegisterExtPrefix(xsltStylesheet* style, </span>
+                                   <span class="s0">const_xmlChar* prefix, const_xmlChar* URI) nogil</span>
+    <span class="s0">cdef int xsltRegisterExtElement(xsltTransformContext* ctxt,</span>
+                                    <span class="s0">const_xmlChar* name, const_xmlChar* URI,</span>
+                                    <span class="s0">xsltTransformFunction function) nogil</span>
+
+<span class="s0">cdef extern from &quot;libxslt/documents.h&quot;:</span>
+    <span class="s0">ctypedef enum xsltLoadType:</span>
+        <span class="s0">XSLT_LOAD_START</span>
+        <span class="s0">XSLT_LOAD_STYLESHEET</span>
+        <span class="s0">XSLT_LOAD_DOCUMENT</span>
+
+    <span class="s0">ctypedef xmlDoc* (*xsltDocLoaderFunc)(const_xmlChar* URI, xmlDict* dict,</span>
+                                          <span class="s0">int options,</span>
+                                          <span class="s0">void* ctxt,</span>
+                                          <span class="s0">xsltLoadType type) nogil</span>
+    <span class="s0">cdef xsltDocLoaderFunc xsltDocDefaultLoader</span>
+    <span class="s0">cdef void xsltSetLoaderFunc(xsltDocLoaderFunc f) nogil</span>
+
+<span class="s0">cdef extern from &quot;libxslt/transform.h&quot;:</span>
+    <span class="s0">cdef xmlDoc* xsltApplyStylesheet(xsltStylesheet* style, xmlDoc* doc,</span>
+                                     <span class="s0">const_char** params) nogil</span>
+    <span class="s0">cdef xmlDoc* xsltApplyStylesheetUser(xsltStylesheet* style, xmlDoc* doc,</span>
+                                         <span class="s0">const_char** params, const_char* output,</span>
+                                         <span class="s0">void* profile,</span>
+                                         <span class="s0">xsltTransformContext* context) nogil</span>
+    <span class="s0">cdef void xsltProcessOneNode(xsltTransformContext* ctxt,</span>
+                                 <span class="s0">xmlNode* contextNode,</span>
+                                 <span class="s0">xsltStackElem* params) nogil</span>
+    <span class="s0">cdef xsltTransformContext* xsltNewTransformContext(xsltStylesheet* style,</span>
+                                                       <span class="s0">xmlDoc* doc) nogil</span>
+    <span class="s0">cdef void xsltFreeTransformContext(xsltTransformContext* context) nogil</span>
+    <span class="s0">cdef void xsltApplyOneTemplate(xsltTransformContext* ctxt,</span>
+                                   <span class="s0">xmlNode* contextNode, xmlNode* list,</span>
+                                   <span class="s0">xsltTemplate* templ,</span>
+                                   <span class="s0">xsltStackElem* params) nogil</span>
+
+
+<span class="s0">cdef extern from &quot;libxslt/xsltutils.h&quot;:</span>
+    <span class="s0">cdef int xsltSaveResultToString(xmlChar** doc_txt_ptr,</span>
+                                    <span class="s0">int* doc_txt_len,</span>
+                                    <span class="s0">xmlDoc* result,</span>
+                                    <span class="s0">xsltStylesheet* style) nogil</span>
+    <span class="s0">cdef int xsltSaveResultToFilename(const_char *URL,</span>
+                                      <span class="s0">xmlDoc* result,</span>
+                                      <span class="s0">xsltStylesheet* style,</span>
+                                      <span class="s0">int compression) nogil</span>
+    <span class="s0">cdef int xsltSaveResultTo(xmlOutputBuffer* buf,</span>
+                              <span class="s0">xmlDoc* result,</span>
+                              <span class="s0">xsltStylesheet* style) nogil</span>
+    <span class="s0">cdef xmlGenericErrorFunc xsltGenericError</span>
+    <span class="s0">cdef void *xsltGenericErrorContext</span>
+    <span class="s0">cdef void xsltSetGenericErrorFunc(</span>
+        <span class="s0">void* ctxt, void (*handler)(void* ctxt, char* msg, ...)) nogil</span>
+    <span class="s0">cdef void xsltSetTransformErrorFunc(</span>
+        <span class="s0">xsltTransformContext*, void* ctxt,</span>
+        <span class="s0">void (*handler)(void* ctxt, char* msg, ...) nogil) nogil</span>
+    <span class="s0">cdef void xsltTransformError(xsltTransformContext* ctxt, </span>
+                                 <span class="s0">xsltStylesheet* style, </span>
+                                 <span class="s0">xmlNode* node, char* msg, ...)</span>
+    <span class="s0">cdef void xsltSetCtxtParseOptions(</span>
+        <span class="s0">xsltTransformContext* ctxt, int options)</span>
+
+
+<span class="s0">cdef extern from &quot;libxslt/security.h&quot;:</span>
+    <span class="s0">ctypedef struct xsltSecurityPrefs</span>
+    <span class="s0">ctypedef enum xsltSecurityOption:</span>
+        <span class="s0">XSLT_SECPREF_READ_FILE = 1</span>
+        <span class="s0">XSLT_SECPREF_WRITE_FILE = 2</span>
+        <span class="s0">XSLT_SECPREF_CREATE_DIRECTORY = 3</span>
+        <span class="s0">XSLT_SECPREF_READ_NETWORK = 4</span>
+        <span class="s0">XSLT_SECPREF_WRITE_NETWORK = 5</span>
+
+    <span class="s0">ctypedef int (*xsltSecurityCheck)(xsltSecurityPrefs* sec,</span>
+                                      <span class="s0">xsltTransformContext* ctxt,</span>
+                                      <span class="s0">char* value) nogil</span>
+
+    <span class="s0">cdef xsltSecurityPrefs* xsltNewSecurityPrefs() nogil</span>
+    <span class="s0">cdef void xsltFreeSecurityPrefs(xsltSecurityPrefs* sec) nogil</span>
+    <span class="s0">cdef int xsltSecurityForbid(xsltSecurityPrefs* sec,</span>
+                                <span class="s0">xsltTransformContext* ctxt,</span>
+                                <span class="s0">char* value) nogil</span>
+    <span class="s0">cdef int xsltSecurityAllow(xsltSecurityPrefs* sec,</span>
+                                <span class="s0">xsltTransformContext* ctxt,</span>
+                                <span class="s0">char* value) nogil</span>
+    <span class="s0">cdef int xsltSetSecurityPrefs(xsltSecurityPrefs* sec,</span>
+                                  <span class="s0">xsltSecurityOption option,</span>
+                                  <span class="s0">xsltSecurityCheck func) nogil</span>
+    <span class="s0">cdef xsltSecurityCheck xsltGetSecurityPrefs(</span>
+        <span class="s0">xsltSecurityPrefs* sec,</span>
+        <span class="s0">xsltSecurityOption option) nogil</span>
+    <span class="s0">cdef int xsltSetCtxtSecurityPrefs(xsltSecurityPrefs* sec,</span>
+                                      <span class="s0">xsltTransformContext* ctxt) nogil</span>
+    <span class="s0">cdef xmlDoc* xsltGetProfileInformation(xsltTransformContext* ctxt) nogil</span>
+
+<span class="s0">cdef extern from &quot;libxslt/variables.h&quot;:</span>
+    <span class="s0">cdef int xsltQuoteUserParams(xsltTransformContext* ctxt,</span>
+                                 <span class="s0">const_char** params)</span>
+    <span class="s0">cdef int xsltQuoteOneUserParam(xsltTransformContext* ctxt,</span>
+                                   <span class="s0">const_xmlChar* name,</span>
+                                   <span class="s0">const_xmlChar* value)</span>
+
+<span class="s0">cdef extern from &quot;libxslt/extra.h&quot;:</span>
+    <span class="s0">const_xmlChar* XSLT_LIBXSLT_NAMESPACE</span>
+    <span class="s0">const_xmlChar* XSLT_XALAN_NAMESPACE</span>
+    <span class="s0">const_xmlChar* XSLT_SAXON_NAMESPACE</span>
+    <span class="s0">const_xmlChar* XSLT_XT_NAMESPACE</span>
+
+    <span class="s0">cdef xmlXPathFunction xsltFunctionNodeSet</span>
+    <span class="s0">cdef void xsltRegisterAllExtras() nogil</span>
+
+<span class="s0">cdef extern from &quot;libexslt/exslt.h&quot;:</span>
+    <span class="s0">cdef void exsltRegisterAll() nogil</span>
+
+    <span class="s0"># libexslt 1.1.25+</span>
+    <span class="s0">const_xmlChar* EXSLT_DATE_NAMESPACE</span>
+    <span class="s0">const_xmlChar* EXSLT_SETS_NAMESPACE</span>
+    <span class="s0">const_xmlChar* EXSLT_MATH_NAMESPACE</span>
+    <span class="s0">const_xmlChar* EXSLT_STRINGS_NAMESPACE</span>
+
+    <span class="s0">cdef int exsltDateXpathCtxtRegister(xmlXPathContext* ctxt, const_xmlChar* prefix)</span>
+    <span class="s0">cdef int exsltSetsXpathCtxtRegister(xmlXPathContext* ctxt, const_xmlChar* prefix)</span>
+    <span class="s0">cdef int exsltMathXpathCtxtRegister(xmlXPathContext* ctxt, const_xmlChar* prefix)</span>
+    <span class="s0">cdef int exsltStrXpathCtxtRegister(xmlXPathContext* ctxt, const_xmlChar* prefix)</span>
+
+</pre>
+</body>
+</html>

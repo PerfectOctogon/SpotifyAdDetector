@@ -1,0 +1,44 @@
+<html>
+<head>
+<title>tz.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #cc7832;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #6a8759;}
+.s3 { color: #6897bb;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+tz.py</font>
+</center></td></tr></table>
+<pre><span class="s0">from </span><span class="s1">datetime </span><span class="s0">import </span><span class="s1">tzinfo</span><span class="s0">, </span><span class="s1">timedelta</span>
+
+
+<span class="s0">class </span><span class="s1">TomlTz(tzinfo):</span>
+    <span class="s0">def </span><span class="s1">__init__(self</span><span class="s0">, </span><span class="s1">toml_offset):</span>
+        <span class="s0">if </span><span class="s1">toml_offset == </span><span class="s2">&quot;Z&quot;</span><span class="s1">:</span>
+            <span class="s1">self._raw_offset = </span><span class="s2">&quot;+00:00&quot;</span>
+        <span class="s0">else</span><span class="s1">:</span>
+            <span class="s1">self._raw_offset = toml_offset</span>
+        <span class="s1">self._sign = -</span><span class="s3">1 </span><span class="s0">if </span><span class="s1">self._raw_offset[</span><span class="s3">0</span><span class="s1">] == </span><span class="s2">'-' </span><span class="s0">else </span><span class="s3">1</span>
+        <span class="s1">self._hours = int(self._raw_offset[</span><span class="s3">1</span><span class="s1">:</span><span class="s3">3</span><span class="s1">])</span>
+        <span class="s1">self._minutes = int(self._raw_offset[</span><span class="s3">4</span><span class="s1">:</span><span class="s3">6</span><span class="s1">])</span>
+
+    <span class="s0">def </span><span class="s1">__deepcopy__(self</span><span class="s0">, </span><span class="s1">memo):</span>
+        <span class="s0">return </span><span class="s1">self.__class__(self._raw_offset)</span>
+
+    <span class="s0">def </span><span class="s1">tzname(self</span><span class="s0">, </span><span class="s1">dt):</span>
+        <span class="s0">return </span><span class="s2">&quot;UTC&quot; </span><span class="s1">+ self._raw_offset</span>
+
+    <span class="s0">def </span><span class="s1">utcoffset(self</span><span class="s0">, </span><span class="s1">dt):</span>
+        <span class="s0">return </span><span class="s1">self._sign * timedelta(hours=self._hours</span><span class="s0">, </span><span class="s1">minutes=self._minutes)</span>
+
+    <span class="s0">def </span><span class="s1">dst(self</span><span class="s0">, </span><span class="s1">dt):</span>
+        <span class="s0">return </span><span class="s1">timedelta(</span><span class="s3">0</span><span class="s1">)</span>
+</pre>
+</body>
+</html>

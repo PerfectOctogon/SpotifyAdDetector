@@ -1,0 +1,1262 @@
+<html>
+<head>
+<title>parser.h</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+.s4 { color: #6897bb;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+parser.h</font>
+</center></td></tr></table>
+<pre><span class="s0">/* 
+ * Summary: the core parser module 
+ * Description: Interfaces, constants and types related to the XML parser 
+ * 
+ * Copy: See Copyright for the status of this software. 
+ * 
+ * Author: Daniel Veillard 
+ */</span>
+
+<span class="s2">#ifndef </span><span class="s1">__XML_PARSER_H__</span>
+<span class="s2">#define </span><span class="s1">__XML_PARSER_H__</span>
+
+<span class="s2">#include </span><span class="s1">&lt;stdarg.h&gt;</span>
+
+<span class="s2">#include </span><span class="s1">&lt;libxml/xmlversion.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/tree.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/dict.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/hash.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/valid.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/entities.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/xmlerror.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/xmlstring.h&gt;</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s2">extern </span><span class="s3">&quot;C&quot; </span><span class="s1">{</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * XML_DEFAULT_VERSION: 
+ * 
+ * The default version of XML used: 1.0 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_DEFAULT_VERSION	</span><span class="s3">&quot;1.0&quot;</span>
+
+<span class="s0">/** 
+ * xmlParserInput: 
+ * 
+ * An xmlParserInput is an input flow for the XML processor. 
+ * Each entity parsed is associated an xmlParserInput (except the 
+ * few predefined ones). This is the case both for internal entities 
+ * - in which case the flow is already completely in memory - or 
+ * external entities - in which case we use the buf structure for 
+ * progressive reading and I18N conversions to the internal UTF-8 format. 
+ */</span>
+
+<span class="s0">/** 
+ * xmlParserInputDeallocate: 
+ * @str:  the string to deallocate 
+ * 
+ * Callback for freeing some parser input allocations. 
+ */</span>
+<span class="s2">typedef void </span><span class="s1">(* xmlParserInputDeallocate)(xmlChar *str);</span>
+
+<span class="s2">struct </span><span class="s1">_xmlParserInput {</span>
+    <span class="s0">/* Input buffer */</span>
+    <span class="s1">xmlParserInputBufferPtr buf;      </span><span class="s0">/* UTF-8 encoded buffer */</span>
+
+    <span class="s2">const char </span><span class="s1">*filename;             </span><span class="s0">/* The file analyzed, if any */</span>
+    <span class="s2">const char </span><span class="s1">*directory;            </span><span class="s0">/* the directory/base of the file */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *base;              </span><span class="s0">/* Base of the array to parse */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *cur;               </span><span class="s0">/* Current char being parsed */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *end;               </span><span class="s0">/* end of the array to parse */</span>
+    <span class="s2">int </span><span class="s1">length;                       </span><span class="s0">/* length if known */</span>
+    <span class="s2">int </span><span class="s1">line;                         </span><span class="s0">/* Current line */</span>
+    <span class="s2">int </span><span class="s1">col;                          </span><span class="s0">/* Current column */</span>
+    <span class="s0">/* 
+     * NOTE: consumed is only tested for equality in the parser code, 
+     *       so even if there is an overflow this should not give troubles 
+     *       for parsing very large instances. 
+     */</span>
+    <span class="s2">unsigned long </span><span class="s1">consumed;           </span><span class="s0">/* How many xmlChars already consumed */</span>
+    <span class="s1">xmlParserInputDeallocate free;    </span><span class="s0">/* function to deallocate the base */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *encoding;          </span><span class="s0">/* the encoding string for entity */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *version;           </span><span class="s0">/* the version string for entity */</span>
+    <span class="s2">int </span><span class="s1">standalone;                   </span><span class="s0">/* Was that entity marked standalone */</span>
+    <span class="s2">int </span><span class="s1">id;                           </span><span class="s0">/* an unique identifier for the entity */</span>
+<span class="s1">};</span>
+
+<span class="s0">/** 
+ * xmlParserNodeInfo: 
+ * 
+ * The parser can be asked to collect Node informations, i.e. at what 
+ * place in the file they were detected. 
+ * NOTE: This is off by default and not very well tested. 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xmlParserNodeInfo xmlParserNodeInfo;</span>
+<span class="s2">typedef </span><span class="s1">xmlParserNodeInfo *xmlParserNodeInfoPtr;</span>
+
+<span class="s2">struct </span><span class="s1">_xmlParserNodeInfo {</span>
+  <span class="s2">const struct </span><span class="s1">_xmlNode* node;</span>
+  <span class="s0">/* Position &amp; line # that text that created the node begins &amp; ends on */</span>
+  <span class="s2">unsigned long </span><span class="s1">begin_pos;</span>
+  <span class="s2">unsigned long </span><span class="s1">begin_line;</span>
+  <span class="s2">unsigned long </span><span class="s1">end_pos;</span>
+  <span class="s2">unsigned long </span><span class="s1">end_line;</span>
+<span class="s1">};</span>
+
+<span class="s2">typedef struct </span><span class="s1">_xmlParserNodeInfoSeq xmlParserNodeInfoSeq;</span>
+<span class="s2">typedef </span><span class="s1">xmlParserNodeInfoSeq *xmlParserNodeInfoSeqPtr;</span>
+<span class="s2">struct </span><span class="s1">_xmlParserNodeInfoSeq {</span>
+  <span class="s2">unsigned long </span><span class="s1">maximum;</span>
+  <span class="s2">unsigned long </span><span class="s1">length;</span>
+  <span class="s1">xmlParserNodeInfo* buffer;</span>
+<span class="s1">};</span>
+
+<span class="s0">/** 
+ * xmlParserInputState: 
+ * 
+ * The parser is now working also as a state based parser. 
+ * The recursive one use the state info for entities processing. 
+ */</span>
+<span class="s2">typedef enum </span><span class="s1">{</span>
+    <span class="s1">XML_PARSER_EOF = -</span><span class="s4">1</span><span class="s1">,	</span><span class="s0">/* nothing is to be parsed */</span>
+    <span class="s1">XML_PARSER_START = </span><span class="s4">0</span><span class="s1">,	</span><span class="s0">/* nothing has been parsed */</span>
+    <span class="s1">XML_PARSER_MISC,		</span><span class="s0">/* Misc* before int subset */</span>
+    <span class="s1">XML_PARSER_PI,		</span><span class="s0">/* Within a processing instruction */</span>
+    <span class="s1">XML_PARSER_DTD,		</span><span class="s0">/* within some DTD content */</span>
+    <span class="s1">XML_PARSER_PROLOG,		</span><span class="s0">/* Misc* after internal subset */</span>
+    <span class="s1">XML_PARSER_COMMENT,		</span><span class="s0">/* within a comment */</span>
+    <span class="s1">XML_PARSER_START_TAG,	</span><span class="s0">/* within a start tag */</span>
+    <span class="s1">XML_PARSER_CONTENT,		</span><span class="s0">/* within the content */</span>
+    <span class="s1">XML_PARSER_CDATA_SECTION,	</span><span class="s0">/* within a CDATA section */</span>
+    <span class="s1">XML_PARSER_END_TAG,		</span><span class="s0">/* within a closing tag */</span>
+    <span class="s1">XML_PARSER_ENTITY_DECL,	</span><span class="s0">/* within an entity declaration */</span>
+    <span class="s1">XML_PARSER_ENTITY_VALUE,	</span><span class="s0">/* within an entity value in a decl */</span>
+    <span class="s1">XML_PARSER_ATTRIBUTE_VALUE,	</span><span class="s0">/* within an attribute value */</span>
+    <span class="s1">XML_PARSER_SYSTEM_LITERAL,	</span><span class="s0">/* within a SYSTEM value */</span>
+    <span class="s1">XML_PARSER_EPILOG,		</span><span class="s0">/* the Misc* after the last end tag */</span>
+    <span class="s1">XML_PARSER_IGNORE,		</span><span class="s0">/* within an IGNORED section */</span>
+    <span class="s1">XML_PARSER_PUBLIC_LITERAL	</span><span class="s0">/* within a PUBLIC value */</span>
+<span class="s1">} xmlParserInputState;</span>
+
+<span class="s0">/** 
+ * XML_DETECT_IDS: 
+ * 
+ * Bit in the loadsubset context field to tell to do ID/REFs lookups. 
+ * Use it to initialize xmlLoadExtDtdDefaultValue. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_DETECT_IDS		</span><span class="s4">2</span>
+
+<span class="s0">/** 
+ * XML_COMPLETE_ATTRS: 
+ * 
+ * Bit in the loadsubset context field to tell to do complete the 
+ * elements attributes lists with the ones defaulted from the DTDs. 
+ * Use it to initialize xmlLoadExtDtdDefaultValue. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_COMPLETE_ATTRS	</span><span class="s4">4</span>
+
+<span class="s0">/** 
+ * XML_SKIP_IDS: 
+ * 
+ * Bit in the loadsubset context field to tell to not do ID/REFs registration. 
+ * Used to initialize xmlLoadExtDtdDefaultValue in some special cases. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SKIP_IDS		</span><span class="s4">8</span>
+
+<span class="s0">/** 
+ * xmlParserMode: 
+ * 
+ * A parser can operate in various modes 
+ */</span>
+<span class="s2">typedef enum </span><span class="s1">{</span>
+    <span class="s1">XML_PARSE_UNKNOWN = </span><span class="s4">0</span><span class="s1">,</span>
+    <span class="s1">XML_PARSE_DOM = </span><span class="s4">1</span><span class="s1">,</span>
+    <span class="s1">XML_PARSE_SAX = </span><span class="s4">2</span><span class="s1">,</span>
+    <span class="s1">XML_PARSE_PUSH_DOM = </span><span class="s4">3</span><span class="s1">,</span>
+    <span class="s1">XML_PARSE_PUSH_SAX = </span><span class="s4">4</span><span class="s1">,</span>
+    <span class="s1">XML_PARSE_READER = </span><span class="s4">5</span>
+<span class="s1">} xmlParserMode;</span>
+
+<span class="s0">/** 
+ * xmlParserCtxt: 
+ * 
+ * The parser context. 
+ * NOTE This doesn't completely define the parser state, the (current ?) 
+ *      design of the parser uses recursive function calls since this allow 
+ *      and easy mapping from the production rules of the specification 
+ *      to the actual code. The drawback is that the actual function call 
+ *      also reflect the parser state. However most of the parsing routines 
+ *      takes as the only argument the parser context pointer, so migrating 
+ *      to a state based parser for progressive parsing shouldn't be too hard. 
+ */</span>
+<span class="s2">struct </span><span class="s1">_xmlParserCtxt {</span>
+    <span class="s2">struct </span><span class="s1">_xmlSAXHandler *sax;       </span><span class="s0">/* The SAX handler */</span>
+    <span class="s2">void            </span><span class="s1">*userData;        </span><span class="s0">/* For SAX interface only, used by DOM build */</span>
+    <span class="s1">xmlDocPtr           myDoc;        </span><span class="s0">/* the document being built */</span>
+    <span class="s2">int            </span><span class="s1">wellFormed;        </span><span class="s0">/* is the document well formed */</span>
+    <span class="s2">int       </span><span class="s1">replaceEntities;        </span><span class="s0">/* shall we replace entities ? */</span>
+    <span class="s2">const </span><span class="s1">xmlChar    *version;        </span><span class="s0">/* the XML version string */</span>
+    <span class="s2">const </span><span class="s1">xmlChar   *encoding;        </span><span class="s0">/* the declared encoding, if any */</span>
+    <span class="s2">int            </span><span class="s1">standalone;        </span><span class="s0">/* standalone document */</span>
+    <span class="s2">int                  </span><span class="s1">html;        </span><span class="s0">/* an HTML(1)/Docbook(2) document 
+                                       * 3 is HTML after &lt;head&gt; 
+                                       * 10 is HTML after &lt;body&gt; 
+                                       */</span>
+
+    <span class="s0">/* Input stream stack */</span>
+    <span class="s1">xmlParserInputPtr  input;         </span><span class="s0">/* Current input stream */</span>
+    <span class="s2">int                </span><span class="s1">inputNr;       </span><span class="s0">/* Number of current input streams */</span>
+    <span class="s2">int                </span><span class="s1">inputMax;      </span><span class="s0">/* Max number of input streams */</span>
+    <span class="s1">xmlParserInputPtr *inputTab;      </span><span class="s0">/* stack of inputs */</span>
+
+    <span class="s0">/* Node analysis stack only used for DOM building */</span>
+    <span class="s1">xmlNodePtr         node;          </span><span class="s0">/* Current parsed Node */</span>
+    <span class="s2">int                </span><span class="s1">nodeNr;        </span><span class="s0">/* Depth of the parsing stack */</span>
+    <span class="s2">int                </span><span class="s1">nodeMax;       </span><span class="s0">/* Max depth of the parsing stack */</span>
+    <span class="s1">xmlNodePtr        *nodeTab;       </span><span class="s0">/* array of nodes */</span>
+
+    <span class="s2">int </span><span class="s1">record_info;                  </span><span class="s0">/* Whether node info should be kept */</span>
+    <span class="s1">xmlParserNodeInfoSeq node_seq;    </span><span class="s0">/* info about each node parsed */</span>
+
+    <span class="s2">int </span><span class="s1">errNo;                        </span><span class="s0">/* error code */</span>
+
+    <span class="s2">int     </span><span class="s1">hasExternalSubset;        </span><span class="s0">/* reference and external subset */</span>
+    <span class="s2">int             </span><span class="s1">hasPErefs;        </span><span class="s0">/* the internal subset has PE refs */</span>
+    <span class="s2">int              </span><span class="s1">external;        </span><span class="s0">/* are we parsing an external entity */</span>
+
+    <span class="s2">int                 </span><span class="s1">valid;        </span><span class="s0">/* is the document valid */</span>
+    <span class="s2">int              </span><span class="s1">validate;        </span><span class="s0">/* shall we try to validate ? */</span>
+    <span class="s1">xmlValidCtxt        vctxt;        </span><span class="s0">/* The validity context */</span>
+
+    <span class="s1">xmlParserInputState instate;      </span><span class="s0">/* current type of input */</span>
+    <span class="s2">int                 </span><span class="s1">token;        </span><span class="s0">/* next char look-ahead */</span>
+
+    <span class="s2">char           </span><span class="s1">*directory;        </span><span class="s0">/* the data directory */</span>
+
+    <span class="s0">/* Node name stack */</span>
+    <span class="s2">const </span><span class="s1">xmlChar     *name;          </span><span class="s0">/* Current parsed Node */</span>
+    <span class="s2">int                </span><span class="s1">nameNr;        </span><span class="s0">/* Depth of the parsing stack */</span>
+    <span class="s2">int                </span><span class="s1">nameMax;       </span><span class="s0">/* Max depth of the parsing stack */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *   *nameTab;       </span><span class="s0">/* array of nodes */</span>
+
+    <span class="s2">long               </span><span class="s1">nbChars;       </span><span class="s0">/* number of xmlChar processed */</span>
+    <span class="s2">long            </span><span class="s1">checkIndex;       </span><span class="s0">/* used by progressive parsing lookup */</span>
+    <span class="s2">int             </span><span class="s1">keepBlanks;       </span><span class="s0">/* ugly but ... */</span>
+    <span class="s2">int             </span><span class="s1">disableSAX;       </span><span class="s0">/* SAX callbacks are disabled */</span>
+    <span class="s2">int               </span><span class="s1">inSubset;       </span><span class="s0">/* Parsing is in int 1/ext 2 subset */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *    intSubName;    </span><span class="s0">/* name of subset */</span>
+    <span class="s1">xmlChar *          extSubURI;     </span><span class="s0">/* URI of external subset */</span>
+    <span class="s1">xmlChar *          extSubSystem;  </span><span class="s0">/* SYSTEM ID of external subset */</span>
+
+    <span class="s0">/* xml:space values */</span>
+    <span class="s2">int </span><span class="s1">*              space;         </span><span class="s0">/* Should the parser preserve spaces */</span>
+    <span class="s2">int                </span><span class="s1">spaceNr;       </span><span class="s0">/* Depth of the parsing stack */</span>
+    <span class="s2">int                </span><span class="s1">spaceMax;      </span><span class="s0">/* Max depth of the parsing stack */</span>
+    <span class="s2">int </span><span class="s1">*              spaceTab;      </span><span class="s0">/* array of space infos */</span>
+
+    <span class="s2">int                </span><span class="s1">depth;         </span><span class="s0">/* to prevent entity substitution loops */</span>
+    <span class="s1">xmlParserInputPtr  entity;        </span><span class="s0">/* used to check entities boundaries */</span>
+    <span class="s2">int                </span><span class="s1">charset;       </span><span class="s0">/* encoding of the in-memory content 
+                         actually an xmlCharEncoding */</span>
+    <span class="s2">int                </span><span class="s1">nodelen;       </span><span class="s0">/* Those two fields are there to */</span>
+    <span class="s2">int                </span><span class="s1">nodemem;       </span><span class="s0">/* Speed up large node parsing */</span>
+    <span class="s2">int                </span><span class="s1">pedantic;      </span><span class="s0">/* signal pedantic warnings */</span>
+    <span class="s2">void              </span><span class="s1">*_private;      </span><span class="s0">/* For user data, libxml won't touch it */</span>
+
+    <span class="s2">int                </span><span class="s1">loadsubset;    </span><span class="s0">/* should the external subset be loaded */</span>
+    <span class="s2">int                </span><span class="s1">linenumbers;   </span><span class="s0">/* set line number in element content */</span>
+    <span class="s2">void              </span><span class="s1">*catalogs;      </span><span class="s0">/* document's own catalog */</span>
+    <span class="s2">int                </span><span class="s1">recovery;      </span><span class="s0">/* run in recovery mode */</span>
+    <span class="s2">int                </span><span class="s1">progressive;   </span><span class="s0">/* is this a progressive parsing */</span>
+    <span class="s1">xmlDictPtr         dict;          </span><span class="s0">/* dictionary for the parser */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *   *atts;          </span><span class="s0">/* array for the attributes callbacks */</span>
+    <span class="s2">int                </span><span class="s1">maxatts;       </span><span class="s0">/* the size of the array */</span>
+    <span class="s2">int                </span><span class="s1">docdict;       </span><span class="s0">/* use strings from dict to build tree */</span>
+
+    <span class="s0">/* 
+     * pre-interned strings 
+     */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *str_xml;</span>
+    <span class="s2">const </span><span class="s1">xmlChar *str_xmlns;</span>
+    <span class="s2">const </span><span class="s1">xmlChar *str_xml_ns;</span>
+
+    <span class="s0">/* 
+     * Everything below is used only by the new SAX mode 
+     */</span>
+    <span class="s2">int                </span><span class="s1">sax2;          </span><span class="s0">/* operating in the new SAX mode */</span>
+    <span class="s2">int                </span><span class="s1">nsNr;          </span><span class="s0">/* the number of inherited namespaces */</span>
+    <span class="s2">int                </span><span class="s1">nsMax;         </span><span class="s0">/* the size of the arrays */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *   *nsTab;         </span><span class="s0">/* the array of prefix/namespace name */</span>
+    <span class="s2">int               </span><span class="s1">*attallocs;     </span><span class="s0">/* which attribute were allocated */</span>
+    <span class="s2">void </span><span class="s1">*            *pushTab;       </span><span class="s0">/* array of data for push */</span>
+    <span class="s1">xmlHashTablePtr    attsDefault;   </span><span class="s0">/* defaulted attributes if any */</span>
+    <span class="s1">xmlHashTablePtr    attsSpecial;   </span><span class="s0">/* non-CDATA attributes if any */</span>
+    <span class="s2">int                </span><span class="s1">nsWellFormed;  </span><span class="s0">/* is the document XML Nanespace okay */</span>
+    <span class="s2">int                </span><span class="s1">options;       </span><span class="s0">/* Extra options */</span>
+
+    <span class="s0">/* 
+     * Those fields are needed only for treaming parsing so far 
+     */</span>
+    <span class="s2">int               </span><span class="s1">dictNames;    </span><span class="s0">/* Use dictionary names for the tree */</span>
+    <span class="s2">int               </span><span class="s1">freeElemsNr;  </span><span class="s0">/* number of freed element nodes */</span>
+    <span class="s1">xmlNodePtr        freeElems;    </span><span class="s0">/* List of freed element nodes */</span>
+    <span class="s2">int               </span><span class="s1">freeAttrsNr;  </span><span class="s0">/* number of freed attributes nodes */</span>
+    <span class="s1">xmlAttrPtr        freeAttrs;    </span><span class="s0">/* List of freed attributes nodes */</span>
+
+    <span class="s0">/* 
+     * the complete error informations for the last error. 
+     */</span>
+    <span class="s1">xmlError          lastError;</span>
+    <span class="s1">xmlParserMode     parseMode;    </span><span class="s0">/* the parser mode */</span>
+    <span class="s2">unsigned long    </span><span class="s1">nbentities;    </span><span class="s0">/* number of entities references */</span>
+    <span class="s2">unsigned long  </span><span class="s1">sizeentities;    </span><span class="s0">/* size of parsed entities */</span>
+
+    <span class="s0">/* for use by HTML non-recursive parser */</span>
+    <span class="s1">xmlParserNodeInfo *nodeInfo;      </span><span class="s0">/* Current NodeInfo */</span>
+    <span class="s2">int                </span><span class="s1">nodeInfoNr;    </span><span class="s0">/* Depth of the parsing stack */</span>
+    <span class="s2">int                </span><span class="s1">nodeInfoMax;   </span><span class="s0">/* Max depth of the parsing stack */</span>
+    <span class="s1">xmlParserNodeInfo *nodeInfoTab;   </span><span class="s0">/* array of nodeInfos */</span>
+
+    <span class="s2">int                </span><span class="s1">input_id;      </span><span class="s0">/* we need to label inputs */</span>
+    <span class="s2">unsigned long      </span><span class="s1">sizeentcopy;   </span><span class="s0">/* volume of entity copy */</span>
+<span class="s1">};</span>
+
+<span class="s0">/** 
+ * xmlSAXLocator: 
+ * 
+ * A SAX Locator. 
+ */</span>
+<span class="s2">struct </span><span class="s1">_xmlSAXLocator {</span>
+    <span class="s2">const </span><span class="s1">xmlChar *(*getPublicId)(</span><span class="s2">void </span><span class="s1">*ctx);</span>
+    <span class="s2">const </span><span class="s1">xmlChar *(*getSystemId)(</span><span class="s2">void </span><span class="s1">*ctx);</span>
+    <span class="s2">int </span><span class="s1">(*getLineNumber)(</span><span class="s2">void </span><span class="s1">*ctx);</span>
+    <span class="s2">int </span><span class="s1">(*getColumnNumber)(</span><span class="s2">void </span><span class="s1">*ctx);</span>
+<span class="s1">};</span>
+
+<span class="s0">/** 
+ * xmlSAXHandler: 
+ * 
+ * A SAX handler is bunch of callbacks called by the parser when processing 
+ * of the input generate data or structure informations. 
+ */</span>
+
+<span class="s0">/** 
+ * resolveEntitySAXFunc: 
+ * @ctx:  the user data (XML parser context) 
+ * @publicId: The public ID of the entity 
+ * @systemId: The system ID of the entity 
+ * 
+ * Callback: 
+ * The entity loader, to control the loading of external entities, 
+ * the application can either: 
+ *    - override this resolveEntity() callback in the SAX block 
+ *    - or better use the xmlSetExternalEntityLoader() function to 
+ *      set up it's own entity resolution routine 
+ * 
+ * Returns the xmlParserInputPtr if inlined or NULL for DOM behaviour. 
+ */</span>
+<span class="s2">typedef </span><span class="s1">xmlParserInputPtr (*resolveEntitySAXFunc) (</span><span class="s2">void </span><span class="s1">*ctx,</span>
+				<span class="s2">const </span><span class="s1">xmlChar *publicId,</span>
+				<span class="s2">const </span><span class="s1">xmlChar *systemId);</span>
+<span class="s0">/** 
+ * internalSubsetSAXFunc: 
+ * @ctx:  the user data (XML parser context) 
+ * @name:  the root element name 
+ * @ExternalID:  the external ID 
+ * @SystemID:  the SYSTEM ID (e.g. filename or URL) 
+ * 
+ * Callback on internal subset declaration. 
+ */</span>
+<span class="s2">typedef void </span><span class="s1">(*internalSubsetSAXFunc) (</span><span class="s2">void </span><span class="s1">*ctx,</span>
+				<span class="s2">const </span><span class="s1">xmlChar *name,</span>
+				<span class="s2">const </span><span class="s1">xmlChar *ExternalID,</span>
+				<span class="s2">const </span><span class="s1">xmlChar *SystemID);</span>
+<span class="s0">/** 
+ * externalSubsetSAXFunc: 
+ * @ctx:  the user data (XML parser context) 
+ * @name:  the root element name 
+ * @ExternalID:  the external ID 
+ * @SystemID:  the SYSTEM ID (e.g. filename or URL) 
+ * 
+ * Callback on external subset declaration. 
+ */</span>
+<span class="s2">typedef void </span><span class="s1">(*externalSubsetSAXFunc) (</span><span class="s2">void </span><span class="s1">*ctx,</span>
+				<span class="s2">const </span><span class="s1">xmlChar *name,</span>
+				<span class="s2">const </span><span class="s1">xmlChar *ExternalID,</span>
+				<span class="s2">const </span><span class="s1">xmlChar *SystemID);</span>
+<span class="s0">/** 
+ * getEntitySAXFunc: 
+ * @ctx:  the user data (XML parser context) 
+ * @name: The entity name 
+ * 
+ * Get an entity by name. 
+ * 
+ * Returns the xmlEntityPtr if found. 
+ */</span>
+<span class="s2">typedef </span><span class="s1">xmlEntityPtr (*getEntitySAXFunc) (</span><span class="s2">void </span><span class="s1">*ctx,</span>
+				<span class="s2">const </span><span class="s1">xmlChar *name);</span>
+<span class="s0">/** 
+ * getParameterEntitySAXFunc: 
+ * @ctx:  the user data (XML parser context) 
+ * @name: The entity name 
+ * 
+ * Get a parameter entity by name. 
+ * 
+ * Returns the xmlEntityPtr if found. 
+ */</span>
+<span class="s2">typedef </span><span class="s1">xmlEntityPtr (*getParameterEntitySAXFunc) (</span><span class="s2">void </span><span class="s1">*ctx,</span>
+				<span class="s2">const </span><span class="s1">xmlChar *name);</span>
+<span class="s0">/** 
+ * entityDeclSAXFunc: 
+ * @ctx:  the user data (XML parser context) 
+ * @name:  the entity name 
+ * @type:  the entity type 
+ * @publicId: The public ID of the entity 
+ * @systemId: The system ID of the entity 
+ * @content: the entity value (without processing). 
+ * 
+ * An entity definition has been parsed. 
+ */</span>
+<span class="s2">typedef void </span><span class="s1">(*entityDeclSAXFunc) (</span><span class="s2">void </span><span class="s1">*ctx,</span>
+				<span class="s2">const </span><span class="s1">xmlChar *name,</span>
+				<span class="s2">int </span><span class="s1">type,</span>
+				<span class="s2">const </span><span class="s1">xmlChar *publicId,</span>
+				<span class="s2">const </span><span class="s1">xmlChar *systemId,</span>
+				<span class="s1">xmlChar *content);</span>
+<span class="s0">/** 
+ * notationDeclSAXFunc: 
+ * @ctx:  the user data (XML parser context) 
+ * @name: The name of the notation 
+ * @publicId: The public ID of the entity 
+ * @systemId: The system ID of the entity 
+ * 
+ * What to do when a notation declaration has been parsed. 
+ */</span>
+<span class="s2">typedef void </span><span class="s1">(*notationDeclSAXFunc)(</span><span class="s2">void </span><span class="s1">*ctx,</span>
+				<span class="s2">const </span><span class="s1">xmlChar *name,</span>
+				<span class="s2">const </span><span class="s1">xmlChar *publicId,</span>
+				<span class="s2">const </span><span class="s1">xmlChar *systemId);</span>
+<span class="s0">/** 
+ * attributeDeclSAXFunc: 
+ * @ctx:  the user data (XML parser context) 
+ * @elem:  the name of the element 
+ * @fullname:  the attribute name 
+ * @type:  the attribute type 
+ * @def:  the type of default value 
+ * @defaultValue: the attribute default value 
+ * @tree:  the tree of enumerated value set 
+ * 
+ * An attribute definition has been parsed. 
+ */</span>
+<span class="s2">typedef void </span><span class="s1">(*attributeDeclSAXFunc)(</span><span class="s2">void </span><span class="s1">*ctx,</span>
+				<span class="s2">const </span><span class="s1">xmlChar *elem,</span>
+				<span class="s2">const </span><span class="s1">xmlChar *fullname,</span>
+				<span class="s2">int </span><span class="s1">type,</span>
+				<span class="s2">int </span><span class="s1">def,</span>
+				<span class="s2">const </span><span class="s1">xmlChar *defaultValue,</span>
+				<span class="s1">xmlEnumerationPtr tree);</span>
+<span class="s0">/** 
+ * elementDeclSAXFunc: 
+ * @ctx:  the user data (XML parser context) 
+ * @name:  the element name 
+ * @type:  the element type 
+ * @content: the element value tree 
+ * 
+ * An element definition has been parsed. 
+ */</span>
+<span class="s2">typedef void </span><span class="s1">(*elementDeclSAXFunc)(</span><span class="s2">void </span><span class="s1">*ctx,</span>
+				<span class="s2">const </span><span class="s1">xmlChar *name,</span>
+				<span class="s2">int </span><span class="s1">type,</span>
+				<span class="s1">xmlElementContentPtr content);</span>
+<span class="s0">/** 
+ * unparsedEntityDeclSAXFunc: 
+ * @ctx:  the user data (XML parser context) 
+ * @name: The name of the entity 
+ * @publicId: The public ID of the entity 
+ * @systemId: The system ID of the entity 
+ * @notationName: the name of the notation 
+ * 
+ * What to do when an unparsed entity declaration is parsed. 
+ */</span>
+<span class="s2">typedef void </span><span class="s1">(*unparsedEntityDeclSAXFunc)(</span><span class="s2">void </span><span class="s1">*ctx,</span>
+				<span class="s2">const </span><span class="s1">xmlChar *name,</span>
+				<span class="s2">const </span><span class="s1">xmlChar *publicId,</span>
+				<span class="s2">const </span><span class="s1">xmlChar *systemId,</span>
+				<span class="s2">const </span><span class="s1">xmlChar *notationName);</span>
+<span class="s0">/** 
+ * setDocumentLocatorSAXFunc: 
+ * @ctx:  the user data (XML parser context) 
+ * @loc: A SAX Locator 
+ * 
+ * Receive the document locator at startup, actually xmlDefaultSAXLocator. 
+ * Everything is available on the context, so this is useless in our case. 
+ */</span>
+<span class="s2">typedef void </span><span class="s1">(*setDocumentLocatorSAXFunc) (</span><span class="s2">void </span><span class="s1">*ctx,</span>
+				<span class="s1">xmlSAXLocatorPtr loc);</span>
+<span class="s0">/** 
+ * startDocumentSAXFunc: 
+ * @ctx:  the user data (XML parser context) 
+ * 
+ * Called when the document start being processed. 
+ */</span>
+<span class="s2">typedef void </span><span class="s1">(*startDocumentSAXFunc) (</span><span class="s2">void </span><span class="s1">*ctx);</span>
+<span class="s0">/** 
+ * endDocumentSAXFunc: 
+ * @ctx:  the user data (XML parser context) 
+ * 
+ * Called when the document end has been detected. 
+ */</span>
+<span class="s2">typedef void </span><span class="s1">(*endDocumentSAXFunc) (</span><span class="s2">void </span><span class="s1">*ctx);</span>
+<span class="s0">/** 
+ * startElementSAXFunc: 
+ * @ctx:  the user data (XML parser context) 
+ * @name:  The element name, including namespace prefix 
+ * @atts:  An array of name/value attributes pairs, NULL terminated 
+ * 
+ * Called when an opening tag has been processed. 
+ */</span>
+<span class="s2">typedef void </span><span class="s1">(*startElementSAXFunc) (</span><span class="s2">void </span><span class="s1">*ctx,</span>
+				<span class="s2">const </span><span class="s1">xmlChar *name,</span>
+				<span class="s2">const </span><span class="s1">xmlChar **atts);</span>
+<span class="s0">/** 
+ * endElementSAXFunc: 
+ * @ctx:  the user data (XML parser context) 
+ * @name:  The element name 
+ * 
+ * Called when the end of an element has been detected. 
+ */</span>
+<span class="s2">typedef void </span><span class="s1">(*endElementSAXFunc) (</span><span class="s2">void </span><span class="s1">*ctx,</span>
+				<span class="s2">const </span><span class="s1">xmlChar *name);</span>
+<span class="s0">/** 
+ * attributeSAXFunc: 
+ * @ctx:  the user data (XML parser context) 
+ * @name:  The attribute name, including namespace prefix 
+ * @value:  The attribute value 
+ * 
+ * Handle an attribute that has been read by the parser. 
+ * The default handling is to convert the attribute into an 
+ * DOM subtree and past it in a new xmlAttr element added to 
+ * the element. 
+ */</span>
+<span class="s2">typedef void </span><span class="s1">(*attributeSAXFunc) (</span><span class="s2">void </span><span class="s1">*ctx,</span>
+				<span class="s2">const </span><span class="s1">xmlChar *name,</span>
+				<span class="s2">const </span><span class="s1">xmlChar *value);</span>
+<span class="s0">/** 
+ * referenceSAXFunc: 
+ * @ctx:  the user data (XML parser context) 
+ * @name:  The entity name 
+ * 
+ * Called when an entity reference is detected. 
+ */</span>
+<span class="s2">typedef void </span><span class="s1">(*referenceSAXFunc) (</span><span class="s2">void </span><span class="s1">*ctx,</span>
+				<span class="s2">const </span><span class="s1">xmlChar *name);</span>
+<span class="s0">/** 
+ * charactersSAXFunc: 
+ * @ctx:  the user data (XML parser context) 
+ * @ch:  a xmlChar string 
+ * @len: the number of xmlChar 
+ * 
+ * Receiving some chars from the parser. 
+ */</span>
+<span class="s2">typedef void </span><span class="s1">(*charactersSAXFunc) (</span><span class="s2">void </span><span class="s1">*ctx,</span>
+				<span class="s2">const </span><span class="s1">xmlChar *ch,</span>
+				<span class="s2">int </span><span class="s1">len);</span>
+<span class="s0">/** 
+ * ignorableWhitespaceSAXFunc: 
+ * @ctx:  the user data (XML parser context) 
+ * @ch:  a xmlChar string 
+ * @len: the number of xmlChar 
+ * 
+ * Receiving some ignorable whitespaces from the parser. 
+ * UNUSED: by default the DOM building will use characters. 
+ */</span>
+<span class="s2">typedef void </span><span class="s1">(*ignorableWhitespaceSAXFunc) (</span><span class="s2">void </span><span class="s1">*ctx,</span>
+				<span class="s2">const </span><span class="s1">xmlChar *ch,</span>
+				<span class="s2">int </span><span class="s1">len);</span>
+<span class="s0">/** 
+ * processingInstructionSAXFunc: 
+ * @ctx:  the user data (XML parser context) 
+ * @target:  the target name 
+ * @data: the PI data's 
+ * 
+ * A processing instruction has been parsed. 
+ */</span>
+<span class="s2">typedef void </span><span class="s1">(*processingInstructionSAXFunc) (</span><span class="s2">void </span><span class="s1">*ctx,</span>
+				<span class="s2">const </span><span class="s1">xmlChar *target,</span>
+				<span class="s2">const </span><span class="s1">xmlChar *data);</span>
+<span class="s0">/** 
+ * commentSAXFunc: 
+ * @ctx:  the user data (XML parser context) 
+ * @value:  the comment content 
+ * 
+ * A comment has been parsed. 
+ */</span>
+<span class="s2">typedef void </span><span class="s1">(*commentSAXFunc) (</span><span class="s2">void </span><span class="s1">*ctx,</span>
+				<span class="s2">const </span><span class="s1">xmlChar *value);</span>
+<span class="s0">/** 
+ * cdataBlockSAXFunc: 
+ * @ctx:  the user data (XML parser context) 
+ * @value:  The pcdata content 
+ * @len:  the block length 
+ * 
+ * Called when a pcdata block has been parsed. 
+ */</span>
+<span class="s2">typedef void </span><span class="s1">(*cdataBlockSAXFunc) (</span>
+	                        <span class="s2">void </span><span class="s1">*ctx,</span>
+				<span class="s2">const </span><span class="s1">xmlChar *value,</span>
+				<span class="s2">int </span><span class="s1">len);</span>
+<span class="s0">/** 
+ * warningSAXFunc: 
+ * @ctx:  an XML parser context 
+ * @msg:  the message to display/transmit 
+ * @...:  extra parameters for the message display 
+ * 
+ * Display and format a warning messages, callback. 
+ */</span>
+<span class="s2">typedef void </span><span class="s1">(XMLCDECL *warningSAXFunc) (</span><span class="s2">void </span><span class="s1">*ctx,</span>
+				<span class="s2">const char </span><span class="s1">*msg, ...) LIBXML_ATTR_FORMAT(</span><span class="s4">2</span><span class="s1">,</span><span class="s4">3</span><span class="s1">);</span>
+<span class="s0">/** 
+ * errorSAXFunc: 
+ * @ctx:  an XML parser context 
+ * @msg:  the message to display/transmit 
+ * @...:  extra parameters for the message display 
+ * 
+ * Display and format an error messages, callback. 
+ */</span>
+<span class="s2">typedef void </span><span class="s1">(XMLCDECL *errorSAXFunc) (</span><span class="s2">void </span><span class="s1">*ctx,</span>
+				<span class="s2">const char </span><span class="s1">*msg, ...) LIBXML_ATTR_FORMAT(</span><span class="s4">2</span><span class="s1">,</span><span class="s4">3</span><span class="s1">);</span>
+<span class="s0">/** 
+ * fatalErrorSAXFunc: 
+ * @ctx:  an XML parser context 
+ * @msg:  the message to display/transmit 
+ * @...:  extra parameters for the message display 
+ * 
+ * Display and format fatal error messages, callback. 
+ * Note: so far fatalError() SAX callbacks are not used, error() 
+ *       get all the callbacks for errors. 
+ */</span>
+<span class="s2">typedef void </span><span class="s1">(XMLCDECL *fatalErrorSAXFunc) (</span><span class="s2">void </span><span class="s1">*ctx,</span>
+				<span class="s2">const char </span><span class="s1">*msg, ...) LIBXML_ATTR_FORMAT(</span><span class="s4">2</span><span class="s1">,</span><span class="s4">3</span><span class="s1">);</span>
+<span class="s0">/** 
+ * isStandaloneSAXFunc: 
+ * @ctx:  the user data (XML parser context) 
+ * 
+ * Is this document tagged standalone? 
+ * 
+ * Returns 1 if true 
+ */</span>
+<span class="s2">typedef int </span><span class="s1">(*isStandaloneSAXFunc) (</span><span class="s2">void </span><span class="s1">*ctx);</span>
+<span class="s0">/** 
+ * hasInternalSubsetSAXFunc: 
+ * @ctx:  the user data (XML parser context) 
+ * 
+ * Does this document has an internal subset. 
+ * 
+ * Returns 1 if true 
+ */</span>
+<span class="s2">typedef int </span><span class="s1">(*hasInternalSubsetSAXFunc) (</span><span class="s2">void </span><span class="s1">*ctx);</span>
+
+<span class="s0">/** 
+ * hasExternalSubsetSAXFunc: 
+ * @ctx:  the user data (XML parser context) 
+ * 
+ * Does this document has an external subset? 
+ * 
+ * Returns 1 if true 
+ */</span>
+<span class="s2">typedef int </span><span class="s1">(*hasExternalSubsetSAXFunc) (</span><span class="s2">void </span><span class="s1">*ctx);</span>
+
+<span class="s0">/************************************************************************ 
+ *                                  * 
+ *          The SAX version 2 API extensions        * 
+ *                                  * 
+ ************************************************************************/</span>
+<span class="s0">/** 
+ * XML_SAX2_MAGIC: 
+ * 
+ * Special constant found in SAX2 blocks initialized fields 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SAX2_MAGIC </span><span class="s4">0xDEEDBEAF</span>
+
+<span class="s0">/** 
+ * startElementNsSAX2Func: 
+ * @ctx:  the user data (XML parser context) 
+ * @localname:  the local name of the element 
+ * @prefix:  the element namespace prefix if available 
+ * @URI:  the element namespace name if available 
+ * @nb_namespaces:  number of namespace definitions on that node 
+ * @namespaces:  pointer to the array of prefix/URI pairs namespace definitions 
+ * @nb_attributes:  the number of attributes on that node 
+ * @nb_defaulted:  the number of defaulted attributes. The defaulted 
+ *                  ones are at the end of the array 
+ * @attributes:  pointer to the array of (localname/prefix/URI/value/end) 
+ *               attribute values. 
+ * 
+ * SAX2 callback when an element start has been detected by the parser. 
+ * It provides the namespace informations for the element, as well as 
+ * the new namespace declarations on the element. 
+ */</span>
+
+<span class="s2">typedef void </span><span class="s1">(*startElementNsSAX2Func) (</span><span class="s2">void </span><span class="s1">*ctx,</span>
+					<span class="s2">const </span><span class="s1">xmlChar *localname,</span>
+					<span class="s2">const </span><span class="s1">xmlChar *prefix,</span>
+					<span class="s2">const </span><span class="s1">xmlChar *URI,</span>
+					<span class="s2">int </span><span class="s1">nb_namespaces,</span>
+					<span class="s2">const </span><span class="s1">xmlChar **namespaces,</span>
+					<span class="s2">int </span><span class="s1">nb_attributes,</span>
+					<span class="s2">int </span><span class="s1">nb_defaulted,</span>
+					<span class="s2">const </span><span class="s1">xmlChar **attributes);</span>
+
+<span class="s0">/** 
+ * endElementNsSAX2Func: 
+ * @ctx:  the user data (XML parser context) 
+ * @localname:  the local name of the element 
+ * @prefix:  the element namespace prefix if available 
+ * @URI:  the element namespace name if available 
+ * 
+ * SAX2 callback when an element end has been detected by the parser. 
+ * It provides the namespace informations for the element. 
+ */</span>
+
+<span class="s2">typedef void </span><span class="s1">(*endElementNsSAX2Func)   (</span><span class="s2">void </span><span class="s1">*ctx,</span>
+					<span class="s2">const </span><span class="s1">xmlChar *localname,</span>
+					<span class="s2">const </span><span class="s1">xmlChar *prefix,</span>
+					<span class="s2">const </span><span class="s1">xmlChar *URI);</span>
+
+
+<span class="s2">struct </span><span class="s1">_xmlSAXHandler {</span>
+    <span class="s1">internalSubsetSAXFunc internalSubset;</span>
+    <span class="s1">isStandaloneSAXFunc isStandalone;</span>
+    <span class="s1">hasInternalSubsetSAXFunc hasInternalSubset;</span>
+    <span class="s1">hasExternalSubsetSAXFunc hasExternalSubset;</span>
+    <span class="s1">resolveEntitySAXFunc resolveEntity;</span>
+    <span class="s1">getEntitySAXFunc getEntity;</span>
+    <span class="s1">entityDeclSAXFunc entityDecl;</span>
+    <span class="s1">notationDeclSAXFunc notationDecl;</span>
+    <span class="s1">attributeDeclSAXFunc attributeDecl;</span>
+    <span class="s1">elementDeclSAXFunc elementDecl;</span>
+    <span class="s1">unparsedEntityDeclSAXFunc unparsedEntityDecl;</span>
+    <span class="s1">setDocumentLocatorSAXFunc setDocumentLocator;</span>
+    <span class="s1">startDocumentSAXFunc startDocument;</span>
+    <span class="s1">endDocumentSAXFunc endDocument;</span>
+    <span class="s1">startElementSAXFunc startElement;</span>
+    <span class="s1">endElementSAXFunc endElement;</span>
+    <span class="s1">referenceSAXFunc reference;</span>
+    <span class="s1">charactersSAXFunc characters;</span>
+    <span class="s1">ignorableWhitespaceSAXFunc ignorableWhitespace;</span>
+    <span class="s1">processingInstructionSAXFunc processingInstruction;</span>
+    <span class="s1">commentSAXFunc comment;</span>
+    <span class="s1">warningSAXFunc warning;</span>
+    <span class="s1">errorSAXFunc error;</span>
+    <span class="s1">fatalErrorSAXFunc fatalError; </span><span class="s0">/* unused error() get all the errors */</span>
+    <span class="s1">getParameterEntitySAXFunc getParameterEntity;</span>
+    <span class="s1">cdataBlockSAXFunc cdataBlock;</span>
+    <span class="s1">externalSubsetSAXFunc externalSubset;</span>
+    <span class="s2">unsigned int </span><span class="s1">initialized;</span>
+    <span class="s0">/* The following fields are extensions available only on version 2 */</span>
+    <span class="s2">void </span><span class="s1">*_private;</span>
+    <span class="s1">startElementNsSAX2Func startElementNs;</span>
+    <span class="s1">endElementNsSAX2Func endElementNs;</span>
+    <span class="s1">xmlStructuredErrorFunc serror;</span>
+<span class="s1">};</span>
+
+<span class="s0">/* 
+ * SAX Version 1 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xmlSAXHandlerV1 xmlSAXHandlerV1;</span>
+<span class="s2">typedef </span><span class="s1">xmlSAXHandlerV1 *xmlSAXHandlerV1Ptr;</span>
+<span class="s2">struct </span><span class="s1">_xmlSAXHandlerV1 {</span>
+    <span class="s1">internalSubsetSAXFunc internalSubset;</span>
+    <span class="s1">isStandaloneSAXFunc isStandalone;</span>
+    <span class="s1">hasInternalSubsetSAXFunc hasInternalSubset;</span>
+    <span class="s1">hasExternalSubsetSAXFunc hasExternalSubset;</span>
+    <span class="s1">resolveEntitySAXFunc resolveEntity;</span>
+    <span class="s1">getEntitySAXFunc getEntity;</span>
+    <span class="s1">entityDeclSAXFunc entityDecl;</span>
+    <span class="s1">notationDeclSAXFunc notationDecl;</span>
+    <span class="s1">attributeDeclSAXFunc attributeDecl;</span>
+    <span class="s1">elementDeclSAXFunc elementDecl;</span>
+    <span class="s1">unparsedEntityDeclSAXFunc unparsedEntityDecl;</span>
+    <span class="s1">setDocumentLocatorSAXFunc setDocumentLocator;</span>
+    <span class="s1">startDocumentSAXFunc startDocument;</span>
+    <span class="s1">endDocumentSAXFunc endDocument;</span>
+    <span class="s1">startElementSAXFunc startElement;</span>
+    <span class="s1">endElementSAXFunc endElement;</span>
+    <span class="s1">referenceSAXFunc reference;</span>
+    <span class="s1">charactersSAXFunc characters;</span>
+    <span class="s1">ignorableWhitespaceSAXFunc ignorableWhitespace;</span>
+    <span class="s1">processingInstructionSAXFunc processingInstruction;</span>
+    <span class="s1">commentSAXFunc comment;</span>
+    <span class="s1">warningSAXFunc warning;</span>
+    <span class="s1">errorSAXFunc error;</span>
+    <span class="s1">fatalErrorSAXFunc fatalError; </span><span class="s0">/* unused error() get all the errors */</span>
+    <span class="s1">getParameterEntitySAXFunc getParameterEntity;</span>
+    <span class="s1">cdataBlockSAXFunc cdataBlock;</span>
+    <span class="s1">externalSubsetSAXFunc externalSubset;</span>
+    <span class="s2">unsigned int </span><span class="s1">initialized;</span>
+<span class="s1">};</span>
+
+
+<span class="s0">/** 
+ * xmlExternalEntityLoader: 
+ * @URL: The System ID of the resource requested 
+ * @ID: The Public ID of the resource requested 
+ * @context: the XML parser context 
+ * 
+ * External entity loaders types. 
+ * 
+ * Returns the entity input parser. 
+ */</span>
+<span class="s2">typedef </span><span class="s1">xmlParserInputPtr (*xmlExternalEntityLoader) (</span><span class="s2">const char </span><span class="s1">*URL,</span>
+					 <span class="s2">const char </span><span class="s1">*ID,</span>
+					 <span class="s1">xmlParserCtxtPtr context);</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s1">}</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#include </span><span class="s1">&lt;libxml/encoding.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/xmlIO.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/globals.h&gt;</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s2">extern </span><span class="s3">&quot;C&quot; </span><span class="s1">{</span>
+<span class="s2">#endif</span>
+
+
+<span class="s0">/* 
+ * Init/Cleanup 
+ */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlInitParser		(</span><span class="s2">void</span><span class="s1">);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlCleanupParser	(</span><span class="s2">void</span><span class="s1">);</span>
+
+<span class="s0">/* 
+ * Input functions 
+ */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlParserInputRead	(xmlParserInputPtr in,</span>
+					 <span class="s2">int </span><span class="s1">len);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlParserInputGrow	(xmlParserInputPtr in,</span>
+					 <span class="s2">int </span><span class="s1">len);</span>
+
+<span class="s0">/* 
+ * Basic parsing Interfaces 
+ */</span>
+<span class="s2">#ifdef </span><span class="s1">LIBXML_SAX1_ENABLED</span>
+<span class="s1">XMLPUBFUN xmlDocPtr XMLCALL</span>
+		<span class="s1">xmlParseDoc		(</span><span class="s2">const </span><span class="s1">xmlChar *cur);</span>
+<span class="s1">XMLPUBFUN xmlDocPtr XMLCALL</span>
+		<span class="s1">xmlParseFile		(</span><span class="s2">const char </span><span class="s1">*filename);</span>
+<span class="s1">XMLPUBFUN xmlDocPtr XMLCALL</span>
+		<span class="s1">xmlParseMemory		(</span><span class="s2">const char </span><span class="s1">*buffer,</span>
+					 <span class="s2">int </span><span class="s1">size);</span>
+<span class="s2">#endif </span><span class="s0">/* LIBXML_SAX1_ENABLED */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSubstituteEntitiesDefault(</span><span class="s2">int </span><span class="s1">val);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlKeepBlanksDefault	(</span><span class="s2">int </span><span class="s1">val);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlStopParser		(xmlParserCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlPedanticParserDefault(</span><span class="s2">int </span><span class="s1">val);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlLineNumbersDefault	(</span><span class="s2">int </span><span class="s1">val);</span>
+
+<span class="s2">#ifdef </span><span class="s1">LIBXML_SAX1_ENABLED</span>
+<span class="s0">/* 
+ * Recovery mode 
+ */</span>
+<span class="s1">XMLPUBFUN xmlDocPtr XMLCALL</span>
+		<span class="s1">xmlRecoverDoc		(</span><span class="s2">const </span><span class="s1">xmlChar *cur);</span>
+<span class="s1">XMLPUBFUN xmlDocPtr XMLCALL</span>
+		<span class="s1">xmlRecoverMemory	(</span><span class="s2">const char </span><span class="s1">*buffer,</span>
+					 <span class="s2">int </span><span class="s1">size);</span>
+<span class="s1">XMLPUBFUN xmlDocPtr XMLCALL</span>
+		<span class="s1">xmlRecoverFile		(</span><span class="s2">const char </span><span class="s1">*filename);</span>
+<span class="s2">#endif </span><span class="s0">/* LIBXML_SAX1_ENABLED */</span>
+
+<span class="s0">/* 
+ * Less common routines and SAX interfaces 
+ */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlParseDocument	(xmlParserCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlParseExtParsedEnt	(xmlParserCtxtPtr ctxt);</span>
+<span class="s2">#ifdef </span><span class="s1">LIBXML_SAX1_ENABLED</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSAXUserParseFile	(xmlSAXHandlerPtr sax,</span>
+					 <span class="s2">void </span><span class="s1">*user_data,</span>
+					 <span class="s2">const char </span><span class="s1">*filename);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSAXUserParseMemory	(xmlSAXHandlerPtr sax,</span>
+					 <span class="s2">void </span><span class="s1">*user_data,</span>
+					 <span class="s2">const char </span><span class="s1">*buffer,</span>
+					 <span class="s2">int </span><span class="s1">size);</span>
+<span class="s1">XMLPUBFUN xmlDocPtr XMLCALL</span>
+		<span class="s1">xmlSAXParseDoc		(xmlSAXHandlerPtr sax,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *cur,</span>
+					 <span class="s2">int </span><span class="s1">recovery);</span>
+<span class="s1">XMLPUBFUN xmlDocPtr XMLCALL</span>
+		<span class="s1">xmlSAXParseMemory	(xmlSAXHandlerPtr sax,</span>
+					 <span class="s2">const char </span><span class="s1">*buffer,</span>
+					 <span class="s2">int </span><span class="s1">size,</span>
+					 <span class="s2">int </span><span class="s1">recovery);</span>
+<span class="s1">XMLPUBFUN xmlDocPtr XMLCALL</span>
+		<span class="s1">xmlSAXParseMemoryWithData (xmlSAXHandlerPtr sax,</span>
+					 <span class="s2">const char </span><span class="s1">*buffer,</span>
+					 <span class="s2">int </span><span class="s1">size,</span>
+					 <span class="s2">int </span><span class="s1">recovery,</span>
+					 <span class="s2">void </span><span class="s1">*data);</span>
+<span class="s1">XMLPUBFUN xmlDocPtr XMLCALL</span>
+		<span class="s1">xmlSAXParseFile		(xmlSAXHandlerPtr sax,</span>
+					 <span class="s2">const char </span><span class="s1">*filename,</span>
+					 <span class="s2">int </span><span class="s1">recovery);</span>
+<span class="s1">XMLPUBFUN xmlDocPtr XMLCALL</span>
+		<span class="s1">xmlSAXParseFileWithData	(xmlSAXHandlerPtr sax,</span>
+					 <span class="s2">const char </span><span class="s1">*filename,</span>
+					 <span class="s2">int </span><span class="s1">recovery,</span>
+					 <span class="s2">void </span><span class="s1">*data);</span>
+<span class="s1">XMLPUBFUN xmlDocPtr XMLCALL</span>
+		<span class="s1">xmlSAXParseEntity	(xmlSAXHandlerPtr sax,</span>
+					 <span class="s2">const char </span><span class="s1">*filename);</span>
+<span class="s1">XMLPUBFUN xmlDocPtr XMLCALL</span>
+		<span class="s1">xmlParseEntity		(</span><span class="s2">const char </span><span class="s1">*filename);</span>
+<span class="s2">#endif </span><span class="s0">/* LIBXML_SAX1_ENABLED */</span>
+
+<span class="s2">#ifdef </span><span class="s1">LIBXML_VALID_ENABLED</span>
+<span class="s1">XMLPUBFUN xmlDtdPtr XMLCALL</span>
+		<span class="s1">xmlSAXParseDTD		(xmlSAXHandlerPtr sax,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *ExternalID,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *SystemID);</span>
+<span class="s1">XMLPUBFUN xmlDtdPtr XMLCALL</span>
+		<span class="s1">xmlParseDTD		(</span><span class="s2">const </span><span class="s1">xmlChar *ExternalID,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *SystemID);</span>
+<span class="s1">XMLPUBFUN xmlDtdPtr XMLCALL</span>
+		<span class="s1">xmlIOParseDTD		(xmlSAXHandlerPtr sax,</span>
+					 <span class="s1">xmlParserInputBufferPtr input,</span>
+					 <span class="s1">xmlCharEncoding enc);</span>
+<span class="s2">#endif </span><span class="s0">/* LIBXML_VALID_ENABLE */</span>
+<span class="s2">#ifdef </span><span class="s1">LIBXML_SAX1_ENABLED</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlParseBalancedChunkMemory(xmlDocPtr doc,</span>
+					 <span class="s1">xmlSAXHandlerPtr sax,</span>
+					 <span class="s2">void </span><span class="s1">*user_data,</span>
+					 <span class="s2">int </span><span class="s1">depth,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *string,</span>
+					 <span class="s1">xmlNodePtr *lst);</span>
+<span class="s2">#endif </span><span class="s0">/* LIBXML_SAX1_ENABLED */</span>
+<span class="s1">XMLPUBFUN xmlParserErrors XMLCALL</span>
+		<span class="s1">xmlParseInNodeContext	(xmlNodePtr node,</span>
+					 <span class="s2">const char </span><span class="s1">*data,</span>
+					 <span class="s2">int </span><span class="s1">datalen,</span>
+					 <span class="s2">int </span><span class="s1">options,</span>
+					 <span class="s1">xmlNodePtr *lst);</span>
+<span class="s2">#ifdef </span><span class="s1">LIBXML_SAX1_ENABLED</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlParseBalancedChunkMemoryRecover(xmlDocPtr doc,</span>
+                     <span class="s1">xmlSAXHandlerPtr sax,</span>
+                     <span class="s2">void </span><span class="s1">*user_data,</span>
+                     <span class="s2">int </span><span class="s1">depth,</span>
+                     <span class="s2">const </span><span class="s1">xmlChar *string,</span>
+                     <span class="s1">xmlNodePtr *lst,</span>
+                     <span class="s2">int </span><span class="s1">recover);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlParseExternalEntity	(xmlDocPtr doc,</span>
+					 <span class="s1">xmlSAXHandlerPtr sax,</span>
+					 <span class="s2">void </span><span class="s1">*user_data,</span>
+					 <span class="s2">int </span><span class="s1">depth,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *URL,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *ID,</span>
+					 <span class="s1">xmlNodePtr *lst);</span>
+<span class="s2">#endif </span><span class="s0">/* LIBXML_SAX1_ENABLED */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlParseCtxtExternalEntity(xmlParserCtxtPtr ctx,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *URL,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *ID,</span>
+					 <span class="s1">xmlNodePtr *lst);</span>
+
+<span class="s0">/* 
+ * Parser contexts handling. 
+ */</span>
+<span class="s1">XMLPUBFUN xmlParserCtxtPtr XMLCALL</span>
+		<span class="s1">xmlNewParserCtxt	(</span><span class="s2">void</span><span class="s1">);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlInitParserCtxt	(xmlParserCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlClearParserCtxt	(xmlParserCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlFreeParserCtxt	(xmlParserCtxtPtr ctxt);</span>
+<span class="s2">#ifdef </span><span class="s1">LIBXML_SAX1_ENABLED</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSetupParserForBuffer	(xmlParserCtxtPtr ctxt,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar* buffer,</span>
+					 <span class="s2">const char </span><span class="s1">*filename);</span>
+<span class="s2">#endif </span><span class="s0">/* LIBXML_SAX1_ENABLED */</span>
+<span class="s1">XMLPUBFUN xmlParserCtxtPtr XMLCALL</span>
+		<span class="s1">xmlCreateDocParserCtxt	(</span><span class="s2">const </span><span class="s1">xmlChar *cur);</span>
+
+<span class="s2">#ifdef </span><span class="s1">LIBXML_LEGACY_ENABLED</span>
+<span class="s0">/* 
+ * Reading/setting optional parsing features. 
+ */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlGetFeaturesList	(</span><span class="s2">int </span><span class="s1">*len,</span>
+					 <span class="s2">const char </span><span class="s1">**result);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlGetFeature		(xmlParserCtxtPtr ctxt,</span>
+					 <span class="s2">const char </span><span class="s1">*name,</span>
+					 <span class="s2">void </span><span class="s1">*result);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSetFeature		(xmlParserCtxtPtr ctxt,</span>
+					 <span class="s2">const char </span><span class="s1">*name,</span>
+					 <span class="s2">void </span><span class="s1">*value);</span>
+<span class="s2">#endif </span><span class="s0">/* LIBXML_LEGACY_ENABLED */</span>
+
+<span class="s2">#ifdef </span><span class="s1">LIBXML_PUSH_ENABLED</span>
+<span class="s0">/* 
+ * Interfaces for the Push mode. 
+ */</span>
+<span class="s1">XMLPUBFUN xmlParserCtxtPtr XMLCALL</span>
+		<span class="s1">xmlCreatePushParserCtxt(xmlSAXHandlerPtr sax,</span>
+					 <span class="s2">void </span><span class="s1">*user_data,</span>
+					 <span class="s2">const char </span><span class="s1">*chunk,</span>
+					 <span class="s2">int </span><span class="s1">size,</span>
+					 <span class="s2">const char </span><span class="s1">*filename);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlParseChunk		(xmlParserCtxtPtr ctxt,</span>
+					 <span class="s2">const char </span><span class="s1">*chunk,</span>
+					 <span class="s2">int </span><span class="s1">size,</span>
+					 <span class="s2">int </span><span class="s1">terminate);</span>
+<span class="s2">#endif </span><span class="s0">/* LIBXML_PUSH_ENABLED */</span>
+
+<span class="s0">/* 
+ * Special I/O mode. 
+ */</span>
+
+<span class="s1">XMLPUBFUN xmlParserCtxtPtr XMLCALL</span>
+		<span class="s1">xmlCreateIOParserCtxt	(xmlSAXHandlerPtr sax,</span>
+					 <span class="s2">void </span><span class="s1">*user_data,</span>
+					 <span class="s1">xmlInputReadCallback   ioread,</span>
+					 <span class="s1">xmlInputCloseCallback  ioclose,</span>
+					 <span class="s2">void </span><span class="s1">*ioctx,</span>
+					 <span class="s1">xmlCharEncoding enc);</span>
+
+<span class="s1">XMLPUBFUN xmlParserInputPtr XMLCALL</span>
+		<span class="s1">xmlNewIOInputStream	(xmlParserCtxtPtr ctxt,</span>
+					 <span class="s1">xmlParserInputBufferPtr input,</span>
+					 <span class="s1">xmlCharEncoding enc);</span>
+
+<span class="s0">/* 
+ * Node infos. 
+ */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">const </span><span class="s1">xmlParserNodeInfo* XMLCALL</span>
+		<span class="s1">xmlParserFindNodeInfo	(</span><span class="s2">const </span><span class="s1">xmlParserCtxtPtr ctxt,</span>
+				         <span class="s2">const </span><span class="s1">xmlNodePtr node);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlInitNodeInfoSeq	(xmlParserNodeInfoSeqPtr seq);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlClearNodeInfoSeq	(xmlParserNodeInfoSeqPtr seq);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">unsigned long </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlParserFindNodeInfoIndex(</span><span class="s2">const </span><span class="s1">xmlParserNodeInfoSeqPtr seq,</span>
+                                         <span class="s2">const </span><span class="s1">xmlNodePtr node);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlParserAddNodeInfo	(xmlParserCtxtPtr ctxt,</span>
+					 <span class="s2">const </span><span class="s1">xmlParserNodeInfoPtr info);</span>
+
+<span class="s0">/* 
+ * External entities handling actually implemented in xmlIO. 
+ */</span>
+
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSetExternalEntityLoader(xmlExternalEntityLoader f);</span>
+<span class="s1">XMLPUBFUN xmlExternalEntityLoader XMLCALL</span>
+		<span class="s1">xmlGetExternalEntityLoader(</span><span class="s2">void</span><span class="s1">);</span>
+<span class="s1">XMLPUBFUN xmlParserInputPtr XMLCALL</span>
+		<span class="s1">xmlLoadExternalEntity	(</span><span class="s2">const char </span><span class="s1">*URL,</span>
+					 <span class="s2">const char </span><span class="s1">*ID,</span>
+					 <span class="s1">xmlParserCtxtPtr ctxt);</span>
+
+<span class="s0">/* 
+ * Index lookup, actually implemented in the encoding module 
+ */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">long </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlByteConsumed		(xmlParserCtxtPtr ctxt);</span>
+
+<span class="s0">/* 
+ * New set of simpler/more flexible APIs 
+ */</span>
+<span class="s0">/** 
+ * xmlParserOption: 
+ * 
+ * This is the set of XML parser options that can be passed down 
+ * to the xmlReadDoc() and similar calls. 
+ */</span>
+<span class="s2">typedef enum </span><span class="s1">{</span>
+    <span class="s1">XML_PARSE_RECOVER	= </span><span class="s4">1</span><span class="s1">&lt;&lt;</span><span class="s4">0</span><span class="s1">,	</span><span class="s0">/* recover on errors */</span>
+    <span class="s1">XML_PARSE_NOENT	= </span><span class="s4">1</span><span class="s1">&lt;&lt;</span><span class="s4">1</span><span class="s1">,	</span><span class="s0">/* substitute entities */</span>
+    <span class="s1">XML_PARSE_DTDLOAD	= </span><span class="s4">1</span><span class="s1">&lt;&lt;</span><span class="s4">2</span><span class="s1">,	</span><span class="s0">/* load the external subset */</span>
+    <span class="s1">XML_PARSE_DTDATTR	= </span><span class="s4">1</span><span class="s1">&lt;&lt;</span><span class="s4">3</span><span class="s1">,	</span><span class="s0">/* default DTD attributes */</span>
+    <span class="s1">XML_PARSE_DTDVALID	= </span><span class="s4">1</span><span class="s1">&lt;&lt;</span><span class="s4">4</span><span class="s1">,	</span><span class="s0">/* validate with the DTD */</span>
+    <span class="s1">XML_PARSE_NOERROR	= </span><span class="s4">1</span><span class="s1">&lt;&lt;</span><span class="s4">5</span><span class="s1">,	</span><span class="s0">/* suppress error reports */</span>
+    <span class="s1">XML_PARSE_NOWARNING	= </span><span class="s4">1</span><span class="s1">&lt;&lt;</span><span class="s4">6</span><span class="s1">,	</span><span class="s0">/* suppress warning reports */</span>
+    <span class="s1">XML_PARSE_PEDANTIC	= </span><span class="s4">1</span><span class="s1">&lt;&lt;</span><span class="s4">7</span><span class="s1">,	</span><span class="s0">/* pedantic error reporting */</span>
+    <span class="s1">XML_PARSE_NOBLANKS	= </span><span class="s4">1</span><span class="s1">&lt;&lt;</span><span class="s4">8</span><span class="s1">,	</span><span class="s0">/* remove blank nodes */</span>
+    <span class="s1">XML_PARSE_SAX1	= </span><span class="s4">1</span><span class="s1">&lt;&lt;</span><span class="s4">9</span><span class="s1">,	</span><span class="s0">/* use the SAX1 interface internally */</span>
+    <span class="s1">XML_PARSE_XINCLUDE	= </span><span class="s4">1</span><span class="s1">&lt;&lt;</span><span class="s4">10</span><span class="s1">,</span><span class="s0">/* Implement XInclude substitition  */</span>
+    <span class="s1">XML_PARSE_NONET	= </span><span class="s4">1</span><span class="s1">&lt;&lt;</span><span class="s4">11</span><span class="s1">,</span><span class="s0">/* Forbid network access */</span>
+    <span class="s1">XML_PARSE_NODICT	= </span><span class="s4">1</span><span class="s1">&lt;&lt;</span><span class="s4">12</span><span class="s1">,</span><span class="s0">/* Do not reuse the context dictionary */</span>
+    <span class="s1">XML_PARSE_NSCLEAN	= </span><span class="s4">1</span><span class="s1">&lt;&lt;</span><span class="s4">13</span><span class="s1">,</span><span class="s0">/* remove redundant namespaces declarations */</span>
+    <span class="s1">XML_PARSE_NOCDATA	= </span><span class="s4">1</span><span class="s1">&lt;&lt;</span><span class="s4">14</span><span class="s1">,</span><span class="s0">/* merge CDATA as text nodes */</span>
+    <span class="s1">XML_PARSE_NOXINCNODE= </span><span class="s4">1</span><span class="s1">&lt;&lt;</span><span class="s4">15</span><span class="s1">,</span><span class="s0">/* do not generate XINCLUDE START/END nodes */</span>
+    <span class="s1">XML_PARSE_COMPACT   = </span><span class="s4">1</span><span class="s1">&lt;&lt;</span><span class="s4">16</span><span class="s1">,</span><span class="s0">/* compact small text nodes; no modification of 
+                                   the tree allowed afterwards (will possibly 
+                   crash if you try to modify the tree) */</span>
+    <span class="s1">XML_PARSE_OLD10	= </span><span class="s4">1</span><span class="s1">&lt;&lt;</span><span class="s4">17</span><span class="s1">,</span><span class="s0">/* parse using XML-1.0 before update 5 */</span>
+    <span class="s1">XML_PARSE_NOBASEFIX = </span><span class="s4">1</span><span class="s1">&lt;&lt;</span><span class="s4">18</span><span class="s1">,</span><span class="s0">/* do not fixup XINCLUDE xml:base uris */</span>
+    <span class="s1">XML_PARSE_HUGE      = </span><span class="s4">1</span><span class="s1">&lt;&lt;</span><span class="s4">19</span><span class="s1">,</span><span class="s0">/* relax any hardcoded limit from the parser */</span>
+    <span class="s1">XML_PARSE_OLDSAX    = </span><span class="s4">1</span><span class="s1">&lt;&lt;</span><span class="s4">20</span><span class="s1">,</span><span class="s0">/* parse using SAX2 interface before 2.7.0 */</span>
+    <span class="s1">XML_PARSE_IGNORE_ENC= </span><span class="s4">1</span><span class="s1">&lt;&lt;</span><span class="s4">21</span><span class="s1">,</span><span class="s0">/* ignore internal document encoding hint */</span>
+    <span class="s1">XML_PARSE_BIG_LINES = </span><span class="s4">1</span><span class="s1">&lt;&lt;</span><span class="s4">22 </span><span class="s0">/* Store big lines numbers in text PSVI field */</span>
+<span class="s1">} xmlParserOption;</span>
+
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlCtxtReset		(xmlParserCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlCtxtResetPush	(xmlParserCtxtPtr ctxt,</span>
+					 <span class="s2">const char </span><span class="s1">*chunk,</span>
+					 <span class="s2">int </span><span class="s1">size,</span>
+					 <span class="s2">const char </span><span class="s1">*filename,</span>
+					 <span class="s2">const char </span><span class="s1">*encoding);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlCtxtUseOptions	(xmlParserCtxtPtr ctxt,</span>
+					 <span class="s2">int </span><span class="s1">options);</span>
+<span class="s1">XMLPUBFUN xmlDocPtr XMLCALL</span>
+		<span class="s1">xmlReadDoc		(</span><span class="s2">const </span><span class="s1">xmlChar *cur,</span>
+					 <span class="s2">const char </span><span class="s1">*URL,</span>
+					 <span class="s2">const char </span><span class="s1">*encoding,</span>
+					 <span class="s2">int </span><span class="s1">options);</span>
+<span class="s1">XMLPUBFUN xmlDocPtr XMLCALL</span>
+		<span class="s1">xmlReadFile		(</span><span class="s2">const char </span><span class="s1">*URL,</span>
+					 <span class="s2">const char </span><span class="s1">*encoding,</span>
+					 <span class="s2">int </span><span class="s1">options);</span>
+<span class="s1">XMLPUBFUN xmlDocPtr XMLCALL</span>
+		<span class="s1">xmlReadMemory		(</span><span class="s2">const char </span><span class="s1">*buffer,</span>
+					 <span class="s2">int </span><span class="s1">size,</span>
+					 <span class="s2">const char </span><span class="s1">*URL,</span>
+					 <span class="s2">const char </span><span class="s1">*encoding,</span>
+					 <span class="s2">int </span><span class="s1">options);</span>
+<span class="s1">XMLPUBFUN xmlDocPtr XMLCALL</span>
+		<span class="s1">xmlReadFd		(</span><span class="s2">int </span><span class="s1">fd,</span>
+					 <span class="s2">const char </span><span class="s1">*URL,</span>
+					 <span class="s2">const char </span><span class="s1">*encoding,</span>
+					 <span class="s2">int </span><span class="s1">options);</span>
+<span class="s1">XMLPUBFUN xmlDocPtr XMLCALL</span>
+		<span class="s1">xmlReadIO		(xmlInputReadCallback ioread,</span>
+					 <span class="s1">xmlInputCloseCallback ioclose,</span>
+					 <span class="s2">void </span><span class="s1">*ioctx,</span>
+					 <span class="s2">const char </span><span class="s1">*URL,</span>
+					 <span class="s2">const char </span><span class="s1">*encoding,</span>
+					 <span class="s2">int </span><span class="s1">options);</span>
+<span class="s1">XMLPUBFUN xmlDocPtr XMLCALL</span>
+		<span class="s1">xmlCtxtReadDoc		(xmlParserCtxtPtr ctxt,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *cur,</span>
+					 <span class="s2">const char </span><span class="s1">*URL,</span>
+					 <span class="s2">const char </span><span class="s1">*encoding,</span>
+					 <span class="s2">int </span><span class="s1">options);</span>
+<span class="s1">XMLPUBFUN xmlDocPtr XMLCALL</span>
+		<span class="s1">xmlCtxtReadFile		(xmlParserCtxtPtr ctxt,</span>
+					 <span class="s2">const char </span><span class="s1">*filename,</span>
+					 <span class="s2">const char </span><span class="s1">*encoding,</span>
+					 <span class="s2">int </span><span class="s1">options);</span>
+<span class="s1">XMLPUBFUN xmlDocPtr XMLCALL</span>
+		<span class="s1">xmlCtxtReadMemory		(xmlParserCtxtPtr ctxt,</span>
+					 <span class="s2">const char </span><span class="s1">*buffer,</span>
+					 <span class="s2">int </span><span class="s1">size,</span>
+					 <span class="s2">const char </span><span class="s1">*URL,</span>
+					 <span class="s2">const char </span><span class="s1">*encoding,</span>
+					 <span class="s2">int </span><span class="s1">options);</span>
+<span class="s1">XMLPUBFUN xmlDocPtr XMLCALL</span>
+		<span class="s1">xmlCtxtReadFd		(xmlParserCtxtPtr ctxt,</span>
+					 <span class="s2">int </span><span class="s1">fd,</span>
+					 <span class="s2">const char </span><span class="s1">*URL,</span>
+					 <span class="s2">const char </span><span class="s1">*encoding,</span>
+					 <span class="s2">int </span><span class="s1">options);</span>
+<span class="s1">XMLPUBFUN xmlDocPtr XMLCALL</span>
+		<span class="s1">xmlCtxtReadIO		(xmlParserCtxtPtr ctxt,</span>
+					 <span class="s1">xmlInputReadCallback ioread,</span>
+					 <span class="s1">xmlInputCloseCallback ioclose,</span>
+					 <span class="s2">void </span><span class="s1">*ioctx,</span>
+					 <span class="s2">const char </span><span class="s1">*URL,</span>
+					 <span class="s2">const char </span><span class="s1">*encoding,</span>
+					 <span class="s2">int </span><span class="s1">options);</span>
+
+<span class="s0">/* 
+ * Library wide options 
+ */</span>
+<span class="s0">/** 
+ * xmlFeature: 
+ * 
+ * Used to examine the existance of features that can be enabled 
+ * or disabled at compile-time. 
+ * They used to be called XML_FEATURE_xxx but this clashed with Expat 
+ */</span>
+<span class="s2">typedef enum </span><span class="s1">{</span>
+    <span class="s1">XML_WITH_THREAD = </span><span class="s4">1</span><span class="s1">,</span>
+    <span class="s1">XML_WITH_TREE = </span><span class="s4">2</span><span class="s1">,</span>
+    <span class="s1">XML_WITH_OUTPUT = </span><span class="s4">3</span><span class="s1">,</span>
+    <span class="s1">XML_WITH_PUSH = </span><span class="s4">4</span><span class="s1">,</span>
+    <span class="s1">XML_WITH_READER = </span><span class="s4">5</span><span class="s1">,</span>
+    <span class="s1">XML_WITH_PATTERN = </span><span class="s4">6</span><span class="s1">,</span>
+    <span class="s1">XML_WITH_WRITER = </span><span class="s4">7</span><span class="s1">,</span>
+    <span class="s1">XML_WITH_SAX1 = </span><span class="s4">8</span><span class="s1">,</span>
+    <span class="s1">XML_WITH_FTP = </span><span class="s4">9</span><span class="s1">,</span>
+    <span class="s1">XML_WITH_HTTP = </span><span class="s4">10</span><span class="s1">,</span>
+    <span class="s1">XML_WITH_VALID = </span><span class="s4">11</span><span class="s1">,</span>
+    <span class="s1">XML_WITH_HTML = </span><span class="s4">12</span><span class="s1">,</span>
+    <span class="s1">XML_WITH_LEGACY = </span><span class="s4">13</span><span class="s1">,</span>
+    <span class="s1">XML_WITH_C14N = </span><span class="s4">14</span><span class="s1">,</span>
+    <span class="s1">XML_WITH_CATALOG = </span><span class="s4">15</span><span class="s1">,</span>
+    <span class="s1">XML_WITH_XPATH = </span><span class="s4">16</span><span class="s1">,</span>
+    <span class="s1">XML_WITH_XPTR = </span><span class="s4">17</span><span class="s1">,</span>
+    <span class="s1">XML_WITH_XINCLUDE = </span><span class="s4">18</span><span class="s1">,</span>
+    <span class="s1">XML_WITH_ICONV = </span><span class="s4">19</span><span class="s1">,</span>
+    <span class="s1">XML_WITH_ISO8859X = </span><span class="s4">20</span><span class="s1">,</span>
+    <span class="s1">XML_WITH_UNICODE = </span><span class="s4">21</span><span class="s1">,</span>
+    <span class="s1">XML_WITH_REGEXP = </span><span class="s4">22</span><span class="s1">,</span>
+    <span class="s1">XML_WITH_AUTOMATA = </span><span class="s4">23</span><span class="s1">,</span>
+    <span class="s1">XML_WITH_EXPR = </span><span class="s4">24</span><span class="s1">,</span>
+    <span class="s1">XML_WITH_SCHEMAS = </span><span class="s4">25</span><span class="s1">,</span>
+    <span class="s1">XML_WITH_SCHEMATRON = </span><span class="s4">26</span><span class="s1">,</span>
+    <span class="s1">XML_WITH_MODULES = </span><span class="s4">27</span><span class="s1">,</span>
+    <span class="s1">XML_WITH_DEBUG = </span><span class="s4">28</span><span class="s1">,</span>
+    <span class="s1">XML_WITH_DEBUG_MEM = </span><span class="s4">29</span><span class="s1">,</span>
+    <span class="s1">XML_WITH_DEBUG_RUN = </span><span class="s4">30</span><span class="s1">,</span>
+    <span class="s1">XML_WITH_ZLIB = </span><span class="s4">31</span><span class="s1">,</span>
+    <span class="s1">XML_WITH_ICU = </span><span class="s4">32</span><span class="s1">,</span>
+    <span class="s1">XML_WITH_LZMA = </span><span class="s4">33</span><span class="s1">,</span>
+    <span class="s1">XML_WITH_NONE = </span><span class="s4">99999 </span><span class="s0">/* just to be sure of allocation size */</span>
+<span class="s1">} xmlFeature;</span>
+
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlHasFeature		(xmlFeature feature);</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s1">}</span>
+<span class="s2">#endif</span>
+<span class="s2">#endif </span><span class="s0">/* __XML_PARSER_H__ */</span>
+</pre>
+</body>
+</html>

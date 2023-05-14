@@ -1,0 +1,238 @@
+<html>
+<head>
+<title>polyglot.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6897bb;}
+.s4 { color: #6a8759;}
+.s5 { color: #629755; font-style: italic;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+polyglot.py</font>
+</center></td></tr></table>
+<pre><span class="s0">#!/usr/bin/env python</span>
+<span class="s0"># vim:fileencoding=utf-8</span>
+<span class="s0"># Copyright: 2018, Kovid Goyal &lt;kovid at kovidgoyal.net&gt;</span>
+
+<span class="s2">from </span><span class="s1">__future__ </span><span class="s2">import </span><span class="s1">(absolute_import</span><span class="s2">, </span><span class="s1">division</span><span class="s2">, </span><span class="s1">print_function</span><span class="s2">,</span>
+                        <span class="s1">unicode_literals)</span>
+
+<span class="s2">import </span><span class="s1">collections</span>
+<span class="s2">import </span><span class="s1">sys</span>
+
+<span class="s1">is_py2 = sys.version_info.major &lt; </span><span class="s3">3</span>
+
+<span class="s2">if </span><span class="s1">is_py2:</span>
+    <span class="s2">import </span><span class="s1">types</span>
+    <span class="s2">from </span><span class="s1">urllib </span><span class="s2">import </span><span class="s1">(</span>
+            <span class="s1">urlencode</span><span class="s2">, </span><span class="s1">pathname2url</span><span class="s2">, </span><span class="s1">quote</span><span class="s2">, </span><span class="s1">addinfourl</span><span class="s2">, </span><span class="s1">quote_plus</span><span class="s2">,</span>
+            <span class="s1">urlopen</span><span class="s2">, </span><span class="s1">splitattr</span><span class="s2">, </span><span class="s1">splithost </span><span class="s2">as </span><span class="s1">urllib_splithost</span><span class="s2">, </span><span class="s1">getproxies</span><span class="s2">,</span>
+            <span class="s1">ftpwrapper</span><span class="s2">, </span><span class="s1">proxy_bypass </span><span class="s2">as </span><span class="s1">urllib_proxy_bypass</span><span class="s2">, </span><span class="s1">splitpasswd</span><span class="s2">,</span>
+            <span class="s1">splitport</span><span class="s2">, </span><span class="s1">splittype</span><span class="s2">, </span><span class="s1">splituser</span><span class="s2">, </span><span class="s1">splitvalue</span><span class="s2">,</span>
+            <span class="s1">unquote</span><span class="s2">, </span><span class="s1">unwrap</span><span class="s2">, </span><span class="s1">url2pathname</span>
+    <span class="s1">)</span>
+    <span class="s2">from </span><span class="s1">urllib2 </span><span class="s2">import </span><span class="s1">(</span>
+            <span class="s1">HTTPError</span><span class="s2">, </span><span class="s1">URLError</span><span class="s2">, </span><span class="s1">install_opener</span><span class="s2">, </span><span class="s1">build_opener</span><span class="s2">, </span><span class="s1">ProxyHandler</span>
+    <span class="s1">)</span>
+    <span class="s2">from </span><span class="s1">robotparser </span><span class="s2">import </span><span class="s1">RobotFileParser</span>
+    <span class="s2">from </span><span class="s1">urlparse </span><span class="s2">import </span><span class="s1">urlsplit</span><span class="s2">, </span><span class="s1">urljoin</span><span class="s2">, </span><span class="s1">urlparse</span><span class="s2">, </span><span class="s1">urlunparse</span>
+    <span class="s2">from </span><span class="s1">httplib </span><span class="s2">import </span><span class="s1">HTTPMessage</span><span class="s2">, </span><span class="s1">HTTPConnection</span><span class="s2">, </span><span class="s1">HTTPSConnection</span>
+    <span class="s2">from </span><span class="s1">cookielib </span><span class="s2">import </span><span class="s1">(</span>
+            <span class="s1">DEFAULT_HTTP_PORT</span><span class="s2">, </span><span class="s1">CookiePolicy</span><span class="s2">, </span><span class="s1">DefaultCookiePolicy</span><span class="s2">,</span>
+            <span class="s1">FileCookieJar</span><span class="s2">, </span><span class="s1">LoadError</span><span class="s2">, </span><span class="s1">LWPCookieJar</span><span class="s2">, </span><span class="s1">_debug</span><span class="s2">, </span><span class="s1">domain_match</span><span class="s2">,</span>
+            <span class="s1">eff_request_host</span><span class="s2">, </span><span class="s1">escape_path</span><span class="s2">, </span><span class="s1">is_HDN</span><span class="s2">, </span><span class="s1">lwp_cookie_str</span><span class="s2">, </span><span class="s1">reach</span><span class="s2">,</span>
+            <span class="s1">request_path</span><span class="s2">, </span><span class="s1">request_port</span><span class="s2">, </span><span class="s1">user_domain_match</span><span class="s2">, </span><span class="s1">Cookie</span><span class="s2">, </span><span class="s1">CookieJar</span><span class="s2">,</span>
+            <span class="s1">MozillaCookieJar</span><span class="s2">, </span><span class="s1">request_host)</span>
+    <span class="s2">from </span><span class="s1">cStringIO </span><span class="s2">import </span><span class="s1">StringIO</span>
+    <span class="s2">from </span><span class="s1">future_builtins </span><span class="s2">import </span><span class="s1">map  </span><span class="s0"># noqa</span>
+
+    <span class="s2">def </span><span class="s1">is_string(x):</span>
+        <span class="s2">return </span><span class="s1">isinstance(x</span><span class="s2">, </span><span class="s1">basestring)</span>
+
+    <span class="s2">def </span><span class="s1">iteritems(x):</span>
+        <span class="s2">return </span><span class="s1">x.iteritems()</span>
+
+    <span class="s2">def </span><span class="s1">itervalues(x):</span>
+        <span class="s2">return </span><span class="s1">x.itervalues()</span>
+
+    <span class="s2">def </span><span class="s1">is_class(obj):</span>
+        <span class="s2">return </span><span class="s1">isinstance(obj</span><span class="s2">, </span><span class="s1">(types.ClassType</span><span class="s2">, </span><span class="s1">type))</span>
+
+    <span class="s2">def </span><span class="s1">raise_with_traceback(exc):</span>
+        <span class="s1">exec(</span><span class="s4">'raise exc, None, sys.exc_info()[2]'</span><span class="s1">)</span>
+
+    <span class="s2">def </span><span class="s1">is_mapping(x):</span>
+        <span class="s2">return </span><span class="s1">isinstance(x</span><span class="s2">, </span><span class="s1">collections.Mapping)</span>
+
+    <span class="s1">codepoint_to_chr = unichr</span>
+    <span class="s1">unicode_type = unicode</span>
+    <span class="s1">create_response_info = HTTPMessage</span>
+
+
+<span class="s2">else</span><span class="s1">:</span>
+    <span class="s2">import </span><span class="s1">re</span>
+    <span class="s2">from </span><span class="s1">urllib.error </span><span class="s2">import </span><span class="s1">HTTPError</span><span class="s2">, </span><span class="s1">URLError</span>
+    <span class="s2">from </span><span class="s1">urllib.robotparser </span><span class="s2">import </span><span class="s1">RobotFileParser</span>
+    <span class="s2">from </span><span class="s1">urllib.parse </span><span class="s2">import </span><span class="s1">(</span>
+            <span class="s1">urlsplit</span><span class="s2">, </span><span class="s1">urljoin</span><span class="s2">, </span><span class="s1">urlparse</span><span class="s2">, </span><span class="s1">urlunparse</span><span class="s2">, </span><span class="s1">urlencode</span><span class="s2">, </span><span class="s1">quote_plus</span><span class="s2">,</span>
+            <span class="s1">unquote</span><span class="s2">, </span><span class="s1">unwrap</span>
+    <span class="s1">)</span>
+    <span class="s2">from </span><span class="s1">urllib.request </span><span class="s2">import </span><span class="s1">(</span>
+            <span class="s1">pathname2url</span><span class="s2">, </span><span class="s1">quote</span><span class="s2">, </span><span class="s1">addinfourl</span><span class="s2">, </span><span class="s1">install_opener</span><span class="s2">, </span><span class="s1">build_opener</span><span class="s2">,</span>
+            <span class="s1">ProxyHandler</span><span class="s2">, </span><span class="s1">urlopen </span><span class="s2">as </span><span class="s1">_urlopen</span><span class="s2">, </span><span class="s1">getproxies</span><span class="s2">, </span><span class="s1">ftpwrapper</span><span class="s2">,</span>
+            <span class="s1">proxy_bypass </span><span class="s2">as </span><span class="s1">urllib_proxy_bypass</span><span class="s2">, </span><span class="s1">url2pathname</span><span class="s2">, </span><span class="s1">Request)</span>
+    <span class="s2">from </span><span class="s1">http.client </span><span class="s2">import </span><span class="s1">(</span>
+            <span class="s1">HTTPMessage</span><span class="s2">, </span><span class="s1">parse_headers</span><span class="s2">, </span><span class="s1">HTTPConnection</span><span class="s2">,</span>
+            <span class="s1">HTTPSConnection)</span>
+    <span class="s2">from </span><span class="s1">http.cookiejar </span><span class="s2">import </span><span class="s1">(</span>
+            <span class="s1">DEFAULT_HTTP_PORT</span><span class="s2">, </span><span class="s1">CookiePolicy</span><span class="s2">, </span><span class="s1">DefaultCookiePolicy</span><span class="s2">,</span>
+            <span class="s1">FileCookieJar</span><span class="s2">, </span><span class="s1">LoadError</span><span class="s2">, </span><span class="s1">LWPCookieJar</span><span class="s2">, </span><span class="s1">_debug</span><span class="s2">, </span><span class="s1">domain_match</span><span class="s2">,</span>
+            <span class="s1">eff_request_host</span><span class="s2">, </span><span class="s1">escape_path</span><span class="s2">, </span><span class="s1">is_HDN</span><span class="s2">, </span><span class="s1">lwp_cookie_str</span><span class="s2">, </span><span class="s1">reach</span><span class="s2">,</span>
+            <span class="s1">request_path</span><span class="s2">, </span><span class="s1">request_port</span><span class="s2">, </span><span class="s1">user_domain_match</span><span class="s2">, </span><span class="s1">Cookie</span><span class="s2">, </span><span class="s1">CookieJar</span><span class="s2">,</span>
+            <span class="s1">MozillaCookieJar</span><span class="s2">, </span><span class="s1">request_host)</span>
+    <span class="s2">from </span><span class="s1">io </span><span class="s2">import </span><span class="s1">StringIO</span>
+
+    <span class="s2">def </span><span class="s1">splitattr(url):</span>
+        <span class="s1">words = url.split(</span><span class="s4">';'</span><span class="s1">)</span>
+        <span class="s2">return </span><span class="s1">words[</span><span class="s3">0</span><span class="s1">]</span><span class="s2">, </span><span class="s1">words[</span><span class="s3">1</span><span class="s1">:]</span>
+
+    <span class="s2">def </span><span class="s1">is_string(x):</span>
+        <span class="s2">return </span><span class="s1">isinstance(x</span><span class="s2">, </span><span class="s1">str)</span>
+
+    <span class="s2">def </span><span class="s1">iteritems(x):</span>
+        <span class="s2">return </span><span class="s1">x.items()</span>
+
+    <span class="s2">def </span><span class="s1">itervalues(x):</span>
+        <span class="s2">return </span><span class="s1">x.values()</span>
+
+    <span class="s2">def </span><span class="s1">is_class(obj):</span>
+        <span class="s2">return </span><span class="s1">isinstance(obj</span><span class="s2">, </span><span class="s1">type)</span>
+
+    <span class="s2">def </span><span class="s1">raise_with_traceback(exc):</span>
+        <span class="s2">raise </span><span class="s1">exc.with_traceback(sys.exc_info()[</span><span class="s3">2</span><span class="s1">])</span>
+
+    <span class="s1">codepoint_to_chr = chr</span>
+    <span class="s1">unicode_type = str</span>
+    <span class="s1">map = map</span>
+
+    <span class="s0"># Legacy code expects HTTPMessage.getheaders()</span>
+    <span class="s2">def </span><span class="s1">getheaders(self</span><span class="s2">, </span><span class="s1">name):</span>
+        <span class="s2">return </span><span class="s1">self.get_all(name</span><span class="s2">, </span><span class="s1">failobj=[])</span>
+    <span class="s1">HTTPMessage.getheaders = getheaders</span>
+
+    <span class="s0"># We want __getitem__ to return the last header not the first</span>
+    <span class="s2">def </span><span class="s1">getitem(self</span><span class="s2">, </span><span class="s1">name):</span>
+        <span class="s1">vals = self.get_all(name</span><span class="s2">, </span><span class="s1">[</span><span class="s2">None</span><span class="s1">])</span>
+        <span class="s2">return </span><span class="s1">vals[-</span><span class="s3">1</span><span class="s1">]</span>
+    <span class="s1">HTTPMessage.__getitem__ = getitem</span>
+
+    <span class="s0"># Legacy method names</span>
+    <span class="s1">HTTPMessage.gettype = HTTPMessage.get_content_type</span>
+    <span class="s1">HTTPMessage.getmainttype = HTTPMessage.get_content_maintype</span>
+    <span class="s1">HTTPMessage.getsubtype = HTTPMessage.get_content_subtype</span>
+
+    <span class="s2">def </span><span class="s1">is_mapping(x):</span>
+        <span class="s2">return </span><span class="s1">isinstance(x</span><span class="s2">, </span><span class="s1">collections.abc.Mapping)</span>
+
+    <span class="s2">def </span><span class="s1">create_response_info(fp):</span>
+        <span class="s2">return </span><span class="s1">parse_headers(fp)</span>
+
+    <span class="s2">def </span><span class="s1">urlopen(*a</span><span class="s2">, </span><span class="s1">**kw):</span>
+        <span class="s1">proxies = kw.pop(</span><span class="s4">'proxies'</span><span class="s2">, None</span><span class="s1">)</span>
+        <span class="s2">if </span><span class="s1">proxies </span><span class="s2">is None</span><span class="s1">:</span>
+            <span class="s2">return </span><span class="s1">_urlopen(*a</span><span class="s2">, </span><span class="s1">**kw)</span>
+        <span class="s1">r = Request(a[</span><span class="s3">0</span><span class="s1">])</span>
+        <span class="s2">for </span><span class="s1">k</span><span class="s2">, </span><span class="s1">v </span><span class="s2">in </span><span class="s1">proxies.items():</span>
+            <span class="s1">r.set_proxy(v</span><span class="s2">, </span><span class="s1">k)</span>
+        <span class="s2">return </span><span class="s1">_urlopen(r</span><span class="s2">, </span><span class="s1">*a[</span><span class="s3">1</span><span class="s1">:]</span><span class="s2">, </span><span class="s1">**kw)</span>
+
+    <span class="s1">_hostprog = </span><span class="s2">None</span>
+
+    <span class="s2">def </span><span class="s1">urllib_splithost(url):</span>
+        <span class="s5">&quot;&quot;&quot;splithost('//host[:port]/path') --&gt; 'host[:port]', '/path'.&quot;&quot;&quot;</span>
+        <span class="s2">global </span><span class="s1">_hostprog</span>
+        <span class="s2">if </span><span class="s1">_hostprog </span><span class="s2">is None</span><span class="s1">:</span>
+            <span class="s1">_hostprog = re.compile(</span><span class="s4">'//([^/#?]*)(.*)'</span><span class="s2">, </span><span class="s1">re.DOTALL)</span>
+
+        <span class="s1">match = _hostprog.match(url)</span>
+        <span class="s2">if </span><span class="s1">match:</span>
+            <span class="s1">host_port</span><span class="s2">, </span><span class="s1">path = match.groups()</span>
+            <span class="s2">if </span><span class="s1">path </span><span class="s2">and </span><span class="s1">path[</span><span class="s3">0</span><span class="s1">] != </span><span class="s4">'/'</span><span class="s1">:</span>
+                <span class="s1">path = </span><span class="s4">'/' </span><span class="s1">+ path</span>
+            <span class="s2">return </span><span class="s1">host_port</span><span class="s2">, </span><span class="s1">path</span>
+        <span class="s2">return None, </span><span class="s1">url</span>
+
+    <span class="s1">_typeprog = </span><span class="s2">None</span>
+
+    <span class="s2">def </span><span class="s1">splittype(url):</span>
+        <span class="s5">&quot;&quot;&quot;splittype('type:opaquestring') --&gt; 'type', 'opaquestring'.&quot;&quot;&quot;</span>
+        <span class="s2">global </span><span class="s1">_typeprog</span>
+        <span class="s2">if </span><span class="s1">_typeprog </span><span class="s2">is None</span><span class="s1">:</span>
+            <span class="s1">_typeprog = re.compile(</span><span class="s4">'([^/:]+):(.*)'</span><span class="s2">, </span><span class="s1">re.DOTALL)</span>
+
+        <span class="s1">match = _typeprog.match(url)</span>
+        <span class="s2">if </span><span class="s1">match:</span>
+            <span class="s1">scheme</span><span class="s2">, </span><span class="s1">data = match.groups()</span>
+            <span class="s2">return </span><span class="s1">scheme.lower()</span><span class="s2">, </span><span class="s1">data</span>
+        <span class="s2">return None, </span><span class="s1">url</span>
+
+    <span class="s2">def </span><span class="s1">splituser(host):</span>
+        <span class="s5">&quot;&quot;&quot;splituser('user[:passwd]@host[:port]') --&gt; 'user[:passwd]', 'host[:port]'.&quot;&quot;&quot;</span>
+        <span class="s1">user</span><span class="s2">, </span><span class="s1">delim</span><span class="s2">, </span><span class="s1">host = host.rpartition(</span><span class="s4">'@'</span><span class="s1">)</span>
+        <span class="s2">return </span><span class="s1">(user </span><span class="s2">if </span><span class="s1">delim </span><span class="s2">else None</span><span class="s1">)</span><span class="s2">, </span><span class="s1">host</span>
+
+    <span class="s2">def </span><span class="s1">splitpasswd(user):</span>
+        <span class="s5">&quot;&quot;&quot;splitpasswd('user:passwd') -&gt; 'user', 'passwd'.&quot;&quot;&quot;</span>
+        <span class="s1">user</span><span class="s2">, </span><span class="s1">delim</span><span class="s2">, </span><span class="s1">passwd = user.partition(</span><span class="s4">':'</span><span class="s1">)</span>
+        <span class="s2">return </span><span class="s1">user</span><span class="s2">, </span><span class="s1">(passwd </span><span class="s2">if </span><span class="s1">delim </span><span class="s2">else None</span><span class="s1">)</span>
+
+    <span class="s1">_portprog = </span><span class="s2">None</span>
+
+    <span class="s2">def </span><span class="s1">splitport(host):</span>
+        <span class="s5">&quot;&quot;&quot;splitport('host:port') --&gt; 'host', 'port'.&quot;&quot;&quot;</span>
+        <span class="s2">global </span><span class="s1">_portprog</span>
+        <span class="s2">if </span><span class="s1">_portprog </span><span class="s2">is None</span><span class="s1">:</span>
+            <span class="s1">_portprog = re.compile(</span><span class="s4">'(.*):([0-9]*)$'</span><span class="s2">, </span><span class="s1">re.DOTALL)</span>
+
+        <span class="s1">match = _portprog.match(host)</span>
+        <span class="s2">if </span><span class="s1">match:</span>
+            <span class="s1">host</span><span class="s2">, </span><span class="s1">port = match.groups()</span>
+            <span class="s2">if </span><span class="s1">port:</span>
+                <span class="s2">return </span><span class="s1">host</span><span class="s2">, </span><span class="s1">port</span>
+        <span class="s2">return </span><span class="s1">host</span><span class="s2">, None</span>
+
+    <span class="s2">def </span><span class="s1">splitvalue(attr):</span>
+        <span class="s5">&quot;&quot;&quot;splitvalue('attr=value') --&gt; 'attr', 'value'.&quot;&quot;&quot;</span>
+        <span class="s1">attr</span><span class="s2">, </span><span class="s1">delim</span><span class="s2">, </span><span class="s1">value = attr.partition(</span><span class="s4">'='</span><span class="s1">)</span>
+        <span class="s2">return </span><span class="s1">attr</span><span class="s2">, </span><span class="s1">(value </span><span class="s2">if </span><span class="s1">delim </span><span class="s2">else None</span><span class="s1">)</span>
+
+
+<span class="s2">def </span><span class="s1">as_unicode(x</span><span class="s2">, </span><span class="s1">encoding=</span><span class="s4">'utf-8'</span><span class="s1">):</span>
+    <span class="s2">if </span><span class="s1">isinstance(x</span><span class="s2">, </span><span class="s1">bytes):</span>
+        <span class="s1">x = x.decode(</span><span class="s4">'utf-8'</span><span class="s1">)</span>
+    <span class="s2">return </span><span class="s1">x</span>
+
+
+<span class="s2">if False</span><span class="s1">:</span>
+    <span class="s1">(HTTPError</span><span class="s2">, </span><span class="s1">urlsplit</span><span class="s2">, </span><span class="s1">urljoin</span><span class="s2">, </span><span class="s1">urlparse</span><span class="s2">, </span><span class="s1">urlunparse</span><span class="s2">, </span><span class="s1">urlencode</span><span class="s2">,</span>
+     <span class="s1">HTTPMessage</span><span class="s2">, </span><span class="s1">splitattr</span><span class="s2">, </span><span class="s1">urllib_splithost</span><span class="s2">, </span><span class="s1">getproxies</span><span class="s2">, </span><span class="s1">ftpwrapper</span><span class="s2">,</span>
+     <span class="s1">urllib_proxy_bypass</span><span class="s2">, </span><span class="s1">splituser</span><span class="s2">, </span><span class="s1">splitpasswd</span><span class="s2">, </span><span class="s1">splitport</span><span class="s2">,</span>
+     <span class="s1">splitvalue</span><span class="s2">, </span><span class="s1">splittype</span><span class="s2">, </span><span class="s1">unquote</span><span class="s2">, </span><span class="s1">unwrap</span><span class="s2">, </span><span class="s1">url2pathname)</span>
+    <span class="s1">pathname2url</span><span class="s2">, </span><span class="s1">RobotFileParser</span><span class="s2">, </span><span class="s1">URLError</span><span class="s2">, </span><span class="s1">quote</span><span class="s2">, </span><span class="s1">HTTPConnection</span>
+    <span class="s1">HTTPSConnection</span><span class="s2">, </span><span class="s1">StringIO</span><span class="s2">, </span><span class="s1">addinfourl</span><span class="s2">, </span><span class="s1">install_opener</span><span class="s2">, </span><span class="s1">build_opener</span>
+    <span class="s1">ProxyHandler</span><span class="s2">, </span><span class="s1">quote_plus</span><span class="s2">, </span><span class="s1">urlopen</span>
+    <span class="s1">(DEFAULT_HTTP_PORT</span><span class="s2">, </span><span class="s1">CookiePolicy</span><span class="s2">, </span><span class="s1">DefaultCookiePolicy</span><span class="s2">,</span>
+     <span class="s1">FileCookieJar</span><span class="s2">, </span><span class="s1">LoadError</span><span class="s2">, </span><span class="s1">LWPCookieJar</span><span class="s2">, </span><span class="s1">_debug</span><span class="s2">,</span>
+     <span class="s1">domain_match</span><span class="s2">, </span><span class="s1">eff_request_host</span><span class="s2">, </span><span class="s1">escape_path</span><span class="s2">, </span><span class="s1">is_HDN</span><span class="s2">,</span>
+     <span class="s1">lwp_cookie_str</span><span class="s2">, </span><span class="s1">reach</span><span class="s2">, </span><span class="s1">request_path</span><span class="s2">, </span><span class="s1">request_port</span><span class="s2">,</span>
+     <span class="s1">user_domain_match</span><span class="s2">, </span><span class="s1">Cookie</span><span class="s2">, </span><span class="s1">CookieJar</span><span class="s2">, </span><span class="s1">MozillaCookieJar</span><span class="s2">, </span><span class="s1">request_host)</span>
+</pre>
+</body>
+</html>

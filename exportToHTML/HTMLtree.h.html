@@ -1,0 +1,167 @@
+<html>
+<head>
+<title>HTMLtree.h</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+HTMLtree.h</font>
+</center></td></tr></table>
+<pre><span class="s0">/* 
+ * Summary: specific APIs to process HTML tree, especially serialization 
+ * Description: this module implements a few function needed to process 
+ *              tree in an HTML specific way. 
+ * 
+ * Copy: See Copyright for the status of this software. 
+ * 
+ * Author: Daniel Veillard 
+ */</span>
+
+<span class="s2">#ifndef </span><span class="s1">__HTML_TREE_H__</span>
+<span class="s2">#define </span><span class="s1">__HTML_TREE_H__</span>
+
+<span class="s2">#include </span><span class="s1">&lt;stdio.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/xmlversion.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/tree.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/HTMLparser.h&gt;</span>
+
+<span class="s2">#ifdef </span><span class="s1">LIBXML_HTML_ENABLED</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s2">extern </span><span class="s3">&quot;C&quot; </span><span class="s1">{</span>
+<span class="s2">#endif</span>
+
+
+<span class="s0">/** 
+ * HTML_TEXT_NODE: 
+ * 
+ * Macro. A text node in a HTML document is really implemented 
+ * the same way as a text node in an XML document. 
+ */</span>
+<span class="s2">#define </span><span class="s1">HTML_TEXT_NODE		XML_TEXT_NODE</span>
+<span class="s0">/** 
+ * HTML_ENTITY_REF_NODE: 
+ * 
+ * Macro. An entity reference in a HTML document is really implemented 
+ * the same way as an entity reference in an XML document. 
+ */</span>
+<span class="s2">#define </span><span class="s1">HTML_ENTITY_REF_NODE	XML_ENTITY_REF_NODE</span>
+<span class="s0">/** 
+ * HTML_COMMENT_NODE: 
+ * 
+ * Macro. A comment in a HTML document is really implemented 
+ * the same way as a comment in an XML document. 
+ */</span>
+<span class="s2">#define </span><span class="s1">HTML_COMMENT_NODE	XML_COMMENT_NODE</span>
+<span class="s0">/** 
+ * HTML_PRESERVE_NODE: 
+ * 
+ * Macro. A preserved node in a HTML document is really implemented 
+ * the same way as a CDATA section in an XML document. 
+ */</span>
+<span class="s2">#define </span><span class="s1">HTML_PRESERVE_NODE	XML_CDATA_SECTION_NODE</span>
+<span class="s0">/** 
+ * HTML_PI_NODE: 
+ * 
+ * Macro. A processing instruction in a HTML document is really implemented 
+ * the same way as a processing instruction in an XML document. 
+ */</span>
+<span class="s2">#define </span><span class="s1">HTML_PI_NODE		XML_PI_NODE</span>
+
+<span class="s1">XMLPUBFUN htmlDocPtr XMLCALL</span>
+		<span class="s1">htmlNewDoc		(</span><span class="s2">const </span><span class="s1">xmlChar *URI,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *ExternalID);</span>
+<span class="s1">XMLPUBFUN htmlDocPtr XMLCALL</span>
+		<span class="s1">htmlNewDocNoDtD		(</span><span class="s2">const </span><span class="s1">xmlChar *URI,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *ExternalID);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">const </span><span class="s1">xmlChar * XMLCALL</span>
+		<span class="s1">htmlGetMetaEncoding	(htmlDocPtr doc);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">htmlSetMetaEncoding	(htmlDocPtr doc,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *encoding);</span>
+<span class="s2">#ifdef </span><span class="s1">LIBXML_OUTPUT_ENABLED</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">htmlDocDumpMemory	(xmlDocPtr cur,</span>
+					 <span class="s1">xmlChar **mem,</span>
+					 <span class="s2">int </span><span class="s1">*size);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">htmlDocDumpMemoryFormat	(xmlDocPtr cur,</span>
+					 <span class="s1">xmlChar **mem,</span>
+					 <span class="s2">int </span><span class="s1">*size,</span>
+					 <span class="s2">int </span><span class="s1">format);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">htmlDocDump		(FILE *f,</span>
+					 <span class="s1">xmlDocPtr cur);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">htmlSaveFile		(</span><span class="s2">const char </span><span class="s1">*filename,</span>
+					 <span class="s1">xmlDocPtr cur);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">htmlNodeDump		(xmlBufferPtr buf,</span>
+					 <span class="s1">xmlDocPtr doc,</span>
+					 <span class="s1">xmlNodePtr cur);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">htmlNodeDumpFile	(FILE *out,</span>
+					 <span class="s1">xmlDocPtr doc,</span>
+					 <span class="s1">xmlNodePtr cur);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">htmlNodeDumpFileFormat	(FILE *out,</span>
+					 <span class="s1">xmlDocPtr doc,</span>
+					 <span class="s1">xmlNodePtr cur,</span>
+					 <span class="s2">const char </span><span class="s1">*encoding,</span>
+					 <span class="s2">int </span><span class="s1">format);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">htmlSaveFileEnc		(</span><span class="s2">const char </span><span class="s1">*filename,</span>
+					 <span class="s1">xmlDocPtr cur,</span>
+					 <span class="s2">const char </span><span class="s1">*encoding);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">htmlSaveFileFormat	(</span><span class="s2">const char </span><span class="s1">*filename,</span>
+					 <span class="s1">xmlDocPtr cur,</span>
+					 <span class="s2">const char </span><span class="s1">*encoding,</span>
+					 <span class="s2">int </span><span class="s1">format);</span>
+
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">htmlNodeDumpFormatOutput(xmlOutputBufferPtr buf,</span>
+					 <span class="s1">xmlDocPtr doc,</span>
+					 <span class="s1">xmlNodePtr cur,</span>
+					 <span class="s2">const char </span><span class="s1">*encoding,</span>
+					 <span class="s2">int </span><span class="s1">format);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">htmlDocContentDumpOutput(xmlOutputBufferPtr buf,</span>
+					 <span class="s1">xmlDocPtr cur,</span>
+					 <span class="s2">const char </span><span class="s1">*encoding);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">htmlDocContentDumpFormatOutput(xmlOutputBufferPtr buf,</span>
+					 <span class="s1">xmlDocPtr cur,</span>
+					 <span class="s2">const char </span><span class="s1">*encoding,</span>
+					 <span class="s2">int </span><span class="s1">format);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">htmlNodeDumpOutput	(xmlOutputBufferPtr buf,</span>
+					 <span class="s1">xmlDocPtr doc,</span>
+					 <span class="s1">xmlNodePtr cur,</span>
+					 <span class="s2">const char </span><span class="s1">*encoding);</span>
+
+<span class="s2">#endif </span><span class="s0">/* LIBXML_OUTPUT_ENABLED */</span>
+
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">htmlIsBooleanAttr	(</span><span class="s2">const </span><span class="s1">xmlChar *name);</span>
+
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s1">}</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#endif </span><span class="s0">/* LIBXML_HTML_ENABLED */</span>
+
+<span class="s2">#endif </span><span class="s0">/* __HTML_TREE_H__ */</span>
+
+</pre>
+</body>
+</html>

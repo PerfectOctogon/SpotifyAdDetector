@@ -1,0 +1,166 @@
+<html>
+<head>
+<title>xmlautomata.h</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+xmlautomata.h</font>
+</center></td></tr></table>
+<pre><span class="s0">/* 
+ * Summary: API to build regexp automata 
+ * Description: the API to build regexp automata 
+ * 
+ * Copy: See Copyright for the status of this software. 
+ * 
+ * Author: Daniel Veillard 
+ */</span>
+
+<span class="s2">#ifndef </span><span class="s1">__XML_AUTOMATA_H__</span>
+<span class="s2">#define </span><span class="s1">__XML_AUTOMATA_H__</span>
+
+<span class="s2">#include </span><span class="s1">&lt;libxml/xmlversion.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/tree.h&gt;</span>
+
+<span class="s2">#ifdef </span><span class="s1">LIBXML_REGEXP_ENABLED</span>
+<span class="s2">#ifdef </span><span class="s1">LIBXML_AUTOMATA_ENABLED</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/xmlregexp.h&gt;</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s2">extern </span><span class="s3">&quot;C&quot; </span><span class="s1">{</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * xmlAutomataPtr: 
+ * 
+ * A libxml automata description, It can be compiled into a regexp 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xmlAutomata xmlAutomata;</span>
+<span class="s2">typedef </span><span class="s1">xmlAutomata *xmlAutomataPtr;</span>
+
+<span class="s0">/** 
+ * xmlAutomataStatePtr: 
+ * 
+ * A state int the automata description, 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xmlAutomataState xmlAutomataState;</span>
+<span class="s2">typedef </span><span class="s1">xmlAutomataState *xmlAutomataStatePtr;</span>
+
+<span class="s0">/* 
+ * Building API 
+ */</span>
+<span class="s1">XMLPUBFUN xmlAutomataPtr XMLCALL</span>
+		    <span class="s1">xmlNewAutomata		(</span><span class="s2">void</span><span class="s1">);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		    <span class="s1">xmlFreeAutomata		(xmlAutomataPtr am);</span>
+
+<span class="s1">XMLPUBFUN xmlAutomataStatePtr XMLCALL</span>
+		    <span class="s1">xmlAutomataGetInitState	(xmlAutomataPtr am);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		    <span class="s1">xmlAutomataSetFinalState	(xmlAutomataPtr am,</span>
+						 <span class="s1">xmlAutomataStatePtr state);</span>
+<span class="s1">XMLPUBFUN xmlAutomataStatePtr XMLCALL</span>
+		    <span class="s1">xmlAutomataNewState		(xmlAutomataPtr am);</span>
+<span class="s1">XMLPUBFUN xmlAutomataStatePtr XMLCALL</span>
+		    <span class="s1">xmlAutomataNewTransition	(xmlAutomataPtr am,</span>
+						 <span class="s1">xmlAutomataStatePtr from,</span>
+						 <span class="s1">xmlAutomataStatePtr to,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *token,</span>
+						 <span class="s2">void </span><span class="s1">*data);</span>
+<span class="s1">XMLPUBFUN xmlAutomataStatePtr XMLCALL</span>
+		    <span class="s1">xmlAutomataNewTransition2	(xmlAutomataPtr am,</span>
+						 <span class="s1">xmlAutomataStatePtr from,</span>
+						 <span class="s1">xmlAutomataStatePtr to,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *token,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *token2,</span>
+						 <span class="s2">void </span><span class="s1">*data);</span>
+<span class="s1">XMLPUBFUN xmlAutomataStatePtr XMLCALL</span>
+                    <span class="s1">xmlAutomataNewNegTrans	(xmlAutomataPtr am,</span>
+						 <span class="s1">xmlAutomataStatePtr from,</span>
+						 <span class="s1">xmlAutomataStatePtr to,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *token,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *token2,</span>
+						 <span class="s2">void </span><span class="s1">*data);</span>
+
+<span class="s1">XMLPUBFUN xmlAutomataStatePtr XMLCALL</span>
+		    <span class="s1">xmlAutomataNewCountTrans	(xmlAutomataPtr am,</span>
+						 <span class="s1">xmlAutomataStatePtr from,</span>
+						 <span class="s1">xmlAutomataStatePtr to,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *token,</span>
+						 <span class="s2">int </span><span class="s1">min,</span>
+						 <span class="s2">int </span><span class="s1">max,</span>
+						 <span class="s2">void </span><span class="s1">*data);</span>
+<span class="s1">XMLPUBFUN xmlAutomataStatePtr XMLCALL</span>
+		    <span class="s1">xmlAutomataNewCountTrans2	(xmlAutomataPtr am,</span>
+						 <span class="s1">xmlAutomataStatePtr from,</span>
+						 <span class="s1">xmlAutomataStatePtr to,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *token,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *token2,</span>
+						 <span class="s2">int </span><span class="s1">min,</span>
+						 <span class="s2">int </span><span class="s1">max,</span>
+						 <span class="s2">void </span><span class="s1">*data);</span>
+<span class="s1">XMLPUBFUN xmlAutomataStatePtr XMLCALL</span>
+		    <span class="s1">xmlAutomataNewOnceTrans	(xmlAutomataPtr am,</span>
+						 <span class="s1">xmlAutomataStatePtr from,</span>
+						 <span class="s1">xmlAutomataStatePtr to,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *token,</span>
+						 <span class="s2">int </span><span class="s1">min,</span>
+						 <span class="s2">int </span><span class="s1">max,</span>
+						 <span class="s2">void </span><span class="s1">*data);</span>
+<span class="s1">XMLPUBFUN xmlAutomataStatePtr XMLCALL</span>
+		    <span class="s1">xmlAutomataNewOnceTrans2	(xmlAutomataPtr am,</span>
+						 <span class="s1">xmlAutomataStatePtr from,</span>
+						 <span class="s1">xmlAutomataStatePtr to,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *token,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *token2,</span>
+						 <span class="s2">int </span><span class="s1">min,</span>
+						 <span class="s2">int </span><span class="s1">max,</span>
+						 <span class="s2">void </span><span class="s1">*data);</span>
+<span class="s1">XMLPUBFUN xmlAutomataStatePtr XMLCALL</span>
+		    <span class="s1">xmlAutomataNewAllTrans	(xmlAutomataPtr am,</span>
+						 <span class="s1">xmlAutomataStatePtr from,</span>
+						 <span class="s1">xmlAutomataStatePtr to,</span>
+						 <span class="s2">int </span><span class="s1">lax);</span>
+<span class="s1">XMLPUBFUN xmlAutomataStatePtr XMLCALL</span>
+		    <span class="s1">xmlAutomataNewEpsilon	(xmlAutomataPtr am,</span>
+						 <span class="s1">xmlAutomataStatePtr from,</span>
+						 <span class="s1">xmlAutomataStatePtr to);</span>
+<span class="s1">XMLPUBFUN xmlAutomataStatePtr XMLCALL</span>
+		    <span class="s1">xmlAutomataNewCountedTrans	(xmlAutomataPtr am,</span>
+						 <span class="s1">xmlAutomataStatePtr from,</span>
+						 <span class="s1">xmlAutomataStatePtr to,</span>
+						 <span class="s2">int </span><span class="s1">counter);</span>
+<span class="s1">XMLPUBFUN xmlAutomataStatePtr XMLCALL</span>
+		    <span class="s1">xmlAutomataNewCounterTrans	(xmlAutomataPtr am,</span>
+						 <span class="s1">xmlAutomataStatePtr from,</span>
+						 <span class="s1">xmlAutomataStatePtr to,</span>
+						 <span class="s2">int </span><span class="s1">counter);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		    <span class="s1">xmlAutomataNewCounter	(xmlAutomataPtr am,</span>
+						 <span class="s2">int </span><span class="s1">min,</span>
+						 <span class="s2">int </span><span class="s1">max);</span>
+
+<span class="s1">XMLPUBFUN xmlRegexpPtr XMLCALL</span>
+		    <span class="s1">xmlAutomataCompile		(xmlAutomataPtr am);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		    <span class="s1">xmlAutomataIsDeterminist	(xmlAutomataPtr am);</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s1">}</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#endif </span><span class="s0">/* LIBXML_AUTOMATA_ENABLED */</span>
+<span class="s2">#endif </span><span class="s0">/* LIBXML_REGEXP_ENABLED */</span>
+
+<span class="s2">#endif </span><span class="s0">/* __XML_AUTOMATA_H__ */</span>
+</pre>
+</body>
+</html>

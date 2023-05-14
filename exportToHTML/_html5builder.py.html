@@ -1,0 +1,122 @@
+<html>
+<head>
+<title>_html5builder.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #629755; font-style: italic;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6897bb;}
+.s4 { color: #6a8759;}
+.s5 { color: #808080;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+_html5builder.py</font>
+</center></td></tr></table>
+<pre><span class="s0">&quot;&quot;&quot; 
+Legacy module - don't use in new code! 
+ 
+html5lib now has its own proper implementation. 
+ 
+This module implements a tree builder for html5lib that generates lxml 
+html element trees.  This module uses camelCase as it follows the 
+html5lib style guide. 
+&quot;&quot;&quot;</span>
+
+<span class="s2">from </span><span class="s1">html5lib.treebuilders </span><span class="s2">import </span><span class="s1">_base</span><span class="s2">, </span><span class="s1">etree </span><span class="s2">as </span><span class="s1">etree_builders</span>
+<span class="s2">from </span><span class="s1">lxml </span><span class="s2">import </span><span class="s1">html</span><span class="s2">, </span><span class="s1">etree</span>
+
+
+<span class="s2">class </span><span class="s1">DocumentType(object):</span>
+
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">name</span><span class="s2">, </span><span class="s1">publicId</span><span class="s2">, </span><span class="s1">systemId):</span>
+        <span class="s1">self.name = name</span>
+        <span class="s1">self.publicId = publicId</span>
+        <span class="s1">self.systemId = systemId</span>
+
+<span class="s2">class </span><span class="s1">Document(object):</span>
+
+    <span class="s2">def </span><span class="s1">__init__(self):</span>
+        <span class="s1">self._elementTree = </span><span class="s2">None</span>
+        <span class="s1">self.childNodes = []</span>
+
+    <span class="s2">def </span><span class="s1">appendChild(self</span><span class="s2">, </span><span class="s1">element):</span>
+        <span class="s1">self._elementTree.getroot().addnext(element._element)</span>
+
+
+<span class="s2">class </span><span class="s1">TreeBuilder(_base.TreeBuilder):</span>
+    <span class="s1">documentClass = Document</span>
+    <span class="s1">doctypeClass = DocumentType</span>
+    <span class="s1">elementClass = </span><span class="s2">None</span>
+    <span class="s1">commentClass = </span><span class="s2">None</span>
+    <span class="s1">fragmentClass = Document</span>
+
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">*args</span><span class="s2">, </span><span class="s1">**kwargs):</span>
+        <span class="s1">html_builder = etree_builders.getETreeModule(html</span><span class="s2">, </span><span class="s1">fullTree=</span><span class="s2">False</span><span class="s1">)</span>
+        <span class="s1">etree_builder = etree_builders.getETreeModule(etree</span><span class="s2">, </span><span class="s1">fullTree=</span><span class="s2">False</span><span class="s1">)</span>
+        <span class="s1">self.elementClass = html_builder.Element</span>
+        <span class="s1">self.commentClass = etree_builder.Comment</span>
+        <span class="s1">_base.TreeBuilder.__init__(self</span><span class="s2">, </span><span class="s1">*args</span><span class="s2">, </span><span class="s1">**kwargs)</span>
+
+    <span class="s2">def </span><span class="s1">reset(self):</span>
+        <span class="s1">_base.TreeBuilder.reset(self)</span>
+        <span class="s1">self.rootInserted = </span><span class="s2">False</span>
+        <span class="s1">self.initialComments = []</span>
+        <span class="s1">self.doctype = </span><span class="s2">None</span>
+
+    <span class="s2">def </span><span class="s1">getDocument(self):</span>
+        <span class="s2">return </span><span class="s1">self.document._elementTree</span>
+
+    <span class="s2">def </span><span class="s1">getFragment(self):</span>
+        <span class="s1">fragment = []</span>
+        <span class="s1">element = self.openElements[</span><span class="s3">0</span><span class="s1">]._element</span>
+        <span class="s2">if </span><span class="s1">element.text:</span>
+            <span class="s1">fragment.append(element.text)</span>
+        <span class="s1">fragment.extend(element.getchildren())</span>
+        <span class="s2">if </span><span class="s1">element.tail:</span>
+            <span class="s1">fragment.append(element.tail)</span>
+        <span class="s2">return </span><span class="s1">fragment</span>
+
+    <span class="s2">def </span><span class="s1">insertDoctype(self</span><span class="s2">, </span><span class="s1">name</span><span class="s2">, </span><span class="s1">publicId</span><span class="s2">, </span><span class="s1">systemId):</span>
+        <span class="s1">doctype = self.doctypeClass(name</span><span class="s2">, </span><span class="s1">publicId</span><span class="s2">, </span><span class="s1">systemId)</span>
+        <span class="s1">self.doctype = doctype</span>
+
+    <span class="s2">def </span><span class="s1">insertComment(self</span><span class="s2">, </span><span class="s1">data</span><span class="s2">, </span><span class="s1">parent=</span><span class="s2">None</span><span class="s1">):</span>
+        <span class="s2">if not </span><span class="s1">self.rootInserted:</span>
+            <span class="s1">self.initialComments.append(data)</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s1">_base.TreeBuilder.insertComment(self</span><span class="s2">, </span><span class="s1">data</span><span class="s2">, </span><span class="s1">parent)</span>
+
+    <span class="s2">def </span><span class="s1">insertRoot(self</span><span class="s2">, </span><span class="s1">name):</span>
+        <span class="s1">buf = []</span>
+        <span class="s2">if </span><span class="s1">self.doctype </span><span class="s2">and </span><span class="s1">self.doctype.name:</span>
+            <span class="s1">buf.append(</span><span class="s4">'&lt;!DOCTYPE %s' </span><span class="s1">% self.doctype.name)</span>
+            <span class="s2">if </span><span class="s1">self.doctype.publicId </span><span class="s2">is not None or </span><span class="s1">self.doctype.systemId </span><span class="s2">is not None</span><span class="s1">:</span>
+                <span class="s1">buf.append(</span><span class="s4">' PUBLIC &quot;%s&quot; &quot;%s&quot;' </span><span class="s1">% (self.doctype.publicId</span><span class="s2">,</span>
+                                                  <span class="s1">self.doctype.systemId))</span>
+            <span class="s1">buf.append(</span><span class="s4">'&gt;'</span><span class="s1">)</span>
+        <span class="s1">buf.append(</span><span class="s4">'&lt;html&gt;&lt;/html&gt;'</span><span class="s1">)</span>
+        <span class="s1">root = html.fromstring(</span><span class="s4">''</span><span class="s1">.join(buf))</span>
+
+        <span class="s5"># Append the initial comments:</span>
+        <span class="s2">for </span><span class="s1">comment </span><span class="s2">in </span><span class="s1">self.initialComments:</span>
+            <span class="s1">root.addprevious(etree.Comment(comment))</span>
+
+        <span class="s5"># Create the root document and add the ElementTree to it</span>
+        <span class="s1">self.document = self.documentClass()</span>
+        <span class="s1">self.document._elementTree = root.getroottree()</span>
+
+        <span class="s5"># Add the root element to the internal child/open data structures</span>
+        <span class="s1">root_element = self.elementClass(name)</span>
+        <span class="s1">root_element._element = root</span>
+        <span class="s1">self.document.childNodes.append(root_element)</span>
+        <span class="s1">self.openElements.append(root_element)</span>
+
+        <span class="s1">self.rootInserted = </span><span class="s2">True</span>
+</pre>
+</body>
+</html>

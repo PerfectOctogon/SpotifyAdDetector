@@ -1,0 +1,148 @@
+<html>
+<head>
+<title>pkg_resources.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #cc7832;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #808080;}
+.s3 { color: #6a8759;}
+.s4 { color: #6897bb;}
+.s5 { color: #629755; font-style: italic;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+pkg_resources.py</font>
+</center></td></tr></table>
+<pre><span class="s0">import </span><span class="s1">zipfile</span>
+<span class="s0">from </span><span class="s1">typing </span><span class="s0">import </span><span class="s1">Iterator</span><span class="s0">, </span><span class="s1">List</span><span class="s0">, </span><span class="s1">Optional</span>
+
+<span class="s0">from </span><span class="s1">pip._vendor </span><span class="s0">import </span><span class="s1">pkg_resources</span>
+<span class="s0">from </span><span class="s1">pip._vendor.packaging.utils </span><span class="s0">import </span><span class="s1">canonicalize_name</span>
+<span class="s0">from </span><span class="s1">pip._vendor.packaging.version </span><span class="s0">import </span><span class="s1">parse </span><span class="s0">as </span><span class="s1">parse_version</span>
+
+<span class="s0">from </span><span class="s1">pip._internal.utils </span><span class="s0">import </span><span class="s1">misc  </span><span class="s2"># TODO: Move definition here.</span>
+<span class="s0">from </span><span class="s1">pip._internal.utils.packaging </span><span class="s0">import </span><span class="s1">get_installer</span>
+<span class="s0">from </span><span class="s1">pip._internal.utils.wheel </span><span class="s0">import </span><span class="s1">pkg_resources_distribution_for_wheel</span>
+
+<span class="s0">from </span><span class="s1">.base </span><span class="s0">import </span><span class="s1">BaseDistribution</span><span class="s0">, </span><span class="s1">BaseEnvironment</span><span class="s0">, </span><span class="s1">DistributionVersion</span>
+
+
+<span class="s0">class </span><span class="s1">Distribution(BaseDistribution):</span>
+    <span class="s0">def </span><span class="s1">__init__(self</span><span class="s0">, </span><span class="s1">dist):</span>
+        <span class="s2"># type: (pkg_resources.Distribution) -&gt; None</span>
+        <span class="s1">self._dist = dist</span>
+
+    <span class="s1">@classmethod</span>
+    <span class="s0">def </span><span class="s1">from_wheel(cls</span><span class="s0">, </span><span class="s1">path</span><span class="s0">, </span><span class="s1">name):</span>
+        <span class="s2"># type: (str, str) -&gt; Distribution</span>
+        <span class="s0">with </span><span class="s1">zipfile.ZipFile(path</span><span class="s0">, </span><span class="s1">allowZip64=</span><span class="s0">True</span><span class="s1">) </span><span class="s0">as </span><span class="s1">zf:</span>
+            <span class="s1">dist = pkg_resources_distribution_for_wheel(zf</span><span class="s0">, </span><span class="s1">name</span><span class="s0">, </span><span class="s1">path)</span>
+        <span class="s0">return </span><span class="s1">cls(dist)</span>
+
+    <span class="s1">@property</span>
+    <span class="s0">def </span><span class="s1">location(self):</span>
+        <span class="s2"># type: () -&gt; Optional[str]</span>
+        <span class="s0">return </span><span class="s1">self._dist.location</span>
+
+    <span class="s1">@property</span>
+    <span class="s0">def </span><span class="s1">metadata_version(self):</span>
+        <span class="s2"># type: () -&gt; Optional[str]</span>
+        <span class="s0">for </span><span class="s1">line </span><span class="s0">in </span><span class="s1">self._dist.get_metadata_lines(self._dist.PKG_INFO):</span>
+            <span class="s0">if </span><span class="s1">line.lower().startswith(</span><span class="s3">&quot;metadata-version:&quot;</span><span class="s1">):</span>
+                <span class="s0">return </span><span class="s1">line.split(</span><span class="s3">&quot;:&quot;</span><span class="s0">, </span><span class="s4">1</span><span class="s1">)[-</span><span class="s4">1</span><span class="s1">].strip()</span>
+        <span class="s0">return None</span>
+
+    <span class="s1">@property</span>
+    <span class="s0">def </span><span class="s1">canonical_name(self):</span>
+        <span class="s2"># type: () -&gt; str</span>
+        <span class="s0">return </span><span class="s1">canonicalize_name(self._dist.project_name)</span>
+
+    <span class="s1">@property</span>
+    <span class="s0">def </span><span class="s1">version(self):</span>
+        <span class="s2"># type: () -&gt; DistributionVersion</span>
+        <span class="s0">return </span><span class="s1">parse_version(self._dist.version)</span>
+
+    <span class="s1">@property</span>
+    <span class="s0">def </span><span class="s1">installer(self):</span>
+        <span class="s2"># type: () -&gt; str</span>
+        <span class="s0">return </span><span class="s1">get_installer(self._dist)</span>
+
+    <span class="s1">@property</span>
+    <span class="s0">def </span><span class="s1">editable(self):</span>
+        <span class="s2"># type: () -&gt; bool</span>
+        <span class="s0">return </span><span class="s1">misc.dist_is_editable(self._dist)</span>
+
+    <span class="s1">@property</span>
+    <span class="s0">def </span><span class="s1">local(self):</span>
+        <span class="s2"># type: () -&gt; bool</span>
+        <span class="s0">return </span><span class="s1">misc.dist_is_local(self._dist)</span>
+
+    <span class="s1">@property</span>
+    <span class="s0">def </span><span class="s1">in_usersite(self):</span>
+        <span class="s2"># type: () -&gt; bool</span>
+        <span class="s0">return </span><span class="s1">misc.dist_in_usersite(self._dist)</span>
+
+
+<span class="s0">class </span><span class="s1">Environment(BaseEnvironment):</span>
+    <span class="s0">def </span><span class="s1">__init__(self</span><span class="s0">, </span><span class="s1">ws):</span>
+        <span class="s2"># type: (pkg_resources.WorkingSet) -&gt; None</span>
+        <span class="s1">self._ws = ws</span>
+
+    <span class="s1">@classmethod</span>
+    <span class="s0">def </span><span class="s1">default(cls):</span>
+        <span class="s2"># type: () -&gt; BaseEnvironment</span>
+        <span class="s0">return </span><span class="s1">cls(pkg_resources.working_set)</span>
+
+    <span class="s1">@classmethod</span>
+    <span class="s0">def </span><span class="s1">from_paths(cls</span><span class="s0">, </span><span class="s1">paths):</span>
+        <span class="s2"># type: (Optional[List[str]]) -&gt; BaseEnvironment</span>
+        <span class="s0">return </span><span class="s1">cls(pkg_resources.WorkingSet(paths))</span>
+
+    <span class="s0">def </span><span class="s1">_search_distribution(self</span><span class="s0">, </span><span class="s1">name):</span>
+        <span class="s2"># type: (str) -&gt; Optional[BaseDistribution]</span>
+        <span class="s5">&quot;&quot;&quot;Find a distribution matching the ``name`` in the environment. 
+ 
+        This searches from *all* distributions available in the environment, to 
+        match the behavior of ``pkg_resources.get_distribution()``. 
+        &quot;&quot;&quot;</span>
+        <span class="s1">canonical_name = canonicalize_name(name)</span>
+        <span class="s0">for </span><span class="s1">dist </span><span class="s0">in </span><span class="s1">self.iter_distributions():</span>
+            <span class="s0">if </span><span class="s1">dist.canonical_name == canonical_name:</span>
+                <span class="s0">return </span><span class="s1">dist</span>
+        <span class="s0">return None</span>
+
+    <span class="s0">def </span><span class="s1">get_distribution(self</span><span class="s0">, </span><span class="s1">name):</span>
+        <span class="s2"># type: (str) -&gt; Optional[BaseDistribution]</span>
+
+        <span class="s2"># Search the distribution by looking through the working set.</span>
+        <span class="s1">dist = self._search_distribution(name)</span>
+        <span class="s0">if </span><span class="s1">dist:</span>
+            <span class="s0">return </span><span class="s1">dist</span>
+
+        <span class="s2"># If distribution could not be found, call working_set.require to</span>
+        <span class="s2"># update the working set, and try to find the distribution again.</span>
+        <span class="s2"># This might happen for e.g. when you install a package twice, once</span>
+        <span class="s2"># using setup.py develop and again using setup.py install. Now when</span>
+        <span class="s2"># running pip uninstall twice, the package gets removed from the</span>
+        <span class="s2"># working set in the first uninstall, so we have to populate the</span>
+        <span class="s2"># working set again so that pip knows about it and the packages gets</span>
+        <span class="s2"># picked up and is successfully uninstalled the second time too.</span>
+        <span class="s0">try</span><span class="s1">:</span>
+            <span class="s2"># We didn't pass in any version specifiers, so this can never</span>
+            <span class="s2"># raise pkg_resources.VersionConflict.</span>
+            <span class="s1">self._ws.require(name)</span>
+        <span class="s0">except </span><span class="s1">pkg_resources.DistributionNotFound:</span>
+            <span class="s0">return None</span>
+        <span class="s0">return </span><span class="s1">self._search_distribution(name)</span>
+
+    <span class="s0">def </span><span class="s1">_iter_distributions(self):</span>
+        <span class="s2"># type: () -&gt; Iterator[BaseDistribution]</span>
+        <span class="s0">for </span><span class="s1">dist </span><span class="s0">in </span><span class="s1">self._ws:</span>
+            <span class="s0">yield </span><span class="s1">Distribution(dist)</span>
+</pre>
+</body>
+</html>

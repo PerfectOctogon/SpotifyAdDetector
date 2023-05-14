@@ -1,0 +1,354 @@
+<html>
+<head>
+<title>_lxml.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #6a8759;}
+.s3 { color: #cc7832;}
+.s4 { color: #629755; font-style: italic;}
+.s5 { color: #6897bb;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+_lxml.py</font>
+</center></td></tr></table>
+<pre><span class="s0"># Use of this source code is governed by the MIT license.</span>
+<span class="s1">__license__ = </span><span class="s2">&quot;MIT&quot;</span>
+
+<span class="s1">__all__ = [</span>
+    <span class="s2">'LXMLTreeBuilderForXML'</span><span class="s3">,</span>
+    <span class="s2">'LXMLTreeBuilder'</span><span class="s3">,</span>
+    <span class="s1">]</span>
+
+<span class="s3">try</span><span class="s1">:</span>
+    <span class="s3">from </span><span class="s1">collections.abc </span><span class="s3">import </span><span class="s1">Callable </span><span class="s0"># Python 3.6</span>
+<span class="s3">except </span><span class="s1">ImportError </span><span class="s3">as </span><span class="s1">e:</span>
+    <span class="s3">from </span><span class="s1">collections </span><span class="s3">import </span><span class="s1">Callable</span>
+
+<span class="s3">from </span><span class="s1">io </span><span class="s3">import </span><span class="s1">BytesIO</span>
+<span class="s3">from </span><span class="s1">io </span><span class="s3">import </span><span class="s1">StringIO</span>
+<span class="s3">from </span><span class="s1">lxml </span><span class="s3">import </span><span class="s1">etree</span>
+<span class="s3">from </span><span class="s1">bs4.element </span><span class="s3">import </span><span class="s1">(</span>
+    <span class="s1">Comment</span><span class="s3">,</span>
+    <span class="s1">Doctype</span><span class="s3">,</span>
+    <span class="s1">NamespacedAttribute</span><span class="s3">,</span>
+    <span class="s1">ProcessingInstruction</span><span class="s3">,</span>
+    <span class="s1">XMLProcessingInstruction</span><span class="s3">,</span>
+<span class="s1">)</span>
+<span class="s3">from </span><span class="s1">bs4.builder </span><span class="s3">import </span><span class="s1">(</span>
+    <span class="s1">FAST</span><span class="s3">,</span>
+    <span class="s1">HTML</span><span class="s3">,</span>
+    <span class="s1">HTMLTreeBuilder</span><span class="s3">,</span>
+    <span class="s1">PERMISSIVE</span><span class="s3">,</span>
+    <span class="s1">ParserRejectedMarkup</span><span class="s3">,</span>
+    <span class="s1">TreeBuilder</span><span class="s3">,</span>
+    <span class="s1">XML)</span>
+<span class="s3">from </span><span class="s1">bs4.dammit </span><span class="s3">import </span><span class="s1">EncodingDetector</span>
+
+<span class="s1">LXML = </span><span class="s2">'lxml'</span>
+
+<span class="s3">def </span><span class="s1">_invert(d):</span>
+    <span class="s4">&quot;Invert a dictionary.&quot;</span>
+    <span class="s3">return </span><span class="s1">dict((v</span><span class="s3">,</span><span class="s1">k) </span><span class="s3">for </span><span class="s1">k</span><span class="s3">, </span><span class="s1">v </span><span class="s3">in </span><span class="s1">list(d.items()))</span>
+
+<span class="s3">class </span><span class="s1">LXMLTreeBuilderForXML(TreeBuilder):</span>
+    <span class="s1">DEFAULT_PARSER_CLASS = etree.XMLParser</span>
+
+    <span class="s1">is_xml = </span><span class="s3">True</span>
+    <span class="s1">processing_instruction_class = XMLProcessingInstruction</span>
+
+    <span class="s1">NAME = </span><span class="s2">&quot;lxml-xml&quot;</span>
+    <span class="s1">ALTERNATE_NAMES = [</span><span class="s2">&quot;xml&quot;</span><span class="s1">]</span>
+
+    <span class="s0"># Well, it's permissive by XML parser standards.</span>
+    <span class="s1">features = [NAME</span><span class="s3">, </span><span class="s1">LXML</span><span class="s3">, </span><span class="s1">XML</span><span class="s3">, </span><span class="s1">FAST</span><span class="s3">, </span><span class="s1">PERMISSIVE]</span>
+
+    <span class="s1">CHUNK_SIZE = </span><span class="s5">512</span>
+
+    <span class="s0"># This namespace mapping is specified in the XML Namespace</span>
+    <span class="s0"># standard.</span>
+    <span class="s1">DEFAULT_NSMAPS = dict(xml=</span><span class="s2">'http://www.w3.org/XML/1998/namespace'</span><span class="s1">)</span>
+
+    <span class="s1">DEFAULT_NSMAPS_INVERTED = _invert(DEFAULT_NSMAPS)</span>
+
+    <span class="s0"># NOTE: If we parsed Element objects and looked at .sourceline,</span>
+    <span class="s0"># we'd be able to see the line numbers from the original document.</span>
+    <span class="s0"># But instead we build an XMLParser or HTMLParser object to serve</span>
+    <span class="s0"># as the target of parse messages, and those messages don't include</span>
+    <span class="s0"># line numbers.</span>
+    <span class="s0"># See: https://bugs.launchpad.net/lxml/+bug/1846906</span>
+    
+    <span class="s3">def </span><span class="s1">initialize_soup(self</span><span class="s3">, </span><span class="s1">soup):</span>
+        <span class="s4">&quot;&quot;&quot;Let the BeautifulSoup object know about the standard namespace 
+        mapping. 
+ 
+        :param soup: A `BeautifulSoup`. 
+        &quot;&quot;&quot;</span>
+        <span class="s1">super(LXMLTreeBuilderForXML</span><span class="s3">, </span><span class="s1">self).initialize_soup(soup)</span>
+        <span class="s1">self._register_namespaces(self.DEFAULT_NSMAPS)</span>
+
+    <span class="s3">def </span><span class="s1">_register_namespaces(self</span><span class="s3">, </span><span class="s1">mapping):</span>
+        <span class="s4">&quot;&quot;&quot;Let the BeautifulSoup object know about namespaces encountered 
+        while parsing the document. 
+ 
+        This might be useful later on when creating CSS selectors. 
+ 
+        :param mapping: A dictionary mapping namespace prefixes to URIs. 
+        &quot;&quot;&quot;</span>
+        <span class="s3">for </span><span class="s1">key</span><span class="s3">, </span><span class="s1">value </span><span class="s3">in </span><span class="s1">list(mapping.items()):</span>
+            <span class="s3">if </span><span class="s1">key </span><span class="s3">and </span><span class="s1">key </span><span class="s3">not in </span><span class="s1">self.soup._namespaces:</span>
+                <span class="s0"># Let the BeautifulSoup object know about a new namespace.</span>
+                <span class="s0"># If there are multiple namespaces defined with the same</span>
+                <span class="s0"># prefix, the first one in the document takes precedence.</span>
+                <span class="s1">self.soup._namespaces[key] = value</span>
+
+    <span class="s3">def </span><span class="s1">default_parser(self</span><span class="s3">, </span><span class="s1">encoding):</span>
+        <span class="s4">&quot;&quot;&quot;Find the default parser for the given encoding. 
+ 
+        :param encoding: A string. 
+        :return: Either a parser object or a class, which 
+          will be instantiated with default arguments. 
+        &quot;&quot;&quot;</span>
+        <span class="s3">if </span><span class="s1">self._default_parser </span><span class="s3">is not None</span><span class="s1">:</span>
+            <span class="s3">return </span><span class="s1">self._default_parser</span>
+        <span class="s3">return </span><span class="s1">etree.XMLParser(</span>
+            <span class="s1">target=self</span><span class="s3">, </span><span class="s1">strip_cdata=</span><span class="s3">False, </span><span class="s1">recover=</span><span class="s3">True, </span><span class="s1">encoding=encoding)</span>
+
+    <span class="s3">def </span><span class="s1">parser_for(self</span><span class="s3">, </span><span class="s1">encoding):</span>
+        <span class="s4">&quot;&quot;&quot;Instantiate an appropriate parser for the given encoding. 
+ 
+        :param encoding: A string. 
+        :return: A parser object such as an `etree.XMLParser`. 
+        &quot;&quot;&quot;</span>
+        <span class="s0"># Use the default parser.</span>
+        <span class="s1">parser = self.default_parser(encoding)</span>
+
+        <span class="s3">if </span><span class="s1">isinstance(parser</span><span class="s3">, </span><span class="s1">Callable):</span>
+            <span class="s0"># Instantiate the parser with default arguments</span>
+            <span class="s1">parser = parser(</span>
+                <span class="s1">target=self</span><span class="s3">, </span><span class="s1">strip_cdata=</span><span class="s3">False, </span><span class="s1">recover=</span><span class="s3">True, </span><span class="s1">encoding=encoding</span>
+            <span class="s1">)</span>
+        <span class="s3">return </span><span class="s1">parser</span>
+
+    <span class="s3">def </span><span class="s1">__init__(self</span><span class="s3">, </span><span class="s1">parser=</span><span class="s3">None, </span><span class="s1">empty_element_tags=</span><span class="s3">None, </span><span class="s1">**kwargs):</span>
+        <span class="s0"># TODO: Issue a warning if parser is present but not a</span>
+        <span class="s0"># callable, since that means there's no way to create new</span>
+        <span class="s0"># parsers for different encodings.</span>
+        <span class="s1">self._default_parser = parser</span>
+        <span class="s3">if </span><span class="s1">empty_element_tags </span><span class="s3">is not None</span><span class="s1">:</span>
+            <span class="s1">self.empty_element_tags = set(empty_element_tags)</span>
+        <span class="s1">self.soup = </span><span class="s3">None</span>
+        <span class="s1">self.nsmaps = [self.DEFAULT_NSMAPS_INVERTED]</span>
+        <span class="s1">super(LXMLTreeBuilderForXML</span><span class="s3">, </span><span class="s1">self).__init__(**kwargs)</span>
+        
+    <span class="s3">def </span><span class="s1">_getNsTag(self</span><span class="s3">, </span><span class="s1">tag):</span>
+        <span class="s0"># Split the namespace URL out of a fully-qualified lxml tag</span>
+        <span class="s0"># name. Copied from lxml's src/lxml/sax.py.</span>
+        <span class="s3">if </span><span class="s1">tag[</span><span class="s5">0</span><span class="s1">] == </span><span class="s2">'{'</span><span class="s1">:</span>
+            <span class="s3">return </span><span class="s1">tuple(tag[</span><span class="s5">1</span><span class="s1">:].split(</span><span class="s2">'}'</span><span class="s3">, </span><span class="s5">1</span><span class="s1">))</span>
+        <span class="s3">else</span><span class="s1">:</span>
+            <span class="s3">return </span><span class="s1">(</span><span class="s3">None, </span><span class="s1">tag)</span>
+
+    <span class="s3">def </span><span class="s1">prepare_markup(self</span><span class="s3">, </span><span class="s1">markup</span><span class="s3">, </span><span class="s1">user_specified_encoding=</span><span class="s3">None,</span>
+                       <span class="s1">exclude_encodings=</span><span class="s3">None,</span>
+                       <span class="s1">document_declared_encoding=</span><span class="s3">None</span><span class="s1">):</span>
+        <span class="s4">&quot;&quot;&quot;Run any preliminary steps necessary to make incoming markup 
+        acceptable to the parser. 
+ 
+        lxml really wants to get a bytestring and convert it to 
+        Unicode itself. So instead of using UnicodeDammit to convert 
+        the bytestring to Unicode using different encodings, this 
+        implementation uses EncodingDetector to iterate over the 
+        encodings, and tell lxml to try to parse the document as each 
+        one in turn. 
+ 
+        :param markup: Some markup -- hopefully a bytestring. 
+        :param user_specified_encoding: The user asked to try this encoding. 
+        :param document_declared_encoding: The markup itself claims to be 
+            in this encoding. 
+        :param exclude_encodings: The user asked _not_ to try any of 
+            these encodings. 
+ 
+        :yield: A series of 4-tuples: 
+         (markup, encoding, declared encoding, 
+          has undergone character replacement) 
+ 
+         Each 4-tuple represents a strategy for converting the 
+         document to Unicode and parsing it. Each strategy will be tried  
+         in turn. 
+        &quot;&quot;&quot;</span>
+        <span class="s1">is_html = </span><span class="s3">not </span><span class="s1">self.is_xml</span>
+        <span class="s3">if </span><span class="s1">is_html:</span>
+            <span class="s1">self.processing_instruction_class = ProcessingInstruction</span>
+        <span class="s3">else</span><span class="s1">:</span>
+            <span class="s1">self.processing_instruction_class = XMLProcessingInstruction</span>
+
+        <span class="s3">if </span><span class="s1">isinstance(markup</span><span class="s3">, </span><span class="s1">str):</span>
+            <span class="s0"># We were given Unicode. Maybe lxml can parse Unicode on</span>
+            <span class="s0"># this system?</span>
+            <span class="s3">yield </span><span class="s1">markup</span><span class="s3">, None, </span><span class="s1">document_declared_encoding</span><span class="s3">, False</span>
+
+        <span class="s3">if </span><span class="s1">isinstance(markup</span><span class="s3">, </span><span class="s1">str):</span>
+            <span class="s0"># No, apparently not. Convert the Unicode to UTF-8 and</span>
+            <span class="s0"># tell lxml to parse it as UTF-8.</span>
+            <span class="s3">yield </span><span class="s1">(markup.encode(</span><span class="s2">&quot;utf8&quot;</span><span class="s1">)</span><span class="s3">, </span><span class="s2">&quot;utf8&quot;</span><span class="s3">,</span>
+                   <span class="s1">document_declared_encoding</span><span class="s3">, False</span><span class="s1">)</span>
+
+        <span class="s1">try_encodings = [user_specified_encoding</span><span class="s3">, </span><span class="s1">document_declared_encoding]</span>
+        <span class="s1">detector = EncodingDetector(</span>
+            <span class="s1">markup</span><span class="s3">, </span><span class="s1">try_encodings</span><span class="s3">, </span><span class="s1">is_html</span><span class="s3">, </span><span class="s1">exclude_encodings)</span>
+        <span class="s3">for </span><span class="s1">encoding </span><span class="s3">in </span><span class="s1">detector.encodings:</span>
+            <span class="s3">yield </span><span class="s1">(detector.markup</span><span class="s3">, </span><span class="s1">encoding</span><span class="s3">, </span><span class="s1">document_declared_encoding</span><span class="s3">, False</span><span class="s1">)</span>
+
+    <span class="s3">def </span><span class="s1">feed(self</span><span class="s3">, </span><span class="s1">markup):</span>
+        <span class="s3">if </span><span class="s1">isinstance(markup</span><span class="s3">, </span><span class="s1">bytes):</span>
+            <span class="s1">markup = BytesIO(markup)</span>
+        <span class="s3">elif </span><span class="s1">isinstance(markup</span><span class="s3">, </span><span class="s1">str):</span>
+            <span class="s1">markup = StringIO(markup)</span>
+
+        <span class="s0"># Call feed() at least once, even if the markup is empty,</span>
+        <span class="s0"># or the parser won't be initialized.</span>
+        <span class="s1">data = markup.read(self.CHUNK_SIZE)</span>
+        <span class="s3">try</span><span class="s1">:</span>
+            <span class="s1">self.parser = self.parser_for(self.soup.original_encoding)</span>
+            <span class="s1">self.parser.feed(data)</span>
+            <span class="s3">while </span><span class="s1">len(data) != </span><span class="s5">0</span><span class="s1">:</span>
+                <span class="s0"># Now call feed() on the rest of the data, chunk by chunk.</span>
+                <span class="s1">data = markup.read(self.CHUNK_SIZE)</span>
+                <span class="s3">if </span><span class="s1">len(data) != </span><span class="s5">0</span><span class="s1">:</span>
+                    <span class="s1">self.parser.feed(data)</span>
+            <span class="s1">self.parser.close()</span>
+        <span class="s3">except </span><span class="s1">(UnicodeDecodeError</span><span class="s3">, </span><span class="s1">LookupError</span><span class="s3">, </span><span class="s1">etree.ParserError) </span><span class="s3">as </span><span class="s1">e:</span>
+            <span class="s3">raise </span><span class="s1">ParserRejectedMarkup(e)</span>
+
+    <span class="s3">def </span><span class="s1">close(self):</span>
+        <span class="s1">self.nsmaps = [self.DEFAULT_NSMAPS_INVERTED]</span>
+
+    <span class="s3">def </span><span class="s1">start(self</span><span class="s3">, </span><span class="s1">name</span><span class="s3">, </span><span class="s1">attrs</span><span class="s3">, </span><span class="s1">nsmap={}):</span>
+        <span class="s0"># Make sure attrs is a mutable dict--lxml may send an immutable dictproxy.</span>
+        <span class="s1">attrs = dict(attrs)</span>
+        <span class="s1">nsprefix = </span><span class="s3">None</span>
+        <span class="s0"># Invert each namespace map as it comes in.</span>
+        <span class="s3">if </span><span class="s1">len(nsmap) == </span><span class="s5">0 </span><span class="s3">and </span><span class="s1">len(self.nsmaps) &gt; </span><span class="s5">1</span><span class="s1">:</span>
+                <span class="s0"># There are no new namespaces for this tag, but</span>
+                <span class="s0"># non-default namespaces are in play, so we need a</span>
+                <span class="s0"># separate tag stack to know when they end.</span>
+                <span class="s1">self.nsmaps.append(</span><span class="s3">None</span><span class="s1">)</span>
+        <span class="s3">elif </span><span class="s1">len(nsmap) &gt; </span><span class="s5">0</span><span class="s1">:</span>
+            <span class="s0"># A new namespace mapping has come into play.</span>
+
+            <span class="s0"># First, Let the BeautifulSoup object know about it.</span>
+            <span class="s1">self._register_namespaces(nsmap)</span>
+
+            <span class="s0"># Then, add it to our running list of inverted namespace</span>
+            <span class="s0"># mappings.</span>
+            <span class="s1">self.nsmaps.append(_invert(nsmap))</span>
+
+            <span class="s0"># Also treat the namespace mapping as a set of attributes on the</span>
+            <span class="s0"># tag, so we can recreate it later.</span>
+            <span class="s1">attrs = attrs.copy()</span>
+            <span class="s3">for </span><span class="s1">prefix</span><span class="s3">, </span><span class="s1">namespace </span><span class="s3">in </span><span class="s1">list(nsmap.items()):</span>
+                <span class="s1">attribute = NamespacedAttribute(</span>
+                    <span class="s2">&quot;xmlns&quot;</span><span class="s3">, </span><span class="s1">prefix</span><span class="s3">, </span><span class="s2">&quot;http://www.w3.org/2000/xmlns/&quot;</span><span class="s1">)</span>
+                <span class="s1">attrs[attribute] = namespace</span>
+
+        <span class="s0"># Namespaces are in play. Find any attributes that came in</span>
+        <span class="s0"># from lxml with namespaces attached to their names, and</span>
+        <span class="s0"># turn then into NamespacedAttribute objects.</span>
+        <span class="s1">new_attrs = {}</span>
+        <span class="s3">for </span><span class="s1">attr</span><span class="s3">, </span><span class="s1">value </span><span class="s3">in </span><span class="s1">list(attrs.items()):</span>
+            <span class="s1">namespace</span><span class="s3">, </span><span class="s1">attr = self._getNsTag(attr)</span>
+            <span class="s3">if </span><span class="s1">namespace </span><span class="s3">is None</span><span class="s1">:</span>
+                <span class="s1">new_attrs[attr] = value</span>
+            <span class="s3">else</span><span class="s1">:</span>
+                <span class="s1">nsprefix = self._prefix_for_namespace(namespace)</span>
+                <span class="s1">attr = NamespacedAttribute(nsprefix</span><span class="s3">, </span><span class="s1">attr</span><span class="s3">, </span><span class="s1">namespace)</span>
+                <span class="s1">new_attrs[attr] = value</span>
+        <span class="s1">attrs = new_attrs</span>
+
+        <span class="s1">namespace</span><span class="s3">, </span><span class="s1">name = self._getNsTag(name)</span>
+        <span class="s1">nsprefix = self._prefix_for_namespace(namespace)</span>
+        <span class="s1">self.soup.handle_starttag(name</span><span class="s3">, </span><span class="s1">namespace</span><span class="s3">, </span><span class="s1">nsprefix</span><span class="s3">, </span><span class="s1">attrs)</span>
+
+    <span class="s3">def </span><span class="s1">_prefix_for_namespace(self</span><span class="s3">, </span><span class="s1">namespace):</span>
+        <span class="s4">&quot;&quot;&quot;Find the currently active prefix for the given namespace.&quot;&quot;&quot;</span>
+        <span class="s3">if </span><span class="s1">namespace </span><span class="s3">is None</span><span class="s1">:</span>
+            <span class="s3">return None</span>
+        <span class="s3">for </span><span class="s1">inverted_nsmap </span><span class="s3">in </span><span class="s1">reversed(self.nsmaps):</span>
+            <span class="s3">if </span><span class="s1">inverted_nsmap </span><span class="s3">is not None and </span><span class="s1">namespace </span><span class="s3">in </span><span class="s1">inverted_nsmap:</span>
+                <span class="s3">return </span><span class="s1">inverted_nsmap[namespace]</span>
+        <span class="s3">return None</span>
+
+    <span class="s3">def </span><span class="s1">end(self</span><span class="s3">, </span><span class="s1">name):</span>
+        <span class="s1">self.soup.endData()</span>
+        <span class="s1">completed_tag = self.soup.tagStack[-</span><span class="s5">1</span><span class="s1">]</span>
+        <span class="s1">namespace</span><span class="s3">, </span><span class="s1">name = self._getNsTag(name)</span>
+        <span class="s1">nsprefix = </span><span class="s3">None</span>
+        <span class="s3">if </span><span class="s1">namespace </span><span class="s3">is not None</span><span class="s1">:</span>
+            <span class="s3">for </span><span class="s1">inverted_nsmap </span><span class="s3">in </span><span class="s1">reversed(self.nsmaps):</span>
+                <span class="s3">if </span><span class="s1">inverted_nsmap </span><span class="s3">is not None and </span><span class="s1">namespace </span><span class="s3">in </span><span class="s1">inverted_nsmap:</span>
+                    <span class="s1">nsprefix = inverted_nsmap[namespace]</span>
+                    <span class="s3">break</span>
+        <span class="s1">self.soup.handle_endtag(name</span><span class="s3">, </span><span class="s1">nsprefix)</span>
+        <span class="s3">if </span><span class="s1">len(self.nsmaps) &gt; </span><span class="s5">1</span><span class="s1">:</span>
+            <span class="s0"># This tag, or one of its parents, introduced a namespace</span>
+            <span class="s0"># mapping, so pop it off the stack.</span>
+            <span class="s1">self.nsmaps.pop()</span>
+
+    <span class="s3">def </span><span class="s1">pi(self</span><span class="s3">, </span><span class="s1">target</span><span class="s3">, </span><span class="s1">data):</span>
+        <span class="s1">self.soup.endData()</span>
+        <span class="s1">self.soup.handle_data(target + </span><span class="s2">' ' </span><span class="s1">+ data)</span>
+        <span class="s1">self.soup.endData(self.processing_instruction_class)</span>
+
+    <span class="s3">def </span><span class="s1">data(self</span><span class="s3">, </span><span class="s1">content):</span>
+        <span class="s1">self.soup.handle_data(content)</span>
+
+    <span class="s3">def </span><span class="s1">doctype(self</span><span class="s3">, </span><span class="s1">name</span><span class="s3">, </span><span class="s1">pubid</span><span class="s3">, </span><span class="s1">system):</span>
+        <span class="s1">self.soup.endData()</span>
+        <span class="s1">doctype = Doctype.for_name_and_ids(name</span><span class="s3">, </span><span class="s1">pubid</span><span class="s3">, </span><span class="s1">system)</span>
+        <span class="s1">self.soup.object_was_parsed(doctype)</span>
+
+    <span class="s3">def </span><span class="s1">comment(self</span><span class="s3">, </span><span class="s1">content):</span>
+        <span class="s4">&quot;Handle comments as Comment objects.&quot;</span>
+        <span class="s1">self.soup.endData()</span>
+        <span class="s1">self.soup.handle_data(content)</span>
+        <span class="s1">self.soup.endData(Comment)</span>
+
+    <span class="s3">def </span><span class="s1">test_fragment_to_document(self</span><span class="s3">, </span><span class="s1">fragment):</span>
+        <span class="s4">&quot;&quot;&quot;See `TreeBuilder`.&quot;&quot;&quot;</span>
+        <span class="s3">return </span><span class="s2">'&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;</span><span class="s3">\n</span><span class="s2">%s' </span><span class="s1">% fragment</span>
+
+
+<span class="s3">class </span><span class="s1">LXMLTreeBuilder(HTMLTreeBuilder</span><span class="s3">, </span><span class="s1">LXMLTreeBuilderForXML):</span>
+
+    <span class="s1">NAME = LXML</span>
+    <span class="s1">ALTERNATE_NAMES = [</span><span class="s2">&quot;lxml-html&quot;</span><span class="s1">]</span>
+
+    <span class="s1">features = ALTERNATE_NAMES + [NAME</span><span class="s3">, </span><span class="s1">HTML</span><span class="s3">, </span><span class="s1">FAST</span><span class="s3">, </span><span class="s1">PERMISSIVE]</span>
+    <span class="s1">is_xml = </span><span class="s3">False</span>
+    <span class="s1">processing_instruction_class = ProcessingInstruction</span>
+
+    <span class="s3">def </span><span class="s1">default_parser(self</span><span class="s3">, </span><span class="s1">encoding):</span>
+        <span class="s3">return </span><span class="s1">etree.HTMLParser</span>
+
+    <span class="s3">def </span><span class="s1">feed(self</span><span class="s3">, </span><span class="s1">markup):</span>
+        <span class="s1">encoding = self.soup.original_encoding</span>
+        <span class="s3">try</span><span class="s1">:</span>
+            <span class="s1">self.parser = self.parser_for(encoding)</span>
+            <span class="s1">self.parser.feed(markup)</span>
+            <span class="s1">self.parser.close()</span>
+        <span class="s3">except </span><span class="s1">(UnicodeDecodeError</span><span class="s3">, </span><span class="s1">LookupError</span><span class="s3">, </span><span class="s1">etree.ParserError) </span><span class="s3">as </span><span class="s1">e:</span>
+            <span class="s3">raise </span><span class="s1">ParserRejectedMarkup(e)</span>
+
+
+    <span class="s3">def </span><span class="s1">test_fragment_to_document(self</span><span class="s3">, </span><span class="s1">fragment):</span>
+        <span class="s4">&quot;&quot;&quot;See `TreeBuilder`.&quot;&quot;&quot;</span>
+        <span class="s3">return </span><span class="s2">'&lt;html&gt;&lt;body&gt;%s&lt;/body&gt;&lt;/html&gt;' </span><span class="s1">% fragment</span>
+</pre>
+</body>
+</html>

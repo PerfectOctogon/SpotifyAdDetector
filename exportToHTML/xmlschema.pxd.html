@@ -1,0 +1,52 @@
+<html>
+<head>
+<title>xmlschema.pxd</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #a9b7c6;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+xmlschema.pxd</font>
+</center></td></tr></table>
+<pre><span class="s0">from lxml.includes.tree cimport xmlDoc</span>
+<span class="s0">from lxml.includes.xmlparser cimport xmlSAXHandler</span>
+<span class="s0">from lxml.includes.xmlerror cimport xmlStructuredErrorFunc</span>
+
+<span class="s0">cdef extern from &quot;libxml/xmlschemas.h&quot;:</span>
+    <span class="s0">ctypedef struct xmlSchema</span>
+    <span class="s0">ctypedef struct xmlSchemaParserCtxt</span>
+
+    <span class="s0">ctypedef struct xmlSchemaSAXPlugStruct</span>
+    <span class="s0">ctypedef struct xmlSchemaValidCtxt</span>
+
+    <span class="s0">ctypedef enum xmlSchemaValidOption:</span>
+        <span class="s0">XML_SCHEMA_VAL_VC_I_CREATE = 1</span>
+
+    <span class="s0">cdef xmlSchemaValidCtxt* xmlSchemaNewValidCtxt(xmlSchema* schema) nogil</span>
+    <span class="s0">cdef void xmlSchemaSetParserStructuredErrors(xmlSchemaParserCtxt* ctxt,</span>
+        <span class="s0">xmlStructuredErrorFunc serror, void *ctx)</span>
+    <span class="s0">cdef void xmlSchemaSetValidStructuredErrors(xmlSchemaValidCtxt* ctxt,</span>
+        <span class="s0">xmlStructuredErrorFunc serror, void *ctx)</span>
+
+    <span class="s0">cdef int xmlSchemaValidateDoc(xmlSchemaValidCtxt* ctxt, xmlDoc* doc) nogil</span>
+    <span class="s0">cdef xmlSchema* xmlSchemaParse(xmlSchemaParserCtxt* ctxt) nogil</span>
+    <span class="s0">cdef xmlSchemaParserCtxt* xmlSchemaNewParserCtxt(char* URL) nogil</span>
+    <span class="s0">cdef xmlSchemaParserCtxt* xmlSchemaNewDocParserCtxt(xmlDoc* doc) nogil</span>
+    <span class="s0">cdef void xmlSchemaFree(xmlSchema* schema) nogil</span>
+    <span class="s0">cdef void xmlSchemaFreeParserCtxt(xmlSchemaParserCtxt* ctxt) nogil</span>
+    <span class="s0">cdef void xmlSchemaFreeValidCtxt(xmlSchemaValidCtxt* ctxt) nogil</span>
+    <span class="s0">cdef int xmlSchemaSetValidOptions(xmlSchemaValidCtxt* ctxt,</span>
+                                      <span class="s0">int options) nogil</span>
+
+    <span class="s0">cdef xmlSchemaSAXPlugStruct* xmlSchemaSAXPlug(xmlSchemaValidCtxt* ctxt,</span>
+                                                  <span class="s0">xmlSAXHandler** sax,</span>
+                                                  <span class="s0">void** data) nogil</span>
+    <span class="s0">cdef int xmlSchemaSAXUnplug(xmlSchemaSAXPlugStruct* sax_plug)</span>
+    <span class="s0">cdef int xmlSchemaIsValid(xmlSchemaValidCtxt* ctxt)</span>
+</pre>
+</body>
+</html>

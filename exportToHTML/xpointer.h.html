@@ -1,0 +1,134 @@
+<html>
+<head>
+<title>xpointer.h</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+xpointer.h</font>
+</center></td></tr></table>
+<pre><span class="s0">/* 
+ * Summary: API to handle XML Pointers 
+ * Description: API to handle XML Pointers 
+ * Base implementation was made accordingly to 
+ * W3C Candidate Recommendation 7 June 2000 
+ * http://www.w3.org/TR/2000/CR-xptr-20000607 
+ * 
+ * Added support for the element() scheme described in: 
+ * W3C Proposed Recommendation 13 November 2002 
+ * http://www.w3.org/TR/2002/PR-xptr-element-20021113/ 
+ * 
+ * Copy: See Copyright for the status of this software. 
+ * 
+ * Author: Daniel Veillard 
+ */</span>
+
+<span class="s2">#ifndef </span><span class="s1">__XML_XPTR_H__</span>
+<span class="s2">#define </span><span class="s1">__XML_XPTR_H__</span>
+
+<span class="s2">#include </span><span class="s1">&lt;libxml/xmlversion.h&gt;</span>
+
+<span class="s2">#ifdef </span><span class="s1">LIBXML_XPTR_ENABLED</span>
+
+<span class="s2">#include </span><span class="s1">&lt;libxml/tree.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/xpath.h&gt;</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s2">extern </span><span class="s3">&quot;C&quot; </span><span class="s1">{</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/* 
+ * A Location Set 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xmlLocationSet xmlLocationSet;</span>
+<span class="s2">typedef </span><span class="s1">xmlLocationSet *xmlLocationSetPtr;</span>
+<span class="s2">struct </span><span class="s1">_xmlLocationSet {</span>
+    <span class="s2">int </span><span class="s1">locNr;		      </span><span class="s0">/* number of locations in the set */</span>
+    <span class="s2">int </span><span class="s1">locMax;		      </span><span class="s0">/* size of the array as allocated */</span>
+    <span class="s1">xmlXPathObjectPtr *locTab;</span><span class="s0">/* array of locations */</span>
+<span class="s1">};</span>
+
+<span class="s0">/* 
+ * Handling of location sets. 
+ */</span>
+
+<span class="s1">XMLPUBFUN xmlLocationSetPtr XMLCALL</span>
+		    <span class="s1">xmlXPtrLocationSetCreate	(xmlXPathObjectPtr val);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		    <span class="s1">xmlXPtrFreeLocationSet	(xmlLocationSetPtr obj);</span>
+<span class="s1">XMLPUBFUN xmlLocationSetPtr XMLCALL</span>
+		    <span class="s1">xmlXPtrLocationSetMerge	(xmlLocationSetPtr val1,</span>
+						 <span class="s1">xmlLocationSetPtr val2);</span>
+<span class="s1">XMLPUBFUN xmlXPathObjectPtr XMLCALL</span>
+		    <span class="s1">xmlXPtrNewRange		(xmlNodePtr start,</span>
+						 <span class="s2">int </span><span class="s1">startindex,</span>
+						 <span class="s1">xmlNodePtr end,</span>
+						 <span class="s2">int </span><span class="s1">endindex);</span>
+<span class="s1">XMLPUBFUN xmlXPathObjectPtr XMLCALL</span>
+		    <span class="s1">xmlXPtrNewRangePoints	(xmlXPathObjectPtr start,</span>
+						 <span class="s1">xmlXPathObjectPtr end);</span>
+<span class="s1">XMLPUBFUN xmlXPathObjectPtr XMLCALL</span>
+		    <span class="s1">xmlXPtrNewRangeNodePoint	(xmlNodePtr start,</span>
+						 <span class="s1">xmlXPathObjectPtr end);</span>
+<span class="s1">XMLPUBFUN xmlXPathObjectPtr XMLCALL</span>
+		    <span class="s1">xmlXPtrNewRangePointNode	(xmlXPathObjectPtr start,</span>
+						 <span class="s1">xmlNodePtr end);</span>
+<span class="s1">XMLPUBFUN xmlXPathObjectPtr XMLCALL</span>
+		    <span class="s1">xmlXPtrNewRangeNodes	(xmlNodePtr start,</span>
+						 <span class="s1">xmlNodePtr end);</span>
+<span class="s1">XMLPUBFUN xmlXPathObjectPtr XMLCALL</span>
+		    <span class="s1">xmlXPtrNewLocationSetNodes	(xmlNodePtr start,</span>
+						 <span class="s1">xmlNodePtr end);</span>
+<span class="s1">XMLPUBFUN xmlXPathObjectPtr XMLCALL</span>
+		    <span class="s1">xmlXPtrNewLocationSetNodeSet(xmlNodeSetPtr set);</span>
+<span class="s1">XMLPUBFUN xmlXPathObjectPtr XMLCALL</span>
+		    <span class="s1">xmlXPtrNewRangeNodeObject	(xmlNodePtr start,</span>
+						 <span class="s1">xmlXPathObjectPtr end);</span>
+<span class="s1">XMLPUBFUN xmlXPathObjectPtr XMLCALL</span>
+		    <span class="s1">xmlXPtrNewCollapsedRange	(xmlNodePtr start);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		    <span class="s1">xmlXPtrLocationSetAdd	(xmlLocationSetPtr cur,</span>
+						 <span class="s1">xmlXPathObjectPtr val);</span>
+<span class="s1">XMLPUBFUN xmlXPathObjectPtr XMLCALL</span>
+		    <span class="s1">xmlXPtrWrapLocationSet	(xmlLocationSetPtr val);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		    <span class="s1">xmlXPtrLocationSetDel	(xmlLocationSetPtr cur,</span>
+						 <span class="s1">xmlXPathObjectPtr val);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		    <span class="s1">xmlXPtrLocationSetRemove	(xmlLocationSetPtr cur,</span>
+						 <span class="s2">int </span><span class="s1">val);</span>
+
+<span class="s0">/* 
+ * Functions. 
+ */</span>
+<span class="s1">XMLPUBFUN xmlXPathContextPtr XMLCALL</span>
+		    <span class="s1">xmlXPtrNewContext		(xmlDocPtr doc,</span>
+						 <span class="s1">xmlNodePtr here,</span>
+						 <span class="s1">xmlNodePtr origin);</span>
+<span class="s1">XMLPUBFUN xmlXPathObjectPtr XMLCALL</span>
+		    <span class="s1">xmlXPtrEval			(</span><span class="s2">const </span><span class="s1">xmlChar *str,</span>
+						 <span class="s1">xmlXPathContextPtr ctx);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		    <span class="s1">xmlXPtrRangeToFunction	(xmlXPathParserContextPtr ctxt,</span>
+						 <span class="s2">int </span><span class="s1">nargs);</span>
+<span class="s1">XMLPUBFUN xmlNodePtr XMLCALL</span>
+		    <span class="s1">xmlXPtrBuildNodeList	(xmlXPathObjectPtr obj);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		    <span class="s1">xmlXPtrEvalRangePredicate	(xmlXPathParserContextPtr ctxt);</span>
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s1">}</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#endif </span><span class="s0">/* LIBXML_XPTR_ENABLED */</span>
+<span class="s2">#endif </span><span class="s0">/* __XML_XPTR_H__ */</span>
+</pre>
+</body>
+</html>

@@ -1,0 +1,89 @@
+<html>
+<head>
+<title>namespaces.h</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+.s4 { color: #6897bb;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+namespaces.h</font>
+</center></td></tr></table>
+<pre><span class="s0">/* 
+ * Summary: interface for the XSLT namespace handling 
+ * Description: set of function easing the processing and generation 
+ *              of namespace nodes in XSLT. 
+ * 
+ * Copy: See Copyright for the status of this software. 
+ * 
+ * Author: Daniel Veillard 
+ */</span>
+
+<span class="s2">#ifndef </span><span class="s1">__XML_XSLT_NAMESPACES_H__</span>
+<span class="s2">#define </span><span class="s1">__XML_XSLT_NAMESPACES_H__</span>
+
+<span class="s2">#include </span><span class="s1">&lt;libxml/tree.h&gt;</span>
+<span class="s2">#include </span><span class="s3">&quot;xsltexports.h&quot;</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s2">extern </span><span class="s3">&quot;C&quot; </span><span class="s1">{</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/* 
+ * Used within nsAliases hashtable when the default namespace is required 
+ * but it's not been explicitly defined 
+ */</span>
+<span class="s0">/** 
+ * UNDEFINED_DEFAULT_NS: 
+ * 
+ * Special value for undefined namespace, internal 
+ */</span>
+<span class="s2">#define	</span><span class="s1">UNDEFINED_DEFAULT_NS	(</span><span class="s2">const </span><span class="s1">xmlChar *) -</span><span class="s4">1</span><span class="s1">L</span>
+
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltNamespaceAlias	(xsltStylesheetPtr style,</span>
+					 <span class="s1">xmlNodePtr node);</span>
+<span class="s1">XSLTPUBFUN xmlNsPtr XSLTCALL</span>
+		<span class="s1">xsltGetNamespace	(xsltTransformContextPtr ctxt,</span>
+					 <span class="s1">xmlNodePtr cur,</span>
+					 <span class="s1">xmlNsPtr ns,</span>
+					 <span class="s1">xmlNodePtr out);</span>
+<span class="s1">XSLTPUBFUN xmlNsPtr XSLTCALL</span>
+		<span class="s1">xsltGetPlainNamespace	(xsltTransformContextPtr ctxt,</span>
+					 <span class="s1">xmlNodePtr cur,</span>
+					 <span class="s1">xmlNsPtr ns,</span>
+					 <span class="s1">xmlNodePtr out);</span>
+<span class="s1">XSLTPUBFUN xmlNsPtr XSLTCALL</span>
+		<span class="s1">xsltGetSpecialNamespace	(xsltTransformContextPtr ctxt,</span>
+					 <span class="s1">xmlNodePtr cur,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *URI,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *prefix,</span>
+					 <span class="s1">xmlNodePtr out);</span>
+<span class="s1">XSLTPUBFUN xmlNsPtr XSLTCALL</span>
+		<span class="s1">xsltCopyNamespace	(xsltTransformContextPtr ctxt,</span>
+					 <span class="s1">xmlNodePtr elem,</span>
+					 <span class="s1">xmlNsPtr ns);</span>
+<span class="s1">XSLTPUBFUN xmlNsPtr XSLTCALL</span>
+		<span class="s1">xsltCopyNamespaceList	(xsltTransformContextPtr ctxt,</span>
+					 <span class="s1">xmlNodePtr node,</span>
+					 <span class="s1">xmlNsPtr cur);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltFreeNamespaceAliasHashes</span>
+					<span class="s1">(xsltStylesheetPtr style);</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s1">}</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#endif </span><span class="s0">/* __XML_XSLT_NAMESPACES_H__ */</span>
+
+</pre>
+</body>
+</html>

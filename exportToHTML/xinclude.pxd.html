@@ -1,0 +1,39 @@
+<html>
+<head>
+<title>xinclude.pxd</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #a9b7c6;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+xinclude.pxd</font>
+</center></td></tr></table>
+<pre><span class="s0">from lxml.includes.tree cimport xmlDoc, xmlNode</span>
+
+<span class="s0">cdef extern from &quot;libxml/xinclude.h&quot;:</span>
+
+    <span class="s0">ctypedef struct xmlXIncludeCtxt</span>
+
+    <span class="s0">cdef int xmlXIncludeProcess(xmlDoc* doc) nogil</span>
+    <span class="s0">cdef int xmlXIncludeProcessFlags(xmlDoc* doc, int parser_opts) nogil</span>
+    <span class="s0">cdef int xmlXIncludeProcessTree(xmlNode* doc) nogil</span>
+    <span class="s0">cdef int xmlXIncludeProcessTreeFlags(xmlNode* doc, int parser_opts) nogil</span>
+
+    <span class="s0"># libxml2 &gt;= 2.7.4</span>
+    <span class="s0">cdef int xmlXIncludeProcessTreeFlagsData(</span>
+            <span class="s0">xmlNode* doc, int parser_opts, void* data) nogil</span>
+
+    <span class="s0">cdef xmlXIncludeCtxt* xmlXIncludeNewContext(xmlDoc* doc) nogil</span>
+    <span class="s0">cdef int xmlXIncludeProcessNode(xmlXIncludeCtxt* ctxt, xmlNode* node) nogil</span>
+    <span class="s0">cdef int xmlXIncludeSetFlags(xmlXIncludeCtxt* ctxt, int flags) nogil</span>
+
+    <span class="s0"># libxml2 &gt;= 2.6.27</span>
+    <span class="s0">cdef int xmlXIncludeProcessFlagsData(</span>
+        <span class="s0">xmlDoc* doc, int flags, void* data) nogil</span>
+</pre>
+</body>
+</html>

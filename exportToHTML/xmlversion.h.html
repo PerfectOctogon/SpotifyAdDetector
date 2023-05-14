@@ -1,0 +1,510 @@
+<html>
+<head>
+<title>xmlversion.h</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+.s4 { color: #6897bb;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+xmlversion.h</font>
+</center></td></tr></table>
+<pre><span class="s0">/* 
+ * Summary: compile-time version informations 
+ * Description: compile-time version informations for the XML library 
+ * 
+ * Copy: See Copyright for the status of this software. 
+ * 
+ * Author: Daniel Veillard 
+ */</span>
+
+<span class="s2">#ifndef </span><span class="s1">__XML_VERSION_H__</span>
+<span class="s2">#define </span><span class="s1">__XML_VERSION_H__</span>
+
+<span class="s2">#include </span><span class="s1">&lt;libxml/xmlexports.h&gt;</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s2">extern </span><span class="s3">&quot;C&quot; </span><span class="s1">{</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/* 
+ * use those to be sure nothing nasty will happen if 
+ * your library and includes mismatch 
+ */</span>
+<span class="s2">#ifndef </span><span class="s1">LIBXML2_COMPILING_MSCCDEF</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL xmlCheckVersion(</span><span class="s2">int </span><span class="s1">version);</span>
+<span class="s2">#endif </span><span class="s0">/* LIBXML2_COMPILING_MSCCDEF */</span>
+
+<span class="s0">/** 
+ * LIBXML_DOTTED_VERSION: 
+ * 
+ * the version string like &quot;1.2.3&quot; 
+ */</span>
+<span class="s2">#define </span><span class="s1">LIBXML_DOTTED_VERSION </span><span class="s3">&quot;2.9.5&quot;</span>
+
+<span class="s0">/** 
+ * LIBXML_VERSION: 
+ * 
+ * the version number: 1.2.3 value is 10203 
+ */</span>
+<span class="s2">#define </span><span class="s1">LIBXML_VERSION </span><span class="s4">20905</span>
+
+<span class="s0">/** 
+ * LIBXML_VERSION_STRING: 
+ * 
+ * the version number string, 1.2.3 value is &quot;10203&quot; 
+ */</span>
+<span class="s2">#define </span><span class="s1">LIBXML_VERSION_STRING </span><span class="s3">&quot;20905&quot;</span>
+
+<span class="s0">/** 
+ * LIBXML_VERSION_EXTRA: 
+ * 
+ * extra version information, used to show a CVS compilation 
+ */</span>
+<span class="s2">#define </span><span class="s1">LIBXML_VERSION_EXTRA </span><span class="s3">&quot;&quot;</span>
+
+<span class="s0">/** 
+ * LIBXML_TEST_VERSION: 
+ * 
+ * Macro to check that the libxml version in use is compatible with 
+ * the version the software has been compiled against 
+ */</span>
+<span class="s2">#define </span><span class="s1">LIBXML_TEST_VERSION xmlCheckVersion(</span><span class="s4">20905</span><span class="s1">);</span>
+
+<span class="s2">#ifndef </span><span class="s1">VMS</span>
+<span class="s2">#if </span><span class="s4">0</span>
+<span class="s0">/** 
+ * WITH_TRIO: 
+ * 
+ * defined if the trio support need to be configured in 
+ */</span>
+<span class="s2">#define </span><span class="s1">WITH_TRIO</span>
+<span class="s2">#else</span>
+<span class="s0">/** 
+ * WITHOUT_TRIO: 
+ * 
+ * defined if the trio support should not be configured in 
+ */</span>
+<span class="s2">#define </span><span class="s1">WITHOUT_TRIO</span>
+<span class="s2">#endif</span>
+<span class="s2">#else </span><span class="s0">/* VMS */</span>
+<span class="s0">/** 
+ * WITH_TRIO: 
+ * 
+ * defined if the trio support need to be configured in 
+ */</span>
+<span class="s2">#define </span><span class="s1">WITH_TRIO </span><span class="s4">1</span>
+<span class="s2">#endif </span><span class="s0">/* VMS */</span>
+
+<span class="s0">/** 
+ * LIBXML_THREAD_ENABLED: 
+ * 
+ * Whether the thread support is configured in 
+ */</span>
+<span class="s2">#if </span><span class="s4">1</span>
+<span class="s2">#if </span><span class="s1">defined(_REENTRANT) || defined(__MT__) || \</span>
+    <span class="s1">(defined(_POSIX_C_SOURCE) &amp;&amp; (_POSIX_C_SOURCE - </span><span class="s4">0 </span><span class="s1">&gt;= </span><span class="s4">199506</span><span class="s1">L))</span>
+<span class="s2">#define </span><span class="s1">LIBXML_THREAD_ENABLED</span>
+<span class="s2">#endif</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * LIBXML_THREAD_ALLOC_ENABLED: 
+ * 
+ * Whether the allocation hooks are per-thread 
+ */</span>
+<span class="s2">#if </span><span class="s4">0</span>
+<span class="s2">#define </span><span class="s1">LIBXML_THREAD_ALLOC_ENABLED</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * LIBXML_TREE_ENABLED: 
+ * 
+ * Whether the DOM like tree manipulation API support is configured in 
+ */</span>
+<span class="s2">#if </span><span class="s4">1</span>
+<span class="s2">#define </span><span class="s1">LIBXML_TREE_ENABLED</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * LIBXML_OUTPUT_ENABLED: 
+ * 
+ * Whether the serialization/saving support is configured in 
+ */</span>
+<span class="s2">#if </span><span class="s4">1</span>
+<span class="s2">#define </span><span class="s1">LIBXML_OUTPUT_ENABLED</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * LIBXML_PUSH_ENABLED: 
+ * 
+ * Whether the push parsing interfaces are configured in 
+ */</span>
+<span class="s2">#if </span><span class="s4">1</span>
+<span class="s2">#define </span><span class="s1">LIBXML_PUSH_ENABLED</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * LIBXML_READER_ENABLED: 
+ * 
+ * Whether the xmlReader parsing interface is configured in 
+ */</span>
+<span class="s2">#if </span><span class="s4">1</span>
+<span class="s2">#define </span><span class="s1">LIBXML_READER_ENABLED</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * LIBXML_PATTERN_ENABLED: 
+ * 
+ * Whether the xmlPattern node selection interface is configured in 
+ */</span>
+<span class="s2">#if </span><span class="s4">1</span>
+<span class="s2">#define </span><span class="s1">LIBXML_PATTERN_ENABLED</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * LIBXML_WRITER_ENABLED: 
+ * 
+ * Whether the xmlWriter saving interface is configured in 
+ */</span>
+<span class="s2">#if </span><span class="s4">1</span>
+<span class="s2">#define </span><span class="s1">LIBXML_WRITER_ENABLED</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * LIBXML_SAX1_ENABLED: 
+ * 
+ * Whether the older SAX1 interface is configured in 
+ */</span>
+<span class="s2">#if </span><span class="s4">1</span>
+<span class="s2">#define </span><span class="s1">LIBXML_SAX1_ENABLED</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * LIBXML_FTP_ENABLED: 
+ * 
+ * Whether the FTP support is configured in 
+ */</span>
+<span class="s2">#if </span><span class="s4">1</span>
+<span class="s2">#define </span><span class="s1">LIBXML_FTP_ENABLED</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * LIBXML_HTTP_ENABLED: 
+ * 
+ * Whether the HTTP support is configured in 
+ */</span>
+<span class="s2">#if </span><span class="s4">1</span>
+<span class="s2">#define </span><span class="s1">LIBXML_HTTP_ENABLED</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * LIBXML_VALID_ENABLED: 
+ * 
+ * Whether the DTD validation support is configured in 
+ */</span>
+<span class="s2">#if </span><span class="s4">1</span>
+<span class="s2">#define </span><span class="s1">LIBXML_VALID_ENABLED</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * LIBXML_HTML_ENABLED: 
+ * 
+ * Whether the HTML support is configured in 
+ */</span>
+<span class="s2">#if </span><span class="s4">1</span>
+<span class="s2">#define </span><span class="s1">LIBXML_HTML_ENABLED</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * LIBXML_LEGACY_ENABLED: 
+ * 
+ * Whether the deprecated APIs are compiled in for compatibility 
+ */</span>
+<span class="s2">#if </span><span class="s4">1</span>
+<span class="s2">#define </span><span class="s1">LIBXML_LEGACY_ENABLED</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * LIBXML_C14N_ENABLED: 
+ * 
+ * Whether the Canonicalization support is configured in 
+ */</span>
+<span class="s2">#if </span><span class="s4">1</span>
+<span class="s2">#define </span><span class="s1">LIBXML_C14N_ENABLED</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * LIBXML_CATALOG_ENABLED: 
+ * 
+ * Whether the Catalog support is configured in 
+ */</span>
+<span class="s2">#if </span><span class="s4">1</span>
+<span class="s2">#define </span><span class="s1">LIBXML_CATALOG_ENABLED</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * LIBXML_DOCB_ENABLED: 
+ * 
+ * Whether the SGML Docbook support is configured in 
+ */</span>
+<span class="s2">#if </span><span class="s4">1</span>
+<span class="s2">#define </span><span class="s1">LIBXML_DOCB_ENABLED</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * LIBXML_XPATH_ENABLED: 
+ * 
+ * Whether XPath is configured in 
+ */</span>
+<span class="s2">#if </span><span class="s4">1</span>
+<span class="s2">#define </span><span class="s1">LIBXML_XPATH_ENABLED</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * LIBXML_XPTR_ENABLED: 
+ * 
+ * Whether XPointer is configured in 
+ */</span>
+<span class="s2">#if </span><span class="s4">1</span>
+<span class="s2">#define </span><span class="s1">LIBXML_XPTR_ENABLED</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * LIBXML_XINCLUDE_ENABLED: 
+ * 
+ * Whether XInclude is configured in 
+ */</span>
+<span class="s2">#if </span><span class="s4">1</span>
+<span class="s2">#define </span><span class="s1">LIBXML_XINCLUDE_ENABLED</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * LIBXML_ICONV_ENABLED: 
+ * 
+ * Whether iconv support is available 
+ */</span>
+<span class="s2">#if </span><span class="s4">1</span>
+<span class="s2">#define </span><span class="s1">LIBXML_ICONV_ENABLED</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * LIBXML_ICU_ENABLED: 
+ * 
+ * Whether icu support is available 
+ */</span>
+<span class="s2">#if </span><span class="s4">0</span>
+<span class="s2">#define </span><span class="s1">LIBXML_ICU_ENABLED</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * LIBXML_ISO8859X_ENABLED: 
+ * 
+ * Whether ISO-8859-* support is made available in case iconv is not 
+ */</span>
+<span class="s2">#if </span><span class="s4">0</span>
+<span class="s2">#define </span><span class="s1">LIBXML_ISO8859X_ENABLED</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * LIBXML_DEBUG_ENABLED: 
+ * 
+ * Whether Debugging module is configured in 
+ */</span>
+<span class="s2">#if </span><span class="s4">1</span>
+<span class="s2">#define </span><span class="s1">LIBXML_DEBUG_ENABLED</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * DEBUG_MEMORY_LOCATION: 
+ * 
+ * Whether the memory debugging is configured in 
+ */</span>
+<span class="s2">#if </span><span class="s4">0</span>
+<span class="s2">#define </span><span class="s1">DEBUG_MEMORY_LOCATION</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * LIBXML_DEBUG_RUNTIME: 
+ * 
+ * Whether the runtime debugging is configured in 
+ */</span>
+<span class="s2">#if </span><span class="s4">0</span>
+<span class="s2">#define </span><span class="s1">LIBXML_DEBUG_RUNTIME</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * LIBXML_UNICODE_ENABLED: 
+ * 
+ * Whether the Unicode related interfaces are compiled in 
+ */</span>
+<span class="s2">#if </span><span class="s4">1</span>
+<span class="s2">#define </span><span class="s1">LIBXML_UNICODE_ENABLED</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * LIBXML_REGEXP_ENABLED: 
+ * 
+ * Whether the regular expressions interfaces are compiled in 
+ */</span>
+<span class="s2">#if </span><span class="s4">1</span>
+<span class="s2">#define </span><span class="s1">LIBXML_REGEXP_ENABLED</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * LIBXML_AUTOMATA_ENABLED: 
+ * 
+ * Whether the automata interfaces are compiled in 
+ */</span>
+<span class="s2">#if </span><span class="s4">1</span>
+<span class="s2">#define </span><span class="s1">LIBXML_AUTOMATA_ENABLED</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * LIBXML_EXPR_ENABLED: 
+ * 
+ * Whether the formal expressions interfaces are compiled in 
+ */</span>
+<span class="s2">#if </span><span class="s4">1</span>
+<span class="s2">#define </span><span class="s1">LIBXML_EXPR_ENABLED</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * LIBXML_SCHEMAS_ENABLED: 
+ * 
+ * Whether the Schemas validation interfaces are compiled in 
+ */</span>
+<span class="s2">#if </span><span class="s4">1</span>
+<span class="s2">#define </span><span class="s1">LIBXML_SCHEMAS_ENABLED</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * LIBXML_SCHEMATRON_ENABLED: 
+ * 
+ * Whether the Schematron validation interfaces are compiled in 
+ */</span>
+<span class="s2">#if </span><span class="s4">1</span>
+<span class="s2">#define </span><span class="s1">LIBXML_SCHEMATRON_ENABLED</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * LIBXML_MODULES_ENABLED: 
+ * 
+ * Whether the module interfaces are compiled in 
+ */</span>
+<span class="s2">#if </span><span class="s4">1</span>
+<span class="s2">#define </span><span class="s1">LIBXML_MODULES_ENABLED</span>
+<span class="s0">/** 
+ * LIBXML_MODULE_EXTENSION: 
+ * 
+ * the string suffix used by dynamic modules (usually shared libraries) 
+ */</span>
+<span class="s2">#define </span><span class="s1">LIBXML_MODULE_EXTENSION </span><span class="s3">&quot;.dll&quot; </span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * LIBXML_ZLIB_ENABLED: 
+ * 
+ * Whether the Zlib support is compiled in 
+ */</span>
+<span class="s2">#if </span><span class="s4">1</span>
+<span class="s2">#define </span><span class="s1">LIBXML_ZLIB_ENABLED</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * LIBXML_LZMA_ENABLED: 
+ * 
+ * Whether the Lzma support is compiled in 
+ */</span>
+<span class="s2">#if </span><span class="s4">0</span>
+<span class="s2">#define </span><span class="s1">LIBXML_LZMA_ENABLED</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#ifdef </span><span class="s1">__GNUC__</span>
+<span class="s2">#ifdef </span><span class="s1">HAVE_ANSIDECL_H</span>
+<span class="s2">#include </span><span class="s1">&lt;ansidecl.h&gt;</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * ATTRIBUTE_UNUSED: 
+ * 
+ * Macro used to signal to GCC unused function parameters 
+ */</span>
+
+<span class="s2">#ifndef </span><span class="s1">ATTRIBUTE_UNUSED</span>
+<span class="s1"># </span><span class="s2">if </span><span class="s1">((__GNUC__ &gt; </span><span class="s4">2</span><span class="s1">) || ((__GNUC__ == </span><span class="s4">2</span><span class="s1">) &amp;&amp; (__GNUC_MINOR__ &gt;= </span><span class="s4">7</span><span class="s1">)))</span>
+<span class="s1">#  define ATTRIBUTE_UNUSED __attribute__((unused))</span>
+<span class="s1"># </span><span class="s2">else</span>
+<span class="s1">#  define ATTRIBUTE_UNUSED</span>
+<span class="s1"># endif</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * LIBXML_ATTR_ALLOC_SIZE: 
+ * 
+ * Macro used to indicate to GCC this is an allocator function 
+ */</span>
+
+<span class="s2">#ifndef </span><span class="s1">LIBXML_ATTR_ALLOC_SIZE</span>
+<span class="s1"># </span><span class="s2">if </span><span class="s1">(!defined(__clang__) &amp;&amp; ((__GNUC__ &gt; </span><span class="s4">4</span><span class="s1">) || ((__GNUC__ == </span><span class="s4">4</span><span class="s1">) &amp;&amp; (__GNUC_MINOR__ &gt;= </span><span class="s4">3</span><span class="s1">))))</span>
+<span class="s1">#  define LIBXML_ATTR_ALLOC_SIZE(x) __attribute__((alloc_size(x)))</span>
+<span class="s1"># </span><span class="s2">else</span>
+<span class="s1">#  define LIBXML_ATTR_ALLOC_SIZE(x)</span>
+<span class="s1"># endif</span>
+<span class="s2">#else</span>
+<span class="s1"># define LIBXML_ATTR_ALLOC_SIZE(x)</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * LIBXML_ATTR_FORMAT: 
+ * 
+ * Macro used to indicate to GCC the parameter are printf like 
+ */</span>
+
+<span class="s2">#ifndef </span><span class="s1">LIBXML_ATTR_FORMAT</span>
+<span class="s1"># </span><span class="s2">if </span><span class="s1">((__GNUC__ &gt; </span><span class="s4">3</span><span class="s1">) || ((__GNUC__ == </span><span class="s4">3</span><span class="s1">) &amp;&amp; (__GNUC_MINOR__ &gt;= </span><span class="s4">3</span><span class="s1">)))</span>
+<span class="s1">#  define LIBXML_ATTR_FORMAT(fmt,args) __attribute__((__format__(__printf__,fmt,args)))</span>
+<span class="s1"># </span><span class="s2">else</span>
+<span class="s1">#  define LIBXML_ATTR_FORMAT(fmt,args)</span>
+<span class="s1"># endif</span>
+<span class="s2">#else</span>
+<span class="s1"># define LIBXML_ATTR_FORMAT(fmt,args)</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#else </span><span class="s0">/* ! __GNUC__ */</span>
+<span class="s0">/** 
+ * ATTRIBUTE_UNUSED: 
+ * 
+ * Macro used to signal to GCC unused function parameters 
+ */</span>
+<span class="s2">#define </span><span class="s1">ATTRIBUTE_UNUSED</span>
+<span class="s0">/** 
+ * LIBXML_ATTR_ALLOC_SIZE: 
+ * 
+ * Macro used to indicate to GCC this is an allocator function 
+ */</span>
+<span class="s2">#define </span><span class="s1">LIBXML_ATTR_ALLOC_SIZE(x)</span>
+<span class="s0">/** 
+ * LIBXML_ATTR_FORMAT: 
+ * 
+ * Macro used to indicate to GCC the parameter are printf like 
+ */</span>
+<span class="s2">#define </span><span class="s1">LIBXML_ATTR_FORMAT(fmt,args)</span>
+<span class="s2">#endif </span><span class="s0">/* __GNUC__ */</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s1">}</span>
+<span class="s2">#endif </span><span class="s0">/* __cplusplus */</span>
+<span class="s2">#endif</span>
+
+
+</pre>
+</body>
+</html>

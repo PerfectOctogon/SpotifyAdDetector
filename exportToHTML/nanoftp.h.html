@@ -1,0 +1,184 @@
+<html>
+<head>
+<title>nanoftp.h</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6897bb;}
+.s4 { color: #6a8759;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+nanoftp.h</font>
+</center></td></tr></table>
+<pre><span class="s0">/* 
+ * Summary: minimal FTP implementation 
+ * Description: minimal FTP implementation allowing to fetch resources 
+ *              like external subset. 
+ * 
+ * Copy: See Copyright for the status of this software. 
+ * 
+ * Author: Daniel Veillard 
+ */</span>
+
+<span class="s2">#ifndef </span><span class="s1">__NANO_FTP_H__</span>
+<span class="s2">#define </span><span class="s1">__NANO_FTP_H__</span>
+
+<span class="s2">#include </span><span class="s1">&lt;libxml/xmlversion.h&gt;</span>
+
+<span class="s2">#ifdef </span><span class="s1">LIBXML_FTP_ENABLED</span>
+
+<span class="s0">/* Needed for portability to Windows 64 bits */</span>
+<span class="s2">#if </span><span class="s1">defined(__MINGW32__) || defined(_WIN32_WCE)</span>
+<span class="s2">#include </span><span class="s1">&lt;winsock2.h&gt;</span>
+<span class="s2">#else</span>
+<span class="s0">/** 
+ * SOCKET: 
+ * 
+ * macro used to provide portability of code to windows sockets 
+ */</span>
+<span class="s2">#define </span><span class="s1">SOCKET </span><span class="s2">int</span>
+<span class="s0">/** 
+ * INVALID_SOCKET: 
+ * 
+ * macro used to provide portability of code to windows sockets 
+ * the value to be used when the socket is not valid 
+ */</span>
+<span class="s2">#undef  </span><span class="s1">INVALID_SOCKET</span>
+<span class="s2">#define </span><span class="s1">INVALID_SOCKET (-</span><span class="s3">1</span><span class="s1">)</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s2">extern </span><span class="s4">&quot;C&quot; </span><span class="s1">{</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * ftpListCallback: 
+ * @userData:  user provided data for the callback 
+ * @filename:  the file name (including &quot;-&gt;&quot; when links are shown) 
+ * @attrib:  the attribute string 
+ * @owner:  the owner string 
+ * @group:  the group string 
+ * @size:  the file size 
+ * @links:  the link count 
+ * @year:  the year 
+ * @month:  the month 
+ * @day:  the day 
+ * @hour:  the hour 
+ * @minute:  the minute 
+ * 
+ * A callback for the xmlNanoFTPList command. 
+ * Note that only one of year and day:minute are specified. 
+ */</span>
+<span class="s2">typedef void </span><span class="s1">(*ftpListCallback) (</span><span class="s2">void </span><span class="s1">*userData,</span>
+	                         <span class="s2">const char </span><span class="s1">*filename, </span><span class="s2">const char </span><span class="s1">*attrib,</span>
+	                         <span class="s2">const char </span><span class="s1">*owner, </span><span class="s2">const char </span><span class="s1">*group,</span>
+				 <span class="s2">unsigned long </span><span class="s1">size, </span><span class="s2">int </span><span class="s1">links, </span><span class="s2">int </span><span class="s1">year,</span>
+				 <span class="s2">const char </span><span class="s1">*month, </span><span class="s2">int </span><span class="s1">day, </span><span class="s2">int </span><span class="s1">hour,</span>
+				 <span class="s2">int </span><span class="s1">minute);</span>
+<span class="s0">/** 
+ * ftpDataCallback: 
+ * @userData: the user provided context 
+ * @data: the data received 
+ * @len: its size in bytes 
+ * 
+ * A callback for the xmlNanoFTPGet command. 
+ */</span>
+<span class="s2">typedef void </span><span class="s1">(*ftpDataCallback) (</span><span class="s2">void </span><span class="s1">*userData,</span>
+				 <span class="s2">const char </span><span class="s1">*data,</span>
+				 <span class="s2">int </span><span class="s1">len);</span>
+
+<span class="s0">/* 
+ * Init 
+ */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlNanoFTPInit		(</span><span class="s2">void</span><span class="s1">);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlNanoFTPCleanup	(</span><span class="s2">void</span><span class="s1">);</span>
+
+<span class="s0">/* 
+ * Creating/freeing contexts. 
+ */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">* XMLCALL</span>
+	<span class="s1">xmlNanoFTPNewCtxt	(</span><span class="s2">const char </span><span class="s1">*URL);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlNanoFTPFreeCtxt	(</span><span class="s2">void </span><span class="s1">* ctx);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">* XMLCALL</span>
+	<span class="s1">xmlNanoFTPConnectTo	(</span><span class="s2">const char </span><span class="s1">*server,</span>
+				 <span class="s2">int </span><span class="s1">port);</span>
+<span class="s0">/* 
+ * Opening/closing session connections. 
+ */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">* XMLCALL</span>
+	<span class="s1">xmlNanoFTPOpen		(</span><span class="s2">const char </span><span class="s1">*URL);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlNanoFTPConnect	(</span><span class="s2">void </span><span class="s1">*ctx);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlNanoFTPClose		(</span><span class="s2">void </span><span class="s1">*ctx);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlNanoFTPQuit		(</span><span class="s2">void </span><span class="s1">*ctx);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlNanoFTPScanProxy	(</span><span class="s2">const char </span><span class="s1">*URL);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlNanoFTPProxy		(</span><span class="s2">const char </span><span class="s1">*host,</span>
+				 <span class="s2">int </span><span class="s1">port,</span>
+				 <span class="s2">const char </span><span class="s1">*user,</span>
+				 <span class="s2">const char </span><span class="s1">*passwd,</span>
+				 <span class="s2">int </span><span class="s1">type);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlNanoFTPUpdateURL	(</span><span class="s2">void </span><span class="s1">*ctx,</span>
+				 <span class="s2">const char </span><span class="s1">*URL);</span>
+
+<span class="s0">/* 
+ * Rather internal commands. 
+ */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlNanoFTPGetResponse	(</span><span class="s2">void </span><span class="s1">*ctx);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlNanoFTPCheckResponse	(</span><span class="s2">void </span><span class="s1">*ctx);</span>
+
+<span class="s0">/* 
+ * CD/DIR/GET handlers. 
+ */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlNanoFTPCwd		(</span><span class="s2">void </span><span class="s1">*ctx,</span>
+				 <span class="s2">const char </span><span class="s1">*directory);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlNanoFTPDele		(</span><span class="s2">void </span><span class="s1">*ctx,</span>
+				 <span class="s2">const char </span><span class="s1">*file);</span>
+
+<span class="s1">XMLPUBFUN SOCKET XMLCALL</span>
+	<span class="s1">xmlNanoFTPGetConnection	(</span><span class="s2">void </span><span class="s1">*ctx);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlNanoFTPCloseConnection(</span><span class="s2">void </span><span class="s1">*ctx);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlNanoFTPList		(</span><span class="s2">void </span><span class="s1">*ctx,</span>
+				 <span class="s1">ftpListCallback callback,</span>
+				 <span class="s2">void </span><span class="s1">*userData,</span>
+				 <span class="s2">const char </span><span class="s1">*filename);</span>
+<span class="s1">XMLPUBFUN SOCKET XMLCALL</span>
+	<span class="s1">xmlNanoFTPGetSocket	(</span><span class="s2">void </span><span class="s1">*ctx,</span>
+				 <span class="s2">const char </span><span class="s1">*filename);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlNanoFTPGet		(</span><span class="s2">void </span><span class="s1">*ctx,</span>
+				 <span class="s1">ftpDataCallback callback,</span>
+				 <span class="s2">void </span><span class="s1">*userData,</span>
+				 <span class="s2">const char </span><span class="s1">*filename);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlNanoFTPRead		(</span><span class="s2">void </span><span class="s1">*ctx,</span>
+				 <span class="s2">void </span><span class="s1">*dest,</span>
+				 <span class="s2">int </span><span class="s1">len);</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s1">}</span>
+<span class="s2">#endif</span>
+<span class="s2">#endif </span><span class="s0">/* LIBXML_FTP_ENABLED */</span>
+<span class="s2">#endif </span><span class="s0">/* __NANO_FTP_H__ */</span>
+</pre>
+</body>
+</html>

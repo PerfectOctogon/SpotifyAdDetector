@@ -1,0 +1,155 @@
+<html>
+<head>
+<title>switch_to.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #629755; font-style: italic;}
+.s4 { color: #6a8759;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+switch_to.py</font>
+</center></td></tr></table>
+<pre><span class="s0"># Licensed to the Software Freedom Conservancy (SFC) under one</span>
+<span class="s0"># or more contributor license agreements.  See the NOTICE file</span>
+<span class="s0"># distributed with this work for additional information</span>
+<span class="s0"># regarding copyright ownership.  The SFC licenses this file</span>
+<span class="s0"># to you under the Apache License, Version 2.0 (the</span>
+<span class="s0"># &quot;License&quot;); you may not use this file except in compliance</span>
+<span class="s0"># with the License.  You may obtain a copy of the License at</span>
+<span class="s0">#</span>
+<span class="s0">#   http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="s0">#</span>
+<span class="s0"># Unless required by applicable law or agreed to in writing,</span>
+<span class="s0"># software distributed under the License is distributed on an</span>
+<span class="s0"># &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY</span>
+<span class="s0"># KIND, either express or implied.  See the License for the</span>
+<span class="s0"># specific language governing permissions and limitations</span>
+<span class="s0"># under the License.</span>
+
+<span class="s2">from </span><span class="s1">.command </span><span class="s2">import </span><span class="s1">Command</span>
+<span class="s2">from </span><span class="s1">selenium.webdriver.common.alert </span><span class="s2">import </span><span class="s1">Alert</span>
+<span class="s2">from </span><span class="s1">selenium.webdriver.common.by </span><span class="s2">import </span><span class="s1">By</span>
+<span class="s2">from </span><span class="s1">selenium.common.exceptions </span><span class="s2">import </span><span class="s1">NoSuchElementException</span><span class="s2">, </span><span class="s1">NoSuchFrameException</span><span class="s2">, </span><span class="s1">NoSuchWindowException</span>
+
+<span class="s2">try</span><span class="s1">:</span>
+    <span class="s1">basestring</span>
+<span class="s2">except </span><span class="s1">NameError:</span>
+    <span class="s1">basestring = str</span>
+
+
+<span class="s2">class </span><span class="s1">SwitchTo:</span>
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">driver):</span>
+        <span class="s1">self._driver = driver</span>
+
+    <span class="s1">@property</span>
+    <span class="s2">def </span><span class="s1">active_element(self):</span>
+        <span class="s3">&quot;&quot;&quot; 
+        Returns the element with focus, or BODY if nothing has focus. 
+ 
+        :Usage: 
+            element = driver.switch_to.active_element 
+        &quot;&quot;&quot;</span>
+        <span class="s2">if </span><span class="s1">self._driver.w3c:</span>
+            <span class="s2">return </span><span class="s1">self._driver.execute(Command.W3C_GET_ACTIVE_ELEMENT)[</span><span class="s4">'value'</span><span class="s1">]</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s2">return </span><span class="s1">self._driver.execute(Command.GET_ACTIVE_ELEMENT)[</span><span class="s4">'value'</span><span class="s1">]</span>
+
+    <span class="s1">@property</span>
+    <span class="s2">def </span><span class="s1">alert(self):</span>
+        <span class="s3">&quot;&quot;&quot; 
+        Switches focus to an alert on the page. 
+ 
+        :Usage: 
+            alert = driver.switch_to.alert 
+        &quot;&quot;&quot;</span>
+        <span class="s1">alert = Alert(self._driver)</span>
+        <span class="s1">alert.text</span>
+        <span class="s2">return </span><span class="s1">alert</span>
+
+    <span class="s2">def </span><span class="s1">default_content(self):</span>
+        <span class="s3">&quot;&quot;&quot; 
+        Switch focus to the default frame. 
+ 
+        :Usage: 
+            driver.switch_to.default_content() 
+        &quot;&quot;&quot;</span>
+        <span class="s1">self._driver.execute(Command.SWITCH_TO_FRAME</span><span class="s2">, </span><span class="s1">{</span><span class="s4">'id'</span><span class="s1">: </span><span class="s2">None</span><span class="s1">})</span>
+
+    <span class="s2">def </span><span class="s1">frame(self</span><span class="s2">, </span><span class="s1">frame_reference):</span>
+        <span class="s3">&quot;&quot;&quot; 
+        Switches focus to the specified frame, by index, name, or webelement. 
+ 
+        :Args: 
+         - frame_reference: The name of the window to switch to, an integer representing the index, 
+                            or a webelement that is an (i)frame to switch to. 
+ 
+        :Usage: 
+            driver.switch_to.frame('frame_name') 
+            driver.switch_to.frame(1) 
+            driver.switch_to.frame(driver.find_elements_by_tag_name(&quot;iframe&quot;)[0]) 
+        &quot;&quot;&quot;</span>
+        <span class="s2">if </span><span class="s1">isinstance(frame_reference</span><span class="s2">, </span><span class="s1">basestring) </span><span class="s2">and </span><span class="s1">self._driver.w3c:</span>
+            <span class="s2">try</span><span class="s1">:</span>
+                <span class="s1">frame_reference = self._driver.find_element(By.ID</span><span class="s2">, </span><span class="s1">frame_reference)</span>
+            <span class="s2">except </span><span class="s1">NoSuchElementException:</span>
+                <span class="s2">try</span><span class="s1">:</span>
+                    <span class="s1">frame_reference = self._driver.find_element(By.NAME</span><span class="s2">, </span><span class="s1">frame_reference)</span>
+                <span class="s2">except </span><span class="s1">NoSuchElementException:</span>
+                    <span class="s2">raise </span><span class="s1">NoSuchFrameException(frame_reference)</span>
+
+        <span class="s1">self._driver.execute(Command.SWITCH_TO_FRAME</span><span class="s2">, </span><span class="s1">{</span><span class="s4">'id'</span><span class="s1">: frame_reference})</span>
+
+    <span class="s2">def </span><span class="s1">parent_frame(self):</span>
+        <span class="s3">&quot;&quot;&quot; 
+        Switches focus to the parent context. If the current context is the top 
+        level browsing context, the context remains unchanged. 
+ 
+        :Usage: 
+            driver.switch_to.parent_frame() 
+        &quot;&quot;&quot;</span>
+        <span class="s1">self._driver.execute(Command.SWITCH_TO_PARENT_FRAME)</span>
+
+    <span class="s2">def </span><span class="s1">window(self</span><span class="s2">, </span><span class="s1">window_name):</span>
+        <span class="s3">&quot;&quot;&quot; 
+        Switches focus to the specified window. 
+ 
+        :Args: 
+         - window_name: The name or window handle of the window to switch to. 
+ 
+        :Usage: 
+            driver.switch_to.window('main') 
+        &quot;&quot;&quot;</span>
+        <span class="s2">if </span><span class="s1">self._driver.w3c:</span>
+            <span class="s1">self._w3c_window(window_name)</span>
+            <span class="s2">return</span>
+        <span class="s1">data = {</span><span class="s4">'name'</span><span class="s1">: window_name}</span>
+        <span class="s1">self._driver.execute(Command.SWITCH_TO_WINDOW</span><span class="s2">, </span><span class="s1">data)</span>
+
+    <span class="s2">def </span><span class="s1">_w3c_window(self</span><span class="s2">, </span><span class="s1">window_name):</span>
+        <span class="s2">def </span><span class="s1">send_handle(h):</span>
+            <span class="s1">self._driver.execute(Command.SWITCH_TO_WINDOW</span><span class="s2">, </span><span class="s1">{</span><span class="s4">'handle'</span><span class="s1">: h})</span>
+
+        <span class="s2">try</span><span class="s1">:</span>
+            <span class="s0"># Try using it as a handle first.</span>
+            <span class="s1">send_handle(window_name)</span>
+        <span class="s2">except </span><span class="s1">NoSuchWindowException </span><span class="s2">as </span><span class="s1">e:</span>
+            <span class="s0"># Check every window to try to find the given window name.</span>
+            <span class="s1">original_handle = self._driver.current_window_handle</span>
+            <span class="s1">handles = self._driver.window_handles</span>
+            <span class="s2">for </span><span class="s1">handle </span><span class="s2">in </span><span class="s1">handles:</span>
+                <span class="s1">send_handle(handle)</span>
+                <span class="s1">current_name = self._driver.execute_script(</span><span class="s4">'return window.name'</span><span class="s1">)</span>
+                <span class="s2">if </span><span class="s1">window_name == current_name:</span>
+                    <span class="s2">return</span>
+            <span class="s1">send_handle(original_handle)</span>
+            <span class="s2">raise </span><span class="s1">e</span>
+</pre>
+</body>
+</html>

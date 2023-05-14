@@ -1,0 +1,172 @@
+<html>
+<head>
+<title>xmlschemastypes.h</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+.s4 { color: #6897bb;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+xmlschemastypes.h</font>
+</center></td></tr></table>
+<pre><span class="s0">/* 
+ * Summary: implementation of XML Schema Datatypes 
+ * Description: module providing the XML Schema Datatypes implementation 
+ *              both definition and validity checking 
+ * 
+ * Copy: See Copyright for the status of this software. 
+ * 
+ * Author: Daniel Veillard 
+ */</span>
+
+
+<span class="s2">#ifndef </span><span class="s1">__XML_SCHEMA_TYPES_H__</span>
+<span class="s2">#define </span><span class="s1">__XML_SCHEMA_TYPES_H__</span>
+
+<span class="s2">#include </span><span class="s1">&lt;libxml/xmlversion.h&gt;</span>
+
+<span class="s2">#ifdef </span><span class="s1">LIBXML_SCHEMAS_ENABLED</span>
+
+<span class="s2">#include </span><span class="s1">&lt;libxml/schemasInternals.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/xmlschemas.h&gt;</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s2">extern </span><span class="s3">&quot;C&quot; </span><span class="s1">{</span>
+<span class="s2">#endif</span>
+
+<span class="s2">typedef enum </span><span class="s1">{</span>
+    <span class="s1">XML_SCHEMA_WHITESPACE_UNKNOWN = </span><span class="s4">0</span><span class="s1">,</span>
+    <span class="s1">XML_SCHEMA_WHITESPACE_PRESERVE = </span><span class="s4">1</span><span class="s1">,</span>
+    <span class="s1">XML_SCHEMA_WHITESPACE_REPLACE = </span><span class="s4">2</span><span class="s1">,</span>
+    <span class="s1">XML_SCHEMA_WHITESPACE_COLLAPSE = </span><span class="s4">3</span>
+<span class="s1">} xmlSchemaWhitespaceValueType;</span>
+
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSchemaInitTypes		(</span><span class="s2">void</span><span class="s1">);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSchemaCleanupTypes		(</span><span class="s2">void</span><span class="s1">);</span>
+<span class="s1">XMLPUBFUN xmlSchemaTypePtr XMLCALL</span>
+		<span class="s1">xmlSchemaGetPredefinedType	(</span><span class="s2">const </span><span class="s1">xmlChar *name,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *ns);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSchemaValidatePredefinedType	(xmlSchemaTypePtr type,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *value,</span>
+						 <span class="s1">xmlSchemaValPtr *val);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSchemaValPredefTypeNode	(xmlSchemaTypePtr type,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *value,</span>
+						 <span class="s1">xmlSchemaValPtr *val,</span>
+						 <span class="s1">xmlNodePtr node);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSchemaValidateFacet		(xmlSchemaTypePtr base,</span>
+						 <span class="s1">xmlSchemaFacetPtr facet,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *value,</span>
+						 <span class="s1">xmlSchemaValPtr val);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSchemaValidateFacetWhtsp	(xmlSchemaFacetPtr facet,</span>
+						 <span class="s1">xmlSchemaWhitespaceValueType fws,</span>
+						 <span class="s1">xmlSchemaValType valType,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *value,</span>
+						 <span class="s1">xmlSchemaValPtr val,</span>
+						 <span class="s1">xmlSchemaWhitespaceValueType ws);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSchemaFreeValue		(xmlSchemaValPtr val);</span>
+<span class="s1">XMLPUBFUN xmlSchemaFacetPtr XMLCALL</span>
+		<span class="s1">xmlSchemaNewFacet		(</span><span class="s2">void</span><span class="s1">);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSchemaCheckFacet		(xmlSchemaFacetPtr facet,</span>
+						 <span class="s1">xmlSchemaTypePtr typeDecl,</span>
+						 <span class="s1">xmlSchemaParserCtxtPtr ctxt,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *name);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSchemaFreeFacet		(xmlSchemaFacetPtr facet);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSchemaCompareValues		(xmlSchemaValPtr x,</span>
+						 <span class="s1">xmlSchemaValPtr y);</span>
+<span class="s1">XMLPUBFUN xmlSchemaTypePtr XMLCALL</span>
+    <span class="s1">xmlSchemaGetBuiltInListSimpleTypeItemType	(xmlSchemaTypePtr type);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+    <span class="s1">xmlSchemaValidateListSimpleTypeFacet	(xmlSchemaFacetPtr facet,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *value,</span>
+						 <span class="s2">unsigned long </span><span class="s1">actualLen,</span>
+						 <span class="s2">unsigned long </span><span class="s1">*expectedLen);</span>
+<span class="s1">XMLPUBFUN xmlSchemaTypePtr XMLCALL</span>
+		<span class="s1">xmlSchemaGetBuiltInType		(xmlSchemaValType type);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSchemaIsBuiltInTypeFacet	(xmlSchemaTypePtr type,</span>
+						 <span class="s2">int </span><span class="s1">facetType);</span>
+<span class="s1">XMLPUBFUN xmlChar * XMLCALL</span>
+		<span class="s1">xmlSchemaCollapseString		(</span><span class="s2">const </span><span class="s1">xmlChar *value);</span>
+<span class="s1">XMLPUBFUN xmlChar * XMLCALL</span>
+		<span class="s1">xmlSchemaWhiteSpaceReplace	(</span><span class="s2">const </span><span class="s1">xmlChar *value);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">unsigned long  </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSchemaGetFacetValueAsULong	(xmlSchemaFacetPtr facet);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSchemaValidateLengthFacet	(xmlSchemaTypePtr type,</span>
+						 <span class="s1">xmlSchemaFacetPtr facet,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *value,</span>
+						 <span class="s1">xmlSchemaValPtr val,</span>
+						 <span class="s2">unsigned long </span><span class="s1">*length);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSchemaValidateLengthFacetWhtsp(xmlSchemaFacetPtr facet,</span>
+						  <span class="s1">xmlSchemaValType valType,</span>
+						  <span class="s2">const </span><span class="s1">xmlChar *value,</span>
+						  <span class="s1">xmlSchemaValPtr val,</span>
+						  <span class="s2">unsigned long </span><span class="s1">*length,</span>
+						  <span class="s1">xmlSchemaWhitespaceValueType ws);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSchemaValPredefTypeNodeNoNorm(xmlSchemaTypePtr type,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *value,</span>
+						 <span class="s1">xmlSchemaValPtr *val,</span>
+						 <span class="s1">xmlNodePtr node);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSchemaGetCanonValue		(xmlSchemaValPtr val,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar **retValue);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSchemaGetCanonValueWhtsp	(xmlSchemaValPtr val,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar **retValue,</span>
+						 <span class="s1">xmlSchemaWhitespaceValueType ws);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSchemaValueAppend		(xmlSchemaValPtr prev,</span>
+						 <span class="s1">xmlSchemaValPtr cur);</span>
+<span class="s1">XMLPUBFUN xmlSchemaValPtr XMLCALL</span>
+		<span class="s1">xmlSchemaValueGetNext		(xmlSchemaValPtr cur);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">const </span><span class="s1">xmlChar * XMLCALL</span>
+		<span class="s1">xmlSchemaValueGetAsString	(xmlSchemaValPtr val);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSchemaValueGetAsBoolean	(xmlSchemaValPtr val);</span>
+<span class="s1">XMLPUBFUN xmlSchemaValPtr XMLCALL</span>
+		<span class="s1">xmlSchemaNewStringValue		(xmlSchemaValType type,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *value);</span>
+<span class="s1">XMLPUBFUN xmlSchemaValPtr XMLCALL</span>
+		<span class="s1">xmlSchemaNewNOTATIONValue	(</span><span class="s2">const </span><span class="s1">xmlChar *name,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *ns);</span>
+<span class="s1">XMLPUBFUN xmlSchemaValPtr XMLCALL</span>
+		<span class="s1">xmlSchemaNewQNameValue		(</span><span class="s2">const </span><span class="s1">xmlChar *namespaceName,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *localName);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSchemaCompareValuesWhtsp	(xmlSchemaValPtr x,</span>
+						 <span class="s1">xmlSchemaWhitespaceValueType xws,</span>
+						 <span class="s1">xmlSchemaValPtr y,</span>
+						 <span class="s1">xmlSchemaWhitespaceValueType yws);</span>
+<span class="s1">XMLPUBFUN xmlSchemaValPtr XMLCALL</span>
+		<span class="s1">xmlSchemaCopyValue		(xmlSchemaValPtr val);</span>
+<span class="s1">XMLPUBFUN xmlSchemaValType XMLCALL</span>
+		<span class="s1">xmlSchemaGetValType		(xmlSchemaValPtr val);</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s1">}</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#endif </span><span class="s0">/* LIBXML_SCHEMAS_ENABLED */</span>
+<span class="s2">#endif </span><span class="s0">/* __XML_SCHEMA_TYPES_H__ */</span>
+</pre>
+</body>
+</html>

@@ -1,0 +1,99 @@
+<html>
+<head>
+<title>functions.h</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+.s4 { color: #0f9795;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+functions.h</font>
+</center></td></tr></table>
+<pre><span class="s0">/* 
+ * Summary: interface for the XSLT functions not from XPath 
+ * Description: a set of extra functions coming from XSLT but not in XPath 
+ * 
+ * Copy: See Copyright for the status of this software. 
+ * 
+ * Author: Daniel Veillard and Bjorn Reese &lt;breese@users.sourceforge.net&gt; 
+ */</span>
+
+<span class="s2">#ifndef </span><span class="s1">__XML_XSLT_FUNCTIONS_H__</span>
+<span class="s2">#define </span><span class="s1">__XML_XSLT_FUNCTIONS_H__</span>
+
+<span class="s2">#include </span><span class="s1">&lt;libxml/xpath.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/xpathInternals.h&gt;</span>
+<span class="s2">#include </span><span class="s3">&quot;xsltexports.h&quot;</span>
+<span class="s2">#include </span><span class="s3">&quot;xsltInternals.h&quot;</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s2">extern </span><span class="s3">&quot;C&quot; </span><span class="s1">{</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * XSLT_REGISTER_FUNCTION_LOOKUP: 
+ * 
+ * Registering macro, not general purpose at all but used in different modules. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XSLT_REGISTER_FUNCTION_LOOKUP(ctxt)			\</span>
+    <span class="s1">xmlXPathRegisterFuncLookup((ctxt)</span><span class="s4">-&gt;</span><span class="s1">xpathCtxt,		\</span>
+	<span class="s1">(xmlXPathFuncLookupFunc) xsltXPathFunctionLookup,	\</span>
+	<span class="s1">(</span><span class="s2">void </span><span class="s1">*)(ctxt</span><span class="s4">-&gt;</span><span class="s1">xpathCtxt));</span>
+
+<span class="s1">XSLTPUBFUN xmlXPathFunction XSLTCALL</span>
+	<span class="s1">xsltXPathFunctionLookup		(xmlXPathContextPtr ctxt,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *ns_uri);</span>
+
+<span class="s0">/* 
+ * Interfaces for the functions implementations. 
+ */</span>
+
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+	<span class="s1">xsltDocumentFunction		(xmlXPathParserContextPtr ctxt,</span>
+					 <span class="s2">int </span><span class="s1">nargs);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+	<span class="s1">xsltKeyFunction			(xmlXPathParserContextPtr ctxt,</span>
+					 <span class="s2">int </span><span class="s1">nargs);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+	<span class="s1">xsltUnparsedEntityURIFunction	(xmlXPathParserContextPtr ctxt,</span>
+					 <span class="s2">int </span><span class="s1">nargs);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+	<span class="s1">xsltFormatNumberFunction	(xmlXPathParserContextPtr ctxt,</span>
+					 <span class="s2">int </span><span class="s1">nargs);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+	<span class="s1">xsltGenerateIdFunction		(xmlXPathParserContextPtr ctxt,</span>
+					 <span class="s2">int </span><span class="s1">nargs);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+	<span class="s1">xsltSystemPropertyFunction	(xmlXPathParserContextPtr ctxt,</span>
+					 <span class="s2">int </span><span class="s1">nargs);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+	<span class="s1">xsltElementAvailableFunction	(xmlXPathParserContextPtr ctxt,</span>
+					 <span class="s2">int </span><span class="s1">nargs);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+	<span class="s1">xsltFunctionAvailableFunction	(xmlXPathParserContextPtr ctxt,</span>
+					 <span class="s2">int </span><span class="s1">nargs);</span>
+
+<span class="s0">/* 
+ * And the registration 
+ */</span>
+
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+	<span class="s1">xsltRegisterAllFunctions	(xmlXPathContextPtr ctxt);</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s1">}</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#endif </span><span class="s0">/* __XML_XSLT_FUNCTIONS_H__ */</span>
+
+</pre>
+</body>
+</html>

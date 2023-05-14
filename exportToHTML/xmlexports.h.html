@@ -1,0 +1,181 @@
+<html>
+<head>
+<title>xmlexports.h</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+xmlexports.h</font>
+</center></td></tr></table>
+<pre><span class="s0">/* 
+ * Summary: macros for marking symbols as exportable/importable. 
+ * Description: macros for marking symbols as exportable/importable. 
+ * 
+ * Copy: See Copyright for the status of this software. 
+ * 
+ * Author: Igor Zlatovic &lt;igor@zlatkovic.com&gt; 
+ */</span>
+
+<span class="s2">#ifndef </span><span class="s1">__XML_EXPORTS_H__</span>
+<span class="s2">#define </span><span class="s1">__XML_EXPORTS_H__</span>
+
+<span class="s0">/** 
+ * XMLPUBFUN, XMLPUBVAR, XMLCALL 
+ * 
+ * Macros which declare an exportable function, an exportable variable and 
+ * the calling convention used for functions. 
+ * 
+ * Please use an extra block for every platform/compiler combination when 
+ * modifying this, rather than overlong #ifdef lines. This helps 
+ * readability as well as the fact that different compilers on the same 
+ * platform might need different definitions. 
+ */</span>
+
+<span class="s0">/** 
+ * XMLPUBFUN: 
+ * 
+ * Macros which declare an exportable function 
+ */</span>
+<span class="s2">#define </span><span class="s1">XMLPUBFUN</span>
+<span class="s0">/** 
+ * XMLPUBVAR: 
+ * 
+ * Macros which declare an exportable variable 
+ */</span>
+<span class="s2">#define </span><span class="s1">XMLPUBVAR </span><span class="s2">extern</span>
+<span class="s0">/** 
+ * XMLCALL: 
+ * 
+ * Macros which declare the called convention for exported functions 
+ */</span>
+<span class="s2">#define </span><span class="s1">XMLCALL</span>
+<span class="s0">/** 
+ * XMLCDECL: 
+ * 
+ * Macro which declares the calling convention for exported functions that 
+ * use '...'. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XMLCDECL</span>
+
+<span class="s0">/** DOC_DISABLE */</span>
+
+<span class="s0">/* Windows platform with MS compiler */</span>
+<span class="s2">#if </span><span class="s1">defined(_WIN32) &amp;&amp; defined(_MSC_VER)</span>
+  <span class="s2">#undef </span><span class="s1">XMLPUBFUN</span>
+  <span class="s2">#undef </span><span class="s1">XMLPUBVAR</span>
+  <span class="s2">#undef </span><span class="s1">XMLCALL</span>
+  <span class="s2">#undef </span><span class="s1">XMLCDECL</span>
+  <span class="s2">#if </span><span class="s1">defined(IN_LIBXML) &amp;&amp; !defined(LIBXML_STATIC)</span>
+    <span class="s2">#define </span><span class="s1">XMLPUBFUN __declspec(dllexport)</span>
+    <span class="s2">#define </span><span class="s1">XMLPUBVAR __declspec(dllexport)</span>
+  <span class="s2">#else</span>
+    <span class="s2">#define </span><span class="s1">XMLPUBFUN</span>
+    <span class="s2">#if </span><span class="s1">!defined(LIBXML_STATIC)</span>
+      <span class="s2">#define </span><span class="s1">XMLPUBVAR __declspec(dllimport) </span><span class="s2">extern</span>
+    <span class="s2">#else</span>
+      <span class="s2">#define </span><span class="s1">XMLPUBVAR </span><span class="s2">extern</span>
+    <span class="s2">#endif</span>
+  <span class="s2">#endif</span>
+  <span class="s2">#if </span><span class="s1">defined(LIBXML_FASTCALL)</span>
+    <span class="s2">#define </span><span class="s1">XMLCALL __fastcall</span>
+  <span class="s2">#else</span>
+    <span class="s2">#define </span><span class="s1">XMLCALL __cdecl</span>
+  <span class="s2">#endif</span>
+  <span class="s2">#define </span><span class="s1">XMLCDECL __cdecl</span>
+  <span class="s2">#if </span><span class="s1">!defined _REENTRANT</span>
+    <span class="s2">#define </span><span class="s1">_REENTRANT</span>
+  <span class="s2">#endif</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/* Windows platform with Borland compiler */</span>
+<span class="s2">#if </span><span class="s1">defined(_WIN32) &amp;&amp; defined(__BORLANDC__)</span>
+  <span class="s2">#undef </span><span class="s1">XMLPUBFUN</span>
+  <span class="s2">#undef </span><span class="s1">XMLPUBVAR</span>
+  <span class="s2">#undef </span><span class="s1">XMLCALL</span>
+  <span class="s2">#undef </span><span class="s1">XMLCDECL</span>
+  <span class="s2">#if </span><span class="s1">defined(IN_LIBXML) &amp;&amp; !defined(LIBXML_STATIC)</span>
+    <span class="s2">#define </span><span class="s1">XMLPUBFUN __declspec(dllexport)</span>
+    <span class="s2">#define </span><span class="s1">XMLPUBVAR __declspec(dllexport) </span><span class="s2">extern</span>
+  <span class="s2">#else</span>
+    <span class="s2">#define </span><span class="s1">XMLPUBFUN</span>
+    <span class="s2">#if </span><span class="s1">!defined(LIBXML_STATIC)</span>
+      <span class="s2">#define </span><span class="s1">XMLPUBVAR __declspec(dllimport) </span><span class="s2">extern</span>
+    <span class="s2">#else</span>
+      <span class="s2">#define </span><span class="s1">XMLPUBVAR </span><span class="s2">extern</span>
+    <span class="s2">#endif</span>
+  <span class="s2">#endif</span>
+  <span class="s2">#define </span><span class="s1">XMLCALL __cdecl</span>
+  <span class="s2">#define </span><span class="s1">XMLCDECL __cdecl</span>
+  <span class="s2">#if </span><span class="s1">!defined _REENTRANT</span>
+    <span class="s2">#define </span><span class="s1">_REENTRANT</span>
+  <span class="s2">#endif</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/* Windows platform with GNU compiler (Mingw) */</span>
+<span class="s2">#if </span><span class="s1">defined(_WIN32) &amp;&amp; defined(__MINGW32__)</span>
+  <span class="s2">#undef </span><span class="s1">XMLPUBFUN</span>
+  <span class="s2">#undef </span><span class="s1">XMLPUBVAR</span>
+  <span class="s2">#undef </span><span class="s1">XMLCALL</span>
+  <span class="s2">#undef </span><span class="s1">XMLCDECL</span>
+  <span class="s0">/* 
+   * if defined(IN_LIBXML) this raises problems on mingw with msys 
+   * _imp__xmlFree listed as missing. Try to workaround the problem 
+   * by also making that declaration when compiling client code. 
+   */</span>
+  <span class="s2">#if </span><span class="s1">defined(IN_LIBXML) &amp;&amp; !defined(LIBXML_STATIC)</span>
+    <span class="s2">#define </span><span class="s1">XMLPUBFUN __declspec(dllexport)</span>
+    <span class="s2">#define </span><span class="s1">XMLPUBVAR __declspec(dllexport) </span><span class="s2">extern</span>
+  <span class="s2">#else</span>
+    <span class="s2">#define </span><span class="s1">XMLPUBFUN</span>
+    <span class="s2">#if </span><span class="s1">!defined(LIBXML_STATIC)</span>
+      <span class="s2">#define </span><span class="s1">XMLPUBVAR __declspec(dllimport) </span><span class="s2">extern</span>
+    <span class="s2">#else</span>
+      <span class="s2">#define </span><span class="s1">XMLPUBVAR </span><span class="s2">extern</span>
+    <span class="s2">#endif</span>
+  <span class="s2">#endif</span>
+  <span class="s2">#define </span><span class="s1">XMLCALL __cdecl</span>
+  <span class="s2">#define </span><span class="s1">XMLCDECL __cdecl</span>
+  <span class="s2">#if </span><span class="s1">!defined _REENTRANT</span>
+    <span class="s2">#define </span><span class="s1">_REENTRANT</span>
+  <span class="s2">#endif</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/* Cygwin platform, GNU compiler */</span>
+<span class="s2">#if </span><span class="s1">defined(_WIN32) &amp;&amp; defined(__CYGWIN__)</span>
+  <span class="s2">#undef </span><span class="s1">XMLPUBFUN</span>
+  <span class="s2">#undef </span><span class="s1">XMLPUBVAR</span>
+  <span class="s2">#undef </span><span class="s1">XMLCALL</span>
+  <span class="s2">#undef </span><span class="s1">XMLCDECL</span>
+  <span class="s2">#if </span><span class="s1">defined(IN_LIBXML) &amp;&amp; !defined(LIBXML_STATIC)</span>
+    <span class="s2">#define </span><span class="s1">XMLPUBFUN __declspec(dllexport)</span>
+    <span class="s2">#define </span><span class="s1">XMLPUBVAR __declspec(dllexport)</span>
+  <span class="s2">#else</span>
+    <span class="s2">#define </span><span class="s1">XMLPUBFUN</span>
+    <span class="s2">#if </span><span class="s1">!defined(LIBXML_STATIC)</span>
+      <span class="s2">#define </span><span class="s1">XMLPUBVAR __declspec(dllimport) </span><span class="s2">extern</span>
+    <span class="s2">#else</span>
+      <span class="s2">#define </span><span class="s1">XMLPUBVAR</span>
+    <span class="s2">#endif</span>
+  <span class="s2">#endif</span>
+  <span class="s2">#define </span><span class="s1">XMLCALL __cdecl</span>
+  <span class="s2">#define </span><span class="s1">XMLCDECL __cdecl</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/* Compatibility */</span>
+<span class="s2">#if </span><span class="s1">!defined(LIBXML_DLL_IMPORT)</span>
+<span class="s2">#define </span><span class="s1">LIBXML_DLL_IMPORT XMLPUBVAR</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#endif </span><span class="s0">/* __XML_EXPORTS_H__ */</span>
+
+
+</pre>
+</body>
+</html>

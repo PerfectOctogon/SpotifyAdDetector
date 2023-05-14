@@ -1,0 +1,81 @@
+<html>
+<head>
+<title>relaxng.pxd</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #a9b7c6;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+relaxng.pxd</font>
+</center></td></tr></table>
+<pre><span class="s0">from lxml.includes.tree cimport xmlDoc</span>
+<span class="s0">from lxml.includes.xmlerror cimport xmlStructuredErrorFunc</span>
+
+<span class="s0">cdef extern from &quot;libxml/relaxng.h&quot;:</span>
+    <span class="s0">ctypedef struct xmlRelaxNG</span>
+    <span class="s0">ctypedef struct xmlRelaxNGParserCtxt</span>
+    
+    <span class="s0">ctypedef struct xmlRelaxNGValidCtxt</span>
+    
+    <span class="s0">ctypedef enum xmlRelaxNGValidErr:</span>
+        <span class="s0">XML_RELAXNG_OK = 0</span>
+        <span class="s0">XML_RELAXNG_ERR_MEMORY = 1</span>
+        <span class="s0">XML_RELAXNG_ERR_TYPE = 2</span>
+        <span class="s0">XML_RELAXNG_ERR_TYPEVAL = 3</span>
+        <span class="s0">XML_RELAXNG_ERR_DUPID = 4</span>
+        <span class="s0">XML_RELAXNG_ERR_TYPECMP = 5</span>
+        <span class="s0">XML_RELAXNG_ERR_NOSTATE = 6</span>
+        <span class="s0">XML_RELAXNG_ERR_NODEFINE = 7</span>
+        <span class="s0">XML_RELAXNG_ERR_LISTEXTRA = 8</span>
+        <span class="s0">XML_RELAXNG_ERR_LISTEMPTY = 9</span>
+        <span class="s0">XML_RELAXNG_ERR_INTERNODATA = 10</span>
+        <span class="s0">XML_RELAXNG_ERR_INTERSEQ = 11</span>
+        <span class="s0">XML_RELAXNG_ERR_INTEREXTRA = 12</span>
+        <span class="s0">XML_RELAXNG_ERR_ELEMNAME = 13</span>
+        <span class="s0">XML_RELAXNG_ERR_ATTRNAME = 14</span>
+        <span class="s0">XML_RELAXNG_ERR_ELEMNONS = 15</span>
+        <span class="s0">XML_RELAXNG_ERR_ATTRNONS = 16</span>
+        <span class="s0">XML_RELAXNG_ERR_ELEMWRONGNS = 17</span>
+        <span class="s0">XML_RELAXNG_ERR_ATTRWRONGNS = 18</span>
+        <span class="s0">XML_RELAXNG_ERR_ELEMEXTRANS = 19</span>
+        <span class="s0">XML_RELAXNG_ERR_ATTREXTRANS = 20</span>
+        <span class="s0">XML_RELAXNG_ERR_ELEMNOTEMPTY = 21</span>
+        <span class="s0">XML_RELAXNG_ERR_NOELEM = 22</span>
+        <span class="s0">XML_RELAXNG_ERR_NOTELEM = 23</span>
+        <span class="s0">XML_RELAXNG_ERR_ATTRVALID = 24</span>
+        <span class="s0">XML_RELAXNG_ERR_CONTENTVALID = 25</span>
+        <span class="s0">XML_RELAXNG_ERR_EXTRACONTENT = 26</span>
+        <span class="s0">XML_RELAXNG_ERR_INVALIDATTR = 27</span>
+        <span class="s0">XML_RELAXNG_ERR_DATAELEM = 28</span>
+        <span class="s0">XML_RELAXNG_ERR_VALELEM = 29</span>
+        <span class="s0">XML_RELAXNG_ERR_LISTELEM = 30</span>
+        <span class="s0">XML_RELAXNG_ERR_DATATYPE = 31</span>
+        <span class="s0">XML_RELAXNG_ERR_VALUE = 32</span>
+        <span class="s0">XML_RELAXNG_ERR_LIST = 33</span>
+        <span class="s0">XML_RELAXNG_ERR_NOGRAMMAR = 34</span>
+        <span class="s0">XML_RELAXNG_ERR_EXTRADATA = 35</span>
+        <span class="s0">XML_RELAXNG_ERR_LACKDATA = 36</span>
+        <span class="s0">XML_RELAXNG_ERR_INTERNAL = 37</span>
+        <span class="s0">XML_RELAXNG_ERR_ELEMWRONG = 38</span>
+        <span class="s0">XML_RELAXNG_ERR_TEXTWRONG = 39</span>
+        
+    <span class="s0">cdef xmlRelaxNGValidCtxt* xmlRelaxNGNewValidCtxt(xmlRelaxNG* schema) nogil</span>
+    <span class="s0">cdef int xmlRelaxNGValidateDoc(xmlRelaxNGValidCtxt* ctxt, xmlDoc* doc) nogil</span>
+    <span class="s0">cdef xmlRelaxNG* xmlRelaxNGParse(xmlRelaxNGParserCtxt* ctxt) nogil</span>
+    <span class="s0">cdef xmlRelaxNGParserCtxt* xmlRelaxNGNewParserCtxt(char* URL) nogil</span>
+    <span class="s0">cdef xmlRelaxNGParserCtxt* xmlRelaxNGNewDocParserCtxt(xmlDoc* doc) nogil</span>
+    <span class="s0">cdef void xmlRelaxNGFree(xmlRelaxNG* schema) nogil</span>
+    <span class="s0">cdef void xmlRelaxNGFreeParserCtxt(xmlRelaxNGParserCtxt* ctxt) nogil</span>
+    <span class="s0">cdef void xmlRelaxNGFreeValidCtxt(xmlRelaxNGValidCtxt* ctxt) nogil</span>
+
+    <span class="s0">cdef void xmlRelaxNGSetValidStructuredErrors(</span>
+        <span class="s0">xmlRelaxNGValidCtxt* ctxt, xmlStructuredErrorFunc serror, void *ctx) nogil</span>
+    <span class="s0">cdef void xmlRelaxNGSetParserStructuredErrors(</span>
+        <span class="s0">xmlRelaxNGParserCtxt* ctxt, xmlStructuredErrorFunc serror, void *ctx) nogil</span>
+</pre>
+</body>
+</html>

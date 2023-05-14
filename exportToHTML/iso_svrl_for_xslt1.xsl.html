@@ -1,0 +1,610 @@
+<html>
+<head>
+<title>iso_svrl_for_xslt1.xsl</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #e8bf6a;}
+.s1 { color: #bababa;}
+.s2 { color: #6a8759;}
+.s3 { color: #a9b7c6;}
+.s4 { color: #808080;}
+.s5 { color: #6d9cbe;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+iso_svrl_for_xslt1.xsl</font>
+</center></td></tr></table>
+<pre><span class="s0">&lt;?</span><span class="s1">xml version</span><span class="s2">=&quot;1.0&quot; </span><span class="s0">?&gt;</span>
+<span class="s4">&lt;!-- </span>
+   <span class="s4">ISO_SVRL.xsl    
+ 
+   Implementation of Schematron Validation Report Language from ISO Schematron 
+   ISO/IEC 19757 Document Schema Definition Languages (DSDL)  
+     Part 3: Rule-based validation  Schematron  
+     Annex D: Schematron Validation Report Language  
+ 
+  This ISO Standard is available free as a Publicly Available Specification in PDF from ISO. 
+  Also see www.schematron.com for drafts and other information. 
+ 
+  This implementation of SVRL is designed to run with the &quot;Skeleton&quot; implementation  
+  of Schematron which Oliver Becker devised. The skeleton code provides a  
+  Schematron implementation but with named templates for handling all output;  
+  the skeleton provides basic templates for output using this API, but client 
+  validators can be written to import the skeleton and override the default output 
+  templates as required. (In order to understand this, you must understand that 
+  a named template such as &quot;process-assert&quot; in this XSLT stylesheet overrides and 
+  replaces any template with the same name in the imported skeleton XSLT file.) 
+ 
+  The other important thing to understand in this code is that there are different 
+  versions of the Schematron skeleton. These track the development of Schematron through 
+  Schematron 1.5, Schematron 1.6 and now ISO Schematron. One only skeleton must be 
+  imported. The code has templates for the different skeletons commented out for  
+  convenience. ISO Schematron has a different namespace than Schematron 1.5 and 1.6; 
+  so the ISO Schematron skeleton has been written itself with an optional import 
+  statement to in turn import the Schematron 1.6 skeleton. This will allow you to  
+  validate with schemas from either namespace. 
+   
+ 
+  History:   
+    2009-03-18 
+        * Fix atrribute with space &quot;see &quot; which generates wrong name in some processors 
+    2008-08-11 
+        * RJ Fix attribute/@select which saxon allows  in XSLT 1 
+   2008-08-07 
+        * RJ Add output-encoding attribute to specify final encoding to use 
+        * Alter allow-foreign functionality so that Schematron span, emph and dir elements make  
+          it to the output, for better formatting and because span can be used to mark up 
+          semantically interesting information embedded in diagnostics, which reduces the 
+          need to extend SVRL itself 
+        * Diagnostic-reference had an invalid attribute @id that duplicated @diagnostic: removed 
+    2008-08-06 
+        * RJ Fix invalid output:  svrl:diagnostic-reference is not contained in an svrl:text 
+        * Output comment to SVRL file giving filename if available (from command-line parameter) 
+    2008-08-04 
+        * RJ move sch: prefix to schold: prefix to prevent confusion (we want people to 
+        be able to switch from old namespace to new namespace without changing the 
+        sch: prefix, so it is better to keep that prefix completely out of the XSLT) 
+        * Extra signature fixes (PH) 
+    2008-08-03 
+        * Repair missing class parameter on process-p 
+    2008-07-31 
+        * Update skeleton names 
+    2007-04-03  
+        * Add option generate-fired-rule (RG) 
+    2007-02-07 
+        * Prefer true|false for parameters. But allow yes|no on some old for compatability 
+        * DP Diagnostics output to svrl:text. Diagnosis put out after assertion text. 
+        * Removed non-SVRL elements and attributes: better handled as an extra layer that invokes this one 
+        * Add more formal parameters 
+        * Correct confusion between $schemaVersion and $queryBinding 
+        * Indent 
+        * Validate against RNC schemas for XSLT 1 and 2 (with regex tests removed) 
+        * Validate output with UniversalTest.sch against RNC schema for ISO SVRL 
+         
+    2007-02-01 
+        * DP. Update formal parameters of overriding named templates to handle more attributes. 
+        * DP. Refactor handling of rich and linkable parameters to a named template. 
+ 
+    2007-01-22 
+        * DP change svrl:ns to svrl:ns-in-attribute-value 
+        * Change default when no queryBinding from &quot;unknown&quot; to &quot;xslt&quot; 
+     
+    2007-01-18: 
+        * Improve documentation 
+        * KH Add command-line options to generate paths or not  
+        * Use axsl:attribute rather than xsl:attribute to shut XSLT2 up 
+        * Add extra command-line options to pass to the iso_schematron_skeleton 
+   
+    2006-12-01: iso_svrl.xsl Rick Jelliffe,  
+          * update namespace,  
+          * update phase handling, 
+          * add flag param to process-assert and process-report &amp; @ flag on output 
+   
+    2001: Conformance1-5.xsl Rick Jelliffe,  
+          * Created, using the skeleton code contributed by Oliver Becker 
+--&gt;</span>
+<span class="s4">&lt;!--</span>
+ <span class="s4">Derived from Conformance1-5.xsl. 
+ 
+ Copyright (c) 2001, 2006 Rick Jelliffe and Academia Sinica Computing Center, Taiwan 
+ 
+ This software is provided 'as-is', without any express or implied warranty.  
+ In no event will the authors be held liable for any damages arising from  
+ the use of this software. 
+ 
+ Permission is granted to anyone to use this software for any purpose,  
+ including commercial applications, and to alter it and redistribute it freely, 
+ subject to the following restrictions: 
+ 
+ 1. The origin of this software must not be misrepresented; you must not claim 
+ that you wrote the original software. If you use this software in a product,  
+ an acknowledgment in the product documentation would be appreciated but is  
+ not required. 
+ 
+ 2. Altered source versions must be plainly marked as such, and must not be  
+ misrepresented as being the original software. 
+ 
+ 3. This notice may not be removed or altered from any source distribution. 
+--&gt;</span>
+
+<span class="s4">&lt;!-- Ideas nabbed from schematrons by Francis N., Miloslav N. and David C. --&gt;</span>
+
+<span class="s4">&lt;!-- The command-line parameters are: 
+            phase           NMTOKEN | &quot;#ALL&quot; (default) Select the phase for validation 
+            allow-foreign   &quot;true&quot; | &quot;false&quot; (default)   Pass non-Schematron elements  and rich markup  to the generated stylesheet 
+            diagnose= true | false|yes|no    Add the diagnostics to the assertion test in reports (yes|no are obsolete) 
+            generate-paths=true|false|yes|no   generate the @location attribute with XPaths (yes|no are obsolete) 
+            sch.exslt.imports semi-colon delimited string of filenames for some EXSLT implementations           
+         optimize        &quot;visit-no-attributes&quot;     Use only when the schema has no attributes as the context nodes 
+         generate-fired-rule &quot;true&quot;(default) | &quot;false&quot;  Generate fired-rule elements 
+             
+--&gt;</span>
+
+<span class="s0">&lt;xsl:stylesheet</span>
+   <span class="s1">version</span><span class="s2">=&quot;1.0&quot;</span>
+   <span class="s1">xmlns:xsl</span><span class="s2">=&quot;http://www.w3.org/1999/XSL/Transform&quot;</span>
+	<span class="s1">xmlns:xs</span><span class="s2">=&quot;http://www.w3.org/2001/XMLSchema&quot;</span>
+   <span class="s1">xmlns:axsl</span><span class="s2">=&quot;http://www.w3.org/1999/XSL/TransformAlias&quot;</span>
+   <span class="s1">xmlns:schold</span><span class="s2">=&quot;http://www.ascc.net/xml/schematron&quot; </span>
+   <span class="s1">xmlns:iso</span><span class="s2">=&quot;http://purl.oclc.org/dsdl/schematron&quot;</span>
+   <span class="s1">xmlns:svrl</span><span class="s2">=&quot;http://purl.oclc.org/dsdl/svrl&quot; </span>
+<span class="s0">&gt;</span>
+
+<span class="s4">&lt;!-- Select the import statement and adjust the path as  
+   necessary for your system. 
+   If not XSLT2 then also remove svrl:active-pattern/@document=&quot;{document-uri()}&quot; from process-pattern() 
+--&gt;</span>
+<span class="s4">&lt;!--</span>
+<span class="s4">&lt;xsl:import href=&quot;iso_schematron_skeleton_for_saxon.xsl&quot;/&gt; 
+--&gt; </span>
+  
+<span class="s0">&lt;xsl:import </span><span class="s1">href</span><span class="s2">=&quot;iso_schematron_skeleton_for_xslt1.xsl&quot;</span><span class="s0">/&gt;</span>
+ <span class="s4">&lt;!--</span>
+<span class="s4">&lt;xsl:import href=&quot;iso_schematron_skeleton.xsl&quot;/&gt; 
+&lt;xsl:import href=&quot;skeleton1-5.xsl&quot;/&gt; 
+&lt;xsl:import href=&quot;skeleton1-6.xsl&quot;/&gt; 
+--&gt;</span>
+
+<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;diagnose&quot; </span><span class="s0">&gt;</span><span class="s3">true</span><span class="s0">&lt;/xsl:param&gt;</span>
+<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;phase&quot; </span><span class="s0">&gt;</span>
+	<span class="s0">&lt;xsl:choose&gt;</span>
+		<span class="s4">&lt;!-- Handle Schematron 1.5 and 1.6 phases --&gt;</span>
+		<span class="s0">&lt;xsl:when </span><span class="s1">test</span><span class="s2">=&quot;//schold:schema/@defaultPhase&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;//schold:schema/@defaultPhase&quot;</span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;/xsl:when&gt;</span>
+		<span class="s4">&lt;!-- Handle ISO Schematron phases --&gt;</span>
+		<span class="s0">&lt;xsl:when </span><span class="s1">test</span><span class="s2">=&quot;//iso:schema/@defaultPhase&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;//iso:schema/@defaultPhase&quot;</span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;/xsl:when&gt;</span>
+		<span class="s0">&lt;xsl:otherwise&gt;</span><span class="s3">#ALL</span><span class="s0">&lt;/xsl:otherwise&gt;</span>
+	<span class="s0">&lt;/xsl:choose&gt;</span>
+<span class="s0">&lt;/xsl:param&gt;</span>
+<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;allow-foreign&quot; </span><span class="s0">&gt;</span><span class="s3">false</span><span class="s0">&lt;/xsl:param&gt;</span>
+<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;generate-paths&quot; </span><span class="s0">&gt;</span><span class="s3">true</span><span class="s0">&lt;/xsl:param&gt;</span>
+<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;generate-fired-rule&quot; </span><span class="s0">&gt;</span><span class="s3">true</span><span class="s0">&lt;/xsl:param&gt;</span>
+<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;optimize&quot;</span><span class="s0">/&gt;</span>
+
+<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;output-encoding&quot; </span><span class="s0">&gt;&lt;/xsl:param&gt;</span>
+
+<span class="s4">&lt;!-- e.g. saxon file.xml file.xsl &quot;sch.exslt.imports=.../string.xsl;.../math.xsl&quot; --&gt;</span>
+<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;sch.exslt.imports&quot; </span><span class="s0">/&gt;</span>
+
+
+
+<span class="s4">&lt;!-- Experimental: If this file called, then must be generating svrl --&gt;</span>
+<span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;svrlTest&quot; </span><span class="s1">select</span><span class="s2">=&quot;true()&quot; </span><span class="s0">/&gt;</span>
+
+  
+ 
+<span class="s4">&lt;!-- ================================================================ --&gt;</span>
+
+<span class="s0">&lt;xsl:template </span><span class="s1">name</span><span class="s2">=&quot;process-prolog&quot;</span><span class="s0">&gt;</span>
+	<span class="s0">&lt;axsl:output </span><span class="s1">method</span><span class="s2">=&quot;xml&quot; </span><span class="s1">omit-xml-declaration</span><span class="s2">=&quot;no&quot; </span><span class="s1">standalone</span><span class="s2">=&quot;yes&quot;</span>
+		<span class="s1">indent</span><span class="s2">=&quot;yes&quot;</span><span class="s0">&gt;</span>
+		<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot; string-length($output-encoding) </span><span class="s5">&amp;gt; </span><span class="s2">0&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;xsl:attribute </span><span class="s1">name</span><span class="s2">=&quot;encoding&quot;</span><span class="s0">&gt;&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot; $output-encoding&quot; </span><span class="s0">/&gt;&lt;/xsl:attribute&gt;</span>
+		<span class="s0">&lt;/xsl:if&gt;</span>
+    <span class="s0">&lt;/axsl:output&gt;</span>
+     
+<span class="s0">&lt;/xsl:template&gt;</span>
+
+<span class="s4">&lt;!-- Overrides skeleton.xsl --&gt;</span>
+<span class="s0">&lt;xsl:template </span><span class="s1">name</span><span class="s2">=&quot;process-root&quot;</span><span class="s0">&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;title&quot;</span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;contents&quot; </span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;queryBinding&quot; </span><span class="s0">&gt;</span><span class="s3">xslt1</span><span class="s0">&lt;/xsl:param&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;schemaVersion&quot; </span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;id&quot; </span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;version&quot;</span><span class="s0">/&gt;</span>
+	<span class="s4">&lt;!-- &quot;Rich&quot; parameters --&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;fpi&quot; </span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;icon&quot; </span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;lang&quot; </span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;see&quot; </span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;space&quot; </span><span class="s0">/&gt;</span>
+	
+	<span class="s0">&lt;svrl:schematron-output </span><span class="s1">title</span><span class="s2">=&quot;{$title}&quot; </span><span class="s1">schemaVersion</span><span class="s2">=&quot;{$schemaVersion}&quot; </span><span class="s0">&gt;</span>
+		<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot; string-length( normalize-space( $phase )) </span><span class="s5">&amp;gt; </span><span class="s2">0 and  
+        not( normalize-space( $phase ) = '#ALL') &quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;axsl:attribute </span><span class="s1">name</span><span class="s2">=&quot;phase&quot;</span><span class="s0">&gt;</span>
+				<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot; $phase &quot; </span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;/axsl:attribute&gt;</span>
+		<span class="s0">&lt;/xsl:if&gt;</span>
+		<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot; $allow-foreign = 'true'&quot;</span><span class="s0">&gt;</span>
+		<span class="s0">&lt;/xsl:if&gt;</span>
+		  <span class="s0">&lt;xsl:if  </span><span class="s1">test</span><span class="s2">=&quot; $allow-foreign = 'true'&quot;</span><span class="s0">&gt;</span>
+	
+		<span class="s0">&lt;xsl:call-template </span><span class="s1">name</span><span class="s2">='richParms'</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;fpi&quot; </span><span class="s1">select</span><span class="s2">=&quot;$fpi&quot; </span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;icon&quot; </span><span class="s1">select</span><span class="s2">=&quot;$icon&quot;</span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;lang&quot; </span><span class="s1">select</span><span class="s2">=&quot;$lang&quot;</span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;see&quot;  </span><span class="s1">select</span><span class="s2">=&quot;$see&quot; </span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;space&quot;  </span><span class="s1">select</span><span class="s2">=&quot;$space&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;/xsl:call-template&gt;</span>
+	<span class="s0">&lt;/xsl:if&gt;</span>
+		 
+		 <span class="s0">&lt;axsl:comment&gt;&lt;axsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;$archiveDirParameter&quot;</span><span class="s0">/&gt;  </span><span class="s5">&amp;#xA0;</span>
+		 <span class="s0">&lt;axsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;$archiveNameParameter&quot;</span><span class="s0">/&gt; </span><span class="s5">&amp;#xA0;</span>
+		 <span class="s0">&lt;axsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;$fileNameParameter&quot;</span><span class="s0">/&gt; </span><span class="s5">&amp;#xA0;</span>
+		 <span class="s0">&lt;axsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;$fileDirParameter&quot;</span><span class="s0">/&gt;&lt;/axsl:comment&gt; </span>
+		 
+		
+		<span class="s0">&lt;xsl:apply-templates </span><span class="s1">mode</span><span class="s2">=&quot;do-schema-p&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;xsl:copy-of </span><span class="s1">select</span><span class="s2">=&quot;$contents&quot; </span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;/svrl:schematron-output&gt;</span>
+<span class="s0">&lt;/xsl:template&gt;</span>
+
+
+<span class="s0">&lt;xsl:template </span><span class="s1">name</span><span class="s2">=&quot;process-assert&quot;</span><span class="s0">&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;test&quot;</span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;diagnostics&quot; </span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;id&quot; </span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;flag&quot; </span><span class="s0">/&gt;</span>
+	<span class="s4">&lt;!-- &quot;Linkable&quot; parameters --&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;role&quot;</span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;subject&quot;</span><span class="s0">/&gt;</span>
+	<span class="s4">&lt;!-- &quot;Rich&quot; parameters --&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;fpi&quot; </span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;icon&quot; </span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;lang&quot; </span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;see&quot; </span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;space&quot; </span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;svrl:failed-assert </span><span class="s1">test</span><span class="s2">=&quot;{$test}&quot; </span><span class="s0">&gt;</span>
+		<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;string-length( $id ) </span><span class="s5">&amp;gt; </span><span class="s2">0&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;axsl:attribute </span><span class="s1">name</span><span class="s2">=&quot;id&quot;</span><span class="s0">&gt;</span>
+				<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot; $id &quot; </span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;/axsl:attribute&gt;</span>
+		<span class="s0">&lt;/xsl:if&gt;</span>
+		<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot; string-length( $flag ) </span><span class="s5">&amp;gt; </span><span class="s2">0&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;axsl:attribute </span><span class="s1">name</span><span class="s2">=&quot;flag&quot;</span><span class="s0">&gt;</span>
+				<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot; $flag &quot; </span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;/axsl:attribute&gt;</span>
+		<span class="s0">&lt;/xsl:if&gt;</span>
+		<span class="s4">&lt;!-- Process rich attributes.  --&gt;</span>
+		<span class="s0">&lt;xsl:call-template </span><span class="s1">name</span><span class="s2">=&quot;richParms&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;fpi&quot; </span><span class="s1">select</span><span class="s2">=&quot;$fpi&quot;</span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;icon&quot; </span><span class="s1">select</span><span class="s2">=&quot;$icon&quot;</span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;lang&quot; </span><span class="s1">select</span><span class="s2">=&quot;$lang&quot;</span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;see&quot; </span><span class="s1">select</span><span class="s2">=&quot;$see&quot; </span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;space&quot; </span><span class="s1">select</span><span class="s2">=&quot;$space&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;/xsl:call-template&gt;</span>
+		<span class="s0">&lt;xsl:call-template </span><span class="s1">name</span><span class="s2">='linkableParms'</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;role&quot; </span><span class="s1">select</span><span class="s2">=&quot;$role&quot; </span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;subject&quot; </span><span class="s1">select</span><span class="s2">=&quot;$subject&quot;</span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;/xsl:call-template&gt;</span>
+		<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot; $generate-paths = 'true' or $generate-paths= 'yes' &quot;</span><span class="s0">&gt;</span>
+			<span class="s4">&lt;!-- true/false is the new way --&gt;</span>
+			<span class="s0">&lt;axsl:attribute </span><span class="s1">name</span><span class="s2">=&quot;location&quot;</span><span class="s0">&gt;</span>
+				<span class="s0">&lt;axsl:apply-templates </span><span class="s1">select</span><span class="s2">=&quot;.&quot; </span><span class="s1">mode</span><span class="s2">=&quot;schematron-get-full-path&quot;</span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;/axsl:attribute&gt;</span>
+		<span class="s0">&lt;/xsl:if&gt;</span>
+		  
+		<span class="s0">&lt;svrl:text&gt;</span>
+			<span class="s0">&lt;xsl:apply-templates </span><span class="s1">mode</span><span class="s2">=&quot;text&quot; </span><span class="s0">/&gt;</span>
+	
+		<span class="s0">&lt;/svrl:text&gt;</span>
+		    <span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;$diagnose = 'yes' or $diagnose= 'true' &quot;</span><span class="s0">&gt;</span>
+			<span class="s4">&lt;!-- true/false is the new way --&gt;</span>
+				<span class="s0">&lt;xsl:call-template </span><span class="s1">name</span><span class="s2">=&quot;diagnosticsSplit&quot;</span><span class="s0">&gt;</span>
+					<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;str&quot; </span><span class="s1">select</span><span class="s2">=&quot;$diagnostics&quot;</span><span class="s0">/&gt;</span>
+				<span class="s0">&lt;/xsl:call-template&gt;</span>
+			<span class="s0">&lt;/xsl:if&gt;</span>
+	<span class="s0">&lt;/svrl:failed-assert&gt;</span>
+<span class="s0">&lt;/xsl:template&gt;</span>
+
+<span class="s0">&lt;xsl:template </span><span class="s1">name</span><span class="s2">=&quot;process-report&quot;</span><span class="s0">&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;id&quot;</span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;test&quot;</span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;diagnostics&quot;</span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;flag&quot; </span><span class="s0">/&gt;</span>
+	<span class="s4">&lt;!-- &quot;Linkable&quot; parameters --&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;role&quot;</span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;subject&quot;</span><span class="s0">/&gt;</span>
+	<span class="s4">&lt;!-- &quot;Rich&quot; parameters --&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;fpi&quot; </span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;icon&quot; </span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;lang&quot; </span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;see&quot; </span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;space&quot; </span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;svrl:successful-report </span><span class="s1">test</span><span class="s2">=&quot;{$test}&quot; </span><span class="s0">&gt;</span>
+		<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot; string-length( $id ) </span><span class="s5">&amp;gt; </span><span class="s2">0&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;axsl:attribute </span><span class="s1">name</span><span class="s2">=&quot;id&quot;</span><span class="s0">&gt;</span>
+				<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot; $id &quot; </span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;/axsl:attribute&gt;</span>
+		<span class="s0">&lt;/xsl:if&gt;</span>
+		<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot; string-length( $flag ) </span><span class="s5">&amp;gt; </span><span class="s2">0&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;axsl:attribute </span><span class="s1">name</span><span class="s2">=&quot;flag&quot;</span><span class="s0">&gt;</span>
+				<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot; $flag &quot; </span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;/axsl:attribute&gt;</span>
+		<span class="s0">&lt;/xsl:if&gt;</span>
+		
+		<span class="s4">&lt;!-- Process rich attributes.  --&gt;</span>
+		<span class="s0">&lt;xsl:call-template </span><span class="s1">name</span><span class="s2">=&quot;richParms&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;fpi&quot; </span><span class="s1">select</span><span class="s2">=&quot;$fpi&quot;</span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;icon&quot; </span><span class="s1">select</span><span class="s2">=&quot;$icon&quot;</span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;lang&quot; </span><span class="s1">select</span><span class="s2">=&quot;$lang&quot;</span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;see&quot; </span><span class="s1">select</span><span class="s2">=&quot;$see&quot; </span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;space&quot; </span><span class="s1">select</span><span class="s2">=&quot;$space&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;/xsl:call-template&gt;</span>
+		<span class="s0">&lt;xsl:call-template </span><span class="s1">name</span><span class="s2">='linkableParms'</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;role&quot; </span><span class="s1">select</span><span class="s2">=&quot;$role&quot; </span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;subject&quot; </span><span class="s1">select</span><span class="s2">=&quot;$subject&quot;</span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;/xsl:call-template&gt;</span>
+		<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot; $generate-paths = 'yes' or $generate-paths = 'true' &quot;</span><span class="s0">&gt;</span>
+			<span class="s4">&lt;!-- true/false is the new way --&gt;</span>
+			<span class="s0">&lt;axsl:attribute </span><span class="s1">name</span><span class="s2">=&quot;location&quot;</span><span class="s0">&gt;</span>
+				<span class="s0">&lt;axsl:apply-templates </span><span class="s1">select</span><span class="s2">=&quot;.&quot; </span><span class="s1">mode</span><span class="s2">=&quot;schematron-get-full-path&quot;</span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;/axsl:attribute&gt;</span>
+		<span class="s0">&lt;/xsl:if&gt;</span>
+	 
+		<span class="s0">&lt;svrl:text&gt;</span>
+			<span class="s0">&lt;xsl:apply-templates </span><span class="s1">mode</span><span class="s2">=&quot;text&quot; </span><span class="s0">/&gt;</span>
+
+		<span class="s0">&lt;/svrl:text&gt;</span>
+			<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;$diagnose = 'yes' or $diagnose='true' &quot;</span><span class="s0">&gt;</span>
+			<span class="s4">&lt;!-- true/false is the new way --&gt;</span>
+				<span class="s0">&lt;xsl:call-template </span><span class="s1">name</span><span class="s2">=&quot;diagnosticsSplit&quot;</span><span class="s0">&gt;</span>
+					<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;str&quot; </span><span class="s1">select</span><span class="s2">=&quot;$diagnostics&quot;</span><span class="s0">/&gt;</span>
+				<span class="s0">&lt;/xsl:call-template&gt;</span>
+			<span class="s0">&lt;/xsl:if&gt;</span>
+	<span class="s0">&lt;/svrl:successful-report&gt;</span>
+<span class="s0">&lt;/xsl:template&gt;</span>
+
+
+    <span class="s4">&lt;!-- Overrides skeleton --&gt;</span>
+	<span class="s0">&lt;xsl:template </span><span class="s1">name</span><span class="s2">=&quot;process-dir&quot; </span><span class="s0">&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;value&quot; </span><span class="s0">/&gt;</span>
+        <span class="s0">&lt;xsl:choose&gt;</span>
+        	<span class="s0">&lt;xsl:when </span><span class="s1">test</span><span class="s2">=&quot; $allow-foreign = 'true'&quot;</span><span class="s0">&gt;</span>
+        		<span class="s0">&lt;xsl:copy-of </span><span class="s1">select</span><span class="s2">=&quot;.&quot;</span><span class="s0">/&gt;</span>
+        	<span class="s0">&lt;/xsl:when&gt;</span>
+       
+        <span class="s0">&lt;xsl:otherwise&gt;</span>
+	    <span class="s4">&lt;!-- We generate too much whitespace rather than risking concatenation --&gt;</span>
+		<span class="s0">&lt;axsl:text&gt; &lt;/axsl:text&gt;</span>
+		<span class="s0">&lt;xsl:apply-templates </span><span class="s1">mode</span><span class="s2">=&quot;inline-text&quot;</span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;axsl:text&gt; &lt;/axsl:text&gt;</span>
+		<span class="s0">&lt;/xsl:otherwise&gt;</span>
+		 <span class="s0">&lt;/xsl:choose&gt;		</span>
+	<span class="s0">&lt;/xsl:template&gt;</span>
+
+<span class="s0">&lt;xsl:template </span><span class="s1">name</span><span class="s2">=&quot;process-diagnostic&quot;</span><span class="s0">&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;id&quot;</span><span class="s0">/&gt;</span>
+	<span class="s4">&lt;!-- Rich parameters --&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;fpi&quot; </span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;icon&quot; </span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;lang&quot; </span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;see&quot; </span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;space&quot; </span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;svrl:diagnostic-reference </span><span class="s1">diagnostic</span><span class="s2">=&quot;{$id}&quot; </span><span class="s0">&gt;</span>
+	  
+		<span class="s0">&lt;xsl:call-template </span><span class="s1">name</span><span class="s2">=&quot;richParms&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;fpi&quot; </span><span class="s1">select</span><span class="s2">=&quot;$fpi&quot;</span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;icon&quot; </span><span class="s1">select</span><span class="s2">=&quot;$icon&quot;</span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;lang&quot; </span><span class="s1">select</span><span class="s2">=&quot;$lang&quot;</span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;see&quot; </span><span class="s1">select</span><span class="s2">=&quot;$see&quot; </span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;space&quot; </span><span class="s1">select</span><span class="s2">=&quot;$space&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;/xsl:call-template&gt; </span>
+<span class="s0">&lt;xsl:text&gt;</span>
+<span class="s0">&lt;/xsl:text&gt;</span>
+ 
+		<span class="s0">&lt;xsl:apply-templates </span><span class="s1">mode</span><span class="s2">=&quot;text&quot;</span><span class="s0">/&gt;</span>
+		 
+	<span class="s0">&lt;/svrl:diagnostic-reference&gt;</span>
+<span class="s0">&lt;/xsl:template&gt;</span>
+
+
+    <span class="s4">&lt;!-- Overrides skeleton --&gt;</span>
+	<span class="s0">&lt;xsl:template </span><span class="s1">name</span><span class="s2">=&quot;process-emph&quot; </span><span class="s0">&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;class&quot; </span><span class="s0">/&gt;</span>
+        <span class="s0">&lt;xsl:choose&gt;</span>
+        	<span class="s0">&lt;xsl:when </span><span class="s1">test</span><span class="s2">=&quot; $allow-foreign = 'true'&quot;</span><span class="s0">&gt;</span>
+        		<span class="s0">&lt;xsl:copy-of </span><span class="s1">select</span><span class="s2">=&quot;.&quot;</span><span class="s0">/&gt;</span>
+        	<span class="s0">&lt;/xsl:when&gt; </span>
+        <span class="s0">&lt;xsl:otherwise&gt;</span>
+	    <span class="s4">&lt;!-- We generate too much whitespace rather than risking concatenation --&gt;</span>
+		<span class="s0">&lt;axsl:text&gt; &lt;/axsl:text&gt;</span>
+		<span class="s0">&lt;xsl:apply-templates </span><span class="s1">mode</span><span class="s2">=&quot;inline-text&quot;</span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;axsl:text&gt; &lt;/axsl:text&gt;</span>
+		<span class="s0">&lt;/xsl:otherwise&gt;</span>
+	 	<span class="s0">&lt;/xsl:choose&gt;	</span>
+	<span class="s0">&lt;/xsl:template&gt;</span>
+
+<span class="s0">&lt;xsl:template </span><span class="s1">name</span><span class="s2">=&quot;process-rule&quot;</span><span class="s0">&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;id&quot;</span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;context&quot;</span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;flag&quot;</span><span class="s0">/&gt;</span>
+	<span class="s4">&lt;!-- &quot;Linkable&quot; parameters --&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;role&quot;</span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;subject&quot;</span><span class="s0">/&gt;</span>
+	<span class="s4">&lt;!-- &quot;Rich&quot; parameters --&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;fpi&quot; </span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;icon&quot; </span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;lang&quot; </span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;see&quot; </span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;space&quot; </span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot; $generate-fired-rule = 'true'&quot;</span><span class="s0">&gt;</span>
+	<span class="s0">&lt;svrl:fired-rule </span><span class="s1">context</span><span class="s2">=&quot;{$context}&quot; </span><span class="s0">&gt;</span>
+		<span class="s4">&lt;!-- Process rich attributes.  --&gt;</span>
+		<span class="s0">&lt;xsl:call-template </span><span class="s1">name</span><span class="s2">=&quot;richParms&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;fpi&quot; </span><span class="s1">select</span><span class="s2">=&quot;$fpi&quot;</span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;icon&quot; </span><span class="s1">select</span><span class="s2">=&quot;$icon&quot;</span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;lang&quot; </span><span class="s1">select</span><span class="s2">=&quot;$lang&quot;</span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;see&quot; </span><span class="s1">select</span><span class="s2">=&quot;$see&quot; </span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;space&quot; </span><span class="s1">select</span><span class="s2">=&quot;$space&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;/xsl:call-template&gt;</span>
+		<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot; string( $id )&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;xsl:attribute </span><span class="s1">name</span><span class="s2">=&quot;id&quot;</span><span class="s0">&gt;</span>
+				<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot; $id &quot; </span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;/xsl:attribute&gt;</span>
+		<span class="s0">&lt;/xsl:if&gt;</span>
+		<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot; string-length( $role ) </span><span class="s5">&amp;gt; </span><span class="s2">0&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;xsl:attribute </span><span class="s1">name</span><span class="s2">=&quot;role&quot;</span><span class="s0">&gt;</span>
+				<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot; $role &quot; </span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;/xsl:attribute&gt;</span>
+		<span class="s0">&lt;/xsl:if&gt; </span>
+	<span class="s0">&lt;/svrl:fired-rule&gt;</span>
+<span class="s0">&lt;/xsl:if&gt;</span>
+<span class="s0">&lt;/xsl:template&gt;</span>
+
+<span class="s0">&lt;xsl:template </span><span class="s1">name</span><span class="s2">=&quot;process-ns&quot;</span><span class="s0">&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;prefix&quot;</span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;uri&quot;</span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;svrl:ns-prefix-in-attribute-values </span><span class="s1">uri</span><span class="s2">=&quot;{$uri}&quot; </span><span class="s1">prefix</span><span class="s2">=&quot;{$prefix}&quot; </span><span class="s0">/&gt;</span>
+<span class="s0">&lt;/xsl:template&gt;</span>
+
+<span class="s0">&lt;xsl:template </span><span class="s1">name</span><span class="s2">=&quot;process-p&quot;</span><span class="s0">&gt; </span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;icon&quot;</span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;class&quot;</span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;id&quot;</span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;lang&quot;</span><span class="s0">/&gt;</span>
+	 
+	<span class="s0">&lt;svrl:text&gt; </span>
+		<span class="s0">&lt;xsl:apply-templates </span><span class="s1">mode</span><span class="s2">=&quot;text&quot;</span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;/svrl:text&gt;</span>
+<span class="s0">&lt;/xsl:template&gt;</span>
+
+<span class="s0">&lt;xsl:template </span><span class="s1">name</span><span class="s2">=&quot;process-pattern&quot;</span><span class="s0">&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;name&quot;</span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;id&quot;</span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;is-a&quot;</span><span class="s0">/&gt;</span>
+	
+	<span class="s4">&lt;!-- &quot;Rich&quot; parameters --&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;fpi&quot; </span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;icon&quot; </span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;lang&quot; </span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;see&quot; </span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;space&quot; </span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;svrl:active-pattern &gt; </span>
+		<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot; string( $id )&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;axsl:attribute </span><span class="s1">name</span><span class="s2">=&quot;id&quot;</span><span class="s0">&gt;</span>
+				<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot; $id &quot; </span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;/axsl:attribute&gt;</span>
+		<span class="s0">&lt;/xsl:if&gt;</span>
+		<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot; string( $name )&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;axsl:attribute </span><span class="s1">name</span><span class="s2">=&quot;name&quot;</span><span class="s0">&gt;</span>
+				<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot; $name &quot; </span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;/axsl:attribute&gt;</span>
+		<span class="s0">&lt;/xsl:if&gt; </span>
+		 
+		<span class="s0">&lt;xsl:call-template </span><span class="s1">name</span><span class="s2">='richParms'</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;fpi&quot; </span><span class="s1">select</span><span class="s2">=&quot;$fpi&quot;</span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;icon&quot; </span><span class="s1">select</span><span class="s2">=&quot;$icon&quot;</span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;lang&quot; </span><span class="s1">select</span><span class="s2">=&quot;$lang&quot;</span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;see&quot; </span><span class="s1">select</span><span class="s2">=&quot;$see&quot; </span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;space&quot; </span><span class="s1">select</span><span class="s2">=&quot;$space&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;/xsl:call-template&gt;</span>
+		
+		<span class="s4">&lt;!-- ?? report that this screws up iso:title processing  --&gt;</span>
+		<span class="s0">&lt;xsl:apply-templates </span><span class="s1">mode</span><span class="s2">=&quot;do-pattern-p&quot;</span><span class="s0">/&gt;</span>
+		<span class="s4">&lt;!-- ?? Seems that this apply-templates is never triggered DP --&gt;</span>
+		<span class="s0">&lt;axsl:apply-templates /&gt;</span>
+	<span class="s0">&lt;/svrl:active-pattern&gt;</span>
+<span class="s0">&lt;/xsl:template&gt;</span>
+
+<span class="s4">&lt;!-- Overrides skeleton --&gt;</span>
+<span class="s0">&lt;xsl:template </span><span class="s1">name</span><span class="s2">=&quot;process-message&quot; </span><span class="s0">&gt; </span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;pattern&quot;</span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;role&quot;</span><span class="s0">/&gt;</span>
+<span class="s0">&lt;/xsl:template&gt;</span>
+
+
+    <span class="s4">&lt;!-- Overrides skeleton --&gt;</span>
+	<span class="s0">&lt;xsl:template </span><span class="s1">name</span><span class="s2">=&quot;process-span&quot; </span><span class="s0">&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;class&quot; </span><span class="s0">/&gt;</span>
+        <span class="s0">&lt;xsl:choose&gt;</span>
+        	<span class="s0">&lt;xsl:when </span><span class="s1">test</span><span class="s2">=&quot; $allow-foreign = 'true'&quot;</span><span class="s0">&gt;</span>
+        		<span class="s0">&lt;xsl:copy-of </span><span class="s1">select</span><span class="s2">=&quot;.&quot;</span><span class="s0">/&gt;</span>
+        	<span class="s0">&lt;/xsl:when&gt; </span>
+        <span class="s0">&lt;xsl:otherwise&gt;</span>
+	    <span class="s4">&lt;!-- We generate too much whitespace rather than risking concatenation --&gt;</span>
+		<span class="s0">&lt;axsl:text&gt; &lt;/axsl:text&gt;</span>
+		<span class="s0">&lt;xsl:apply-templates </span><span class="s1">mode</span><span class="s2">=&quot;inline-text&quot;</span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;axsl:text&gt; &lt;/axsl:text&gt;</span>
+		<span class="s0">&lt;/xsl:otherwise&gt;</span>
+	 	<span class="s0">&lt;/xsl:choose&gt;	</span>
+	<span class="s0">&lt;/xsl:template&gt;</span>
+
+<span class="s4">&lt;!-- =========================================================================== --&gt;</span>
+<span class="s4">&lt;!-- processing rich parameters. --&gt;</span>
+<span class="s0">&lt;xsl:template </span><span class="s1">name</span><span class="s2">='richParms'</span><span class="s0">&gt;</span>
+	<span class="s4">&lt;!-- &quot;Rich&quot; parameters --&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;fpi&quot; </span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;icon&quot; </span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;lang&quot; </span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;see&quot; </span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;space&quot; </span><span class="s0">/&gt;</span>
+	<span class="s4">&lt;!-- Process rich attributes.  --&gt;</span>
+	<span class="s0">&lt;xsl:if  </span><span class="s1">test</span><span class="s2">=&quot; $allow-foreign = 'true'&quot;</span><span class="s0">&gt;</span>
+	<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;string($fpi)&quot;</span><span class="s0">&gt; </span>
+		<span class="s0">&lt;axsl:attribute </span><span class="s1">name</span><span class="s2">=&quot;fpi&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;$fpi&quot;</span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;/axsl:attribute&gt;</span>
+	<span class="s0">&lt;/xsl:if&gt;</span>
+	<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;string($icon)&quot;</span><span class="s0">&gt; </span>
+		<span class="s0">&lt;axsl:attribute </span><span class="s1">name</span><span class="s2">=&quot;icon&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;$icon&quot;</span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;/axsl:attribute&gt;</span>
+	<span class="s0">&lt;/xsl:if&gt;</span>
+	<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;string($see)&quot;</span><span class="s0">&gt; </span>
+		<span class="s0">&lt;axsl:attribute </span><span class="s1">name</span><span class="s2">=&quot;see&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;$see&quot;</span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;/axsl:attribute&gt;</span>
+	<span class="s0">&lt;/xsl:if&gt;</span>
+	<span class="s0">&lt;/xsl:if&gt;</span>
+	<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;string($space)&quot;</span><span class="s0">&gt;</span>
+		<span class="s0">&lt;axsl:attribute </span><span class="s1">name</span><span class="s2">=&quot;xml:space&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;$space&quot;</span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;/axsl:attribute&gt;</span>
+	<span class="s0">&lt;/xsl:if&gt;</span>
+	<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;string($lang)&quot;</span><span class="s0">&gt;</span>
+		<span class="s0">&lt;axsl:attribute </span><span class="s1">name</span><span class="s2">=&quot;xml:lang&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;$lang&quot;</span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;/axsl:attribute&gt;</span>
+	<span class="s0">&lt;/xsl:if&gt;</span>
+<span class="s0">&lt;/xsl:template&gt;</span>
+
+<span class="s4">&lt;!-- processing linkable parameters. --&gt;</span>
+<span class="s0">&lt;xsl:template </span><span class="s1">name</span><span class="s2">='linkableParms'</span><span class="s0">&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;role&quot;</span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;subject&quot;</span><span class="s0">/&gt;</span>
+	
+	<span class="s4">&lt;!-- ISO SVRL has a role attribute to match the Schematron role attribute --&gt;</span>
+	<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot; string($role )&quot;</span><span class="s0">&gt;</span>
+		<span class="s0">&lt;axsl:attribute </span><span class="s1">name</span><span class="s2">=&quot;role&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot; $role &quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;/axsl:attribute&gt;</span>
+	<span class="s0">&lt;/xsl:if&gt;</span>
+	<span class="s4">&lt;!-- ISO SVRL does not have a subject attribute to match the Schematron subject attribute. 
+       Instead, the Schematron subject attribute is folded into the location attribute --&gt;</span>
+<span class="s0">&lt;/xsl:template&gt;</span>
+   
+
+<span class="s0">&lt;/xsl:stylesheet&gt;</span>
+
+</pre>
+</body>
+</html>

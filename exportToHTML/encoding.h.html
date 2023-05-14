@@ -1,0 +1,261 @@
+<html>
+<head>
+<title>encoding.h</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+.s4 { color: #6897bb;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+encoding.h</font>
+</center></td></tr></table>
+<pre><span class="s0">/* 
+ * Summary: interface for the encoding conversion functions 
+ * Description: interface for the encoding conversion functions needed for 
+ *              XML basic encoding and iconv() support. 
+ * 
+ * Related specs are 
+ * rfc2044        (UTF-8 and UTF-16) F. Yergeau Alis Technologies 
+ * [ISO-10646]    UTF-8 and UTF-16 in Annexes 
+ * [ISO-8859-1]   ISO Latin-1 characters codes. 
+ * [UNICODE]      The Unicode Consortium, &quot;The Unicode Standard -- 
+ *                Worldwide Character Encoding -- Version 1.0&quot;, Addison- 
+ *                Wesley, Volume 1, 1991, Volume 2, 1992.  UTF-8 is 
+ *                described in Unicode Technical Report #4. 
+ * [US-ASCII]     Coded Character Set--7-bit American Standard Code for 
+ *                Information Interchange, ANSI X3.4-1986. 
+ * 
+ * Copy: See Copyright for the status of this software. 
+ * 
+ * Author: Daniel Veillard 
+ */</span>
+
+<span class="s2">#ifndef </span><span class="s1">__XML_CHAR_ENCODING_H__</span>
+<span class="s2">#define </span><span class="s1">__XML_CHAR_ENCODING_H__</span>
+
+<span class="s2">#include </span><span class="s1">&lt;libxml/xmlversion.h&gt;</span>
+
+<span class="s2">#ifdef </span><span class="s1">LIBXML_ICONV_ENABLED</span>
+<span class="s2">#include </span><span class="s1">&lt;iconv.h&gt;</span>
+<span class="s2">#endif</span>
+<span class="s2">#ifdef </span><span class="s1">LIBXML_ICU_ENABLED</span>
+<span class="s2">#include </span><span class="s1">&lt;unicode/ucnv.h&gt;</span>
+<span class="s2">#endif</span>
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s2">extern </span><span class="s3">&quot;C&quot; </span><span class="s1">{</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/* 
+ * xmlCharEncoding: 
+ * 
+ * Predefined values for some standard encodings. 
+ * Libxml does not do beforehand translation on UTF8 and ISOLatinX. 
+ * It also supports ASCII, ISO-8859-1, and UTF16 (LE and BE) by default. 
+ * 
+ * Anything else would have to be translated to UTF8 before being 
+ * given to the parser itself. The BOM for UTF16 and the encoding 
+ * declaration are looked at and a converter is looked for at that 
+ * point. If not found the parser stops here as asked by the XML REC. A 
+ * converter can be registered by the user using xmlRegisterCharEncodingHandler 
+ * but the current form doesn't allow stateful transcoding (a serious 
+ * problem agreed !). If iconv has been found it will be used 
+ * automatically and allow stateful transcoding, the simplest is then 
+ * to be sure to enable iconv and to provide iconv libs for the encoding 
+ * support needed. 
+ * 
+ * Note that the generic &quot;UTF-16&quot; is not a predefined value.  Instead, only 
+ * the specific UTF-16LE and UTF-16BE are present. 
+ */</span>
+<span class="s2">typedef enum </span><span class="s1">{</span>
+    <span class="s1">XML_CHAR_ENCODING_ERROR=   -</span><span class="s4">1</span><span class="s1">, </span><span class="s0">/* No char encoding detected */</span>
+    <span class="s1">XML_CHAR_ENCODING_NONE=	</span><span class="s4">0</span><span class="s1">, </span><span class="s0">/* No char encoding detected */</span>
+    <span class="s1">XML_CHAR_ENCODING_UTF8=	</span><span class="s4">1</span><span class="s1">, </span><span class="s0">/* UTF-8 */</span>
+    <span class="s1">XML_CHAR_ENCODING_UTF16LE=	</span><span class="s4">2</span><span class="s1">, </span><span class="s0">/* UTF-16 little endian */</span>
+    <span class="s1">XML_CHAR_ENCODING_UTF16BE=	</span><span class="s4">3</span><span class="s1">, </span><span class="s0">/* UTF-16 big endian */</span>
+    <span class="s1">XML_CHAR_ENCODING_UCS4LE=	</span><span class="s4">4</span><span class="s1">, </span><span class="s0">/* UCS-4 little endian */</span>
+    <span class="s1">XML_CHAR_ENCODING_UCS4BE=	</span><span class="s4">5</span><span class="s1">, </span><span class="s0">/* UCS-4 big endian */</span>
+    <span class="s1">XML_CHAR_ENCODING_EBCDIC=	</span><span class="s4">6</span><span class="s1">, </span><span class="s0">/* EBCDIC uh! */</span>
+    <span class="s1">XML_CHAR_ENCODING_UCS4_2143=</span><span class="s4">7</span><span class="s1">, </span><span class="s0">/* UCS-4 unusual ordering */</span>
+    <span class="s1">XML_CHAR_ENCODING_UCS4_3412=</span><span class="s4">8</span><span class="s1">, </span><span class="s0">/* UCS-4 unusual ordering */</span>
+    <span class="s1">XML_CHAR_ENCODING_UCS2=	</span><span class="s4">9</span><span class="s1">, </span><span class="s0">/* UCS-2 */</span>
+    <span class="s1">XML_CHAR_ENCODING_8859_1=	</span><span class="s4">10</span><span class="s1">,</span><span class="s0">/* ISO-8859-1 ISO Latin 1 */</span>
+    <span class="s1">XML_CHAR_ENCODING_8859_2=	</span><span class="s4">11</span><span class="s1">,</span><span class="s0">/* ISO-8859-2 ISO Latin 2 */</span>
+    <span class="s1">XML_CHAR_ENCODING_8859_3=	</span><span class="s4">12</span><span class="s1">,</span><span class="s0">/* ISO-8859-3 */</span>
+    <span class="s1">XML_CHAR_ENCODING_8859_4=	</span><span class="s4">13</span><span class="s1">,</span><span class="s0">/* ISO-8859-4 */</span>
+    <span class="s1">XML_CHAR_ENCODING_8859_5=	</span><span class="s4">14</span><span class="s1">,</span><span class="s0">/* ISO-8859-5 */</span>
+    <span class="s1">XML_CHAR_ENCODING_8859_6=	</span><span class="s4">15</span><span class="s1">,</span><span class="s0">/* ISO-8859-6 */</span>
+    <span class="s1">XML_CHAR_ENCODING_8859_7=	</span><span class="s4">16</span><span class="s1">,</span><span class="s0">/* ISO-8859-7 */</span>
+    <span class="s1">XML_CHAR_ENCODING_8859_8=	</span><span class="s4">17</span><span class="s1">,</span><span class="s0">/* ISO-8859-8 */</span>
+    <span class="s1">XML_CHAR_ENCODING_8859_9=	</span><span class="s4">18</span><span class="s1">,</span><span class="s0">/* ISO-8859-9 */</span>
+    <span class="s1">XML_CHAR_ENCODING_2022_JP=  </span><span class="s4">19</span><span class="s1">,</span><span class="s0">/* ISO-2022-JP */</span>
+    <span class="s1">XML_CHAR_ENCODING_SHIFT_JIS=</span><span class="s4">20</span><span class="s1">,</span><span class="s0">/* Shift_JIS */</span>
+    <span class="s1">XML_CHAR_ENCODING_EUC_JP=   </span><span class="s4">21</span><span class="s1">,</span><span class="s0">/* EUC-JP */</span>
+    <span class="s1">XML_CHAR_ENCODING_ASCII=    </span><span class="s4">22 </span><span class="s0">/* pure ASCII */</span>
+<span class="s1">} xmlCharEncoding;</span>
+
+<span class="s0">/** 
+ * xmlCharEncodingInputFunc: 
+ * @out:  a pointer to an array of bytes to store the UTF-8 result 
+ * @outlen:  the length of @out 
+ * @in:  a pointer to an array of chars in the original encoding 
+ * @inlen:  the length of @in 
+ * 
+ * Take a block of chars in the original encoding and try to convert 
+ * it to an UTF-8 block of chars out. 
+ * 
+ * Returns the number of bytes written, -1 if lack of space, or -2 
+ *     if the transcoding failed. 
+ * The value of @inlen after return is the number of octets consumed 
+ *     if the return value is positive, else unpredictiable. 
+ * The value of @outlen after return is the number of octets consumed. 
+ */</span>
+<span class="s2">typedef int </span><span class="s1">(* xmlCharEncodingInputFunc)(</span><span class="s2">unsigned char </span><span class="s1">*out, </span><span class="s2">int </span><span class="s1">*outlen,</span>
+                                         <span class="s2">const unsigned char </span><span class="s1">*in, </span><span class="s2">int </span><span class="s1">*inlen);</span>
+
+
+<span class="s0">/** 
+ * xmlCharEncodingOutputFunc: 
+ * @out:  a pointer to an array of bytes to store the result 
+ * @outlen:  the length of @out 
+ * @in:  a pointer to an array of UTF-8 chars 
+ * @inlen:  the length of @in 
+ * 
+ * Take a block of UTF-8 chars in and try to convert it to another 
+ * encoding. 
+ * Note: a first call designed to produce heading info is called with 
+ * in = NULL. If stateful this should also initialize the encoder state. 
+ * 
+ * Returns the number of bytes written, -1 if lack of space, or -2 
+ *     if the transcoding failed. 
+ * The value of @inlen after return is the number of octets consumed 
+ *     if the return value is positive, else unpredictiable. 
+ * The value of @outlen after return is the number of octets produced. 
+ */</span>
+<span class="s2">typedef int </span><span class="s1">(* xmlCharEncodingOutputFunc)(</span><span class="s2">unsigned char </span><span class="s1">*out, </span><span class="s2">int </span><span class="s1">*outlen,</span>
+                                          <span class="s2">const unsigned char </span><span class="s1">*in, </span><span class="s2">int </span><span class="s1">*inlen);</span>
+
+
+<span class="s0">/* 
+ * Block defining the handlers for non UTF-8 encodings. 
+ * If iconv is supported, there are two extra fields. 
+ */</span>
+<span class="s2">#ifdef </span><span class="s1">LIBXML_ICU_ENABLED</span>
+<span class="s2">struct </span><span class="s1">_uconv_t {</span>
+  <span class="s1">UConverter *uconv; </span><span class="s0">/* for conversion between an encoding and UTF-16 */</span>
+  <span class="s1">UConverter *utf8; </span><span class="s0">/* for conversion between UTF-8 and UTF-16 */</span>
+<span class="s1">};</span>
+<span class="s2">typedef struct </span><span class="s1">_uconv_t uconv_t;</span>
+<span class="s2">#endif</span>
+
+<span class="s2">typedef struct </span><span class="s1">_xmlCharEncodingHandler xmlCharEncodingHandler;</span>
+<span class="s2">typedef </span><span class="s1">xmlCharEncodingHandler *xmlCharEncodingHandlerPtr;</span>
+<span class="s2">struct </span><span class="s1">_xmlCharEncodingHandler {</span>
+    <span class="s2">char                       </span><span class="s1">*name;</span>
+    <span class="s1">xmlCharEncodingInputFunc   input;</span>
+    <span class="s1">xmlCharEncodingOutputFunc  output;</span>
+<span class="s2">#ifdef </span><span class="s1">LIBXML_ICONV_ENABLED</span>
+    <span class="s1">iconv_t                    iconv_in;</span>
+    <span class="s1">iconv_t                    iconv_out;</span>
+<span class="s2">#endif </span><span class="s0">/* LIBXML_ICONV_ENABLED */</span>
+<span class="s2">#ifdef </span><span class="s1">LIBXML_ICU_ENABLED</span>
+    <span class="s1">uconv_t                    *uconv_in;</span>
+    <span class="s1">uconv_t                    *uconv_out;</span>
+<span class="s2">#endif </span><span class="s0">/* LIBXML_ICU_ENABLED */</span>
+<span class="s1">};</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s1">}</span>
+<span class="s2">#endif</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/tree.h&gt;</span>
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s2">extern </span><span class="s3">&quot;C&quot; </span><span class="s1">{</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/* 
+ * Interfaces for encoding handlers. 
+ */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlInitCharEncodingHandlers	(</span><span class="s2">void</span><span class="s1">);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlCleanupCharEncodingHandlers	(</span><span class="s2">void</span><span class="s1">);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlRegisterCharEncodingHandler	(xmlCharEncodingHandlerPtr handler);</span>
+<span class="s1">XMLPUBFUN xmlCharEncodingHandlerPtr XMLCALL</span>
+	<span class="s1">xmlGetCharEncodingHandler	(xmlCharEncoding enc);</span>
+<span class="s1">XMLPUBFUN xmlCharEncodingHandlerPtr XMLCALL</span>
+	<span class="s1">xmlFindCharEncodingHandler	(</span><span class="s2">const char </span><span class="s1">*name);</span>
+<span class="s1">XMLPUBFUN xmlCharEncodingHandlerPtr XMLCALL</span>
+	<span class="s1">xmlNewCharEncodingHandler	(</span><span class="s2">const char </span><span class="s1">*name,</span>
+					 <span class="s1">xmlCharEncodingInputFunc input,</span>
+					 <span class="s1">xmlCharEncodingOutputFunc output);</span>
+
+<span class="s0">/* 
+ * Interfaces for encoding names and aliases. 
+ */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlAddEncodingAlias		(</span><span class="s2">const char </span><span class="s1">*name,</span>
+					 <span class="s2">const char </span><span class="s1">*alias);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlDelEncodingAlias		(</span><span class="s2">const char </span><span class="s1">*alias);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">const char </span><span class="s1">* XMLCALL</span>
+	<span class="s1">xmlGetEncodingAlias		(</span><span class="s2">const char </span><span class="s1">*alias);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlCleanupEncodingAliases	(</span><span class="s2">void</span><span class="s1">);</span>
+<span class="s1">XMLPUBFUN xmlCharEncoding XMLCALL</span>
+	<span class="s1">xmlParseCharEncoding		(</span><span class="s2">const char </span><span class="s1">*name);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">const char </span><span class="s1">* XMLCALL</span>
+	<span class="s1">xmlGetCharEncodingName		(xmlCharEncoding enc);</span>
+
+<span class="s0">/* 
+ * Interfaces directly used by the parsers. 
+ */</span>
+<span class="s1">XMLPUBFUN xmlCharEncoding XMLCALL</span>
+	<span class="s1">xmlDetectCharEncoding		(</span><span class="s2">const unsigned char </span><span class="s1">*in,</span>
+					 <span class="s2">int </span><span class="s1">len);</span>
+
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlCharEncOutFunc		(xmlCharEncodingHandler *handler,</span>
+					 <span class="s1">xmlBufferPtr out,</span>
+					 <span class="s1">xmlBufferPtr in);</span>
+
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlCharEncInFunc		(xmlCharEncodingHandler *handler,</span>
+					 <span class="s1">xmlBufferPtr out,</span>
+					 <span class="s1">xmlBufferPtr in);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlCharEncFirstLine		(xmlCharEncodingHandler *handler,</span>
+					 <span class="s1">xmlBufferPtr out,</span>
+					 <span class="s1">xmlBufferPtr in);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlCharEncCloseFunc		(xmlCharEncodingHandler *handler);</span>
+
+<span class="s0">/* 
+ * Export a few useful functions 
+ */</span>
+<span class="s2">#ifdef </span><span class="s1">LIBXML_OUTPUT_ENABLED</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">UTF8Toisolat1			(</span><span class="s2">unsigned char </span><span class="s1">*out,</span>
+					 <span class="s2">int </span><span class="s1">*outlen,</span>
+					 <span class="s2">const unsigned char </span><span class="s1">*in,</span>
+					 <span class="s2">int </span><span class="s1">*inlen);</span>
+<span class="s2">#endif </span><span class="s0">/* LIBXML_OUTPUT_ENABLED */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">isolat1ToUTF8			(</span><span class="s2">unsigned char </span><span class="s1">*out,</span>
+					 <span class="s2">int </span><span class="s1">*outlen,</span>
+					 <span class="s2">const unsigned char </span><span class="s1">*in,</span>
+					 <span class="s2">int </span><span class="s1">*inlen);</span>
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s1">}</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#endif </span><span class="s0">/* __XML_CHAR_ENCODING_H__ */</span>
+</pre>
+</body>
+</html>

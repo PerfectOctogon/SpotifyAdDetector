@@ -1,0 +1,70 @@
+<html>
+<head>
+<title>webelement.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #629755; font-style: italic;}
+.s4 { color: #6a8759;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+webelement.py</font>
+</center></td></tr></table>
+<pre><span class="s0"># Licensed to the Software Freedom Conservancy (SFC) under one</span>
+<span class="s0"># or more contributor license agreements.  See the NOTICE file</span>
+<span class="s0"># distributed with this work for additional information</span>
+<span class="s0"># regarding copyright ownership.  The SFC licenses this file</span>
+<span class="s0"># to you under the Apache License, Version 2.0 (the</span>
+<span class="s0"># &quot;License&quot;); you may not use this file except in compliance</span>
+<span class="s0"># with the License.  You may obtain a copy of the License at</span>
+<span class="s0">#</span>
+<span class="s0">#   http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="s0">#</span>
+<span class="s0"># Unless required by applicable law or agreed to in writing,</span>
+<span class="s0"># software distributed under the License is distributed on an</span>
+<span class="s0"># &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY</span>
+<span class="s0"># KIND, either express or implied.  See the License for the</span>
+<span class="s0"># specific language governing permissions and limitations</span>
+<span class="s0"># under the License.</span>
+
+<span class="s2">from </span><span class="s1">selenium.webdriver.remote.webelement </span><span class="s2">import </span><span class="s1">WebElement </span><span class="s2">as </span><span class="s1">RemoteWebElement</span>
+
+
+<span class="s2">class </span><span class="s1">FirefoxWebElement(RemoteWebElement):</span>
+
+    <span class="s1">@property</span>
+    <span class="s2">def </span><span class="s1">anonymous_children(self):</span>
+        <span class="s3">&quot;&quot;&quot;Retrieve the anonymous children of this element in an XBL 
+        context.  This is only available in chrome context. 
+ 
+        See the  `anonymous content documentation 
+        &lt;https://developer.mozilla.org/en-US/docs/Mozilla/Tech/XBL/XBL_1.0_Reference/Anonymous_Content&gt;`_ 
+        on MDN for more information. 
+ 
+        &quot;&quot;&quot;</span>
+        <span class="s2">return </span><span class="s1">self._execute(</span>
+            <span class="s4">&quot;ELEMENT_GET_ANONYMOUS_CHILDREN&quot;</span><span class="s2">,</span>
+            <span class="s1">{</span><span class="s4">&quot;value&quot;</span><span class="s1">: </span><span class="s2">None</span><span class="s1">})</span>
+
+    <span class="s2">def </span><span class="s1">find_anonymous_element_by_attribute(self</span><span class="s2">, </span><span class="s1">name</span><span class="s2">, </span><span class="s1">value):</span>
+        <span class="s3">&quot;&quot;&quot;Retrieve an anonymous descendant with a specified attribute 
+        value.  Typically used with an (arbitrary) anonid attribute to 
+        retrieve a specific anonymous child in an XBL binding. 
+ 
+        See the  `anonymous content documentation 
+        &lt;https://developer.mozilla.org/en-US/docs/Mozilla/Tech/XBL/XBL_1.0_Reference/Anonymous_Content&gt;`_ 
+        on MDN for more information. 
+ 
+        &quot;&quot;&quot;</span>
+        <span class="s2">return </span><span class="s1">self._execute(</span>
+            <span class="s4">&quot;ELEMENT_FIND_ANONYMOUS_ELEMENTS_BY_ATTRIBUTE&quot;</span><span class="s2">,</span>
+            <span class="s1">{</span><span class="s4">&quot;name&quot;</span><span class="s1">: name</span><span class="s2">, </span><span class="s4">&quot;value&quot;</span><span class="s1">: value})[</span><span class="s4">&quot;value&quot;</span><span class="s1">]</span>
+</pre>
+</body>
+</html>

@@ -1,0 +1,906 @@
+<html>
+<head>
+<title>diff.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+.s4 { color: #6897bb;}
+.s5 { color: #629755; font-style: italic;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+diff.py</font>
+</center></td></tr></table>
+<pre><span class="s0"># cython: language_level=3</span>
+
+<span class="s2">from </span><span class="s1">__future__ </span><span class="s2">import </span><span class="s1">absolute_import</span>
+
+<span class="s2">import </span><span class="s1">difflib</span>
+<span class="s2">from </span><span class="s1">lxml </span><span class="s2">import </span><span class="s1">etree</span>
+<span class="s2">from </span><span class="s1">lxml.html </span><span class="s2">import </span><span class="s1">fragment_fromstring</span>
+<span class="s2">import </span><span class="s1">re</span>
+
+<span class="s1">__all__ = [</span><span class="s3">'html_annotate'</span><span class="s2">, </span><span class="s3">'htmldiff'</span><span class="s1">]</span>
+
+<span class="s2">try</span><span class="s1">:</span>
+    <span class="s2">from </span><span class="s1">html </span><span class="s2">import </span><span class="s1">escape </span><span class="s2">as </span><span class="s1">html_escape</span>
+<span class="s2">except </span><span class="s1">ImportError:</span>
+    <span class="s2">from </span><span class="s1">cgi </span><span class="s2">import </span><span class="s1">escape </span><span class="s2">as </span><span class="s1">html_escape</span>
+<span class="s2">try</span><span class="s1">:</span>
+    <span class="s1">_unicode = unicode</span>
+<span class="s2">except </span><span class="s1">NameError:</span>
+    <span class="s0"># Python 3</span>
+    <span class="s1">_unicode = str</span>
+<span class="s2">try</span><span class="s1">:</span>
+    <span class="s1">basestring</span>
+<span class="s2">except </span><span class="s1">NameError:</span>
+    <span class="s0"># Python 3</span>
+    <span class="s1">basestring = str</span>
+
+<span class="s0">############################################################</span>
+<span class="s0">## Annotation</span>
+<span class="s0">############################################################</span>
+
+<span class="s2">def </span><span class="s1">default_markup(text</span><span class="s2">, </span><span class="s1">version):</span>
+    <span class="s2">return </span><span class="s3">'&lt;span title=&quot;%s&quot;&gt;%s&lt;/span&gt;' </span><span class="s1">% (</span>
+        <span class="s1">html_escape(_unicode(version)</span><span class="s2">, </span><span class="s4">1</span><span class="s1">)</span><span class="s2">, </span><span class="s1">text)</span>
+
+<span class="s2">def </span><span class="s1">html_annotate(doclist</span><span class="s2">, </span><span class="s1">markup=default_markup):</span>
+    <span class="s5">&quot;&quot;&quot; 
+    doclist should be ordered from oldest to newest, like:: 
+ 
+        &gt;&gt;&gt; version1 = 'Hello World' 
+        &gt;&gt;&gt; version2 = 'Goodbye World' 
+        &gt;&gt;&gt; print(html_annotate([(version1, 'version 1'), 
+        ...                      (version2, 'version 2')])) 
+        &lt;span title=&quot;version 2&quot;&gt;Goodbye&lt;/span&gt; &lt;span title=&quot;version 1&quot;&gt;World&lt;/span&gt; 
+ 
+    The documents must be *fragments* (str/UTF8 or unicode), not 
+    complete documents 
+ 
+    The markup argument is a function to markup the spans of words. 
+    This function is called like markup('Hello', 'version 2'), and 
+    returns HTML.  The first argument is text and never includes any 
+    markup.  The default uses a span with a title: 
+ 
+        &gt;&gt;&gt; print(default_markup('Some Text', 'by Joe')) 
+        &lt;span title=&quot;by Joe&quot;&gt;Some Text&lt;/span&gt; 
+    &quot;&quot;&quot;</span>
+    <span class="s0"># The basic strategy we have is to split the documents up into</span>
+    <span class="s0"># logical tokens (which are words with attached markup).  We then</span>
+    <span class="s0"># do diffs of each of the versions to track when a token first</span>
+    <span class="s0"># appeared in the document; the annotation attached to the token</span>
+    <span class="s0"># is the version where it first appeared.</span>
+    <span class="s1">tokenlist = [tokenize_annotated(doc</span><span class="s2">, </span><span class="s1">version)</span>
+                 <span class="s2">for </span><span class="s1">doc</span><span class="s2">, </span><span class="s1">version </span><span class="s2">in </span><span class="s1">doclist]</span>
+    <span class="s1">cur_tokens = tokenlist[</span><span class="s4">0</span><span class="s1">]</span>
+    <span class="s2">for </span><span class="s1">tokens </span><span class="s2">in </span><span class="s1">tokenlist[</span><span class="s4">1</span><span class="s1">:]:</span>
+        <span class="s1">html_annotate_merge_annotations(cur_tokens</span><span class="s2">, </span><span class="s1">tokens)</span>
+        <span class="s1">cur_tokens = tokens</span>
+
+    <span class="s0"># After we've tracked all the tokens, we can combine spans of text</span>
+    <span class="s0"># that are adjacent and have the same annotation</span>
+    <span class="s1">cur_tokens = compress_tokens(cur_tokens)</span>
+    <span class="s0"># And finally add markup</span>
+    <span class="s1">result = markup_serialize_tokens(cur_tokens</span><span class="s2">, </span><span class="s1">markup)</span>
+    <span class="s2">return </span><span class="s3">''</span><span class="s1">.join(result).strip()</span>
+
+<span class="s2">def </span><span class="s1">tokenize_annotated(doc</span><span class="s2">, </span><span class="s1">annotation): </span>
+    <span class="s5">&quot;&quot;&quot;Tokenize a document and add an annotation attribute to each token 
+    &quot;&quot;&quot;</span>
+    <span class="s1">tokens = tokenize(doc</span><span class="s2">, </span><span class="s1">include_hrefs=</span><span class="s2">False</span><span class="s1">)</span>
+    <span class="s2">for </span><span class="s1">tok </span><span class="s2">in </span><span class="s1">tokens: </span>
+        <span class="s1">tok.annotation = annotation</span>
+    <span class="s2">return </span><span class="s1">tokens</span>
+
+<span class="s2">def </span><span class="s1">html_annotate_merge_annotations(tokens_old</span><span class="s2">, </span><span class="s1">tokens_new): </span>
+    <span class="s5">&quot;&quot;&quot;Merge the annotations from tokens_old into tokens_new, when the 
+    tokens in the new document already existed in the old document. 
+    &quot;&quot;&quot;</span>
+    <span class="s1">s = InsensitiveSequenceMatcher(a=tokens_old</span><span class="s2">, </span><span class="s1">b=tokens_new)</span>
+    <span class="s1">commands = s.get_opcodes()</span>
+
+    <span class="s2">for </span><span class="s1">command</span><span class="s2">, </span><span class="s1">i1</span><span class="s2">, </span><span class="s1">i2</span><span class="s2">, </span><span class="s1">j1</span><span class="s2">, </span><span class="s1">j2 </span><span class="s2">in </span><span class="s1">commands:</span>
+        <span class="s2">if </span><span class="s1">command == </span><span class="s3">'equal'</span><span class="s1">: </span>
+            <span class="s1">eq_old = tokens_old[i1:i2]</span>
+            <span class="s1">eq_new = tokens_new[j1:j2]</span>
+            <span class="s1">copy_annotations(eq_old</span><span class="s2">, </span><span class="s1">eq_new)</span>
+
+<span class="s2">def </span><span class="s1">copy_annotations(src</span><span class="s2">, </span><span class="s1">dest): </span>
+    <span class="s5">&quot;&quot;&quot; 
+    Copy annotations from the tokens listed in src to the tokens in dest 
+    &quot;&quot;&quot;</span>
+    <span class="s2">assert </span><span class="s1">len(src) == len(dest)</span>
+    <span class="s2">for </span><span class="s1">src_tok</span><span class="s2">, </span><span class="s1">dest_tok </span><span class="s2">in </span><span class="s1">zip(src</span><span class="s2">, </span><span class="s1">dest): </span>
+        <span class="s1">dest_tok.annotation = src_tok.annotation</span>
+
+<span class="s2">def </span><span class="s1">compress_tokens(tokens):</span>
+    <span class="s5">&quot;&quot;&quot; 
+    Combine adjacent tokens when there is no HTML between the tokens,  
+    and they share an annotation 
+    &quot;&quot;&quot;</span>
+    <span class="s1">result = [tokens[</span><span class="s4">0</span><span class="s1">]] </span>
+    <span class="s2">for </span><span class="s1">tok </span><span class="s2">in </span><span class="s1">tokens[</span><span class="s4">1</span><span class="s1">:]: </span>
+        <span class="s2">if </span><span class="s1">(</span><span class="s2">not </span><span class="s1">result[-</span><span class="s4">1</span><span class="s1">].post_tags </span><span class="s2">and </span>
+            <span class="s2">not </span><span class="s1">tok.pre_tags </span><span class="s2">and </span>
+            <span class="s1">result[-</span><span class="s4">1</span><span class="s1">].annotation == tok.annotation): </span>
+            <span class="s1">compress_merge_back(result</span><span class="s2">, </span><span class="s1">tok)</span>
+        <span class="s2">else</span><span class="s1">: </span>
+            <span class="s1">result.append(tok)</span>
+    <span class="s2">return </span><span class="s1">result</span>
+
+<span class="s2">def </span><span class="s1">compress_merge_back(tokens</span><span class="s2">, </span><span class="s1">tok): </span>
+    <span class="s5">&quot;&quot;&quot; Merge tok into the last element of tokens (modifying the list of 
+    tokens in-place).  &quot;&quot;&quot;</span>
+    <span class="s1">last = tokens[-</span><span class="s4">1</span><span class="s1">]</span>
+    <span class="s2">if </span><span class="s1">type(last) </span><span class="s2">is not </span><span class="s1">token </span><span class="s2">or </span><span class="s1">type(tok) </span><span class="s2">is not </span><span class="s1">token: </span>
+        <span class="s1">tokens.append(tok)</span>
+    <span class="s2">else</span><span class="s1">:</span>
+        <span class="s1">text = _unicode(last)</span>
+        <span class="s2">if </span><span class="s1">last.trailing_whitespace:</span>
+            <span class="s1">text += last.trailing_whitespace</span>
+        <span class="s1">text += tok</span>
+        <span class="s1">merged = token(text</span><span class="s2">,</span>
+                       <span class="s1">pre_tags=last.pre_tags</span><span class="s2">,</span>
+                       <span class="s1">post_tags=tok.post_tags</span><span class="s2">,</span>
+                       <span class="s1">trailing_whitespace=tok.trailing_whitespace)</span>
+        <span class="s1">merged.annotation = last.annotation</span>
+        <span class="s1">tokens[-</span><span class="s4">1</span><span class="s1">] = merged</span>
+    
+<span class="s2">def </span><span class="s1">markup_serialize_tokens(tokens</span><span class="s2">, </span><span class="s1">markup_func):</span>
+    <span class="s5">&quot;&quot;&quot; 
+    Serialize the list of tokens into a list of text chunks, calling 
+    markup_func around text to add annotations. 
+    &quot;&quot;&quot;</span>
+    <span class="s2">for </span><span class="s1">token </span><span class="s2">in </span><span class="s1">tokens:</span>
+        <span class="s2">for </span><span class="s1">pre </span><span class="s2">in </span><span class="s1">token.pre_tags:</span>
+            <span class="s2">yield </span><span class="s1">pre</span>
+        <span class="s1">html = token.html()</span>
+        <span class="s1">html = markup_func(html</span><span class="s2">, </span><span class="s1">token.annotation)</span>
+        <span class="s2">if </span><span class="s1">token.trailing_whitespace:</span>
+            <span class="s1">html += token.trailing_whitespace</span>
+        <span class="s2">yield </span><span class="s1">html</span>
+        <span class="s2">for </span><span class="s1">post </span><span class="s2">in </span><span class="s1">token.post_tags:</span>
+            <span class="s2">yield </span><span class="s1">post</span>
+
+
+<span class="s0">############################################################</span>
+<span class="s0">## HTML Diffs</span>
+<span class="s0">############################################################</span>
+
+<span class="s2">def </span><span class="s1">htmldiff(old_html</span><span class="s2">, </span><span class="s1">new_html):</span>
+    <span class="s0">## FIXME: this should take parsed documents too, and use their body</span>
+    <span class="s0">## or other content.</span>
+    <span class="s5">&quot;&quot;&quot; Do a diff of the old and new document.  The documents are HTML 
+    *fragments* (str/UTF8 or unicode), they are not complete documents 
+    (i.e., no &lt;html&gt; tag). 
+ 
+    Returns HTML with &lt;ins&gt; and &lt;del&gt; tags added around the 
+    appropriate text.   
+ 
+    Markup is generally ignored, with the markup from new_html 
+    preserved, and possibly some markup from old_html (though it is 
+    considered acceptable to lose some of the old markup).  Only the 
+    words in the HTML are diffed.  The exception is &lt;img&gt; tags, which 
+    are treated like words, and the href attribute of &lt;a&gt; tags, which 
+    are noted inside the tag itself when there are changes. 
+    &quot;&quot;&quot; </span>
+    <span class="s1">old_html_tokens = tokenize(old_html)</span>
+    <span class="s1">new_html_tokens = tokenize(new_html)</span>
+    <span class="s1">result = htmldiff_tokens(old_html_tokens</span><span class="s2">, </span><span class="s1">new_html_tokens)</span>
+    <span class="s1">result = </span><span class="s3">''</span><span class="s1">.join(result).strip()</span>
+    <span class="s2">return </span><span class="s1">fixup_ins_del_tags(result)</span>
+
+<span class="s2">def </span><span class="s1">htmldiff_tokens(html1_tokens</span><span class="s2">, </span><span class="s1">html2_tokens):</span>
+    <span class="s5">&quot;&quot;&quot; Does a diff on the tokens themselves, returning a list of text 
+    chunks (not tokens). 
+    &quot;&quot;&quot;</span>
+    <span class="s0"># There are several passes as we do the differences.  The tokens</span>
+    <span class="s0"># isolate the portion of the content we care to diff; difflib does</span>
+    <span class="s0"># all the actual hard work at that point.  </span>
+    <span class="s0">#</span>
+    <span class="s0"># Then we must create a valid document from pieces of both the old</span>
+    <span class="s0"># document and the new document.  We generally prefer to take</span>
+    <span class="s0"># markup from the new document, and only do a best effort attempt</span>
+    <span class="s0"># to keep markup from the old document; anything that we can't</span>
+    <span class="s0"># resolve we throw away.  Also we try to put the deletes as close</span>
+    <span class="s0"># to the location where we think they would have been -- because</span>
+    <span class="s0"># we are only keeping the markup from the new document, it can be</span>
+    <span class="s0"># fuzzy where in the new document the old text would have gone.</span>
+    <span class="s0"># Again we just do a best effort attempt.</span>
+    <span class="s1">s = InsensitiveSequenceMatcher(a=html1_tokens</span><span class="s2">, </span><span class="s1">b=html2_tokens)</span>
+    <span class="s1">commands = s.get_opcodes()</span>
+    <span class="s1">result = []</span>
+    <span class="s2">for </span><span class="s1">command</span><span class="s2">, </span><span class="s1">i1</span><span class="s2">, </span><span class="s1">i2</span><span class="s2">, </span><span class="s1">j1</span><span class="s2">, </span><span class="s1">j2 </span><span class="s2">in </span><span class="s1">commands:</span>
+        <span class="s2">if </span><span class="s1">command == </span><span class="s3">'equal'</span><span class="s1">:</span>
+            <span class="s1">result.extend(expand_tokens(html2_tokens[j1:j2]</span><span class="s2">, </span><span class="s1">equal=</span><span class="s2">True</span><span class="s1">))</span>
+            <span class="s2">continue</span>
+        <span class="s2">if </span><span class="s1">command == </span><span class="s3">'insert' </span><span class="s2">or </span><span class="s1">command == </span><span class="s3">'replace'</span><span class="s1">:</span>
+            <span class="s1">ins_tokens = expand_tokens(html2_tokens[j1:j2])</span>
+            <span class="s1">merge_insert(ins_tokens</span><span class="s2">, </span><span class="s1">result)</span>
+        <span class="s2">if </span><span class="s1">command == </span><span class="s3">'delete' </span><span class="s2">or </span><span class="s1">command == </span><span class="s3">'replace'</span><span class="s1">:</span>
+            <span class="s1">del_tokens = expand_tokens(html1_tokens[i1:i2])</span>
+            <span class="s1">merge_delete(del_tokens</span><span class="s2">, </span><span class="s1">result)</span>
+    <span class="s0"># If deletes were inserted directly as &lt;del&gt; then we'd have an</span>
+    <span class="s0"># invalid document at this point.  Instead we put in special</span>
+    <span class="s0"># markers, and when the complete diffed document has been created</span>
+    <span class="s0"># we try to move the deletes around and resolve any problems.</span>
+    <span class="s1">result = cleanup_delete(result)</span>
+
+    <span class="s2">return </span><span class="s1">result</span>
+
+<span class="s2">def </span><span class="s1">expand_tokens(tokens</span><span class="s2">, </span><span class="s1">equal=</span><span class="s2">False</span><span class="s1">):</span>
+    <span class="s5">&quot;&quot;&quot;Given a list of tokens, return a generator of the chunks of 
+    text for the data in the tokens. 
+    &quot;&quot;&quot;</span>
+    <span class="s2">for </span><span class="s1">token </span><span class="s2">in </span><span class="s1">tokens:</span>
+        <span class="s2">for </span><span class="s1">pre </span><span class="s2">in </span><span class="s1">token.pre_tags:</span>
+            <span class="s2">yield </span><span class="s1">pre</span>
+        <span class="s2">if not </span><span class="s1">equal </span><span class="s2">or not </span><span class="s1">token.hide_when_equal:</span>
+            <span class="s2">if </span><span class="s1">token.trailing_whitespace:</span>
+                <span class="s2">yield </span><span class="s1">token.html() + token.trailing_whitespace</span>
+            <span class="s2">else</span><span class="s1">:</span>
+                <span class="s2">yield </span><span class="s1">token.html()</span>
+        <span class="s2">for </span><span class="s1">post </span><span class="s2">in </span><span class="s1">token.post_tags:</span>
+            <span class="s2">yield </span><span class="s1">post</span>
+
+<span class="s2">def </span><span class="s1">merge_insert(ins_chunks</span><span class="s2">, </span><span class="s1">doc):</span>
+    <span class="s5">&quot;&quot;&quot; doc is the already-handled document (as a list of text chunks); 
+    here we add &lt;ins&gt;ins_chunks&lt;/ins&gt; to the end of that.  &quot;&quot;&quot;</span>
+    <span class="s0"># Though we don't throw away unbalanced_start or unbalanced_end</span>
+    <span class="s0"># (we assume there is accompanying markup later or earlier in the</span>
+    <span class="s0"># document), we only put &lt;ins&gt; around the balanced portion.</span>
+    <span class="s1">unbalanced_start</span><span class="s2">, </span><span class="s1">balanced</span><span class="s2">, </span><span class="s1">unbalanced_end = split_unbalanced(ins_chunks)</span>
+    <span class="s1">doc.extend(unbalanced_start)</span>
+    <span class="s2">if </span><span class="s1">doc </span><span class="s2">and not </span><span class="s1">doc[-</span><span class="s4">1</span><span class="s1">].endswith(</span><span class="s3">' '</span><span class="s1">):</span>
+        <span class="s0"># Fix up the case where the word before the insert didn't end with </span>
+        <span class="s0"># a space</span>
+        <span class="s1">doc[-</span><span class="s4">1</span><span class="s1">] += </span><span class="s3">' '</span>
+    <span class="s1">doc.append(</span><span class="s3">'&lt;ins&gt;'</span><span class="s1">)</span>
+    <span class="s2">if </span><span class="s1">balanced </span><span class="s2">and </span><span class="s1">balanced[-</span><span class="s4">1</span><span class="s1">].endswith(</span><span class="s3">' '</span><span class="s1">):</span>
+        <span class="s0"># We move space outside of &lt;/ins&gt;</span>
+        <span class="s1">balanced[-</span><span class="s4">1</span><span class="s1">] = balanced[-</span><span class="s4">1</span><span class="s1">][:-</span><span class="s4">1</span><span class="s1">]</span>
+    <span class="s1">doc.extend(balanced)</span>
+    <span class="s1">doc.append(</span><span class="s3">'&lt;/ins&gt; '</span><span class="s1">)</span>
+    <span class="s1">doc.extend(unbalanced_end)</span>
+
+<span class="s0"># These are sentinals to represent the start and end of a &lt;del&gt;</span>
+<span class="s0"># segment, until we do the cleanup phase to turn them into proper</span>
+<span class="s0"># markup:</span>
+<span class="s2">class </span><span class="s1">DEL_START:</span>
+    <span class="s2">pass</span>
+<span class="s2">class </span><span class="s1">DEL_END:</span>
+    <span class="s2">pass</span>
+
+<span class="s2">class </span><span class="s1">NoDeletes(Exception):</span>
+    <span class="s5">&quot;&quot;&quot; Raised when the document no longer contains any pending deletes 
+    (DEL_START/DEL_END) &quot;&quot;&quot;</span>
+
+<span class="s2">def </span><span class="s1">merge_delete(del_chunks</span><span class="s2">, </span><span class="s1">doc):</span>
+    <span class="s5">&quot;&quot;&quot; Adds the text chunks in del_chunks to the document doc (another 
+    list of text chunks) with marker to show it is a delete. 
+    cleanup_delete later resolves these markers into &lt;del&gt; tags.&quot;&quot;&quot;</span>
+    <span class="s1">doc.append(DEL_START)</span>
+    <span class="s1">doc.extend(del_chunks)</span>
+    <span class="s1">doc.append(DEL_END)</span>
+
+<span class="s2">def </span><span class="s1">cleanup_delete(chunks):</span>
+    <span class="s5">&quot;&quot;&quot; Cleans up any DEL_START/DEL_END markers in the document, replacing 
+    them with &lt;del&gt;&lt;/del&gt;.  To do this while keeping the document 
+    valid, it may need to drop some tags (either start or end tags). 
+ 
+    It may also move the del into adjacent tags to try to move it to a 
+    similar location where it was originally located (e.g., moving a 
+    delete into preceding &lt;div&gt; tag, if the del looks like (DEL_START, 
+    'Text&lt;/div&gt;', DEL_END)&quot;&quot;&quot;</span>
+    <span class="s2">while </span><span class="s4">1</span><span class="s1">:</span>
+        <span class="s0"># Find a pending DEL_START/DEL_END, splitting the document</span>
+        <span class="s0"># into stuff-preceding-DEL_START, stuff-inside, and</span>
+        <span class="s0"># stuff-following-DEL_END</span>
+        <span class="s2">try</span><span class="s1">:</span>
+            <span class="s1">pre_delete</span><span class="s2">, </span><span class="s1">delete</span><span class="s2">, </span><span class="s1">post_delete = split_delete(chunks)</span>
+        <span class="s2">except </span><span class="s1">NoDeletes:</span>
+            <span class="s0"># Nothing found, we've cleaned up the entire doc</span>
+            <span class="s2">break</span>
+        <span class="s0"># The stuff-inside-DEL_START/END may not be well balanced</span>
+        <span class="s0"># markup.  First we figure out what unbalanced portions there are:</span>
+        <span class="s1">unbalanced_start</span><span class="s2">, </span><span class="s1">balanced</span><span class="s2">, </span><span class="s1">unbalanced_end = split_unbalanced(delete)</span>
+        <span class="s0"># Then we move the span forward and/or backward based on these</span>
+        <span class="s0"># unbalanced portions:</span>
+        <span class="s1">locate_unbalanced_start(unbalanced_start</span><span class="s2">, </span><span class="s1">pre_delete</span><span class="s2">, </span><span class="s1">post_delete)</span>
+        <span class="s1">locate_unbalanced_end(unbalanced_end</span><span class="s2">, </span><span class="s1">pre_delete</span><span class="s2">, </span><span class="s1">post_delete)</span>
+        <span class="s1">doc = pre_delete</span>
+        <span class="s2">if </span><span class="s1">doc </span><span class="s2">and not </span><span class="s1">doc[-</span><span class="s4">1</span><span class="s1">].endswith(</span><span class="s3">' '</span><span class="s1">):</span>
+            <span class="s0"># Fix up case where the word before us didn't have a trailing space</span>
+            <span class="s1">doc[-</span><span class="s4">1</span><span class="s1">] += </span><span class="s3">' '</span>
+        <span class="s1">doc.append(</span><span class="s3">'&lt;del&gt;'</span><span class="s1">)</span>
+        <span class="s2">if </span><span class="s1">balanced </span><span class="s2">and </span><span class="s1">balanced[-</span><span class="s4">1</span><span class="s1">].endswith(</span><span class="s3">' '</span><span class="s1">):</span>
+            <span class="s0"># We move space outside of &lt;/del&gt;</span>
+            <span class="s1">balanced[-</span><span class="s4">1</span><span class="s1">] = balanced[-</span><span class="s4">1</span><span class="s1">][:-</span><span class="s4">1</span><span class="s1">]</span>
+        <span class="s1">doc.extend(balanced)</span>
+        <span class="s1">doc.append(</span><span class="s3">'&lt;/del&gt; '</span><span class="s1">)</span>
+        <span class="s1">doc.extend(post_delete)</span>
+        <span class="s1">chunks = doc</span>
+    <span class="s2">return </span><span class="s1">chunks</span>
+
+<span class="s2">def </span><span class="s1">split_unbalanced(chunks):</span>
+    <span class="s5">&quot;&quot;&quot;Return (unbalanced_start, balanced, unbalanced_end), where each is 
+    a list of text and tag chunks. 
+ 
+    unbalanced_start is a list of all the tags that are opened, but 
+    not closed in this span.  Similarly, unbalanced_end is a list of 
+    tags that are closed but were not opened.  Extracting these might 
+    mean some reordering of the chunks.&quot;&quot;&quot;</span>
+    <span class="s1">start = []</span>
+    <span class="s1">end = []</span>
+    <span class="s1">tag_stack = []</span>
+    <span class="s1">balanced = []</span>
+    <span class="s2">for </span><span class="s1">chunk </span><span class="s2">in </span><span class="s1">chunks:</span>
+        <span class="s2">if not </span><span class="s1">chunk.startswith(</span><span class="s3">'&lt;'</span><span class="s1">):</span>
+            <span class="s1">balanced.append(chunk)</span>
+            <span class="s2">continue</span>
+        <span class="s1">endtag = chunk[</span><span class="s4">1</span><span class="s1">] == </span><span class="s3">'/'</span>
+        <span class="s1">name = chunk.split()[</span><span class="s4">0</span><span class="s1">].strip(</span><span class="s3">'&lt;&gt;/'</span><span class="s1">)</span>
+        <span class="s2">if </span><span class="s1">name </span><span class="s2">in </span><span class="s1">empty_tags:</span>
+            <span class="s1">balanced.append(chunk)</span>
+            <span class="s2">continue</span>
+        <span class="s2">if </span><span class="s1">endtag:</span>
+            <span class="s2">if </span><span class="s1">tag_stack </span><span class="s2">and </span><span class="s1">tag_stack[-</span><span class="s4">1</span><span class="s1">][</span><span class="s4">0</span><span class="s1">] == name:</span>
+                <span class="s1">balanced.append(chunk)</span>
+                <span class="s1">name</span><span class="s2">, </span><span class="s1">pos</span><span class="s2">, </span><span class="s1">tag = tag_stack.pop()</span>
+                <span class="s1">balanced[pos] = tag</span>
+            <span class="s2">elif </span><span class="s1">tag_stack:</span>
+                <span class="s1">start.extend([tag </span><span class="s2">for </span><span class="s1">name</span><span class="s2">, </span><span class="s1">pos</span><span class="s2">, </span><span class="s1">tag </span><span class="s2">in </span><span class="s1">tag_stack])</span>
+                <span class="s1">tag_stack = []</span>
+                <span class="s1">end.append(chunk)</span>
+            <span class="s2">else</span><span class="s1">:</span>
+                <span class="s1">end.append(chunk)</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s1">tag_stack.append((name</span><span class="s2">, </span><span class="s1">len(balanced)</span><span class="s2">, </span><span class="s1">chunk))</span>
+            <span class="s1">balanced.append(</span><span class="s2">None</span><span class="s1">)</span>
+    <span class="s1">start.extend(</span>
+        <span class="s1">[chunk </span><span class="s2">for </span><span class="s1">name</span><span class="s2">, </span><span class="s1">pos</span><span class="s2">, </span><span class="s1">chunk </span><span class="s2">in </span><span class="s1">tag_stack])</span>
+    <span class="s1">balanced = [chunk </span><span class="s2">for </span><span class="s1">chunk </span><span class="s2">in </span><span class="s1">balanced </span><span class="s2">if </span><span class="s1">chunk </span><span class="s2">is not None</span><span class="s1">]</span>
+    <span class="s2">return </span><span class="s1">start</span><span class="s2">, </span><span class="s1">balanced</span><span class="s2">, </span><span class="s1">end</span>
+
+<span class="s2">def </span><span class="s1">split_delete(chunks):</span>
+    <span class="s5">&quot;&quot;&quot; Returns (stuff_before_DEL_START, stuff_inside_DEL_START_END, 
+    stuff_after_DEL_END).  Returns the first case found (there may be 
+    more DEL_STARTs in stuff_after_DEL_END).  Raises NoDeletes if 
+    there's no DEL_START found. &quot;&quot;&quot;</span>
+    <span class="s2">try</span><span class="s1">:</span>
+        <span class="s1">pos = chunks.index(DEL_START)</span>
+    <span class="s2">except </span><span class="s1">ValueError:</span>
+        <span class="s2">raise </span><span class="s1">NoDeletes</span>
+    <span class="s1">pos2 = chunks.index(DEL_END)</span>
+    <span class="s2">return </span><span class="s1">chunks[:pos]</span><span class="s2">, </span><span class="s1">chunks[pos+</span><span class="s4">1</span><span class="s1">:pos2]</span><span class="s2">, </span><span class="s1">chunks[pos2+</span><span class="s4">1</span><span class="s1">:]</span>
+
+<span class="s2">def </span><span class="s1">locate_unbalanced_start(unbalanced_start</span><span class="s2">, </span><span class="s1">pre_delete</span><span class="s2">, </span><span class="s1">post_delete):</span>
+    <span class="s5">&quot;&quot;&quot; pre_delete and post_delete implicitly point to a place in the 
+    document (where the two were split).  This moves that point (by 
+    popping items from one and pushing them onto the other).  It moves 
+    the point to try to find a place where unbalanced_start applies. 
+ 
+    As an example:: 
+ 
+        &gt;&gt;&gt; unbalanced_start = ['&lt;div&gt;'] 
+        &gt;&gt;&gt; doc = ['&lt;p&gt;', 'Text', '&lt;/p&gt;', '&lt;div&gt;', 'More Text', '&lt;/div&gt;'] 
+        &gt;&gt;&gt; pre, post = doc[:3], doc[3:] 
+        &gt;&gt;&gt; pre, post 
+        (['&lt;p&gt;', 'Text', '&lt;/p&gt;'], ['&lt;div&gt;', 'More Text', '&lt;/div&gt;']) 
+        &gt;&gt;&gt; locate_unbalanced_start(unbalanced_start, pre, post) 
+        &gt;&gt;&gt; pre, post 
+        (['&lt;p&gt;', 'Text', '&lt;/p&gt;', '&lt;div&gt;'], ['More Text', '&lt;/div&gt;']) 
+ 
+    As you can see, we moved the point so that the dangling &lt;div&gt; that 
+    we found will be effectively replaced by the div in the original 
+    document.  If this doesn't work out, we just throw away 
+    unbalanced_start without doing anything. 
+    &quot;&quot;&quot;</span>
+    <span class="s2">while </span><span class="s4">1</span><span class="s1">:</span>
+        <span class="s2">if not </span><span class="s1">unbalanced_start:</span>
+            <span class="s0"># We have totally succeeded in finding the position</span>
+            <span class="s2">break</span>
+        <span class="s1">finding = unbalanced_start[</span><span class="s4">0</span><span class="s1">]</span>
+        <span class="s1">finding_name = finding.split()[</span><span class="s4">0</span><span class="s1">].strip(</span><span class="s3">'&lt;&gt;'</span><span class="s1">)</span>
+        <span class="s2">if not </span><span class="s1">post_delete:</span>
+            <span class="s2">break</span>
+        <span class="s1">next = post_delete[</span><span class="s4">0</span><span class="s1">]</span>
+        <span class="s2">if </span><span class="s1">next </span><span class="s2">is </span><span class="s1">DEL_START </span><span class="s2">or not </span><span class="s1">next.startswith(</span><span class="s3">'&lt;'</span><span class="s1">):</span>
+            <span class="s0"># Reached a word, we can't move the delete text forward</span>
+            <span class="s2">break</span>
+        <span class="s2">if </span><span class="s1">next[</span><span class="s4">1</span><span class="s1">] == </span><span class="s3">'/'</span><span class="s1">:</span>
+            <span class="s0"># Reached a closing tag, can we go further?  Maybe not...</span>
+            <span class="s2">break</span>
+        <span class="s1">name = next.split()[</span><span class="s4">0</span><span class="s1">].strip(</span><span class="s3">'&lt;&gt;'</span><span class="s1">)</span>
+        <span class="s2">if </span><span class="s1">name == </span><span class="s3">'ins'</span><span class="s1">:</span>
+            <span class="s0"># Can't move into an insert</span>
+            <span class="s2">break</span>
+        <span class="s2">assert </span><span class="s1">name != </span><span class="s3">'del'</span><span class="s2">, </span><span class="s1">(</span>
+            <span class="s3">&quot;Unexpected delete tag: %r&quot; </span><span class="s1">% next)</span>
+        <span class="s2">if </span><span class="s1">name == finding_name:</span>
+            <span class="s1">unbalanced_start.pop(</span><span class="s4">0</span><span class="s1">)</span>
+            <span class="s1">pre_delete.append(post_delete.pop(</span><span class="s4">0</span><span class="s1">))</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s0"># Found a tag that doesn't match</span>
+            <span class="s2">break</span>
+
+<span class="s2">def </span><span class="s1">locate_unbalanced_end(unbalanced_end</span><span class="s2">, </span><span class="s1">pre_delete</span><span class="s2">, </span><span class="s1">post_delete):</span>
+    <span class="s5">&quot;&quot;&quot; like locate_unbalanced_start, except handling end tags and 
+    possibly moving the point earlier in the document.  &quot;&quot;&quot;</span>
+    <span class="s2">while </span><span class="s4">1</span><span class="s1">:</span>
+        <span class="s2">if not </span><span class="s1">unbalanced_end:</span>
+            <span class="s0"># Success</span>
+            <span class="s2">break</span>
+        <span class="s1">finding = unbalanced_end[-</span><span class="s4">1</span><span class="s1">]</span>
+        <span class="s1">finding_name = finding.split()[</span><span class="s4">0</span><span class="s1">].strip(</span><span class="s3">'&lt;&gt;/'</span><span class="s1">)</span>
+        <span class="s2">if not </span><span class="s1">pre_delete:</span>
+            <span class="s2">break</span>
+        <span class="s1">next = pre_delete[-</span><span class="s4">1</span><span class="s1">]</span>
+        <span class="s2">if </span><span class="s1">next </span><span class="s2">is </span><span class="s1">DEL_END </span><span class="s2">or not </span><span class="s1">next.startswith(</span><span class="s3">'&lt;/'</span><span class="s1">):</span>
+            <span class="s0"># A word or a start tag</span>
+            <span class="s2">break</span>
+        <span class="s1">name = next.split()[</span><span class="s4">0</span><span class="s1">].strip(</span><span class="s3">'&lt;&gt;/'</span><span class="s1">)</span>
+        <span class="s2">if </span><span class="s1">name == </span><span class="s3">'ins' </span><span class="s2">or </span><span class="s1">name == </span><span class="s3">'del'</span><span class="s1">:</span>
+            <span class="s0"># Can't move into an insert or delete</span>
+            <span class="s2">break</span>
+        <span class="s2">if </span><span class="s1">name == finding_name:</span>
+            <span class="s1">unbalanced_end.pop()</span>
+            <span class="s1">post_delete.insert(</span><span class="s4">0</span><span class="s2">, </span><span class="s1">pre_delete.pop())</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s0"># Found a tag that doesn't match</span>
+            <span class="s2">break</span>
+
+<span class="s2">class </span><span class="s1">token(_unicode):</span>
+    <span class="s5">&quot;&quot;&quot; Represents a diffable token, generally a word that is displayed to 
+    the user.  Opening tags are attached to this token when they are 
+    adjacent (pre_tags) and closing tags that follow the word 
+    (post_tags).  Some exceptions occur when there are empty tags 
+    adjacent to a word, so there may be close tags in pre_tags, or 
+    open tags in post_tags. 
+ 
+    We also keep track of whether the word was originally followed by 
+    whitespace, even though we do not want to treat the word as 
+    equivalent to a similar word that does not have a trailing 
+    space.&quot;&quot;&quot;</span>
+
+    <span class="s0"># When this is true, the token will be eliminated from the</span>
+    <span class="s0"># displayed diff if no change has occurred:</span>
+    <span class="s1">hide_when_equal = </span><span class="s2">False</span>
+
+    <span class="s2">def </span><span class="s1">__new__(cls</span><span class="s2">, </span><span class="s1">text</span><span class="s2">, </span><span class="s1">pre_tags=</span><span class="s2">None, </span><span class="s1">post_tags=</span><span class="s2">None, </span><span class="s1">trailing_whitespace=</span><span class="s3">&quot;&quot;</span><span class="s1">):</span>
+        <span class="s1">obj = _unicode.__new__(cls</span><span class="s2">, </span><span class="s1">text)</span>
+
+        <span class="s2">if </span><span class="s1">pre_tags </span><span class="s2">is not None</span><span class="s1">:</span>
+            <span class="s1">obj.pre_tags = pre_tags</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s1">obj.pre_tags = []</span>
+
+        <span class="s2">if </span><span class="s1">post_tags </span><span class="s2">is not None</span><span class="s1">:</span>
+            <span class="s1">obj.post_tags = post_tags</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s1">obj.post_tags = []</span>
+
+        <span class="s1">obj.trailing_whitespace = trailing_whitespace</span>
+
+        <span class="s2">return </span><span class="s1">obj</span>
+
+    <span class="s2">def </span><span class="s1">__repr__(self):</span>
+        <span class="s2">return </span><span class="s3">'token(%s, %r, %r, %r)' </span><span class="s1">% (_unicode.__repr__(self)</span><span class="s2">, </span><span class="s1">self.pre_tags</span><span class="s2">,</span>
+                                          <span class="s1">self.post_tags</span><span class="s2">, </span><span class="s1">self.trailing_whitespace)</span>
+
+    <span class="s2">def </span><span class="s1">html(self):</span>
+        <span class="s2">return </span><span class="s1">_unicode(self)</span>
+
+<span class="s2">class </span><span class="s1">tag_token(token):</span>
+
+    <span class="s5">&quot;&quot;&quot; Represents a token that is actually a tag.  Currently this is just 
+    the &lt;img&gt; tag, which takes up visible space just like a word but 
+    is only represented in a document by a tag.  &quot;&quot;&quot;</span>
+
+    <span class="s2">def </span><span class="s1">__new__(cls</span><span class="s2">, </span><span class="s1">tag</span><span class="s2">, </span><span class="s1">data</span><span class="s2">, </span><span class="s1">html_repr</span><span class="s2">, </span><span class="s1">pre_tags=</span><span class="s2">None, </span>
+                <span class="s1">post_tags=</span><span class="s2">None, </span><span class="s1">trailing_whitespace=</span><span class="s3">&quot;&quot;</span><span class="s1">):</span>
+        <span class="s1">obj = token.__new__(cls</span><span class="s2">, </span><span class="s3">&quot;%s: %s&quot; </span><span class="s1">% (type</span><span class="s2">, </span><span class="s1">data)</span><span class="s2">, </span>
+                            <span class="s1">pre_tags=pre_tags</span><span class="s2">, </span>
+                            <span class="s1">post_tags=post_tags</span><span class="s2">, </span>
+                            <span class="s1">trailing_whitespace=trailing_whitespace)</span>
+        <span class="s1">obj.tag = tag</span>
+        <span class="s1">obj.data = data</span>
+        <span class="s1">obj.html_repr = html_repr</span>
+        <span class="s2">return </span><span class="s1">obj</span>
+
+    <span class="s2">def </span><span class="s1">__repr__(self):</span>
+        <span class="s2">return </span><span class="s3">'tag_token(%s, %s, html_repr=%s, post_tags=%r, pre_tags=%r, trailing_whitespace=%r)' </span><span class="s1">% (</span>
+            <span class="s1">self.tag</span><span class="s2">, </span>
+            <span class="s1">self.data</span><span class="s2">, </span>
+            <span class="s1">self.html_repr</span><span class="s2">, </span>
+            <span class="s1">self.pre_tags</span><span class="s2">, </span>
+            <span class="s1">self.post_tags</span><span class="s2">, </span>
+            <span class="s1">self.trailing_whitespace)</span>
+    <span class="s2">def </span><span class="s1">html(self):</span>
+        <span class="s2">return </span><span class="s1">self.html_repr</span>
+
+<span class="s2">class </span><span class="s1">href_token(token):</span>
+
+    <span class="s5">&quot;&quot;&quot; Represents the href in an anchor tag.  Unlike other words, we only 
+    show the href when it changes.  &quot;&quot;&quot;</span>
+
+    <span class="s1">hide_when_equal = </span><span class="s2">True</span>
+
+    <span class="s2">def </span><span class="s1">html(self):</span>
+        <span class="s2">return </span><span class="s3">' Link: %s' </span><span class="s1">% self</span>
+
+<span class="s2">def </span><span class="s1">tokenize(html</span><span class="s2">, </span><span class="s1">include_hrefs=</span><span class="s2">True</span><span class="s1">):</span>
+    <span class="s5">&quot;&quot;&quot; 
+    Parse the given HTML and returns token objects (words with attached tags). 
+ 
+    This parses only the content of a page; anything in the head is 
+    ignored, and the &lt;head&gt; and &lt;body&gt; elements are themselves 
+    optional.  The content is then parsed by lxml, which ensures the 
+    validity of the resulting parsed document (though lxml may make 
+    incorrect guesses when the markup is particular bad). 
+ 
+    &lt;ins&gt; and &lt;del&gt; tags are also eliminated from the document, as 
+    that gets confusing. 
+ 
+    If include_hrefs is true, then the href attribute of &lt;a&gt; tags is 
+    included as a special kind of diffable token.&quot;&quot;&quot;</span>
+    <span class="s2">if </span><span class="s1">etree.iselement(html):</span>
+        <span class="s1">body_el = html</span>
+    <span class="s2">else</span><span class="s1">:</span>
+        <span class="s1">body_el = parse_html(html</span><span class="s2">, </span><span class="s1">cleanup=</span><span class="s2">True</span><span class="s1">)</span>
+    <span class="s0"># Then we split the document into text chunks for each tag, word, and end tag:</span>
+    <span class="s1">chunks = flatten_el(body_el</span><span class="s2">, </span><span class="s1">skip_tag=</span><span class="s2">True, </span><span class="s1">include_hrefs=include_hrefs)</span>
+    <span class="s0"># Finally re-joining them into token objects:</span>
+    <span class="s2">return </span><span class="s1">fixup_chunks(chunks)</span>
+
+<span class="s2">def </span><span class="s1">parse_html(html</span><span class="s2">, </span><span class="s1">cleanup=</span><span class="s2">True</span><span class="s1">):</span>
+    <span class="s5">&quot;&quot;&quot; 
+    Parses an HTML fragment, returning an lxml element.  Note that the HTML will be 
+    wrapped in a &lt;div&gt; tag that was not in the original document. 
+ 
+    If cleanup is true, make sure there's no &lt;head&gt; or &lt;body&gt;, and get 
+    rid of any &lt;ins&gt; and &lt;del&gt; tags. 
+    &quot;&quot;&quot;</span>
+    <span class="s2">if </span><span class="s1">cleanup:</span>
+        <span class="s0"># This removes any extra markup or structure like &lt;head&gt;:</span>
+        <span class="s1">html = cleanup_html(html)</span>
+    <span class="s2">return </span><span class="s1">fragment_fromstring(html</span><span class="s2">, </span><span class="s1">create_parent=</span><span class="s2">True</span><span class="s1">)</span>
+
+<span class="s1">_body_re = re.compile(</span><span class="s3">r'&lt;body.*?&gt;'</span><span class="s2">, </span><span class="s1">re.I|re.S)</span>
+<span class="s1">_end_body_re = re.compile(</span><span class="s3">r'&lt;/body.*?&gt;'</span><span class="s2">, </span><span class="s1">re.I|re.S)</span>
+<span class="s1">_ins_del_re = re.compile(</span><span class="s3">r'&lt;/?(ins|del).*?&gt;'</span><span class="s2">, </span><span class="s1">re.I|re.S)</span>
+
+<span class="s2">def </span><span class="s1">cleanup_html(html):</span>
+    <span class="s5">&quot;&quot;&quot; This 'cleans' the HTML, meaning that any page structure is removed 
+    (only the contents of &lt;body&gt; are used, if there is any &lt;body). 
+    Also &lt;ins&gt; and &lt;del&gt; tags are removed.  &quot;&quot;&quot;</span>
+    <span class="s1">match = _body_re.search(html)</span>
+    <span class="s2">if </span><span class="s1">match:</span>
+        <span class="s1">html = html[match.end():]</span>
+    <span class="s1">match = _end_body_re.search(html)</span>
+    <span class="s2">if </span><span class="s1">match:</span>
+        <span class="s1">html = html[:match.start()]</span>
+    <span class="s1">html = _ins_del_re.sub(</span><span class="s3">''</span><span class="s2">, </span><span class="s1">html)</span>
+    <span class="s2">return </span><span class="s1">html</span>
+    
+
+<span class="s1">end_whitespace_re = re.compile(</span><span class="s3">r'[ \t\n\r]$'</span><span class="s1">)</span>
+
+<span class="s2">def </span><span class="s1">split_trailing_whitespace(word):</span>
+    <span class="s5">&quot;&quot;&quot; 
+    This function takes a word, such as 'test\n\n' and returns ('test','\n\n') 
+    &quot;&quot;&quot;</span>
+    <span class="s1">stripped_length = len(word.rstrip())</span>
+    <span class="s2">return </span><span class="s1">word[</span><span class="s4">0</span><span class="s1">:stripped_length]</span><span class="s2">, </span><span class="s1">word[stripped_length:]</span>
+
+
+<span class="s2">def </span><span class="s1">fixup_chunks(chunks):</span>
+    <span class="s5">&quot;&quot;&quot; 
+    This function takes a list of chunks and produces a list of tokens. 
+    &quot;&quot;&quot;</span>
+    <span class="s1">tag_accum = []</span>
+    <span class="s1">cur_word = </span><span class="s2">None</span>
+    <span class="s1">result = []</span>
+    <span class="s2">for </span><span class="s1">chunk </span><span class="s2">in </span><span class="s1">chunks:</span>
+        <span class="s2">if </span><span class="s1">isinstance(chunk</span><span class="s2">, </span><span class="s1">tuple):</span>
+            <span class="s2">if </span><span class="s1">chunk[</span><span class="s4">0</span><span class="s1">] == </span><span class="s3">'img'</span><span class="s1">:</span>
+                <span class="s1">src = chunk[</span><span class="s4">1</span><span class="s1">]</span>
+                <span class="s1">tag</span><span class="s2">, </span><span class="s1">trailing_whitespace = split_trailing_whitespace(chunk[</span><span class="s4">2</span><span class="s1">])</span>
+                <span class="s1">cur_word = tag_token(</span><span class="s3">'img'</span><span class="s2">, </span><span class="s1">src</span><span class="s2">, </span><span class="s1">html_repr=tag</span><span class="s2">,</span>
+                                     <span class="s1">pre_tags=tag_accum</span><span class="s2">,</span>
+                                     <span class="s1">trailing_whitespace=trailing_whitespace)</span>
+                <span class="s1">tag_accum = []</span>
+                <span class="s1">result.append(cur_word)</span>
+
+            <span class="s2">elif </span><span class="s1">chunk[</span><span class="s4">0</span><span class="s1">] == </span><span class="s3">'href'</span><span class="s1">:</span>
+                <span class="s1">href = chunk[</span><span class="s4">1</span><span class="s1">]</span>
+                <span class="s1">cur_word = href_token(href</span><span class="s2">, </span><span class="s1">pre_tags=tag_accum</span><span class="s2">, </span><span class="s1">trailing_whitespace=</span><span class="s3">&quot; &quot;</span><span class="s1">)</span>
+                <span class="s1">tag_accum = []</span>
+                <span class="s1">result.append(cur_word)</span>
+            <span class="s2">continue</span>
+
+        <span class="s2">if </span><span class="s1">is_word(chunk):</span>
+            <span class="s1">chunk</span><span class="s2">, </span><span class="s1">trailing_whitespace = split_trailing_whitespace(chunk)</span>
+            <span class="s1">cur_word = token(chunk</span><span class="s2">, </span><span class="s1">pre_tags=tag_accum</span><span class="s2">, </span><span class="s1">trailing_whitespace=trailing_whitespace)</span>
+            <span class="s1">tag_accum = []</span>
+            <span class="s1">result.append(cur_word)</span>
+
+        <span class="s2">elif </span><span class="s1">is_start_tag(chunk):</span>
+            <span class="s1">tag_accum.append(chunk)</span>
+
+        <span class="s2">elif </span><span class="s1">is_end_tag(chunk):</span>
+            <span class="s2">if </span><span class="s1">tag_accum:</span>
+                <span class="s1">tag_accum.append(chunk)</span>
+            <span class="s2">else</span><span class="s1">:</span>
+                <span class="s2">assert </span><span class="s1">cur_word</span><span class="s2">, </span><span class="s1">(</span>
+                    <span class="s3">&quot;Weird state, cur_word=%r, result=%r, chunks=%r of %r&quot;</span>
+                    <span class="s1">% (cur_word</span><span class="s2">, </span><span class="s1">result</span><span class="s2">, </span><span class="s1">chunk</span><span class="s2">, </span><span class="s1">chunks))</span>
+                <span class="s1">cur_word.post_tags.append(chunk)</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s2">assert False</span>
+
+    <span class="s2">if not </span><span class="s1">result:</span>
+        <span class="s2">return </span><span class="s1">[token(</span><span class="s3">''</span><span class="s2">, </span><span class="s1">pre_tags=tag_accum)]</span>
+    <span class="s2">else</span><span class="s1">:</span>
+        <span class="s1">result[-</span><span class="s4">1</span><span class="s1">].post_tags.extend(tag_accum)</span>
+
+    <span class="s2">return </span><span class="s1">result</span>
+
+
+<span class="s0"># All the tags in HTML that don't require end tags:</span>
+<span class="s1">empty_tags = (</span>
+    <span class="s3">'param'</span><span class="s2">, </span><span class="s3">'img'</span><span class="s2">, </span><span class="s3">'area'</span><span class="s2">, </span><span class="s3">'br'</span><span class="s2">, </span><span class="s3">'basefont'</span><span class="s2">, </span><span class="s3">'input'</span><span class="s2">,</span>
+    <span class="s3">'base'</span><span class="s2">, </span><span class="s3">'meta'</span><span class="s2">, </span><span class="s3">'link'</span><span class="s2">, </span><span class="s3">'col'</span><span class="s1">)</span>
+
+<span class="s1">block_level_tags = (</span>
+    <span class="s3">'address'</span><span class="s2">,</span>
+    <span class="s3">'blockquote'</span><span class="s2">,</span>
+    <span class="s3">'center'</span><span class="s2">,</span>
+    <span class="s3">'dir'</span><span class="s2">,</span>
+    <span class="s3">'div'</span><span class="s2">,</span>
+    <span class="s3">'dl'</span><span class="s2">,</span>
+    <span class="s3">'fieldset'</span><span class="s2">,</span>
+    <span class="s3">'form'</span><span class="s2">,</span>
+    <span class="s3">'h1'</span><span class="s2">,</span>
+    <span class="s3">'h2'</span><span class="s2">,</span>
+    <span class="s3">'h3'</span><span class="s2">,</span>
+    <span class="s3">'h4'</span><span class="s2">,</span>
+    <span class="s3">'h5'</span><span class="s2">,</span>
+    <span class="s3">'h6'</span><span class="s2">,</span>
+    <span class="s3">'hr'</span><span class="s2">,</span>
+    <span class="s3">'isindex'</span><span class="s2">,</span>
+    <span class="s3">'menu'</span><span class="s2">,</span>
+    <span class="s3">'noframes'</span><span class="s2">,</span>
+    <span class="s3">'noscript'</span><span class="s2">,</span>
+    <span class="s3">'ol'</span><span class="s2">,</span>
+    <span class="s3">'p'</span><span class="s2">,</span>
+    <span class="s3">'pre'</span><span class="s2">,</span>
+    <span class="s3">'table'</span><span class="s2">,</span>
+    <span class="s3">'ul'</span><span class="s2">,</span>
+    <span class="s1">)</span>
+
+<span class="s1">block_level_container_tags = (</span>
+    <span class="s3">'dd'</span><span class="s2">,</span>
+    <span class="s3">'dt'</span><span class="s2">,</span>
+    <span class="s3">'frameset'</span><span class="s2">,</span>
+    <span class="s3">'li'</span><span class="s2">,</span>
+    <span class="s3">'tbody'</span><span class="s2">,</span>
+    <span class="s3">'td'</span><span class="s2">,</span>
+    <span class="s3">'tfoot'</span><span class="s2">,</span>
+    <span class="s3">'th'</span><span class="s2">,</span>
+    <span class="s3">'thead'</span><span class="s2">,</span>
+    <span class="s3">'tr'</span><span class="s2">,</span>
+    <span class="s1">)</span>
+
+
+<span class="s2">def </span><span class="s1">flatten_el(el</span><span class="s2">, </span><span class="s1">include_hrefs</span><span class="s2">, </span><span class="s1">skip_tag=</span><span class="s2">False</span><span class="s1">):</span>
+    <span class="s5">&quot;&quot;&quot; Takes an lxml element el, and generates all the text chunks for 
+    that tag.  Each start tag is a chunk, each word is a chunk, and each 
+    end tag is a chunk. 
+ 
+    If skip_tag is true, then the outermost container tag is 
+    not returned (just its contents).&quot;&quot;&quot;</span>
+    <span class="s2">if not </span><span class="s1">skip_tag:</span>
+        <span class="s2">if </span><span class="s1">el.tag == </span><span class="s3">'img'</span><span class="s1">:</span>
+            <span class="s2">yield </span><span class="s1">(</span><span class="s3">'img'</span><span class="s2">, </span><span class="s1">el.get(</span><span class="s3">'src'</span><span class="s1">)</span><span class="s2">, </span><span class="s1">start_tag(el))</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s2">yield </span><span class="s1">start_tag(el)</span>
+    <span class="s2">if </span><span class="s1">el.tag </span><span class="s2">in </span><span class="s1">empty_tags </span><span class="s2">and not </span><span class="s1">el.text </span><span class="s2">and not </span><span class="s1">len(el) </span><span class="s2">and not </span><span class="s1">el.tail:</span>
+        <span class="s2">return</span>
+    <span class="s1">start_words = split_words(el.text)</span>
+    <span class="s2">for </span><span class="s1">word </span><span class="s2">in </span><span class="s1">start_words:</span>
+        <span class="s2">yield </span><span class="s1">html_escape(word)</span>
+    <span class="s2">for </span><span class="s1">child </span><span class="s2">in </span><span class="s1">el:</span>
+        <span class="s2">for </span><span class="s1">item </span><span class="s2">in </span><span class="s1">flatten_el(child</span><span class="s2">, </span><span class="s1">include_hrefs=include_hrefs):</span>
+            <span class="s2">yield </span><span class="s1">item</span>
+    <span class="s2">if </span><span class="s1">el.tag == </span><span class="s3">'a' </span><span class="s2">and </span><span class="s1">el.get(</span><span class="s3">'href'</span><span class="s1">) </span><span class="s2">and </span><span class="s1">include_hrefs:</span>
+        <span class="s2">yield </span><span class="s1">(</span><span class="s3">'href'</span><span class="s2">, </span><span class="s1">el.get(</span><span class="s3">'href'</span><span class="s1">))</span>
+    <span class="s2">if not </span><span class="s1">skip_tag:</span>
+        <span class="s2">yield </span><span class="s1">end_tag(el)</span>
+        <span class="s1">end_words = split_words(el.tail)</span>
+        <span class="s2">for </span><span class="s1">word </span><span class="s2">in </span><span class="s1">end_words:</span>
+            <span class="s2">yield </span><span class="s1">html_escape(word)</span>
+
+<span class="s1">split_words_re = re.compile(</span><span class="s3">r'\S+(?:\s+|$)'</span><span class="s2">, </span><span class="s1">re.U)</span>
+
+<span class="s2">def </span><span class="s1">split_words(text):</span>
+    <span class="s5">&quot;&quot;&quot; Splits some text into words. Includes trailing whitespace 
+    on each word when appropriate.  &quot;&quot;&quot;</span>
+    <span class="s2">if not </span><span class="s1">text </span><span class="s2">or not </span><span class="s1">text.strip():</span>
+        <span class="s2">return </span><span class="s1">[]</span>
+
+    <span class="s1">words = split_words_re.findall(text)</span>
+    <span class="s2">return </span><span class="s1">words</span>
+
+<span class="s1">start_whitespace_re = re.compile(</span><span class="s3">r'^[ \t\n\r]'</span><span class="s1">)</span>
+
+<span class="s2">def </span><span class="s1">start_tag(el):</span>
+    <span class="s5">&quot;&quot;&quot; 
+    The text representation of the start tag for a tag. 
+    &quot;&quot;&quot;</span>
+    <span class="s2">return </span><span class="s3">'&lt;%s%s&gt;' </span><span class="s1">% (</span>
+        <span class="s1">el.tag</span><span class="s2">, </span><span class="s3">''</span><span class="s1">.join([</span><span class="s3">' %s=&quot;%s&quot;' </span><span class="s1">% (name</span><span class="s2">, </span><span class="s1">html_escape(value</span><span class="s2">, True</span><span class="s1">))</span>
+                         <span class="s2">for </span><span class="s1">name</span><span class="s2">, </span><span class="s1">value </span><span class="s2">in </span><span class="s1">el.attrib.items()]))</span>
+
+<span class="s2">def </span><span class="s1">end_tag(el):</span>
+    <span class="s5">&quot;&quot;&quot; The text representation of an end tag for a tag.  Includes 
+    trailing whitespace when appropriate.  &quot;&quot;&quot;</span>
+    <span class="s2">if </span><span class="s1">el.tail </span><span class="s2">and </span><span class="s1">start_whitespace_re.search(el.tail):</span>
+        <span class="s1">extra = </span><span class="s3">' '</span>
+    <span class="s2">else</span><span class="s1">:</span>
+        <span class="s1">extra = </span><span class="s3">''</span>
+    <span class="s2">return </span><span class="s3">'&lt;/%s&gt;%s' </span><span class="s1">% (el.tag</span><span class="s2">, </span><span class="s1">extra)</span>
+
+<span class="s2">def </span><span class="s1">is_word(tok):</span>
+    <span class="s2">return not </span><span class="s1">tok.startswith(</span><span class="s3">'&lt;'</span><span class="s1">)</span>
+
+<span class="s2">def </span><span class="s1">is_end_tag(tok):</span>
+    <span class="s2">return </span><span class="s1">tok.startswith(</span><span class="s3">'&lt;/'</span><span class="s1">)</span>
+
+<span class="s2">def </span><span class="s1">is_start_tag(tok):</span>
+    <span class="s2">return </span><span class="s1">tok.startswith(</span><span class="s3">'&lt;'</span><span class="s1">) </span><span class="s2">and not </span><span class="s1">tok.startswith(</span><span class="s3">'&lt;/'</span><span class="s1">)</span>
+
+<span class="s2">def </span><span class="s1">fixup_ins_del_tags(html):</span>
+    <span class="s5">&quot;&quot;&quot; Given an html string, move any &lt;ins&gt; or &lt;del&gt; tags inside of any 
+    block-level elements, e.g. transform &lt;ins&gt;&lt;p&gt;word&lt;/p&gt;&lt;/ins&gt; to 
+    &lt;p&gt;&lt;ins&gt;word&lt;/ins&gt;&lt;/p&gt; &quot;&quot;&quot;</span>
+    <span class="s1">doc = parse_html(html</span><span class="s2">, </span><span class="s1">cleanup=</span><span class="s2">False</span><span class="s1">)</span>
+    <span class="s1">_fixup_ins_del_tags(doc)</span>
+    <span class="s1">html = serialize_html_fragment(doc</span><span class="s2">, </span><span class="s1">skip_outer=</span><span class="s2">True</span><span class="s1">)</span>
+    <span class="s2">return </span><span class="s1">html</span>
+
+<span class="s2">def </span><span class="s1">serialize_html_fragment(el</span><span class="s2">, </span><span class="s1">skip_outer=</span><span class="s2">False</span><span class="s1">):</span>
+    <span class="s5">&quot;&quot;&quot; Serialize a single lxml element as HTML.  The serialized form 
+    includes the elements tail.   
+ 
+    If skip_outer is true, then don't serialize the outermost tag 
+    &quot;&quot;&quot;</span>
+    <span class="s2">assert not </span><span class="s1">isinstance(el</span><span class="s2">, </span><span class="s1">basestring)</span><span class="s2">, </span><span class="s1">(</span>
+        <span class="s3">&quot;You should pass in an element, not a string like %r&quot; </span><span class="s1">% el)</span>
+    <span class="s1">html = etree.tostring(el</span><span class="s2">, </span><span class="s1">method=</span><span class="s3">&quot;html&quot;</span><span class="s2">, </span><span class="s1">encoding=_unicode)</span>
+    <span class="s2">if </span><span class="s1">skip_outer:</span>
+        <span class="s0"># Get rid of the extra starting tag:</span>
+        <span class="s1">html = html[html.find(</span><span class="s3">'&gt;'</span><span class="s1">)+</span><span class="s4">1</span><span class="s1">:]</span>
+        <span class="s0"># Get rid of the extra end tag:</span>
+        <span class="s1">html = html[:html.rfind(</span><span class="s3">'&lt;'</span><span class="s1">)]</span>
+        <span class="s2">return </span><span class="s1">html.strip()</span>
+    <span class="s2">else</span><span class="s1">:</span>
+        <span class="s2">return </span><span class="s1">html</span>
+
+<span class="s2">def </span><span class="s1">_fixup_ins_del_tags(doc):</span>
+    <span class="s5">&quot;&quot;&quot;fixup_ins_del_tags that works on an lxml document in-place 
+    &quot;&quot;&quot;</span>
+    <span class="s2">for </span><span class="s1">tag </span><span class="s2">in </span><span class="s1">[</span><span class="s3">'ins'</span><span class="s2">, </span><span class="s3">'del'</span><span class="s1">]:</span>
+        <span class="s2">for </span><span class="s1">el </span><span class="s2">in </span><span class="s1">doc.xpath(</span><span class="s3">'descendant-or-self::%s' </span><span class="s1">% tag):</span>
+            <span class="s2">if not </span><span class="s1">_contains_block_level_tag(el):</span>
+                <span class="s2">continue</span>
+            <span class="s1">_move_el_inside_block(el</span><span class="s2">, </span><span class="s1">tag=tag)</span>
+            <span class="s1">el.drop_tag()</span>
+            <span class="s0">#_merge_element_contents(el)</span>
+
+<span class="s2">def </span><span class="s1">_contains_block_level_tag(el):</span>
+    <span class="s5">&quot;&quot;&quot;True if the element contains any block-level elements, like &lt;p&gt;, &lt;td&gt;, etc. 
+    &quot;&quot;&quot;</span>
+    <span class="s2">if </span><span class="s1">el.tag </span><span class="s2">in </span><span class="s1">block_level_tags </span><span class="s2">or </span><span class="s1">el.tag </span><span class="s2">in </span><span class="s1">block_level_container_tags:</span>
+        <span class="s2">return True</span>
+    <span class="s2">for </span><span class="s1">child </span><span class="s2">in </span><span class="s1">el:</span>
+        <span class="s2">if </span><span class="s1">_contains_block_level_tag(child):</span>
+            <span class="s2">return True</span>
+    <span class="s2">return False</span>
+
+<span class="s2">def </span><span class="s1">_move_el_inside_block(el</span><span class="s2">, </span><span class="s1">tag):</span>
+    <span class="s5">&quot;&quot;&quot; helper for _fixup_ins_del_tags; actually takes the &lt;ins&gt; etc tags 
+    and moves them inside any block-level tags.  &quot;&quot;&quot;</span>
+    <span class="s2">for </span><span class="s1">child </span><span class="s2">in </span><span class="s1">el:</span>
+        <span class="s2">if </span><span class="s1">_contains_block_level_tag(child):</span>
+            <span class="s2">break</span>
+    <span class="s2">else</span><span class="s1">:</span>
+        <span class="s0"># No block-level tags in any child</span>
+        <span class="s1">children_tag = etree.Element(tag)</span>
+        <span class="s1">children_tag.text = el.text</span>
+        <span class="s1">el.text = </span><span class="s2">None</span>
+        <span class="s1">children_tag.extend(list(el))</span>
+        <span class="s1">el[:] = [children_tag]</span>
+        <span class="s2">return</span>
+    <span class="s2">for </span><span class="s1">child </span><span class="s2">in </span><span class="s1">list(el):</span>
+        <span class="s2">if </span><span class="s1">_contains_block_level_tag(child):</span>
+            <span class="s1">_move_el_inside_block(child</span><span class="s2">, </span><span class="s1">tag)</span>
+            <span class="s2">if </span><span class="s1">child.tail:</span>
+                <span class="s1">tail_tag = etree.Element(tag)</span>
+                <span class="s1">tail_tag.text = child.tail</span>
+                <span class="s1">child.tail = </span><span class="s2">None</span>
+                <span class="s1">el.insert(el.index(child)+</span><span class="s4">1</span><span class="s2">, </span><span class="s1">tail_tag)</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s1">child_tag = etree.Element(tag)</span>
+            <span class="s1">el.replace(child</span><span class="s2">, </span><span class="s1">child_tag)</span>
+            <span class="s1">child_tag.append(child)</span>
+    <span class="s2">if </span><span class="s1">el.text:</span>
+        <span class="s1">text_tag = etree.Element(tag)</span>
+        <span class="s1">text_tag.text = el.text</span>
+        <span class="s1">el.text = </span><span class="s2">None</span>
+        <span class="s1">el.insert(</span><span class="s4">0</span><span class="s2">, </span><span class="s1">text_tag)</span>
+            
+<span class="s2">def </span><span class="s1">_merge_element_contents(el):</span>
+    <span class="s5">&quot;&quot;&quot; 
+    Removes an element, but merges its contents into its place, e.g., 
+    given &lt;p&gt;Hi &lt;i&gt;there!&lt;/i&gt;&lt;/p&gt;, if you remove the &lt;i&gt; element you get 
+    &lt;p&gt;Hi there!&lt;/p&gt; 
+    &quot;&quot;&quot;</span>
+    <span class="s1">parent = el.getparent()</span>
+    <span class="s1">text = el.text </span><span class="s2">or </span><span class="s3">''</span>
+    <span class="s2">if </span><span class="s1">el.tail:</span>
+        <span class="s2">if not </span><span class="s1">len(el):</span>
+            <span class="s1">text += el.tail</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s2">if </span><span class="s1">el[-</span><span class="s4">1</span><span class="s1">].tail:</span>
+                <span class="s1">el[-</span><span class="s4">1</span><span class="s1">].tail += el.tail</span>
+            <span class="s2">else</span><span class="s1">:</span>
+                <span class="s1">el[-</span><span class="s4">1</span><span class="s1">].tail = el.tail</span>
+    <span class="s1">index = parent.index(el)</span>
+    <span class="s2">if </span><span class="s1">text:</span>
+        <span class="s2">if </span><span class="s1">index == </span><span class="s4">0</span><span class="s1">:</span>
+            <span class="s1">previous = </span><span class="s2">None</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s1">previous = parent[index-</span><span class="s4">1</span><span class="s1">]</span>
+        <span class="s2">if </span><span class="s1">previous </span><span class="s2">is None</span><span class="s1">:</span>
+            <span class="s2">if </span><span class="s1">parent.text:</span>
+                <span class="s1">parent.text += text</span>
+            <span class="s2">else</span><span class="s1">:</span>
+                <span class="s1">parent.text = text</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s2">if </span><span class="s1">previous.tail:</span>
+                <span class="s1">previous.tail += text</span>
+            <span class="s2">else</span><span class="s1">:</span>
+                <span class="s1">previous.tail = text</span>
+    <span class="s1">parent[index:index+</span><span class="s4">1</span><span class="s1">] = el.getchildren()</span>
+
+<span class="s2">class </span><span class="s1">InsensitiveSequenceMatcher(difflib.SequenceMatcher):</span>
+    <span class="s5">&quot;&quot;&quot; 
+    Acts like SequenceMatcher, but tries not to find very small equal 
+    blocks amidst large spans of changes 
+    &quot;&quot;&quot;</span>
+
+    <span class="s1">threshold = </span><span class="s4">2</span>
+    
+    <span class="s2">def </span><span class="s1">get_matching_blocks(self):</span>
+        <span class="s1">size = min(len(self.b)</span><span class="s2">, </span><span class="s1">len(self.b))</span>
+        <span class="s1">threshold = min(self.threshold</span><span class="s2">, </span><span class="s1">size / </span><span class="s4">4</span><span class="s1">)</span>
+        <span class="s1">actual = difflib.SequenceMatcher.get_matching_blocks(self)</span>
+        <span class="s2">return </span><span class="s1">[item </span><span class="s2">for </span><span class="s1">item </span><span class="s2">in </span><span class="s1">actual</span>
+                <span class="s2">if </span><span class="s1">item[</span><span class="s4">2</span><span class="s1">] &gt; threshold</span>
+                <span class="s2">or not </span><span class="s1">item[</span><span class="s4">2</span><span class="s1">]]</span>
+
+<span class="s2">if </span><span class="s1">__name__ == </span><span class="s3">'__main__'</span><span class="s1">:</span>
+    <span class="s2">from </span><span class="s1">lxml.html </span><span class="s2">import </span><span class="s1">_diffcommand</span>
+    <span class="s1">_diffcommand.main()</span>
+    
+</pre>
+</body>
+</html>

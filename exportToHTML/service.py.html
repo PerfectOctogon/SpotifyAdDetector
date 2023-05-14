@@ -1,0 +1,64 @@
+<html>
+<head>
+<title>service.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #629755; font-style: italic;}
+.s4 { color: #6897bb;}
+.s5 { color: #6a8759;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+service.py</font>
+</center></td></tr></table>
+<pre><span class="s0"># Licensed to the Software Freedom Conservancy (SFC) under one</span>
+<span class="s0"># or more contributor license agreements.  See the NOTICE file</span>
+<span class="s0"># distributed with this work for additional information</span>
+<span class="s0"># regarding copyright ownership.  The SFC licenses this file</span>
+<span class="s0"># to you under the Apache License, Version 2.0 (the</span>
+<span class="s0"># &quot;License&quot;); you may not use this file except in compliance</span>
+<span class="s0"># with the License.  You may obtain a copy of the License at</span>
+<span class="s0">#</span>
+<span class="s0">#   http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="s0">#</span>
+<span class="s0"># Unless required by applicable law or agreed to in writing,</span>
+<span class="s0"># software distributed under the License is distributed on an</span>
+<span class="s0"># &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY</span>
+<span class="s0"># KIND, either express or implied.  See the License for the</span>
+<span class="s0"># specific language governing permissions and limitations</span>
+<span class="s0"># under the License.</span>
+
+<span class="s2">from </span><span class="s1">selenium.webdriver.common </span><span class="s2">import </span><span class="s1">service</span>
+
+
+<span class="s2">class </span><span class="s1">Service(service.Service):</span>
+    <span class="s3">&quot;&quot;&quot; 
+    Object that manages the starting and stopping of the WebKitGTKDriver 
+    &quot;&quot;&quot;</span>
+
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">executable_path</span><span class="s2">, </span><span class="s1">port=</span><span class="s4">0</span><span class="s2">, </span><span class="s1">log_path=</span><span class="s2">None</span><span class="s1">):</span>
+        <span class="s3">&quot;&quot;&quot; 
+        Creates a new instance of the Service 
+ 
+        :Args: 
+         - executable_path : Path to the WebKitGTKDriver 
+         - port : Port the service is running on 
+         - log_path : Path for the WebKitGTKDriver service to log to 
+        &quot;&quot;&quot;</span>
+        <span class="s1">log_file = open(log_path</span><span class="s2">, </span><span class="s5">&quot;wb&quot;</span><span class="s1">) </span><span class="s2">if </span><span class="s1">log_path </span><span class="s2">is not None and </span><span class="s1">log_path != </span><span class="s5">&quot;&quot; </span><span class="s2">else None</span>
+        <span class="s1">service.Service.__init__(self</span><span class="s2">, </span><span class="s1">executable_path</span><span class="s2">, </span><span class="s1">port</span><span class="s2">, </span><span class="s1">log_file)</span>
+
+    <span class="s2">def </span><span class="s1">command_line_args(self):</span>
+        <span class="s2">return </span><span class="s1">[</span><span class="s5">&quot;-p&quot;</span><span class="s2">, </span><span class="s5">&quot;%d&quot; </span><span class="s1">% self.port]</span>
+
+    <span class="s2">def </span><span class="s1">send_remote_shutdown_command(self):</span>
+        <span class="s2">pass</span>
+</pre>
+</body>
+</html>

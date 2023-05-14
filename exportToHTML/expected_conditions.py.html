@@ -1,0 +1,443 @@
+<html>
+<head>
+<title>expected_conditions.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+.s4 { color: #629755; font-style: italic;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+expected_conditions.py</font>
+</center></td></tr></table>
+<pre><span class="s0"># Licensed to the Software Freedom Conservancy (SFC) under one</span>
+<span class="s0"># or more contributor license agreements.  See the NOTICE file</span>
+<span class="s0"># distributed with this work for additional information</span>
+<span class="s0"># regarding copyright ownership.  The SFC licenses this file</span>
+<span class="s0"># to you under the Apache License, Version 2.0 (the</span>
+<span class="s0"># &quot;License&quot;); you may not use this file except in compliance</span>
+<span class="s0"># with the License.  You may obtain a copy of the License at</span>
+<span class="s0">#</span>
+<span class="s0">#   http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="s0">#</span>
+<span class="s0"># Unless required by applicable law or agreed to in writing,</span>
+<span class="s0"># software distributed under the License is distributed on an</span>
+<span class="s0"># &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY</span>
+<span class="s0"># KIND, either express or implied.  See the License for the</span>
+<span class="s0"># specific language governing permissions and limitations</span>
+<span class="s0"># under the License.</span>
+
+<span class="s2">from </span><span class="s1">selenium.common.exceptions </span><span class="s2">import </span><span class="s1">NoSuchElementException</span>
+<span class="s2">from </span><span class="s1">selenium.common.exceptions </span><span class="s2">import </span><span class="s1">NoSuchFrameException</span>
+<span class="s2">from </span><span class="s1">selenium.common.exceptions </span><span class="s2">import </span><span class="s1">StaleElementReferenceException</span>
+<span class="s2">from </span><span class="s1">selenium.common.exceptions </span><span class="s2">import </span><span class="s1">WebDriverException</span>
+<span class="s2">from </span><span class="s1">selenium.common.exceptions </span><span class="s2">import </span><span class="s1">NoAlertPresentException</span>
+<span class="s2">from </span><span class="s1">selenium.webdriver.remote.webdriver </span><span class="s2">import </span><span class="s1">WebElement</span>
+
+<span class="s3">&quot;&quot;&quot; 
+ * Canned &quot;Expected Conditions&quot; which are generally useful within webdriver 
+ * tests. 
+&quot;&quot;&quot;</span>
+
+
+<span class="s2">class </span><span class="s1">title_is(object):</span>
+    <span class="s4">&quot;&quot;&quot;An expectation for checking the title of a page. 
+    title is the expected title, which must be an exact match 
+    returns True if the title matches, false otherwise.&quot;&quot;&quot;</span>
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">title):</span>
+        <span class="s1">self.title = title</span>
+
+    <span class="s2">def </span><span class="s1">__call__(self</span><span class="s2">, </span><span class="s1">driver):</span>
+        <span class="s2">return </span><span class="s1">self.title == driver.title</span>
+
+
+<span class="s2">class </span><span class="s1">title_contains(object):</span>
+    <span class="s4">&quot;&quot;&quot; An expectation for checking that the title contains a case-sensitive 
+    substring. title is the fragment of title expected 
+    returns True when the title matches, False otherwise 
+    &quot;&quot;&quot;</span>
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">title):</span>
+        <span class="s1">self.title = title</span>
+
+    <span class="s2">def </span><span class="s1">__call__(self</span><span class="s2">, </span><span class="s1">driver):</span>
+        <span class="s2">return </span><span class="s1">self.title </span><span class="s2">in </span><span class="s1">driver.title</span>
+
+
+<span class="s2">class </span><span class="s1">presence_of_element_located(object):</span>
+    <span class="s4">&quot;&quot;&quot; An expectation for checking that an element is present on the DOM 
+    of a page. This does not necessarily mean that the element is visible. 
+    locator - used to find the element 
+    returns the WebElement once it is located 
+    &quot;&quot;&quot;</span>
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">locator):</span>
+        <span class="s1">self.locator = locator</span>
+
+    <span class="s2">def </span><span class="s1">__call__(self</span><span class="s2">, </span><span class="s1">driver):</span>
+        <span class="s2">return </span><span class="s1">_find_element(driver</span><span class="s2">, </span><span class="s1">self.locator)</span>
+
+
+<span class="s2">class </span><span class="s1">url_contains(object):</span>
+    <span class="s4">&quot;&quot;&quot; An expectation for checking that the current url contains a 
+    case-sensitive substring. 
+    url is the fragment of url expected, 
+    returns True when the url matches, False otherwise 
+    &quot;&quot;&quot;</span>
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">url):</span>
+        <span class="s1">self.url = url</span>
+
+    <span class="s2">def </span><span class="s1">__call__(self</span><span class="s2">, </span><span class="s1">driver):</span>
+        <span class="s2">return </span><span class="s1">self.url </span><span class="s2">in </span><span class="s1">driver.current_url</span>
+
+
+<span class="s2">class </span><span class="s1">url_matches(object):</span>
+    <span class="s4">&quot;&quot;&quot;An expectation for checking the current url. 
+    pattern is the expected pattern, which must be an exact match 
+    returns True if the url matches, false otherwise.&quot;&quot;&quot;</span>
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">pattern):</span>
+        <span class="s1">self.pattern = pattern</span>
+
+    <span class="s2">def </span><span class="s1">__call__(self</span><span class="s2">, </span><span class="s1">driver):</span>
+        <span class="s2">import </span><span class="s1">re</span>
+        <span class="s1">match = re.search(self.pattern</span><span class="s2">, </span><span class="s1">driver.current_url)</span>
+
+        <span class="s2">return </span><span class="s1">match </span><span class="s2">is not None</span>
+
+
+<span class="s2">class </span><span class="s1">url_to_be(object):</span>
+    <span class="s4">&quot;&quot;&quot;An expectation for checking the current url. 
+    url is the expected url, which must be an exact match 
+    returns True if the url matches, false otherwise.&quot;&quot;&quot;</span>
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">url):</span>
+        <span class="s1">self.url = url</span>
+
+    <span class="s2">def </span><span class="s1">__call__(self</span><span class="s2">, </span><span class="s1">driver):</span>
+        <span class="s2">return </span><span class="s1">self.url == driver.current_url</span>
+
+
+<span class="s2">class </span><span class="s1">url_changes(object):</span>
+    <span class="s4">&quot;&quot;&quot;An expectation for checking the current url. 
+    url is the expected url, which must not be an exact match 
+    returns True if the url is different, false otherwise.&quot;&quot;&quot;</span>
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">url):</span>
+        <span class="s1">self.url = url</span>
+
+    <span class="s2">def </span><span class="s1">__call__(self</span><span class="s2">, </span><span class="s1">driver):</span>
+        <span class="s2">return </span><span class="s1">self.url != driver.current_url</span>
+
+
+<span class="s2">class </span><span class="s1">visibility_of_element_located(object):</span>
+    <span class="s4">&quot;&quot;&quot; An expectation for checking that an element is present on the DOM of a 
+    page and visible. Visibility means that the element is not only displayed 
+    but also has a height and width that is greater than 0. 
+    locator - used to find the element 
+    returns the WebElement once it is located and visible 
+    &quot;&quot;&quot;</span>
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">locator):</span>
+        <span class="s1">self.locator = locator</span>
+
+    <span class="s2">def </span><span class="s1">__call__(self</span><span class="s2">, </span><span class="s1">driver):</span>
+        <span class="s2">try</span><span class="s1">:</span>
+            <span class="s2">return </span><span class="s1">_element_if_visible(_find_element(driver</span><span class="s2">, </span><span class="s1">self.locator))</span>
+        <span class="s2">except </span><span class="s1">StaleElementReferenceException:</span>
+            <span class="s2">return False</span>
+
+
+<span class="s2">class </span><span class="s1">visibility_of(object):</span>
+    <span class="s4">&quot;&quot;&quot; An expectation for checking that an element, known to be present on the 
+    DOM of a page, is visible. Visibility means that the element is not only 
+    displayed but also has a height and width that is greater than 0. 
+    element is the WebElement 
+    returns the (same) WebElement once it is visible 
+    &quot;&quot;&quot;</span>
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">element):</span>
+        <span class="s1">self.element = element</span>
+
+    <span class="s2">def </span><span class="s1">__call__(self</span><span class="s2">, </span><span class="s1">ignored):</span>
+        <span class="s2">return </span><span class="s1">_element_if_visible(self.element)</span>
+
+
+<span class="s2">def </span><span class="s1">_element_if_visible(element</span><span class="s2">, </span><span class="s1">visibility=</span><span class="s2">True</span><span class="s1">):</span>
+    <span class="s2">return </span><span class="s1">element </span><span class="s2">if </span><span class="s1">element.is_displayed() == visibility </span><span class="s2">else False</span>
+
+
+<span class="s2">class </span><span class="s1">presence_of_all_elements_located(object):</span>
+    <span class="s4">&quot;&quot;&quot; An expectation for checking that there is at least one element present 
+    on a web page. 
+    locator is used to find the element 
+    returns the list of WebElements once they are located 
+    &quot;&quot;&quot;</span>
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">locator):</span>
+        <span class="s1">self.locator = locator</span>
+
+    <span class="s2">def </span><span class="s1">__call__(self</span><span class="s2">, </span><span class="s1">driver):</span>
+        <span class="s2">return </span><span class="s1">_find_elements(driver</span><span class="s2">, </span><span class="s1">self.locator)</span>
+
+
+<span class="s2">class </span><span class="s1">visibility_of_any_elements_located(object):</span>
+    <span class="s4">&quot;&quot;&quot; An expectation for checking that there is at least one element visible 
+    on a web page. 
+    locator is used to find the element 
+    returns the list of WebElements once they are located 
+    &quot;&quot;&quot;</span>
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">locator):</span>
+        <span class="s1">self.locator = locator</span>
+
+    <span class="s2">def </span><span class="s1">__call__(self</span><span class="s2">, </span><span class="s1">driver):</span>
+        <span class="s2">return </span><span class="s1">[element </span><span class="s2">for </span><span class="s1">element </span><span class="s2">in </span><span class="s1">_find_elements(driver</span><span class="s2">, </span><span class="s1">self.locator) </span><span class="s2">if </span><span class="s1">_element_if_visible(element)]</span>
+
+
+<span class="s2">class </span><span class="s1">visibility_of_all_elements_located(object):</span>
+    <span class="s4">&quot;&quot;&quot; An expectation for checking that all elements are present on the DOM of a 
+    page and visible. Visibility means that the elements are not only displayed 
+    but also has a height and width that is greater than 0. 
+    locator - used to find the elements 
+    returns the list of WebElements once they are located and visible 
+    &quot;&quot;&quot;</span>
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">locator):</span>
+        <span class="s1">self.locator = locator</span>
+
+    <span class="s2">def </span><span class="s1">__call__(self</span><span class="s2">, </span><span class="s1">driver):</span>
+        <span class="s2">try</span><span class="s1">:</span>
+            <span class="s1">elements = _find_elements(driver</span><span class="s2">, </span><span class="s1">self.locator)</span>
+            <span class="s2">for </span><span class="s1">element </span><span class="s2">in </span><span class="s1">elements:</span>
+                <span class="s2">if </span><span class="s1">_element_if_visible(element</span><span class="s2">, </span><span class="s1">visibility=</span><span class="s2">False</span><span class="s1">):</span>
+                    <span class="s2">return False</span>
+            <span class="s2">return </span><span class="s1">elements</span>
+        <span class="s2">except </span><span class="s1">StaleElementReferenceException:</span>
+            <span class="s2">return False</span>
+
+
+<span class="s2">class </span><span class="s1">text_to_be_present_in_element(object):</span>
+    <span class="s4">&quot;&quot;&quot; An expectation for checking if the given text is present in the 
+    specified element. 
+    locator, text 
+    &quot;&quot;&quot;</span>
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">locator</span><span class="s2">, </span><span class="s1">text_):</span>
+        <span class="s1">self.locator = locator</span>
+        <span class="s1">self.text = text_</span>
+
+    <span class="s2">def </span><span class="s1">__call__(self</span><span class="s2">, </span><span class="s1">driver):</span>
+        <span class="s2">try</span><span class="s1">:</span>
+            <span class="s1">element_text = _find_element(driver</span><span class="s2">, </span><span class="s1">self.locator).text</span>
+            <span class="s2">return </span><span class="s1">self.text </span><span class="s2">in </span><span class="s1">element_text</span>
+        <span class="s2">except </span><span class="s1">StaleElementReferenceException:</span>
+            <span class="s2">return False</span>
+
+
+<span class="s2">class </span><span class="s1">text_to_be_present_in_element_value(object):</span>
+    <span class="s4">&quot;&quot;&quot; 
+    An expectation for checking if the given text is present in the element's 
+    locator, text 
+    &quot;&quot;&quot;</span>
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">locator</span><span class="s2">, </span><span class="s1">text_):</span>
+        <span class="s1">self.locator = locator</span>
+        <span class="s1">self.text = text_</span>
+
+    <span class="s2">def </span><span class="s1">__call__(self</span><span class="s2">, </span><span class="s1">driver):</span>
+        <span class="s2">try</span><span class="s1">:</span>
+            <span class="s1">element_text = _find_element(driver</span><span class="s2">,</span>
+                                         <span class="s1">self.locator).get_attribute(</span><span class="s3">&quot;value&quot;</span><span class="s1">)</span>
+            <span class="s2">if </span><span class="s1">element_text:</span>
+                <span class="s2">return </span><span class="s1">self.text </span><span class="s2">in </span><span class="s1">element_text</span>
+            <span class="s2">else</span><span class="s1">:</span>
+                <span class="s2">return False</span>
+        <span class="s2">except </span><span class="s1">StaleElementReferenceException:</span>
+                <span class="s2">return False</span>
+
+
+<span class="s2">class </span><span class="s1">frame_to_be_available_and_switch_to_it(object):</span>
+    <span class="s4">&quot;&quot;&quot; An expectation for checking whether the given frame is available to 
+    switch to.  If the frame is available it switches the given driver to the 
+    specified frame. 
+    &quot;&quot;&quot;</span>
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">locator):</span>
+        <span class="s1">self.frame_locator = locator</span>
+
+    <span class="s2">def </span><span class="s1">__call__(self</span><span class="s2">, </span><span class="s1">driver):</span>
+        <span class="s2">try</span><span class="s1">:</span>
+            <span class="s2">if </span><span class="s1">isinstance(self.frame_locator</span><span class="s2">, </span><span class="s1">tuple):</span>
+                <span class="s1">driver.switch_to.frame(_find_element(driver</span><span class="s2">,</span>
+                                                     <span class="s1">self.frame_locator))</span>
+            <span class="s2">else</span><span class="s1">:</span>
+                <span class="s1">driver.switch_to.frame(self.frame_locator)</span>
+            <span class="s2">return True</span>
+        <span class="s2">except </span><span class="s1">NoSuchFrameException:</span>
+            <span class="s2">return False</span>
+
+
+<span class="s2">class </span><span class="s1">invisibility_of_element_located(object):</span>
+    <span class="s4">&quot;&quot;&quot; An Expectation for checking that an element is either invisible or not 
+    present on the DOM. 
+ 
+    locator used to find the element 
+    &quot;&quot;&quot;</span>
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">locator):</span>
+        <span class="s1">self.target = locator</span>
+
+    <span class="s2">def </span><span class="s1">__call__(self</span><span class="s2">, </span><span class="s1">driver):</span>
+        <span class="s2">try</span><span class="s1">:</span>
+            <span class="s1">target = self.target</span>
+            <span class="s2">if not </span><span class="s1">isinstance(target</span><span class="s2">, </span><span class="s1">WebElement):</span>
+                <span class="s1">target = _find_element(driver</span><span class="s2">, </span><span class="s1">target)</span>
+            <span class="s2">return </span><span class="s1">_element_if_visible(target</span><span class="s2">, False</span><span class="s1">)</span>
+        <span class="s2">except </span><span class="s1">(NoSuchElementException</span><span class="s2">, </span><span class="s1">StaleElementReferenceException):</span>
+            <span class="s0"># In the case of NoSuchElement, returns true because the element is</span>
+            <span class="s0"># not present in DOM. The try block checks if the element is present</span>
+            <span class="s0"># but is invisible.</span>
+            <span class="s0"># In the case of StaleElementReference, returns true because stale</span>
+            <span class="s0"># element reference implies that element is no longer visible.</span>
+            <span class="s2">return True</span>
+
+
+<span class="s2">class </span><span class="s1">invisibility_of_element(invisibility_of_element_located):</span>
+    <span class="s4">&quot;&quot;&quot; An Expectation for checking that an element is either invisible or not 
+    present on the DOM. 
+ 
+    element is either a locator (text) or an WebElement 
+    &quot;&quot;&quot;</span>
+    <span class="s2">def </span><span class="s1">__init(self</span><span class="s2">, </span><span class="s1">element):</span>
+        <span class="s1">self.target = element</span>
+
+
+<span class="s2">class </span><span class="s1">element_to_be_clickable(object):</span>
+    <span class="s4">&quot;&quot;&quot; An Expectation for checking an element is visible and enabled such that 
+    you can click it.&quot;&quot;&quot;</span>
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">locator):</span>
+        <span class="s1">self.locator = locator</span>
+
+    <span class="s2">def </span><span class="s1">__call__(self</span><span class="s2">, </span><span class="s1">driver):</span>
+        <span class="s1">element = visibility_of_element_located(self.locator)(driver)</span>
+        <span class="s2">if </span><span class="s1">element </span><span class="s2">and </span><span class="s1">element.is_enabled():</span>
+            <span class="s2">return </span><span class="s1">element</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s2">return False</span>
+
+
+<span class="s2">class </span><span class="s1">staleness_of(object):</span>
+    <span class="s4">&quot;&quot;&quot; Wait until an element is no longer attached to the DOM. 
+    element is the element to wait for. 
+    returns False if the element is still attached to the DOM, true otherwise. 
+    &quot;&quot;&quot;</span>
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">element):</span>
+        <span class="s1">self.element = element</span>
+
+    <span class="s2">def </span><span class="s1">__call__(self</span><span class="s2">, </span><span class="s1">ignored):</span>
+        <span class="s2">try</span><span class="s1">:</span>
+            <span class="s0"># Calling any method forces a staleness check</span>
+            <span class="s1">self.element.is_enabled()</span>
+            <span class="s2">return False</span>
+        <span class="s2">except </span><span class="s1">StaleElementReferenceException:</span>
+            <span class="s2">return True</span>
+
+
+<span class="s2">class </span><span class="s1">element_to_be_selected(object):</span>
+    <span class="s4">&quot;&quot;&quot; An expectation for checking the selection is selected. 
+    element is WebElement object 
+    &quot;&quot;&quot;</span>
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">element):</span>
+        <span class="s1">self.element = element</span>
+
+    <span class="s2">def </span><span class="s1">__call__(self</span><span class="s2">, </span><span class="s1">ignored):</span>
+        <span class="s2">return </span><span class="s1">self.element.is_selected()</span>
+
+
+<span class="s2">class </span><span class="s1">element_located_to_be_selected(object):</span>
+    <span class="s4">&quot;&quot;&quot;An expectation for the element to be located is selected. 
+    locator is a tuple of (by, path)&quot;&quot;&quot;</span>
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">locator):</span>
+        <span class="s1">self.locator = locator</span>
+
+    <span class="s2">def </span><span class="s1">__call__(self</span><span class="s2">, </span><span class="s1">driver):</span>
+        <span class="s2">return </span><span class="s1">_find_element(driver</span><span class="s2">, </span><span class="s1">self.locator).is_selected()</span>
+
+
+<span class="s2">class </span><span class="s1">element_selection_state_to_be(object):</span>
+    <span class="s4">&quot;&quot;&quot; An expectation for checking if the given element is selected. 
+    element is WebElement object 
+    is_selected is a Boolean.&quot; 
+    &quot;&quot;&quot;</span>
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">element</span><span class="s2">, </span><span class="s1">is_selected):</span>
+        <span class="s1">self.element = element</span>
+        <span class="s1">self.is_selected = is_selected</span>
+
+    <span class="s2">def </span><span class="s1">__call__(self</span><span class="s2">, </span><span class="s1">ignored):</span>
+        <span class="s2">return </span><span class="s1">self.element.is_selected() == self.is_selected</span>
+
+
+<span class="s2">class </span><span class="s1">element_located_selection_state_to_be(object):</span>
+    <span class="s4">&quot;&quot;&quot; An expectation to locate an element and check if the selection state 
+    specified is in that state. 
+    locator is a tuple of (by, path) 
+    is_selected is a boolean 
+    &quot;&quot;&quot;</span>
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">locator</span><span class="s2">, </span><span class="s1">is_selected):</span>
+        <span class="s1">self.locator = locator</span>
+        <span class="s1">self.is_selected = is_selected</span>
+
+    <span class="s2">def </span><span class="s1">__call__(self</span><span class="s2">, </span><span class="s1">driver):</span>
+        <span class="s2">try</span><span class="s1">:</span>
+            <span class="s1">element = _find_element(driver</span><span class="s2">, </span><span class="s1">self.locator)</span>
+            <span class="s2">return </span><span class="s1">element.is_selected() == self.is_selected</span>
+        <span class="s2">except </span><span class="s1">StaleElementReferenceException:</span>
+            <span class="s2">return False</span>
+
+
+<span class="s2">class </span><span class="s1">number_of_windows_to_be(object):</span>
+    <span class="s4">&quot;&quot;&quot; An expectation for the number of windows to be a certain value.&quot;&quot;&quot;</span>
+
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">num_windows):</span>
+        <span class="s1">self.num_windows = num_windows</span>
+
+    <span class="s2">def </span><span class="s1">__call__(self</span><span class="s2">, </span><span class="s1">driver):</span>
+        <span class="s2">return </span><span class="s1">len(driver.window_handles) == self.num_windows</span>
+
+
+<span class="s2">class </span><span class="s1">new_window_is_opened(object):</span>
+    <span class="s4">&quot;&quot;&quot; An expectation that a new window will be opened and have the number of 
+    windows handles increase&quot;&quot;&quot;</span>
+
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">current_handles):</span>
+        <span class="s1">self.current_handles = current_handles</span>
+
+    <span class="s2">def </span><span class="s1">__call__(self</span><span class="s2">, </span><span class="s1">driver):</span>
+        <span class="s2">return </span><span class="s1">len(driver.window_handles) &gt; len(self.current_handles)</span>
+
+
+<span class="s2">class </span><span class="s1">alert_is_present(object):</span>
+    <span class="s4">&quot;&quot;&quot; Expect an alert to be present.&quot;&quot;&quot;</span>
+    <span class="s2">def </span><span class="s1">__init__(self):</span>
+        <span class="s2">pass</span>
+
+    <span class="s2">def </span><span class="s1">__call__(self</span><span class="s2">, </span><span class="s1">driver):</span>
+        <span class="s2">try</span><span class="s1">:</span>
+            <span class="s1">alert = driver.switch_to.alert</span>
+            <span class="s2">return </span><span class="s1">alert</span>
+        <span class="s2">except </span><span class="s1">NoAlertPresentException:</span>
+            <span class="s2">return False</span>
+
+
+<span class="s2">def </span><span class="s1">_find_element(driver</span><span class="s2">, </span><span class="s1">by):</span>
+    <span class="s4">&quot;&quot;&quot;Looks up an element. Logs and re-raises ``WebDriverException`` 
+    if thrown.&quot;&quot;&quot;</span>
+    <span class="s2">try</span><span class="s1">:</span>
+        <span class="s2">return </span><span class="s1">driver.find_element(*by)</span>
+    <span class="s2">except </span><span class="s1">NoSuchElementException </span><span class="s2">as </span><span class="s1">e:</span>
+        <span class="s2">raise </span><span class="s1">e</span>
+    <span class="s2">except </span><span class="s1">WebDriverException </span><span class="s2">as </span><span class="s1">e:</span>
+        <span class="s2">raise </span><span class="s1">e</span>
+
+
+<span class="s2">def </span><span class="s1">_find_elements(driver</span><span class="s2">, </span><span class="s1">by):</span>
+    <span class="s2">try</span><span class="s1">:</span>
+        <span class="s2">return </span><span class="s1">driver.find_elements(*by)</span>
+    <span class="s2">except </span><span class="s1">WebDriverException </span><span class="s2">as </span><span class="s1">e:</span>
+        <span class="s2">raise </span><span class="s1">e</span>
+</pre>
+</body>
+</html>

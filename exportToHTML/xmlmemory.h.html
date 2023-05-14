@@ -1,0 +1,245 @@
+<html>
+<head>
+<title>xmlmemory.h</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+.s4 { color: #6897bb;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+xmlmemory.h</font>
+</center></td></tr></table>
+<pre><span class="s0">/* 
+ * Summary: interface for the memory allocator 
+ * Description: provides interfaces for the memory allocator, 
+ *              including debugging capabilities. 
+ * 
+ * Copy: See Copyright for the status of this software. 
+ * 
+ * Author: Daniel Veillard 
+ */</span>
+
+
+<span class="s2">#ifndef </span><span class="s1">__DEBUG_MEMORY_ALLOC__</span>
+<span class="s2">#define </span><span class="s1">__DEBUG_MEMORY_ALLOC__</span>
+
+<span class="s2">#include </span><span class="s1">&lt;stdio.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/xmlversion.h&gt;</span>
+
+<span class="s0">/** 
+ * DEBUG_MEMORY: 
+ * 
+ * DEBUG_MEMORY replaces the allocator with a collect and debug 
+ * shell to the libc allocator. 
+ * DEBUG_MEMORY should only be activated when debugging 
+ * libxml i.e. if libxml has been configured with --with-debug-mem too. 
+ */</span>
+<span class="s0">/* #define DEBUG_MEMORY_FREED */</span>
+<span class="s0">/* #define DEBUG_MEMORY_LOCATION */</span>
+
+<span class="s2">#ifdef </span><span class="s1">DEBUG</span>
+<span class="s2">#ifndef </span><span class="s1">DEBUG_MEMORY</span>
+<span class="s2">#define </span><span class="s1">DEBUG_MEMORY</span>
+<span class="s2">#endif</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * DEBUG_MEMORY_LOCATION: 
+ * 
+ * DEBUG_MEMORY_LOCATION should be activated only when debugging 
+ * libxml i.e. if libxml has been configured with --with-debug-mem too. 
+ */</span>
+<span class="s2">#ifdef </span><span class="s1">DEBUG_MEMORY_LOCATION</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s2">extern </span><span class="s3">&quot;C&quot; </span><span class="s1">{</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/* 
+ * The XML memory wrapper support 4 basic overloadable functions. 
+ */</span>
+<span class="s0">/** 
+ * xmlFreeFunc: 
+ * @mem: an already allocated block of memory 
+ * 
+ * Signature for a free() implementation. 
+ */</span>
+<span class="s2">typedef void </span><span class="s1">(XMLCALL *xmlFreeFunc)(</span><span class="s2">void </span><span class="s1">*mem);</span>
+<span class="s0">/** 
+ * xmlMallocFunc: 
+ * @size:  the size requested in bytes 
+ * 
+ * Signature for a malloc() implementation. 
+ * 
+ * Returns a pointer to the newly allocated block or NULL in case of error. 
+ */</span>
+<span class="s2">typedef void </span><span class="s1">*(LIBXML_ATTR_ALLOC_SIZE(</span><span class="s4">1</span><span class="s1">) XMLCALL *xmlMallocFunc)(size_t size);</span>
+
+<span class="s0">/** 
+ * xmlReallocFunc: 
+ * @mem: an already allocated block of memory 
+ * @size:  the new size requested in bytes 
+ * 
+ * Signature for a realloc() implementation. 
+ * 
+ * Returns a pointer to the newly reallocated block or NULL in case of error. 
+ */</span>
+<span class="s2">typedef void </span><span class="s1">*(XMLCALL *xmlReallocFunc)(</span><span class="s2">void </span><span class="s1">*mem, size_t size);</span>
+
+<span class="s0">/** 
+ * xmlStrdupFunc: 
+ * @str: a zero terminated string 
+ * 
+ * Signature for an strdup() implementation. 
+ * 
+ * Returns the copy of the string or NULL in case of error. 
+ */</span>
+<span class="s2">typedef char </span><span class="s1">*(XMLCALL *xmlStrdupFunc)(</span><span class="s2">const char </span><span class="s1">*str);</span>
+
+<span class="s0">/* 
+ * The 4 interfaces used for all memory handling within libxml. 
+LIBXML_DLL_IMPORT xmlFreeFunc xmlFree; 
+LIBXML_DLL_IMPORT xmlMallocFunc xmlMalloc; 
+LIBXML_DLL_IMPORT xmlMallocFunc xmlMallocAtomic; 
+LIBXML_DLL_IMPORT xmlReallocFunc xmlRealloc; 
+LIBXML_DLL_IMPORT xmlStrdupFunc xmlMemStrdup; 
+ */</span>
+
+<span class="s0">/* 
+ * The way to overload the existing functions. 
+ * The xmlGc function have an extra entry for atomic block 
+ * allocations useful for garbage collected memory allocators 
+ */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlMemSetup	(xmlFreeFunc freeFunc,</span>
+			 <span class="s1">xmlMallocFunc mallocFunc,</span>
+			 <span class="s1">xmlReallocFunc reallocFunc,</span>
+			 <span class="s1">xmlStrdupFunc strdupFunc);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlMemGet	(xmlFreeFunc *freeFunc,</span>
+			 <span class="s1">xmlMallocFunc *mallocFunc,</span>
+			 <span class="s1">xmlReallocFunc *reallocFunc,</span>
+			 <span class="s1">xmlStrdupFunc *strdupFunc);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlGcMemSetup	(xmlFreeFunc freeFunc,</span>
+			 <span class="s1">xmlMallocFunc mallocFunc,</span>
+			 <span class="s1">xmlMallocFunc mallocAtomicFunc,</span>
+			 <span class="s1">xmlReallocFunc reallocFunc,</span>
+			 <span class="s1">xmlStrdupFunc strdupFunc);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlGcMemGet	(xmlFreeFunc *freeFunc,</span>
+			 <span class="s1">xmlMallocFunc *mallocFunc,</span>
+			 <span class="s1">xmlMallocFunc *mallocAtomicFunc,</span>
+			 <span class="s1">xmlReallocFunc *reallocFunc,</span>
+			 <span class="s1">xmlStrdupFunc *strdupFunc);</span>
+
+<span class="s0">/* 
+ * Initialization of the memory layer. 
+ */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlInitMemory	(</span><span class="s2">void</span><span class="s1">);</span>
+
+<span class="s0">/* 
+ * Cleanup of the memory layer. 
+ */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+                <span class="s1">xmlCleanupMemory        (</span><span class="s2">void</span><span class="s1">);</span>
+<span class="s0">/* 
+ * These are specific to the XML debug memory wrapper. 
+ */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlMemUsed	(</span><span class="s2">void</span><span class="s1">);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlMemBlocks	(</span><span class="s2">void</span><span class="s1">);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlMemDisplay	(FILE *fp);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlMemDisplayLast(FILE *fp, </span><span class="s2">long </span><span class="s1">nbBytes);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlMemShow	(FILE *fp, </span><span class="s2">int </span><span class="s1">nr);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlMemoryDump	(</span><span class="s2">void</span><span class="s1">);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">* XMLCALL</span>
+	<span class="s1">xmlMemMalloc	(size_t size) LIBXML_ATTR_ALLOC_SIZE(</span><span class="s4">1</span><span class="s1">);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">* XMLCALL</span>
+	<span class="s1">xmlMemRealloc	(</span><span class="s2">void </span><span class="s1">*ptr,size_t size);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlMemFree	(</span><span class="s2">void </span><span class="s1">*ptr);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">char </span><span class="s1">* XMLCALL</span>
+	<span class="s1">xmlMemoryStrdup	(</span><span class="s2">const char </span><span class="s1">*str);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">* XMLCALL</span>
+	<span class="s1">xmlMallocLoc	(size_t size, </span><span class="s2">const char </span><span class="s1">*file, </span><span class="s2">int </span><span class="s1">line) LIBXML_ATTR_ALLOC_SIZE(</span><span class="s4">1</span><span class="s1">);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">* XMLCALL</span>
+	<span class="s1">xmlReallocLoc	(</span><span class="s2">void </span><span class="s1">*ptr, size_t size, </span><span class="s2">const char </span><span class="s1">*file, </span><span class="s2">int </span><span class="s1">line);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">* XMLCALL</span>
+	<span class="s1">xmlMallocAtomicLoc (size_t size, </span><span class="s2">const char </span><span class="s1">*file, </span><span class="s2">int </span><span class="s1">line) LIBXML_ATTR_ALLOC_SIZE(</span><span class="s4">1</span><span class="s1">);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">char </span><span class="s1">* XMLCALL</span>
+	<span class="s1">xmlMemStrdupLoc	(</span><span class="s2">const char </span><span class="s1">*str, </span><span class="s2">const char </span><span class="s1">*file, </span><span class="s2">int </span><span class="s1">line);</span>
+
+
+<span class="s2">#ifdef </span><span class="s1">DEBUG_MEMORY_LOCATION</span>
+<span class="s0">/** 
+ * xmlMalloc: 
+ * @size:  number of bytes to allocate 
+ * 
+ * Wrapper for the malloc() function used in the XML library. 
+ * 
+ * Returns the pointer to the allocated area or NULL in case of error. 
+ */</span>
+<span class="s2">#define </span><span class="s1">xmlMalloc(size) xmlMallocLoc((size), __FILE__, __LINE__)</span>
+<span class="s0">/** 
+ * xmlMallocAtomic: 
+ * @size:  number of bytes to allocate 
+ * 
+ * Wrapper for the malloc() function used in the XML library for allocation 
+ * of block not containing pointers to other areas. 
+ * 
+ * Returns the pointer to the allocated area or NULL in case of error. 
+ */</span>
+<span class="s2">#define </span><span class="s1">xmlMallocAtomic(size) xmlMallocAtomicLoc((size), __FILE__, __LINE__)</span>
+<span class="s0">/** 
+ * xmlRealloc: 
+ * @ptr:  pointer to the existing allocated area 
+ * @size:  number of bytes to allocate 
+ * 
+ * Wrapper for the realloc() function used in the XML library. 
+ * 
+ * Returns the pointer to the allocated area or NULL in case of error. 
+ */</span>
+<span class="s2">#define </span><span class="s1">xmlRealloc(ptr, size) xmlReallocLoc((ptr), (size), __FILE__, __LINE__)</span>
+<span class="s0">/** 
+ * xmlMemStrdup: 
+ * @str:  pointer to the existing string 
+ * 
+ * Wrapper for the strdup() function, xmlStrdup() is usually preferred. 
+ * 
+ * Returns the pointer to the allocated area or NULL in case of error. 
+ */</span>
+<span class="s2">#define </span><span class="s1">xmlMemStrdup(str) xmlMemStrdupLoc((str), __FILE__, __LINE__)</span>
+
+<span class="s2">#endif </span><span class="s0">/* DEBUG_MEMORY_LOCATION */</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s1">}</span>
+<span class="s2">#endif </span><span class="s0">/* __cplusplus */</span>
+
+<span class="s2">#ifndef </span><span class="s1">__XML_GLOBALS_H</span>
+<span class="s2">#ifndef </span><span class="s1">__XML_THREADS_H__</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/threads.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/globals.h&gt;</span>
+<span class="s2">#endif</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#endif  </span><span class="s0">/* __DEBUG_MEMORY_ALLOC__ */</span>
+
+</pre>
+</body>
+</html>

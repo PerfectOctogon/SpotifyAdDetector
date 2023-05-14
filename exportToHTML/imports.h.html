@@ -1,0 +1,97 @@
+<html>
+<head>
+<title>imports.h</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+.s4 { color: #0f9795;}
+.s5 { color: #6897bb;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+imports.h</font>
+</center></td></tr></table>
+<pre><span class="s0">/* 
+ * Summary: interface for the XSLT import support 
+ * Description: macros and fuctions needed to implement and 
+ *              access the import tree 
+ * 
+ * Copy: See Copyright for the status of this software. 
+ * 
+ * Author: Daniel Veillard 
+ */</span>
+
+<span class="s2">#ifndef </span><span class="s1">__XML_XSLT_IMPORTS_H__</span>
+<span class="s2">#define </span><span class="s1">__XML_XSLT_IMPORTS_H__</span>
+
+<span class="s2">#include </span><span class="s1">&lt;libxml/tree.h&gt;</span>
+<span class="s2">#include </span><span class="s3">&quot;xsltexports.h&quot;</span>
+<span class="s2">#include </span><span class="s3">&quot;xsltInternals.h&quot;</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s2">extern </span><span class="s3">&quot;C&quot; </span><span class="s1">{</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * XSLT_GET_IMPORT_PTR: 
+ * 
+ * A macro to import pointers from the stylesheet cascading order. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XSLT_GET_IMPORT_PTR(res, style, name) {			\</span>
+    <span class="s1">xsltStylesheetPtr st = style;				\</span>
+    <span class="s1">res = NULL;							\</span>
+    <span class="s2">while </span><span class="s1">(st != NULL) {					\</span>
+	<span class="s2">if </span><span class="s1">(st</span><span class="s4">-&gt;</span><span class="s1">name != NULL) { res = st</span><span class="s4">-&gt;</span><span class="s1">name; </span><span class="s2">break</span><span class="s1">; }	\</span>
+	<span class="s1">st = xsltNextImport(st);				\</span>
+    <span class="s1">}}</span>
+
+<span class="s0">/** 
+ * XSLT_GET_IMPORT_INT: 
+ * 
+ * A macro to import intergers from the stylesheet cascading order. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XSLT_GET_IMPORT_INT(res, style, name) {			\</span>
+    <span class="s1">xsltStylesheetPtr st = style;				\</span>
+    <span class="s1">res = -</span><span class="s5">1</span><span class="s1">;							\</span>
+    <span class="s2">while </span><span class="s1">(st != NULL) {					\</span>
+	<span class="s2">if </span><span class="s1">(st</span><span class="s4">-&gt;</span><span class="s1">name != -</span><span class="s5">1</span><span class="s1">) { res = st</span><span class="s4">-&gt;</span><span class="s1">name; </span><span class="s2">break</span><span class="s1">; }	\</span>
+	<span class="s1">st = xsltNextImport(st);				\</span>
+    <span class="s1">}}</span>
+
+<span class="s0">/* 
+ * Module interfaces 
+ */</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+			<span class="s1">xsltParseStylesheetImport(xsltStylesheetPtr style,</span>
+						  <span class="s1">xmlNodePtr cur);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+			<span class="s1">xsltParseStylesheetInclude</span>
+						 <span class="s1">(xsltStylesheetPtr style,</span>
+						  <span class="s1">xmlNodePtr cur);</span>
+<span class="s1">XSLTPUBFUN xsltStylesheetPtr XSLTCALL</span>
+			<span class="s1">xsltNextImport		 (xsltStylesheetPtr style);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+			<span class="s1">xsltNeedElemSpaceHandling(xsltTransformContextPtr ctxt);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+			<span class="s1">xsltFindElemSpaceHandling(xsltTransformContextPtr ctxt,</span>
+						  <span class="s1">xmlNodePtr node);</span>
+<span class="s1">XSLTPUBFUN xsltTemplatePtr XSLTCALL</span>
+			<span class="s1">xsltFindTemplate	 (xsltTransformContextPtr ctxt,</span>
+						  <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+						  <span class="s2">const </span><span class="s1">xmlChar *nameURI);</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s1">}</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#endif </span><span class="s0">/* __XML_XSLT_IMPORTS_H__ */</span>
+
+</pre>
+</body>
+</html>

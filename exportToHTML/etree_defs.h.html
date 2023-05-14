@@ -1,0 +1,441 @@
+<html>
+<head>
+<title>etree_defs.h</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #cc7832;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #808080;}
+.s3 { color: #6a8759;}
+.s4 { color: #6897bb;}
+.s5 { color: #ab51ba;}
+.s6 { color: #0f9795;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+etree_defs.h</font>
+</center></td></tr></table>
+<pre><span class="s0">#ifndef </span><span class="s1">HAS_ETREE_DEFS_H</span>
+<span class="s0">#define </span><span class="s1">HAS_ETREE_DEFS_H</span>
+
+<span class="s2">/* quick check for Python/libxml2/libxslt devel setup */</span>
+<span class="s0">#include </span><span class="s3">&quot;Python.h&quot;</span>
+<span class="s0">#ifndef </span><span class="s1">PY_VERSION_HEX</span>
+<span class="s1">#  error the development package of Python (header files etc.) is not installed correctly</span>
+<span class="s0">#else</span>
+<span class="s1">#  </span><span class="s0">if </span><span class="s1">PY_VERSION_HEX &lt; </span><span class="s4">0x02070000 </span><span class="s1">|| PY_MAJOR_VERSION &gt;= </span><span class="s4">3 </span><span class="s1">&amp;&amp; PY_VERSION_HEX &lt; </span><span class="s4">0x03050000</span>
+<span class="s1">#  error </span><span class="s5">this </span><span class="s1">version of lxml requires Python </span><span class="s4">2.7</span><span class="s1">, </span><span class="s4">3.5 </span><span class="s1">or later</span>
+<span class="s1">#  endif</span>
+<span class="s0">#endif</span>
+
+<span class="s0">#include </span><span class="s3">&quot;libxml/xmlversion.h&quot;</span>
+<span class="s0">#ifndef </span><span class="s1">LIBXML_VERSION</span>
+<span class="s1">#  error the development package of libxml2 (header files etc.) is not installed correctly</span>
+<span class="s0">#else</span>
+<span class="s0">#if </span><span class="s1">LIBXML_VERSION &lt; </span><span class="s4">20700</span>
+<span class="s1">#  error minimum required version of libxml2 is </span><span class="s4">2.7</span><span class="s1">.</span><span class="s4">0</span>
+<span class="s0">#endif</span>
+<span class="s0">#endif</span>
+
+<span class="s0">#include </span><span class="s3">&quot;libxslt/xsltconfig.h&quot;</span>
+<span class="s0">#ifndef </span><span class="s1">LIBXSLT_VERSION</span>
+<span class="s1">#  error the development package of libxslt (header files etc.) is not installed correctly</span>
+<span class="s0">#else</span>
+<span class="s0">#if </span><span class="s1">LIBXSLT_VERSION &lt; </span><span class="s4">10123</span>
+<span class="s1">#  error minimum required version of libxslt is </span><span class="s4">1.1</span><span class="s1">.</span><span class="s4">23</span>
+<span class="s0">#endif</span>
+<span class="s0">#endif</span>
+
+
+<span class="s2">/* v_arg functions */</span>
+<span class="s0">#define </span><span class="s1">va_int(ap)     va_arg(ap, </span><span class="s0">int</span><span class="s1">)</span>
+<span class="s0">#define </span><span class="s1">va_charptr(ap) va_arg(ap, </span><span class="s0">char </span><span class="s1">*)</span>
+
+<span class="s0">#ifdef </span><span class="s1">PYPY_VERSION</span>
+<span class="s1">#    define IS_PYPY </span><span class="s4">1</span>
+<span class="s0">#else</span>
+<span class="s1">#    define IS_PYPY </span><span class="s4">0</span>
+<span class="s0">#endif</span>
+
+<span class="s0">#if </span><span class="s1">PY_MAJOR_VERSION &gt;= </span><span class="s4">3</span>
+<span class="s1">#  define IS_PYTHON2 </span><span class="s4">0  </span><span class="s2">/* prefer for special casing Python 2.x */</span>
+<span class="s1">#  define IS_PYTHON3 </span><span class="s4">1  </span><span class="s2">/* avoid */</span>
+<span class="s0">#else</span>
+<span class="s1">#  define IS_PYTHON2 </span><span class="s4">1</span>
+<span class="s1">#  define IS_PYTHON3 </span><span class="s4">0</span>
+<span class="s0">#endif</span>
+
+<span class="s0">#if </span><span class="s1">IS_PYTHON2</span>
+<span class="s0">#ifndef </span><span class="s1">LXML_UNICODE_STRINGS</span>
+<span class="s0">#define </span><span class="s1">LXML_UNICODE_STRINGS </span><span class="s4">0</span>
+<span class="s0">#endif</span>
+<span class="s0">#else</span>
+<span class="s0">#undef </span><span class="s1">LXML_UNICODE_STRINGS</span>
+<span class="s0">#define </span><span class="s1">LXML_UNICODE_STRINGS </span><span class="s4">1</span>
+<span class="s0">#endif</span>
+
+<span class="s0">#if </span><span class="s1">!IS_PYPY</span>
+<span class="s1">#  define PyWeakref_LockObject(obj)          (NULL)</span>
+<span class="s0">#endif</span>
+
+<span class="s2">/* Threading is not currently supported by PyPy */</span>
+<span class="s0">#if </span><span class="s1">IS_PYPY</span>
+<span class="s1">#  ifndef WITHOUT_THREADING</span>
+<span class="s1">#    define WITHOUT_THREADING</span>
+<span class="s1">#  endif</span>
+<span class="s0">#endif</span>
+
+<span class="s0">#if </span><span class="s1">IS_PYPY</span>
+<span class="s1">#  undef PyFile_AsFile</span>
+<span class="s1">#  define PyFile_AsFile(o)                   (NULL)</span>
+<span class="s1">#  undef PyByteArray_Check</span>
+<span class="s1">#  define PyByteArray_Check(o)               (</span><span class="s4">0</span><span class="s1">)</span>
+<span class="s1">#elif !IS_PYTHON2</span>
+   <span class="s2">/* Python 3+ doesn't have PyFile_*() anymore */</span>
+<span class="s1">#  define PyFile_AsFile(o)                   (NULL)</span>
+<span class="s0">#endif</span>
+
+<span class="s0">#if </span><span class="s1">PY_VERSION_HEX &lt;= </span><span class="s4">0x03030000 </span><span class="s1">&amp;&amp; !(defined(CYTHON_PEP393_ENABLED) &amp;&amp; CYTHON_PEP393_ENABLED)</span>
+  <span class="s0">#define </span><span class="s1">PyUnicode_IS_READY(op)    (</span><span class="s4">0</span><span class="s1">)</span>
+  <span class="s0">#define </span><span class="s1">PyUnicode_GET_LENGTH(u)   PyUnicode_GET_SIZE(u)</span>
+  <span class="s0">#define </span><span class="s1">PyUnicode_KIND(u)         (</span><span class="s0">sizeof</span><span class="s1">(Py_UNICODE))</span>
+  <span class="s0">#define </span><span class="s1">PyUnicode_DATA(u)         ((</span><span class="s0">void</span><span class="s1">*)PyUnicode_AS_UNICODE(u))</span>
+<span class="s0">#endif</span>
+
+<span class="s0">#if </span><span class="s1">IS_PYPY</span>
+<span class="s1">#  ifndef PyUnicode_FromFormat</span>
+<span class="s1">#    define PyUnicode_FromFormat  PyString_FromFormat</span>
+<span class="s1">#  endif</span>
+<span class="s1">#  </span><span class="s0">if </span><span class="s1">!IS_PYTHON2 &amp;&amp; !defined(PyBytes_FromFormat)</span>
+<span class="s1">#    ifdef PyString_FromFormat</span>
+<span class="s1">#      define PyBytes_FromFormat  PyString_FromFormat</span>
+<span class="s1">#    </span><span class="s0">else</span>
+<span class="s0">#include </span><span class="s1">&lt;stdarg.h&gt;</span>
+<span class="s0">static </span><span class="s1">PyObject* PyBytes_FromFormat(</span><span class="s0">const char</span><span class="s1">* format, ...) {</span>
+    <span class="s1">PyObject *string;</span>
+    <span class="s1">va_list vargs;</span>
+<span class="s0">#ifdef </span><span class="s1">HAVE_STDARG_PROTOTYPES</span>
+    <span class="s1">va_start(vargs, format);</span>
+<span class="s0">#else</span>
+    <span class="s1">va_start(vargs);</span>
+<span class="s0">#endif</span>
+    <span class="s1">string = PyUnicode_FromFormatV(format, vargs);</span>
+    <span class="s1">va_end(vargs);</span>
+    <span class="s0">if </span><span class="s1">(string &amp;&amp; PyUnicode_Check(string)) {</span>
+        <span class="s1">PyObject *bstring = PyUnicode_AsUTF8String(string);</span>
+        <span class="s1">Py_DECREF(string);</span>
+        <span class="s1">string = bstring;</span>
+    <span class="s1">}</span>
+    <span class="s0">if </span><span class="s1">(string &amp;&amp; !PyBytes_CheckExact(string)) {</span>
+        <span class="s1">Py_DECREF(string);</span>
+        <span class="s1">string = NULL;</span>
+        <span class="s1">PyErr_SetString(PyExc_TypeError, </span><span class="s3">&quot;String formatting and encoding failed to return bytes object&quot;</span><span class="s1">);</span>
+    <span class="s1">}</span>
+    <span class="s0">return </span><span class="s1">string;</span>
+<span class="s1">}</span>
+<span class="s1">#    endif</span>
+<span class="s1">#  endif</span>
+<span class="s0">#endif</span>
+
+<span class="s2">/* PySlice_GetIndicesEx() has wrong signature in Py&lt;=3.1 */</span>
+<span class="s0">#if </span><span class="s1">PY_VERSION_HEX &gt;= </span><span class="s4">0x03020000</span>
+<span class="s1">#  define _lx_PySlice_GetIndicesEx(o, l, b, e, s, sl) PySlice_GetIndicesEx(o, l, b, e, s, sl)</span>
+<span class="s0">#else</span>
+<span class="s1">#  define _lx_PySlice_GetIndicesEx(o, l, b, e, s, sl) PySlice_GetIndicesEx(((PySliceObject*)o), l, b, e, s, sl)</span>
+<span class="s0">#endif</span>
+
+<span class="s0">#ifdef </span><span class="s1">WITHOUT_THREADING</span>
+<span class="s1">#  undef PyEval_SaveThread</span>
+<span class="s1">#  define PyEval_SaveThread() (NULL)</span>
+<span class="s1">#  undef PyEval_RestoreThread</span>
+<span class="s1">#  define PyEval_RestoreThread(state)  </span><span class="s0">if </span><span class="s1">(state); </span><span class="s0">else </span><span class="s1">{}</span>
+<span class="s1">#  undef PyGILState_Ensure</span>
+<span class="s1">#  define PyGILState_Ensure() (PyGILState_UNLOCKED)</span>
+<span class="s1">#  undef PyGILState_Release</span>
+<span class="s1">#  define PyGILState_Release(state)  </span><span class="s0">if </span><span class="s1">(state); </span><span class="s0">else </span><span class="s1">{}</span>
+<span class="s1">#  undef  Py_UNBLOCK_THREADS</span>
+<span class="s1">#  define Py_UNBLOCK_THREADS  _save = NULL;</span>
+<span class="s1">#  undef  Py_BLOCK_THREADS</span>
+<span class="s1">#  define Py_BLOCK_THREADS  </span><span class="s0">if </span><span class="s1">(_save); </span><span class="s0">else </span><span class="s1">{}</span>
+<span class="s0">#endif</span>
+
+<span class="s0">#ifdef </span><span class="s1">WITHOUT_THREADING</span>
+<span class="s1">#  define ENABLE_THREADING </span><span class="s4">0</span>
+<span class="s0">#else</span>
+<span class="s1">#  define ENABLE_THREADING </span><span class="s4">1</span>
+<span class="s0">#endif</span>
+
+<span class="s0">#if </span><span class="s1">LIBXML_VERSION &lt; </span><span class="s4">20704</span>
+<span class="s2">/* FIXME: hack to make new error reporting compile in old libxml2 versions */</span>
+<span class="s1">#  define xmlStructuredErrorContext NULL</span>
+<span class="s1">#  define xmlXIncludeProcessTreeFlagsData(n,o,d) xmlXIncludeProcessTreeFlags(n,o)</span>
+<span class="s0">#endif</span>
+
+<span class="s2">/* schematron was added in libxml2 2.6.21 */</span>
+<span class="s0">#ifdef </span><span class="s1">LIBXML_SCHEMATRON_ENABLED</span>
+<span class="s1">#  define ENABLE_SCHEMATRON </span><span class="s4">1</span>
+<span class="s0">#else</span>
+<span class="s1">#  define ENABLE_SCHEMATRON </span><span class="s4">0</span>
+<span class="s1">#  define XML_SCHEMATRON_OUT_QUIET </span><span class="s4">0</span>
+<span class="s1">#  define XML_SCHEMATRON_OUT_XML </span><span class="s4">0</span>
+<span class="s1">#  define XML_SCHEMATRON_OUT_ERROR </span><span class="s4">0</span>
+   <span class="s0">typedef void </span><span class="s1">xmlSchematron;</span>
+   <span class="s0">typedef void </span><span class="s1">xmlSchematronParserCtxt;</span>
+   <span class="s0">typedef void </span><span class="s1">xmlSchematronValidCtxt;</span>
+<span class="s1">#  define xmlSchematronNewDocParserCtxt(doc) NULL</span>
+<span class="s1">#  define xmlSchematronNewParserCtxt(file) NULL</span>
+<span class="s1">#  define xmlSchematronParse(ctxt) NULL</span>
+<span class="s1">#  define xmlSchematronFreeParserCtxt(ctxt)</span>
+<span class="s1">#  define xmlSchematronFree(schema)</span>
+<span class="s1">#  define xmlSchematronNewValidCtxt(schema, options) NULL</span>
+<span class="s1">#  define xmlSchematronValidateDoc(ctxt, doc) </span><span class="s4">0</span>
+<span class="s1">#  define xmlSchematronFreeValidCtxt(ctxt)</span>
+<span class="s1">#  define xmlSchematronSetValidStructuredErrors(ctxt, errorfunc, data)</span>
+<span class="s0">#endif</span>
+
+<span class="s0">#if </span><span class="s1">LIBXML_VERSION &lt; </span><span class="s4">20708</span>
+<span class="s1">#  define HTML_PARSE_NODEFDTD </span><span class="s4">4</span>
+<span class="s0">#endif</span>
+<span class="s0">#if </span><span class="s1">LIBXML_VERSION &lt; </span><span class="s4">20900</span>
+<span class="s1">#  define XML_PARSE_BIG_LINES </span><span class="s4">4194304</span>
+<span class="s0">#endif</span>
+
+<span class="s0">#include </span><span class="s3">&quot;libxml/tree.h&quot;</span>
+<span class="s0">#ifndef </span><span class="s1">LIBXML2_NEW_BUFFER</span>
+   <span class="s0">typedef </span><span class="s1">xmlBuffer xmlBuf;</span>
+<span class="s1">#  define xmlBufContent(buf) xmlBufferContent(buf)</span>
+<span class="s1">#  define xmlBufUse(buf) xmlBufferLength(buf)</span>
+<span class="s0">#endif</span>
+
+<span class="s2">/* libexslt 1.1.25+ support EXSLT functions in XPath */</span>
+<span class="s0">#if </span><span class="s1">LIBXSLT_VERSION &lt; </span><span class="s4">10125</span>
+<span class="s0">#define </span><span class="s1">exsltDateXpathCtxtRegister(ctxt, prefix)</span>
+<span class="s0">#define </span><span class="s1">exsltSetsXpathCtxtRegister(ctxt, prefix)</span>
+<span class="s0">#define </span><span class="s1">exsltMathXpathCtxtRegister(ctxt, prefix)</span>
+<span class="s0">#define </span><span class="s1">exsltStrXpathCtxtRegister(ctxt, prefix)</span>
+<span class="s0">#endif</span>
+
+<span class="s0">#define </span><span class="s1">LXML_GET_XSLT_ENCODING(result_var, style) XSLT_GET_IMPORT_PTR(result_var, style, encoding)</span>
+
+<span class="s2">/* work around MSDEV 6.0 */</span>
+<span class="s0">#if </span><span class="s1">(_MSC_VER == </span><span class="s4">1200</span><span class="s1">) &amp;&amp; (WINVER &lt; </span><span class="s4">0x0500</span><span class="s1">)</span>
+<span class="s0">long </span><span class="s1">_ftol( </span><span class="s0">double </span><span class="s1">); </span><span class="s2">//defined by VC6 C libs</span>
+<span class="s0">long </span><span class="s1">_ftol2( </span><span class="s0">double </span><span class="s1">dblSource ) { </span><span class="s0">return </span><span class="s1">_ftol( dblSource ); }</span>
+<span class="s0">#endif</span>
+
+<span class="s0">#ifdef </span><span class="s1">__GNUC__</span>
+<span class="s2">/* Test for GCC &gt; 2.95 */</span>
+<span class="s0">#if </span><span class="s1">__GNUC__ &gt; </span><span class="s4">2 </span><span class="s1">|| (__GNUC__ == </span><span class="s4">2 </span><span class="s1">&amp;&amp; (__GNUC_MINOR__ &gt; </span><span class="s4">95</span><span class="s1">)) </span>
+<span class="s0">#define </span><span class="s1">unlikely_condition(x) __builtin_expect((x), </span><span class="s4">0</span><span class="s1">)</span>
+<span class="s0">#else </span><span class="s2">/* __GNUC__ &gt; 2 ... */</span>
+<span class="s0">#define </span><span class="s1">unlikely_condition(x) (x)</span>
+<span class="s0">#endif </span><span class="s2">/* __GNUC__ &gt; 2 ... */</span>
+<span class="s0">#else </span><span class="s2">/* __GNUC__ */</span>
+<span class="s0">#define </span><span class="s1">unlikely_condition(x) (x)</span>
+<span class="s0">#endif </span><span class="s2">/* __GNUC__ */</span>
+
+<span class="s0">#ifndef </span><span class="s1">Py_TYPE</span>
+  <span class="s0">#define </span><span class="s1">Py_TYPE(ob)   (((PyObject*)(ob))</span><span class="s6">-&gt;</span><span class="s1">ob_type)</span>
+<span class="s0">#endif</span>
+
+<span class="s0">#define </span><span class="s1">PY_NEW(T) \</span>
+     <span class="s1">(((PyTypeObject*)(T))</span><span class="s6">-&gt;</span><span class="s1">tp_new( \</span>
+             <span class="s1">(PyTypeObject*)(T), __pyx_empty_tuple, NULL))</span>
+
+<span class="s0">#define </span><span class="s1">_fqtypename(o)  ((Py_TYPE(o))</span><span class="s6">-&gt;</span><span class="s1">tp_name)</span>
+
+<span class="s0">#define </span><span class="s1">lxml_malloc(count, item_size) \</span>
+    <span class="s1">(unlikely_condition((size_t)(count) &gt; (size_t) (PY_SSIZE_T_MAX / item_size)) ? NULL : \</span>
+     <span class="s1">(PyMem_Malloc((count) * item_size)))</span>
+
+<span class="s0">#define </span><span class="s1">lxml_realloc(mem, count, item_size) \</span>
+    <span class="s1">(unlikely_condition((size_t)(count) &gt; (size_t) (PY_SSIZE_T_MAX / item_size)) ? NULL : \</span>
+     <span class="s1">(PyMem_Realloc(mem, (count) * item_size)))</span>
+
+<span class="s0">#define </span><span class="s1">lxml_free(mem)  PyMem_Free(mem)</span>
+
+<span class="s0">#if </span><span class="s1">PY_MAJOR_VERSION &lt; </span><span class="s4">3</span>
+<span class="s0">#define </span><span class="s1">_isString(obj)   (PyString_CheckExact(obj)  || \</span>
+                          <span class="s1">PyUnicode_CheckExact(obj) || \</span>
+                          <span class="s1">PyType_IsSubtype(Py_TYPE(obj), &amp;PyBaseString_Type))</span>
+<span class="s0">#else</span>
+<span class="s2">/* builtin subtype type checks are almost as fast as exact checks in Py2.7+ 
+ * and Unicode is more common in Py3 */</span>
+<span class="s0">#define </span><span class="s1">_isString(obj)   (PyUnicode_Check(obj) || PyBytes_Check(obj))</span>
+<span class="s0">#endif</span>
+
+<span class="s0">#define </span><span class="s1">_isElement(c_node) \</span>
+        <span class="s1">(((c_node)</span><span class="s6">-&gt;</span><span class="s1">type == XML_ELEMENT_NODE) || \</span>
+         <span class="s1">((c_node)</span><span class="s6">-&gt;</span><span class="s1">type == XML_COMMENT_NODE) || \</span>
+         <span class="s1">((c_node)</span><span class="s6">-&gt;</span><span class="s1">type == XML_ENTITY_REF_NODE) || \</span>
+         <span class="s1">((c_node)</span><span class="s6">-&gt;</span><span class="s1">type == XML_PI_NODE))</span>
+
+<span class="s0">#define </span><span class="s1">_isElementOrXInclude(c_node) \</span>
+        <span class="s1">(_isElement(c_node)                     || \</span>
+         <span class="s1">((c_node)</span><span class="s6">-&gt;</span><span class="s1">type == XML_XINCLUDE_START) || \</span>
+         <span class="s1">((c_node)</span><span class="s6">-&gt;</span><span class="s1">type == XML_XINCLUDE_END))</span>
+
+<span class="s0">#define </span><span class="s1">_getNs(c_node) \</span>
+        <span class="s1">(((c_node)</span><span class="s6">-&gt;</span><span class="s1">ns == </span><span class="s4">0</span><span class="s1">) ? </span><span class="s4">0 </span><span class="s1">: ((c_node)</span><span class="s6">-&gt;</span><span class="s1">ns</span><span class="s6">-&gt;</span><span class="s1">href))</span>
+
+
+<span class="s0">#include </span><span class="s3">&quot;string.h&quot;</span>
+<span class="s0">static void</span><span class="s1">* lxml_unpack_xmldoc_capsule(PyObject* capsule, </span><span class="s0">int</span><span class="s1">* is_owned) {</span>
+    <span class="s1">xmlDoc *c_doc;</span>
+    <span class="s0">void </span><span class="s1">*context;</span>
+    <span class="s1">*is_owned = </span><span class="s4">0</span><span class="s1">;</span>
+    <span class="s0">if </span><span class="s1">(unlikely_condition(!PyCapsule_IsValid(capsule, (</span><span class="s0">const char</span><span class="s1">*)</span><span class="s3">&quot;libxml2:xmlDoc&quot;</span><span class="s1">))) {</span>
+        <span class="s1">PyErr_SetString(</span>
+                <span class="s1">PyExc_TypeError,</span>
+                <span class="s3">&quot;Not a valid capsule. The capsule argument must be a capsule object with name libxml2:xmlDoc&quot;</span><span class="s1">);</span>
+        <span class="s0">return </span><span class="s1">NULL;</span>
+    <span class="s1">}</span>
+    <span class="s1">c_doc = (xmlDoc*) PyCapsule_GetPointer(capsule, (</span><span class="s0">const char</span><span class="s1">*)</span><span class="s3">&quot;libxml2:xmlDoc&quot;</span><span class="s1">);</span>
+    <span class="s0">if </span><span class="s1">(unlikely_condition(!c_doc)) </span><span class="s0">return </span><span class="s1">NULL;</span>
+
+    <span class="s0">if </span><span class="s1">(unlikely_condition(c_doc</span><span class="s6">-&gt;</span><span class="s1">type != XML_DOCUMENT_NODE &amp;&amp; c_doc</span><span class="s6">-&gt;</span><span class="s1">type != XML_HTML_DOCUMENT_NODE)) {</span>
+        <span class="s1">PyErr_Format(</span>
+            <span class="s1">PyExc_ValueError,</span>
+            <span class="s3">&quot;Illegal document provided: expected XML or HTML, found %d&quot;</span><span class="s1">, (</span><span class="s0">int</span><span class="s1">)c_doc</span><span class="s6">-&gt;</span><span class="s1">type);</span>
+        <span class="s0">return </span><span class="s1">NULL;</span>
+    <span class="s1">}</span>
+
+    <span class="s1">context = PyCapsule_GetContext(capsule);</span>
+    <span class="s0">if </span><span class="s1">(unlikely_condition(!context &amp;&amp; PyErr_Occurred())) </span><span class="s0">return </span><span class="s1">NULL;</span>
+    <span class="s0">if </span><span class="s1">(context &amp;&amp; strcmp((</span><span class="s0">const char</span><span class="s1">*) context, </span><span class="s3">&quot;destructor:xmlFreeDoc&quot;</span><span class="s1">) == </span><span class="s4">0</span><span class="s1">) {</span>
+        <span class="s2">/* take ownership by setting destructor to NULL */</span>
+        <span class="s0">if </span><span class="s1">(PyCapsule_SetDestructor(capsule, NULL) == </span><span class="s4">0</span><span class="s1">) {</span>
+            <span class="s2">/* ownership transferred =&gt; invalidate capsule by clearing its name */</span>
+            <span class="s0">if </span><span class="s1">(unlikely_condition(PyCapsule_SetName(capsule, NULL))) {</span>
+                <span class="s2">/* this should never happen since everything above succeeded */</span>
+                <span class="s1">xmlFreeDoc(c_doc);</span>
+                <span class="s0">return </span><span class="s1">NULL;</span>
+            <span class="s1">}</span>
+            <span class="s1">*is_owned = </span><span class="s4">1</span><span class="s1">;</span>
+        <span class="s1">}</span>
+    <span class="s1">}</span>
+    <span class="s0">return </span><span class="s1">c_doc;</span>
+<span class="s1">}</span>
+
+<span class="s2">/* Macro pair implementation of a depth first tree walker 
+ * 
+ * Calls the code block between the BEGIN and END macros for all elements 
+ * below c_tree_top (exclusively), starting at c_node (inclusively iff 
+ * 'inclusive' is 1).  The _ELEMENT_ variants will only stop on nodes 
+ * that match _isElement(), the normal variant will stop on every node 
+ * except text nodes. 
+ *  
+ * To traverse the node and all of its children and siblings in Pyrex, call 
+ *    cdef xmlNode* some_node 
+ *    BEGIN_FOR_EACH_ELEMENT_FROM(some_node.parent, some_node, 1) 
+ *    # do something with some_node 
+ *    END_FOR_EACH_ELEMENT_FROM(some_node) 
+ * 
+ * To traverse only the children and siblings of a node, call 
+ *    cdef xmlNode* some_node 
+ *    BEGIN_FOR_EACH_ELEMENT_FROM(some_node.parent, some_node, 0) 
+ *    # do something with some_node 
+ *    END_FOR_EACH_ELEMENT_FROM(some_node) 
+ * 
+ * To traverse only the children, do: 
+ *    cdef xmlNode* some_node 
+ *    some_node = parent_node.children 
+ *    BEGIN_FOR_EACH_ELEMENT_FROM(parent_node, some_node, 1) 
+ *    # do something with some_node 
+ *    END_FOR_EACH_ELEMENT_FROM(some_node) 
+ * 
+ * NOTE: 'some_node' MUST be a plain 'xmlNode*' ! 
+ * 
+ * NOTE: parent modification during the walk can divert the iterator, but 
+ *       should not segfault ! 
+ */</span>
+
+<span class="s0">#define </span><span class="s1">_LX__ELEMENT_MATCH(c_node, only_elements)  \</span>
+    <span class="s1">((only_elements) ? (_isElement(c_node)) : </span><span class="s4">1</span><span class="s1">)</span>
+
+<span class="s0">#define </span><span class="s1">_LX__ADVANCE_TO_NEXT(c_node, only_elements)                        \</span>
+    <span class="s0">while </span><span class="s1">((c_node != </span><span class="s4">0</span><span class="s1">) &amp;&amp; (!_LX__ELEMENT_MATCH(c_node, only_elements)))  \</span>
+        <span class="s1">c_node = c_node</span><span class="s6">-&gt;</span><span class="s1">next;</span>
+
+<span class="s0">#define </span><span class="s1">_LX__TRAVERSE_TO_NEXT(c_stop_node, c_node, only_elements)   \</span>
+<span class="s1">{                                                                   \</span>
+    <span class="s2">/* walk through children first */                               </span><span class="s1">\</span>
+    <span class="s1">xmlNode* _lx__next = c_node</span><span class="s6">-&gt;</span><span class="s1">children;		            \</span>
+    <span class="s0">if </span><span class="s1">(_lx__next != </span><span class="s4">0</span><span class="s1">) {                                           \</span>
+        <span class="s0">if </span><span class="s1">(c_node</span><span class="s6">-&gt;</span><span class="s1">type == XML_ENTITY_REF_NODE || c_node</span><span class="s6">-&gt;</span><span class="s1">type == XML_DTD_NODE) { \</span>
+            <span class="s1">_lx__next = </span><span class="s4">0</span><span class="s1">;                                          \</span>
+        <span class="s1">} </span><span class="s0">else </span><span class="s1">{                                                    \</span>
+            <span class="s1">_LX__ADVANCE_TO_NEXT(_lx__next, only_elements)	    \</span>
+        <span class="s1">}                                                           \</span>
+    <span class="s1">}							            \</span>
+    <span class="s0">if </span><span class="s1">((_lx__next == </span><span class="s4">0</span><span class="s1">) &amp;&amp; (c_node != c_stop_node)) {              \</span>
+        <span class="s2">/* try siblings */                                          </span><span class="s1">\</span>
+        <span class="s1">_lx__next = c_node</span><span class="s6">-&gt;</span><span class="s1">next;                                   \</span>
+        <span class="s1">_LX__ADVANCE_TO_NEXT(_lx__next, only_elements)              \</span>
+        <span class="s2">/* back off through parents */                              </span><span class="s1">\</span>
+        <span class="s0">while </span><span class="s1">(_lx__next == </span><span class="s4">0</span><span class="s1">) {                                    \</span>
+            <span class="s1">c_node = c_node</span><span class="s6">-&gt;</span><span class="s1">parent;                                \</span>
+            <span class="s0">if </span><span class="s1">(c_node == </span><span class="s4">0</span><span class="s1">)                                        \</span>
+                <span class="s0">break</span><span class="s1">;                                              \</span>
+            <span class="s0">if </span><span class="s1">(c_node == c_stop_node)                              \</span>
+                <span class="s0">break</span><span class="s1">;                                              \</span>
+            <span class="s0">if </span><span class="s1">((only_elements) &amp;&amp; !_isElement(c_node))	            \</span>
+                <span class="s0">break</span><span class="s1">;                                              \</span>
+            <span class="s2">/* we already traversed the parents -&gt; siblings */      </span><span class="s1">\</span>
+            <span class="s1">_lx__next = c_node</span><span class="s6">-&gt;</span><span class="s1">next;                               \</span>
+            <span class="s1">_LX__ADVANCE_TO_NEXT(_lx__next, only_elements)	    \</span>
+        <span class="s1">}                                                           \</span>
+    <span class="s1">}                                                               \</span>
+    <span class="s1">c_node = _lx__next;                                             \</span>
+<span class="s1">}</span>
+
+<span class="s0">#define </span><span class="s1">_LX__BEGIN_FOR_EACH_FROM(c_tree_top, c_node, inclusive, only_elements)     \</span>
+<span class="s1">{									      \</span>
+    <span class="s0">if </span><span class="s1">(c_node != </span><span class="s4">0</span><span class="s1">) {							      \</span>
+        <span class="s0">const </span><span class="s1">xmlNode* _lx__tree_top = (c_tree_top);                          \</span>
+        <span class="s0">const int </span><span class="s1">_lx__only_elements = (only_elements);                       \</span>
+        <span class="s2">/* make sure we start at an element */                   	      </span><span class="s1">\</span>
+        <span class="s0">if </span><span class="s1">(!_LX__ELEMENT_MATCH(c_node, _lx__only_elements)) {		      \</span>
+            <span class="s2">/* we skip the node, so 'inclusive' is irrelevant */              </span><span class="s1">\</span>
+            <span class="s0">if </span><span class="s1">(c_node == _lx__tree_top)                                      \</span>
+                <span class="s1">c_node = </span><span class="s4">0</span><span class="s1">; </span><span class="s2">/* nothing to traverse */                         </span><span class="s1">\</span>
+            <span class="s0">else </span><span class="s1">{                                                            \</span>
+                <span class="s1">c_node = c_node</span><span class="s6">-&gt;</span><span class="s1">next;                                        \</span>
+                <span class="s1">_LX__ADVANCE_TO_NEXT(c_node, _lx__only_elements)              \</span>
+            <span class="s1">}                                                                 \</span>
+        <span class="s1">} </span><span class="s0">else if </span><span class="s1">(! (inclusive)) {                                           \</span>
+            <span class="s2">/* skip the first node */                                         </span><span class="s1">\</span>
+            <span class="s1">_LX__TRAVERSE_TO_NEXT(_lx__tree_top, c_node, _lx__only_elements)  \</span>
+        <span class="s1">}                                                                     \</span>
+                                                                              <span class="s1">\</span>
+        <span class="s2">/* now run the user code on the elements we find */                   </span><span class="s1">\</span>
+        <span class="s0">while </span><span class="s1">(c_node != </span><span class="s4">0</span><span class="s1">) {                                                 \</span>
+            <span class="s2">/* here goes the code to be run for each element */</span>
+
+<span class="s0">#define </span><span class="s1">_LX__END_FOR_EACH_FROM(c_node)                                        \</span>
+            <span class="s1">_LX__TRAVERSE_TO_NEXT(_lx__tree_top, c_node, _lx__only_elements)  \</span>
+        <span class="s1">}                                                                     \</span>
+    <span class="s1">}                                                                         \</span>
+<span class="s1">}</span>
+
+
+<span class="s0">#define </span><span class="s1">BEGIN_FOR_EACH_ELEMENT_FROM(c_tree_top, c_node, inclusive)   \</span>
+    <span class="s1">_LX__BEGIN_FOR_EACH_FROM(c_tree_top, c_node, inclusive, </span><span class="s4">1</span><span class="s1">)</span>
+
+<span class="s0">#define </span><span class="s1">END_FOR_EACH_ELEMENT_FROM(c_node)   \</span>
+    <span class="s1">_LX__END_FOR_EACH_FROM(c_node)</span>
+
+<span class="s0">#define </span><span class="s1">BEGIN_FOR_EACH_FROM(c_tree_top, c_node, inclusive)   \</span>
+    <span class="s1">_LX__BEGIN_FOR_EACH_FROM(c_tree_top, c_node, inclusive, </span><span class="s4">0</span><span class="s1">)</span>
+
+<span class="s0">#define </span><span class="s1">END_FOR_EACH_FROM(c_node)   \</span>
+    <span class="s1">_LX__END_FOR_EACH_FROM(c_node)</span>
+
+
+<span class="s0">#endif </span><span class="s2">/* HAS_ETREE_DEFS_H */</span>
+</pre>
+</body>
+</html>

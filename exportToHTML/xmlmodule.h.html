@@ -1,0 +1,78 @@
+<html>
+<head>
+<title>xmlmodule.h</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+.s4 { color: #6897bb;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+xmlmodule.h</font>
+</center></td></tr></table>
+<pre><span class="s0">/* 
+ * Summary: dynamic module loading 
+ * Description: basic API for dynamic module loading, used by 
+ *              libexslt added in 2.6.17 
+ * 
+ * Copy: See Copyright for the status of this software. 
+ * 
+ * Author: Joel W. Reed 
+ */</span>
+
+<span class="s2">#ifndef </span><span class="s1">__XML_MODULE_H__</span>
+<span class="s2">#define </span><span class="s1">__XML_MODULE_H__</span>
+
+<span class="s2">#include </span><span class="s1">&lt;libxml/xmlversion.h&gt;</span>
+
+<span class="s2">#ifdef </span><span class="s1">LIBXML_MODULES_ENABLED</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s2">extern </span><span class="s3">&quot;C&quot; </span><span class="s1">{</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * xmlModulePtr: 
+ * 
+ * A handle to a dynamically loaded module 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xmlModule xmlModule;</span>
+<span class="s2">typedef </span><span class="s1">xmlModule *xmlModulePtr;</span>
+
+<span class="s0">/** 
+ * xmlModuleOption: 
+ * 
+ * enumeration of options that can be passed down to xmlModuleOpen() 
+ */</span>
+<span class="s2">typedef enum </span><span class="s1">{</span>
+    <span class="s1">XML_MODULE_LAZY = </span><span class="s4">1</span><span class="s1">,	</span><span class="s0">/* lazy binding */</span>
+    <span class="s1">XML_MODULE_LOCAL= </span><span class="s4">2		</span><span class="s0">/* local binding */</span>
+<span class="s1">} xmlModuleOption;</span>
+
+<span class="s1">XMLPUBFUN xmlModulePtr XMLCALL xmlModuleOpen	(</span><span class="s2">const char </span><span class="s1">*filename,</span>
+						 <span class="s2">int </span><span class="s1">options);</span>
+
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL xmlModuleSymbol		(xmlModulePtr module,</span>
+						 <span class="s2">const char</span><span class="s1">* name,</span>
+						 <span class="s2">void </span><span class="s1">**result);</span>
+
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL xmlModuleClose		(xmlModulePtr module);</span>
+
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL xmlModuleFree		(xmlModulePtr module);</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s1">}</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#endif </span><span class="s0">/* LIBXML_MODULES_ENABLED */</span>
+
+<span class="s2">#endif </span><span class="s0">/*__XML_MODULE_H__ */</span>
+</pre>
+</body>
+</html>

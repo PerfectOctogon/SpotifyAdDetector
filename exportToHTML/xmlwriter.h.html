@@ -1,0 +1,509 @@
+<html>
+<head>
+<title>xmlwriter.h</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+.s4 { color: #6897bb;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+xmlwriter.h</font>
+</center></td></tr></table>
+<pre><span class="s0">/* 
+ * Summary: text writing API for XML 
+ * Description: text writing API for XML 
+ * 
+ * Copy: See Copyright for the status of this software. 
+ * 
+ * Author: Alfred Mickautsch &lt;alfred@mickautsch.de&gt; 
+ */</span>
+
+<span class="s2">#ifndef </span><span class="s1">__XML_XMLWRITER_H__</span>
+<span class="s2">#define </span><span class="s1">__XML_XMLWRITER_H__</span>
+
+<span class="s2">#include </span><span class="s1">&lt;libxml/xmlversion.h&gt;</span>
+
+<span class="s2">#ifdef </span><span class="s1">LIBXML_WRITER_ENABLED</span>
+
+<span class="s2">#include </span><span class="s1">&lt;stdarg.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/xmlIO.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/list.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/xmlstring.h&gt;</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s2">extern </span><span class="s3">&quot;C&quot; </span><span class="s1">{</span>
+<span class="s2">#endif</span>
+
+    <span class="s2">typedef struct </span><span class="s1">_xmlTextWriter xmlTextWriter;</span>
+    <span class="s2">typedef </span><span class="s1">xmlTextWriter *xmlTextWriterPtr;</span>
+
+<span class="s0">/* 
+ * Constructors &amp; Destructor 
+ */</span>
+    <span class="s1">XMLPUBFUN xmlTextWriterPtr XMLCALL</span>
+        <span class="s1">xmlNewTextWriter(xmlOutputBufferPtr out);</span>
+    <span class="s1">XMLPUBFUN xmlTextWriterPtr XMLCALL</span>
+        <span class="s1">xmlNewTextWriterFilename(</span><span class="s2">const char </span><span class="s1">*uri, </span><span class="s2">int </span><span class="s1">compression);</span>
+    <span class="s1">XMLPUBFUN xmlTextWriterPtr XMLCALL</span>
+        <span class="s1">xmlNewTextWriterMemory(xmlBufferPtr buf, </span><span class="s2">int </span><span class="s1">compression);</span>
+    <span class="s1">XMLPUBFUN xmlTextWriterPtr XMLCALL</span>
+        <span class="s1">xmlNewTextWriterPushParser(xmlParserCtxtPtr ctxt, </span><span class="s2">int </span><span class="s1">compression);</span>
+    <span class="s1">XMLPUBFUN xmlTextWriterPtr XMLCALL</span>
+        <span class="s1">xmlNewTextWriterDoc(xmlDocPtr * doc, </span><span class="s2">int </span><span class="s1">compression);</span>
+    <span class="s1">XMLPUBFUN xmlTextWriterPtr XMLCALL</span>
+        <span class="s1">xmlNewTextWriterTree(xmlDocPtr doc, xmlNodePtr node,</span>
+                             <span class="s2">int </span><span class="s1">compression);</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL xmlFreeTextWriter(xmlTextWriterPtr writer);</span>
+
+<span class="s0">/* 
+ * Functions 
+ */</span>
+
+
+<span class="s0">/* 
+ * Document 
+ */</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+        <span class="s1">xmlTextWriterStartDocument(xmlTextWriterPtr writer,</span>
+                                   <span class="s2">const char </span><span class="s1">*version,</span>
+                                   <span class="s2">const char </span><span class="s1">*encoding,</span>
+                                   <span class="s2">const char </span><span class="s1">*standalone);</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL xmlTextWriterEndDocument(xmlTextWriterPtr</span>
+                                                   <span class="s1">writer);</span>
+
+<span class="s0">/* 
+ * Comments 
+ */</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL xmlTextWriterStartComment(xmlTextWriterPtr</span>
+                                                    <span class="s1">writer);</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL xmlTextWriterEndComment(xmlTextWriterPtr writer);</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+        <span class="s1">xmlTextWriterWriteFormatComment(xmlTextWriterPtr writer,</span>
+                                        <span class="s2">const char </span><span class="s1">*format, ...)</span>
+					<span class="s1">LIBXML_ATTR_FORMAT(</span><span class="s4">2</span><span class="s1">,</span><span class="s4">3</span><span class="s1">);</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+        <span class="s1">xmlTextWriterWriteVFormatComment(xmlTextWriterPtr writer,</span>
+                                         <span class="s2">const char </span><span class="s1">*format,</span>
+                                         <span class="s1">va_list argptr)</span>
+					 <span class="s1">LIBXML_ATTR_FORMAT(</span><span class="s4">2</span><span class="s1">,</span><span class="s4">0</span><span class="s1">);</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL xmlTextWriterWriteComment(xmlTextWriterPtr</span>
+                                                    <span class="s1">writer,</span>
+                                                    <span class="s2">const </span><span class="s1">xmlChar *</span>
+                                                    <span class="s1">content);</span>
+
+<span class="s0">/* 
+ * Elements 
+ */</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+        <span class="s1">xmlTextWriterStartElement(xmlTextWriterPtr writer,</span>
+                                  <span class="s2">const </span><span class="s1">xmlChar * name);</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL xmlTextWriterStartElementNS(xmlTextWriterPtr</span>
+                                                      <span class="s1">writer,</span>
+                                                      <span class="s2">const </span><span class="s1">xmlChar *</span>
+                                                      <span class="s1">prefix,</span>
+                                                      <span class="s2">const </span><span class="s1">xmlChar * name,</span>
+                                                      <span class="s2">const </span><span class="s1">xmlChar *</span>
+                                                      <span class="s1">namespaceURI);</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL xmlTextWriterEndElement(xmlTextWriterPtr writer);</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL xmlTextWriterFullEndElement(xmlTextWriterPtr</span>
+                                                      <span class="s1">writer);</span>
+
+<span class="s0">/* 
+ * Elements conveniency functions 
+ */</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+        <span class="s1">xmlTextWriterWriteFormatElement(xmlTextWriterPtr writer,</span>
+                                        <span class="s2">const </span><span class="s1">xmlChar * name,</span>
+                                        <span class="s2">const char </span><span class="s1">*format, ...)</span>
+					<span class="s1">LIBXML_ATTR_FORMAT(</span><span class="s4">3</span><span class="s1">,</span><span class="s4">4</span><span class="s1">);</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+        <span class="s1">xmlTextWriterWriteVFormatElement(xmlTextWriterPtr writer,</span>
+                                         <span class="s2">const </span><span class="s1">xmlChar * name,</span>
+                                         <span class="s2">const char </span><span class="s1">*format,</span>
+                                         <span class="s1">va_list argptr)</span>
+					 <span class="s1">LIBXML_ATTR_FORMAT(</span><span class="s4">3</span><span class="s1">,</span><span class="s4">0</span><span class="s1">);</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL xmlTextWriterWriteElement(xmlTextWriterPtr</span>
+                                                    <span class="s1">writer,</span>
+                                                    <span class="s2">const </span><span class="s1">xmlChar * name,</span>
+                                                    <span class="s2">const </span><span class="s1">xmlChar *</span>
+                                                    <span class="s1">content);</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+        <span class="s1">xmlTextWriterWriteFormatElementNS(xmlTextWriterPtr writer,</span>
+                                          <span class="s2">const </span><span class="s1">xmlChar * prefix,</span>
+                                          <span class="s2">const </span><span class="s1">xmlChar * name,</span>
+                                          <span class="s2">const </span><span class="s1">xmlChar * namespaceURI,</span>
+                                          <span class="s2">const char </span><span class="s1">*format, ...)</span>
+					  <span class="s1">LIBXML_ATTR_FORMAT(</span><span class="s4">5</span><span class="s1">,</span><span class="s4">6</span><span class="s1">);</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+        <span class="s1">xmlTextWriterWriteVFormatElementNS(xmlTextWriterPtr writer,</span>
+                                           <span class="s2">const </span><span class="s1">xmlChar * prefix,</span>
+                                           <span class="s2">const </span><span class="s1">xmlChar * name,</span>
+                                           <span class="s2">const </span><span class="s1">xmlChar * namespaceURI,</span>
+                                           <span class="s2">const char </span><span class="s1">*format,</span>
+                                           <span class="s1">va_list argptr)</span>
+					   <span class="s1">LIBXML_ATTR_FORMAT(</span><span class="s4">5</span><span class="s1">,</span><span class="s4">0</span><span class="s1">);</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL xmlTextWriterWriteElementNS(xmlTextWriterPtr</span>
+                                                      <span class="s1">writer,</span>
+                                                      <span class="s2">const </span><span class="s1">xmlChar *</span>
+                                                      <span class="s1">prefix,</span>
+                                                      <span class="s2">const </span><span class="s1">xmlChar * name,</span>
+                                                      <span class="s2">const </span><span class="s1">xmlChar *</span>
+                                                      <span class="s1">namespaceURI,</span>
+                                                      <span class="s2">const </span><span class="s1">xmlChar *</span>
+                                                      <span class="s1">content);</span>
+
+<span class="s0">/* 
+ * Text 
+ */</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+        <span class="s1">xmlTextWriterWriteFormatRaw(xmlTextWriterPtr writer,</span>
+                                    <span class="s2">const char </span><span class="s1">*format, ...)</span>
+				    <span class="s1">LIBXML_ATTR_FORMAT(</span><span class="s4">2</span><span class="s1">,</span><span class="s4">3</span><span class="s1">);</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+        <span class="s1">xmlTextWriterWriteVFormatRaw(xmlTextWriterPtr writer,</span>
+                                     <span class="s2">const char </span><span class="s1">*format, va_list argptr)</span>
+				     <span class="s1">LIBXML_ATTR_FORMAT(</span><span class="s4">2</span><span class="s1">,</span><span class="s4">0</span><span class="s1">);</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+        <span class="s1">xmlTextWriterWriteRawLen(xmlTextWriterPtr writer,</span>
+                                 <span class="s2">const </span><span class="s1">xmlChar * content, </span><span class="s2">int </span><span class="s1">len);</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+        <span class="s1">xmlTextWriterWriteRaw(xmlTextWriterPtr writer,</span>
+                              <span class="s2">const </span><span class="s1">xmlChar * content);</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL xmlTextWriterWriteFormatString(xmlTextWriterPtr</span>
+                                                         <span class="s1">writer,</span>
+                                                         <span class="s2">const char</span>
+                                                         <span class="s1">*format, ...)</span>
+							 <span class="s1">LIBXML_ATTR_FORMAT(</span><span class="s4">2</span><span class="s1">,</span><span class="s4">3</span><span class="s1">);</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL xmlTextWriterWriteVFormatString(xmlTextWriterPtr</span>
+                                                          <span class="s1">writer,</span>
+                                                          <span class="s2">const char</span>
+                                                          <span class="s1">*format,</span>
+                                                          <span class="s1">va_list argptr)</span>
+							  <span class="s1">LIBXML_ATTR_FORMAT(</span><span class="s4">2</span><span class="s1">,</span><span class="s4">0</span><span class="s1">);</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL xmlTextWriterWriteString(xmlTextWriterPtr writer,</span>
+                                                   <span class="s2">const </span><span class="s1">xmlChar *</span>
+                                                   <span class="s1">content);</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL xmlTextWriterWriteBase64(xmlTextWriterPtr writer,</span>
+                                                   <span class="s2">const char </span><span class="s1">*data,</span>
+                                                   <span class="s2">int </span><span class="s1">start, </span><span class="s2">int </span><span class="s1">len);</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL xmlTextWriterWriteBinHex(xmlTextWriterPtr writer,</span>
+                                                   <span class="s2">const char </span><span class="s1">*data,</span>
+                                                   <span class="s2">int </span><span class="s1">start, </span><span class="s2">int </span><span class="s1">len);</span>
+
+<span class="s0">/* 
+ * Attributes 
+ */</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+        <span class="s1">xmlTextWriterStartAttribute(xmlTextWriterPtr writer,</span>
+                                    <span class="s2">const </span><span class="s1">xmlChar * name);</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL xmlTextWriterStartAttributeNS(xmlTextWriterPtr</span>
+                                                        <span class="s1">writer,</span>
+                                                        <span class="s2">const </span><span class="s1">xmlChar *</span>
+                                                        <span class="s1">prefix,</span>
+                                                        <span class="s2">const </span><span class="s1">xmlChar *</span>
+                                                        <span class="s1">name,</span>
+                                                        <span class="s2">const </span><span class="s1">xmlChar *</span>
+                                                        <span class="s1">namespaceURI);</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL xmlTextWriterEndAttribute(xmlTextWriterPtr</span>
+                                                    <span class="s1">writer);</span>
+
+<span class="s0">/* 
+ * Attributes conveniency functions 
+ */</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+        <span class="s1">xmlTextWriterWriteFormatAttribute(xmlTextWriterPtr writer,</span>
+                                          <span class="s2">const </span><span class="s1">xmlChar * name,</span>
+                                          <span class="s2">const char </span><span class="s1">*format, ...)</span>
+					  <span class="s1">LIBXML_ATTR_FORMAT(</span><span class="s4">3</span><span class="s1">,</span><span class="s4">4</span><span class="s1">);</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+        <span class="s1">xmlTextWriterWriteVFormatAttribute(xmlTextWriterPtr writer,</span>
+                                           <span class="s2">const </span><span class="s1">xmlChar * name,</span>
+                                           <span class="s2">const char </span><span class="s1">*format,</span>
+                                           <span class="s1">va_list argptr)</span>
+					   <span class="s1">LIBXML_ATTR_FORMAT(</span><span class="s4">3</span><span class="s1">,</span><span class="s4">0</span><span class="s1">);</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL xmlTextWriterWriteAttribute(xmlTextWriterPtr</span>
+                                                      <span class="s1">writer,</span>
+                                                      <span class="s2">const </span><span class="s1">xmlChar * name,</span>
+                                                      <span class="s2">const </span><span class="s1">xmlChar *</span>
+                                                      <span class="s1">content);</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+        <span class="s1">xmlTextWriterWriteFormatAttributeNS(xmlTextWriterPtr writer,</span>
+                                            <span class="s2">const </span><span class="s1">xmlChar * prefix,</span>
+                                            <span class="s2">const </span><span class="s1">xmlChar * name,</span>
+                                            <span class="s2">const </span><span class="s1">xmlChar * namespaceURI,</span>
+                                            <span class="s2">const char </span><span class="s1">*format, ...)</span>
+					    <span class="s1">LIBXML_ATTR_FORMAT(</span><span class="s4">5</span><span class="s1">,</span><span class="s4">6</span><span class="s1">);</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+        <span class="s1">xmlTextWriterWriteVFormatAttributeNS(xmlTextWriterPtr writer,</span>
+                                             <span class="s2">const </span><span class="s1">xmlChar * prefix,</span>
+                                             <span class="s2">const </span><span class="s1">xmlChar * name,</span>
+                                             <span class="s2">const </span><span class="s1">xmlChar * namespaceURI,</span>
+                                             <span class="s2">const char </span><span class="s1">*format,</span>
+                                             <span class="s1">va_list argptr)</span>
+					     <span class="s1">LIBXML_ATTR_FORMAT(</span><span class="s4">5</span><span class="s1">,</span><span class="s4">0</span><span class="s1">);</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL xmlTextWriterWriteAttributeNS(xmlTextWriterPtr</span>
+                                                        <span class="s1">writer,</span>
+                                                        <span class="s2">const </span><span class="s1">xmlChar *</span>
+                                                        <span class="s1">prefix,</span>
+                                                        <span class="s2">const </span><span class="s1">xmlChar *</span>
+                                                        <span class="s1">name,</span>
+                                                        <span class="s2">const </span><span class="s1">xmlChar *</span>
+                                                        <span class="s1">namespaceURI,</span>
+                                                        <span class="s2">const </span><span class="s1">xmlChar *</span>
+                                                        <span class="s1">content);</span>
+
+<span class="s0">/* 
+ * PI's 
+ */</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+        <span class="s1">xmlTextWriterStartPI(xmlTextWriterPtr writer,</span>
+                             <span class="s2">const </span><span class="s1">xmlChar * target);</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL xmlTextWriterEndPI(xmlTextWriterPtr writer);</span>
+
+<span class="s0">/* 
+ * PI conveniency functions 
+ */</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+        <span class="s1">xmlTextWriterWriteFormatPI(xmlTextWriterPtr writer,</span>
+                                   <span class="s2">const </span><span class="s1">xmlChar * target,</span>
+                                   <span class="s2">const char </span><span class="s1">*format, ...)</span>
+				   <span class="s1">LIBXML_ATTR_FORMAT(</span><span class="s4">3</span><span class="s1">,</span><span class="s4">4</span><span class="s1">);</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+        <span class="s1">xmlTextWriterWriteVFormatPI(xmlTextWriterPtr writer,</span>
+                                    <span class="s2">const </span><span class="s1">xmlChar * target,</span>
+                                    <span class="s2">const char </span><span class="s1">*format, va_list argptr)</span>
+				    <span class="s1">LIBXML_ATTR_FORMAT(</span><span class="s4">3</span><span class="s1">,</span><span class="s4">0</span><span class="s1">);</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+        <span class="s1">xmlTextWriterWritePI(xmlTextWriterPtr writer,</span>
+                             <span class="s2">const </span><span class="s1">xmlChar * target,</span>
+                             <span class="s2">const </span><span class="s1">xmlChar * content);</span>
+
+<span class="s0">/** 
+ * xmlTextWriterWriteProcessingInstruction: 
+ * 
+ * This macro maps to xmlTextWriterWritePI 
+ */</span>
+<span class="s2">#define </span><span class="s1">xmlTextWriterWriteProcessingInstruction xmlTextWriterWritePI</span>
+
+<span class="s0">/* 
+ * CDATA 
+ */</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL xmlTextWriterStartCDATA(xmlTextWriterPtr writer);</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL xmlTextWriterEndCDATA(xmlTextWriterPtr writer);</span>
+
+<span class="s0">/* 
+ * CDATA conveniency functions 
+ */</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+        <span class="s1">xmlTextWriterWriteFormatCDATA(xmlTextWriterPtr writer,</span>
+                                      <span class="s2">const char </span><span class="s1">*format, ...)</span>
+				      <span class="s1">LIBXML_ATTR_FORMAT(</span><span class="s4">2</span><span class="s1">,</span><span class="s4">3</span><span class="s1">);</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+        <span class="s1">xmlTextWriterWriteVFormatCDATA(xmlTextWriterPtr writer,</span>
+                                       <span class="s2">const char </span><span class="s1">*format, va_list argptr)</span>
+				       <span class="s1">LIBXML_ATTR_FORMAT(</span><span class="s4">2</span><span class="s1">,</span><span class="s4">0</span><span class="s1">);</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+        <span class="s1">xmlTextWriterWriteCDATA(xmlTextWriterPtr writer,</span>
+                                <span class="s2">const </span><span class="s1">xmlChar * content);</span>
+
+<span class="s0">/* 
+ * DTD 
+ */</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+        <span class="s1">xmlTextWriterStartDTD(xmlTextWriterPtr writer,</span>
+                              <span class="s2">const </span><span class="s1">xmlChar * name,</span>
+                              <span class="s2">const </span><span class="s1">xmlChar * pubid,</span>
+                              <span class="s2">const </span><span class="s1">xmlChar * sysid);</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL xmlTextWriterEndDTD(xmlTextWriterPtr writer);</span>
+
+<span class="s0">/* 
+ * DTD conveniency functions 
+ */</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+        <span class="s1">xmlTextWriterWriteFormatDTD(xmlTextWriterPtr writer,</span>
+                                    <span class="s2">const </span><span class="s1">xmlChar * name,</span>
+                                    <span class="s2">const </span><span class="s1">xmlChar * pubid,</span>
+                                    <span class="s2">const </span><span class="s1">xmlChar * sysid,</span>
+                                    <span class="s2">const char </span><span class="s1">*format, ...)</span>
+				    <span class="s1">LIBXML_ATTR_FORMAT(</span><span class="s4">5</span><span class="s1">,</span><span class="s4">6</span><span class="s1">);</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+        <span class="s1">xmlTextWriterWriteVFormatDTD(xmlTextWriterPtr writer,</span>
+                                     <span class="s2">const </span><span class="s1">xmlChar * name,</span>
+                                     <span class="s2">const </span><span class="s1">xmlChar * pubid,</span>
+                                     <span class="s2">const </span><span class="s1">xmlChar * sysid,</span>
+                                     <span class="s2">const char </span><span class="s1">*format, va_list argptr)</span>
+				     <span class="s1">LIBXML_ATTR_FORMAT(</span><span class="s4">5</span><span class="s1">,</span><span class="s4">0</span><span class="s1">);</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+        <span class="s1">xmlTextWriterWriteDTD(xmlTextWriterPtr writer,</span>
+                              <span class="s2">const </span><span class="s1">xmlChar * name,</span>
+                              <span class="s2">const </span><span class="s1">xmlChar * pubid,</span>
+                              <span class="s2">const </span><span class="s1">xmlChar * sysid,</span>
+                              <span class="s2">const </span><span class="s1">xmlChar * subset);</span>
+
+<span class="s0">/** 
+ * xmlTextWriterWriteDocType: 
+ * 
+ * this macro maps to xmlTextWriterWriteDTD 
+ */</span>
+<span class="s2">#define </span><span class="s1">xmlTextWriterWriteDocType xmlTextWriterWriteDTD</span>
+
+<span class="s0">/* 
+ * DTD element definition 
+ */</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+        <span class="s1">xmlTextWriterStartDTDElement(xmlTextWriterPtr writer,</span>
+                                     <span class="s2">const </span><span class="s1">xmlChar * name);</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL xmlTextWriterEndDTDElement(xmlTextWriterPtr</span>
+                                                     <span class="s1">writer);</span>
+
+<span class="s0">/* 
+ * DTD element definition conveniency functions 
+ */</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+        <span class="s1">xmlTextWriterWriteFormatDTDElement(xmlTextWriterPtr writer,</span>
+                                           <span class="s2">const </span><span class="s1">xmlChar * name,</span>
+                                           <span class="s2">const char </span><span class="s1">*format, ...)</span>
+					   <span class="s1">LIBXML_ATTR_FORMAT(</span><span class="s4">3</span><span class="s1">,</span><span class="s4">4</span><span class="s1">);</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+        <span class="s1">xmlTextWriterWriteVFormatDTDElement(xmlTextWriterPtr writer,</span>
+                                            <span class="s2">const </span><span class="s1">xmlChar * name,</span>
+                                            <span class="s2">const char </span><span class="s1">*format,</span>
+                                            <span class="s1">va_list argptr)</span>
+					    <span class="s1">LIBXML_ATTR_FORMAT(</span><span class="s4">3</span><span class="s1">,</span><span class="s4">0</span><span class="s1">);</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL xmlTextWriterWriteDTDElement(xmlTextWriterPtr</span>
+                                                       <span class="s1">writer,</span>
+                                                       <span class="s2">const </span><span class="s1">xmlChar *</span>
+                                                       <span class="s1">name,</span>
+                                                       <span class="s2">const </span><span class="s1">xmlChar *</span>
+                                                       <span class="s1">content);</span>
+
+<span class="s0">/* 
+ * DTD attribute list definition 
+ */</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+        <span class="s1">xmlTextWriterStartDTDAttlist(xmlTextWriterPtr writer,</span>
+                                     <span class="s2">const </span><span class="s1">xmlChar * name);</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL xmlTextWriterEndDTDAttlist(xmlTextWriterPtr</span>
+                                                     <span class="s1">writer);</span>
+
+<span class="s0">/* 
+ * DTD attribute list definition conveniency functions 
+ */</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+        <span class="s1">xmlTextWriterWriteFormatDTDAttlist(xmlTextWriterPtr writer,</span>
+                                           <span class="s2">const </span><span class="s1">xmlChar * name,</span>
+                                           <span class="s2">const char </span><span class="s1">*format, ...)</span>
+					   <span class="s1">LIBXML_ATTR_FORMAT(</span><span class="s4">3</span><span class="s1">,</span><span class="s4">4</span><span class="s1">);</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+        <span class="s1">xmlTextWriterWriteVFormatDTDAttlist(xmlTextWriterPtr writer,</span>
+                                            <span class="s2">const </span><span class="s1">xmlChar * name,</span>
+                                            <span class="s2">const char </span><span class="s1">*format,</span>
+                                            <span class="s1">va_list argptr)</span>
+					    <span class="s1">LIBXML_ATTR_FORMAT(</span><span class="s4">3</span><span class="s1">,</span><span class="s4">0</span><span class="s1">);</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL xmlTextWriterWriteDTDAttlist(xmlTextWriterPtr</span>
+                                                       <span class="s1">writer,</span>
+                                                       <span class="s2">const </span><span class="s1">xmlChar *</span>
+                                                       <span class="s1">name,</span>
+                                                       <span class="s2">const </span><span class="s1">xmlChar *</span>
+                                                       <span class="s1">content);</span>
+
+<span class="s0">/* 
+ * DTD entity definition 
+ */</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+        <span class="s1">xmlTextWriterStartDTDEntity(xmlTextWriterPtr writer,</span>
+                                    <span class="s2">int </span><span class="s1">pe, </span><span class="s2">const </span><span class="s1">xmlChar * name);</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL xmlTextWriterEndDTDEntity(xmlTextWriterPtr</span>
+                                                    <span class="s1">writer);</span>
+
+<span class="s0">/* 
+ * DTD entity definition conveniency functions 
+ */</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+        <span class="s1">xmlTextWriterWriteFormatDTDInternalEntity(xmlTextWriterPtr writer,</span>
+                                                  <span class="s2">int </span><span class="s1">pe,</span>
+                                                  <span class="s2">const </span><span class="s1">xmlChar * name,</span>
+                                                  <span class="s2">const char </span><span class="s1">*format, ...)</span>
+						  <span class="s1">LIBXML_ATTR_FORMAT(</span><span class="s4">4</span><span class="s1">,</span><span class="s4">5</span><span class="s1">);</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+        <span class="s1">xmlTextWriterWriteVFormatDTDInternalEntity(xmlTextWriterPtr writer,</span>
+                                                   <span class="s2">int </span><span class="s1">pe,</span>
+                                                   <span class="s2">const </span><span class="s1">xmlChar * name,</span>
+                                                   <span class="s2">const char </span><span class="s1">*format,</span>
+                                                   <span class="s1">va_list argptr)</span>
+						   <span class="s1">LIBXML_ATTR_FORMAT(</span><span class="s4">4</span><span class="s1">,</span><span class="s4">0</span><span class="s1">);</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+        <span class="s1">xmlTextWriterWriteDTDInternalEntity(xmlTextWriterPtr writer,</span>
+                                            <span class="s2">int </span><span class="s1">pe,</span>
+                                            <span class="s2">const </span><span class="s1">xmlChar * name,</span>
+                                            <span class="s2">const </span><span class="s1">xmlChar * content);</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+        <span class="s1">xmlTextWriterWriteDTDExternalEntity(xmlTextWriterPtr writer,</span>
+                                            <span class="s2">int </span><span class="s1">pe,</span>
+                                            <span class="s2">const </span><span class="s1">xmlChar * name,</span>
+                                            <span class="s2">const </span><span class="s1">xmlChar * pubid,</span>
+                                            <span class="s2">const </span><span class="s1">xmlChar * sysid,</span>
+                                            <span class="s2">const </span><span class="s1">xmlChar * ndataid);</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+        <span class="s1">xmlTextWriterWriteDTDExternalEntityContents(xmlTextWriterPtr</span>
+                                                    <span class="s1">writer,</span>
+                                                    <span class="s2">const </span><span class="s1">xmlChar * pubid,</span>
+                                                    <span class="s2">const </span><span class="s1">xmlChar * sysid,</span>
+                                                    <span class="s2">const </span><span class="s1">xmlChar *</span>
+                                                    <span class="s1">ndataid);</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL xmlTextWriterWriteDTDEntity(xmlTextWriterPtr</span>
+                                                      <span class="s1">writer, </span><span class="s2">int </span><span class="s1">pe,</span>
+                                                      <span class="s2">const </span><span class="s1">xmlChar * name,</span>
+                                                      <span class="s2">const </span><span class="s1">xmlChar *</span>
+                                                      <span class="s1">pubid,</span>
+                                                      <span class="s2">const </span><span class="s1">xmlChar *</span>
+                                                      <span class="s1">sysid,</span>
+                                                      <span class="s2">const </span><span class="s1">xmlChar *</span>
+                                                      <span class="s1">ndataid,</span>
+                                                      <span class="s2">const </span><span class="s1">xmlChar *</span>
+                                                      <span class="s1">content);</span>
+
+<span class="s0">/* 
+ * DTD notation definition 
+ */</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+        <span class="s1">xmlTextWriterWriteDTDNotation(xmlTextWriterPtr writer,</span>
+                                      <span class="s2">const </span><span class="s1">xmlChar * name,</span>
+                                      <span class="s2">const </span><span class="s1">xmlChar * pubid,</span>
+                                      <span class="s2">const </span><span class="s1">xmlChar * sysid);</span>
+
+<span class="s0">/* 
+ * Indentation 
+ */</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+        <span class="s1">xmlTextWriterSetIndent(xmlTextWriterPtr writer, </span><span class="s2">int </span><span class="s1">indent);</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+        <span class="s1">xmlTextWriterSetIndentString(xmlTextWriterPtr writer,</span>
+                                     <span class="s2">const </span><span class="s1">xmlChar * str);</span>
+
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+        <span class="s1">xmlTextWriterSetQuoteChar(xmlTextWriterPtr writer, xmlChar quotechar);</span>
+
+
+<span class="s0">/* 
+ * misc 
+ */</span>
+    <span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL xmlTextWriterFlush(xmlTextWriterPtr writer);</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s1">}</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#endif </span><span class="s0">/* LIBXML_WRITER_ENABLED */</span>
+
+<span class="s2">#endif                          </span><span class="s0">/* __XML_XMLWRITER_H__ */</span>
+</pre>
+</body>
+</html>

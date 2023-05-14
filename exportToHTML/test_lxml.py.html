@@ -1,0 +1,137 @@
+<html>
+<head>
+<title>test_lxml.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #629755; font-style: italic;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6897bb;}
+.s4 { color: #6a8759;}
+.s5 { color: #808080;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+test_lxml.py</font>
+</center></td></tr></table>
+<pre><span class="s0">&quot;&quot;&quot;Tests to ensure that the lxml tree builder generates good trees.&quot;&quot;&quot;</span>
+
+<span class="s2">import </span><span class="s1">re</span>
+<span class="s2">import </span><span class="s1">warnings</span>
+
+<span class="s2">try</span><span class="s1">:</span>
+    <span class="s2">import </span><span class="s1">lxml.etree</span>
+    <span class="s1">LXML_PRESENT = </span><span class="s2">True</span>
+    <span class="s1">LXML_VERSION = lxml.etree.LXML_VERSION</span>
+<span class="s2">except </span><span class="s1">ImportError </span><span class="s2">as </span><span class="s1">e:</span>
+    <span class="s1">LXML_PRESENT = </span><span class="s2">False</span>
+    <span class="s1">LXML_VERSION = (</span><span class="s3">0</span><span class="s2">,</span><span class="s1">)</span>
+
+<span class="s2">if </span><span class="s1">LXML_PRESENT:</span>
+    <span class="s2">from </span><span class="s1">bs4.builder </span><span class="s2">import </span><span class="s1">LXMLTreeBuilder</span><span class="s2">, </span><span class="s1">LXMLTreeBuilderForXML</span>
+
+<span class="s2">from </span><span class="s1">bs4 </span><span class="s2">import </span><span class="s1">(</span>
+    <span class="s1">BeautifulSoup</span><span class="s2">,</span>
+    <span class="s1">BeautifulStoneSoup</span><span class="s2">,</span>
+    <span class="s1">)</span>
+<span class="s2">from </span><span class="s1">bs4.element </span><span class="s2">import </span><span class="s1">Comment</span><span class="s2">, </span><span class="s1">Doctype</span><span class="s2">, </span><span class="s1">SoupStrainer</span>
+<span class="s2">from </span><span class="s1">bs4.testing </span><span class="s2">import </span><span class="s1">skipIf</span>
+<span class="s2">from </span><span class="s1">bs4.tests </span><span class="s2">import </span><span class="s1">test_htmlparser</span>
+<span class="s2">from </span><span class="s1">bs4.testing </span><span class="s2">import </span><span class="s1">(</span>
+    <span class="s1">HTMLTreeBuilderSmokeTest</span><span class="s2">,</span>
+    <span class="s1">XMLTreeBuilderSmokeTest</span><span class="s2">,</span>
+    <span class="s1">SoupTest</span><span class="s2">,</span>
+    <span class="s1">skipIf</span><span class="s2">,</span>
+<span class="s1">)</span>
+
+<span class="s1">@skipIf(</span>
+    <span class="s2">not </span><span class="s1">LXML_PRESENT</span><span class="s2">,</span>
+    <span class="s4">&quot;lxml seems not to be present, not testing its tree builder.&quot;</span><span class="s1">)</span>
+<span class="s2">class </span><span class="s1">LXMLTreeBuilderSmokeTest(SoupTest</span><span class="s2">, </span><span class="s1">HTMLTreeBuilderSmokeTest):</span>
+    <span class="s0">&quot;&quot;&quot;See ``HTMLTreeBuilderSmokeTest``.&quot;&quot;&quot;</span>
+
+    <span class="s1">@property</span>
+    <span class="s2">def </span><span class="s1">default_builder(self):</span>
+        <span class="s2">return </span><span class="s1">LXMLTreeBuilder</span>
+
+    <span class="s2">def </span><span class="s1">test_out_of_range_entity(self):</span>
+        <span class="s1">self.assertSoupEquals(</span>
+            <span class="s4">&quot;&lt;p&gt;foo&amp;#10000000000000;bar&lt;/p&gt;&quot;</span><span class="s2">, </span><span class="s4">&quot;&lt;p&gt;foobar&lt;/p&gt;&quot;</span><span class="s1">)</span>
+        <span class="s1">self.assertSoupEquals(</span>
+            <span class="s4">&quot;&lt;p&gt;foo&amp;#x10000000000000;bar&lt;/p&gt;&quot;</span><span class="s2">, </span><span class="s4">&quot;&lt;p&gt;foobar&lt;/p&gt;&quot;</span><span class="s1">)</span>
+        <span class="s1">self.assertSoupEquals(</span>
+            <span class="s4">&quot;&lt;p&gt;foo&amp;#1000000000;bar&lt;/p&gt;&quot;</span><span class="s2">, </span><span class="s4">&quot;&lt;p&gt;foobar&lt;/p&gt;&quot;</span><span class="s1">)</span>
+
+    <span class="s2">def </span><span class="s1">test_entities_in_foreign_document_encoding(self):</span>
+        <span class="s5"># We can't implement this case correctly because by the time we</span>
+        <span class="s5"># hear about markup like &quot;&amp;#147;&quot;, it's been (incorrectly) converted into</span>
+        <span class="s5"># a string like u'\x93'</span>
+        <span class="s2">pass</span>
+        
+    <span class="s5"># In lxml &lt; 2.3.5, an empty doctype causes a segfault. Skip this</span>
+    <span class="s5"># test if an old version of lxml is installed.</span>
+
+    <span class="s1">@skipIf(</span>
+        <span class="s2">not </span><span class="s1">LXML_PRESENT </span><span class="s2">or </span><span class="s1">LXML_VERSION &lt; (</span><span class="s3">2</span><span class="s2">,</span><span class="s3">3</span><span class="s2">,</span><span class="s3">5</span><span class="s2">,</span><span class="s3">0</span><span class="s1">)</span><span class="s2">,</span>
+        <span class="s4">&quot;Skipping doctype test for old version of lxml to avoid segfault.&quot;</span><span class="s1">)</span>
+    <span class="s2">def </span><span class="s1">test_empty_doctype(self):</span>
+        <span class="s1">soup = self.soup(</span><span class="s4">&quot;&lt;!DOCTYPE&gt;&quot;</span><span class="s1">)</span>
+        <span class="s1">doctype = soup.contents[</span><span class="s3">0</span><span class="s1">]</span>
+        <span class="s1">self.assertEqual(</span><span class="s4">&quot;&quot;</span><span class="s2">, </span><span class="s1">doctype.strip())</span>
+
+    <span class="s2">def </span><span class="s1">test_beautifulstonesoup_is_xml_parser(self):</span>
+        <span class="s5"># Make sure that the deprecated BSS class uses an xml builder</span>
+        <span class="s5"># if one is installed.</span>
+        <span class="s2">with </span><span class="s1">warnings.catch_warnings(record=</span><span class="s2">True</span><span class="s1">) </span><span class="s2">as </span><span class="s1">w:</span>
+            <span class="s1">soup = BeautifulStoneSoup(</span><span class="s4">&quot;&lt;b /&gt;&quot;</span><span class="s1">)</span>
+        <span class="s1">self.assertEqual(</span><span class="s4">&quot;&lt;b/&gt;&quot;</span><span class="s2">, </span><span class="s1">str(soup.b))</span>
+        <span class="s1">self.assertTrue(</span><span class="s4">&quot;BeautifulStoneSoup class is deprecated&quot; </span><span class="s2">in </span><span class="s1">str(w[</span><span class="s3">0</span><span class="s1">].message))</span>
+
+    <span class="s2">def </span><span class="s1">test_tracking_line_numbers(self):</span>
+        <span class="s5"># The lxml TreeBuilder cannot keep track of line numbers from</span>
+        <span class="s5"># the original markup. Even if you ask for line numbers, we</span>
+        <span class="s5"># don't have 'em.</span>
+        <span class="s5">#</span>
+        <span class="s5"># This means that if you have a tag like &lt;sourceline&gt; or</span>
+        <span class="s5"># &lt;sourcepos&gt;, attribute access will find it rather than</span>
+        <span class="s5"># giving you a numeric answer.</span>
+        <span class="s1">soup = self.soup(</span>
+            <span class="s4">&quot;</span><span class="s2">\n   </span><span class="s4">&lt;p&gt;</span><span class="s2">\n\n</span><span class="s4">&lt;sourceline&gt;</span><span class="s2">\n</span><span class="s4">&lt;b&gt;text&lt;/b&gt;&lt;/sourceline&gt;&lt;sourcepos&gt;&lt;/p&gt;&quot;</span><span class="s2">,</span>
+            <span class="s1">store_line_numbers=</span><span class="s2">True</span>
+        <span class="s1">)</span>
+        <span class="s1">self.assertEqual(</span><span class="s4">&quot;sourceline&quot;</span><span class="s2">, </span><span class="s1">soup.p.sourceline.name)</span>
+        <span class="s1">self.assertEqual(</span><span class="s4">&quot;sourcepos&quot;</span><span class="s2">, </span><span class="s1">soup.p.sourcepos.name)</span>
+        
+<span class="s1">@skipIf(</span>
+    <span class="s2">not </span><span class="s1">LXML_PRESENT</span><span class="s2">,</span>
+    <span class="s4">&quot;lxml seems not to be present, not testing its XML tree builder.&quot;</span><span class="s1">)</span>
+<span class="s2">class </span><span class="s1">LXMLXMLTreeBuilderSmokeTest(SoupTest</span><span class="s2">, </span><span class="s1">XMLTreeBuilderSmokeTest):</span>
+    <span class="s0">&quot;&quot;&quot;See ``HTMLTreeBuilderSmokeTest``.&quot;&quot;&quot;</span>
+
+    <span class="s1">@property</span>
+    <span class="s2">def </span><span class="s1">default_builder(self):</span>
+        <span class="s2">return </span><span class="s1">LXMLTreeBuilderForXML</span>
+
+    <span class="s2">def </span><span class="s1">test_namespace_indexing(self):</span>
+        <span class="s5"># We should not track un-prefixed namespaces as we can only hold one</span>
+        <span class="s5"># and it will be recognized as the default namespace by soupsieve,</span>
+        <span class="s5"># which may be confusing in some situations. When no namespace is provided</span>
+        <span class="s5"># for a selector, the default namespace (if defined) is assumed.</span>
+
+        <span class="s1">soup = self.soup(</span>
+            <span class="s4">'&lt;?xml version=&quot;1.1&quot;?&gt;</span><span class="s2">\n</span><span class="s4">'</span>
+            <span class="s4">'&lt;root&gt;'</span>
+            <span class="s4">'&lt;tag xmlns=&quot;http://unprefixed-namespace.com&quot;&gt;content&lt;/tag&gt;'</span>
+            <span class="s4">'&lt;prefix:tag xmlns:prefix=&quot;http://prefixed-namespace.com&quot;&gt;content&lt;/tag&gt;'</span>
+            <span class="s4">'&lt;/root&gt;'</span>
+        <span class="s1">)</span>
+        <span class="s1">self.assertEqual(</span>
+            <span class="s1">soup._namespaces</span><span class="s2">,</span>
+            <span class="s1">{</span><span class="s4">'xml'</span><span class="s1">: </span><span class="s4">'http://www.w3.org/XML/1998/namespace'</span><span class="s2">, </span><span class="s4">'prefix'</span><span class="s1">: </span><span class="s4">'http://prefixed-namespace.com'</span><span class="s1">}</span>
+        <span class="s1">)</span>
+</pre>
+</body>
+</html>

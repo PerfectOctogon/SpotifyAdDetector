@@ -1,0 +1,128 @@
+<html>
+<head>
+<title>options.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+.s4 { color: #629755; font-style: italic;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+options.py</font>
+</center></td></tr></table>
+<pre><span class="s0"># Licensed to the Software Freedom Conservancy (SFC) under one</span>
+<span class="s0"># or more contributor license agreements.  See the NOTICE file</span>
+<span class="s0"># distributed with this work for additional information</span>
+<span class="s0"># regarding copyright ownership.  The SFC licenses this file</span>
+<span class="s0"># to you under the Apache License, Version 2.0 (the</span>
+<span class="s0"># &quot;License&quot;); you may not use this file except in compliance</span>
+<span class="s0"># with the License.  You may obtain a copy of the License at</span>
+<span class="s0">#</span>
+<span class="s0">#   http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="s0">#</span>
+<span class="s0"># Unless required by applicable law or agreed to in writing,</span>
+<span class="s0"># software distributed under the License is distributed on an</span>
+<span class="s0"># &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY</span>
+<span class="s0"># KIND, either express or implied.  See the License for the</span>
+<span class="s0"># specific language governing permissions and limitations</span>
+<span class="s0"># under the License.</span>
+
+<span class="s2">from </span><span class="s1">selenium.webdriver.common.desired_capabilities </span><span class="s2">import </span><span class="s1">DesiredCapabilities</span>
+
+
+<span class="s2">class </span><span class="s1">Options(object):</span>
+    <span class="s1">KEY = </span><span class="s3">'webkitgtk:browserOptions'</span>
+
+    <span class="s2">def </span><span class="s1">__init__(self):</span>
+        <span class="s1">self._binary_location = </span><span class="s3">''</span>
+        <span class="s1">self._arguments = []</span>
+        <span class="s1">self._overlay_scrollbars_enabled = </span><span class="s2">True</span>
+        <span class="s1">self._caps = DesiredCapabilities.WEBKITGTK.copy()</span>
+
+    <span class="s1">@property</span>
+    <span class="s2">def </span><span class="s1">capabilities(self):</span>
+        <span class="s2">return </span><span class="s1">self._caps</span>
+
+    <span class="s2">def </span><span class="s1">set_capability(self</span><span class="s2">, </span><span class="s1">name</span><span class="s2">, </span><span class="s1">value):</span>
+        <span class="s4">&quot;&quot;&quot;Sets a capability.&quot;&quot;&quot;</span>
+        <span class="s1">self._caps[name] = value</span>
+
+    <span class="s1">@property</span>
+    <span class="s2">def </span><span class="s1">binary_location(self):</span>
+        <span class="s4">&quot;&quot;&quot; 
+        Returns the location of the browser binary otherwise an empty string 
+        &quot;&quot;&quot;</span>
+        <span class="s2">return </span><span class="s1">self._binary_location</span>
+
+    <span class="s1">@binary_location.setter</span>
+    <span class="s2">def </span><span class="s1">binary_location(self</span><span class="s2">, </span><span class="s1">value):</span>
+        <span class="s4">&quot;&quot;&quot; 
+        Allows you to set the browser binary to launch 
+ 
+        :Args: 
+         - value : path to the browser binary 
+        &quot;&quot;&quot;</span>
+        <span class="s1">self._binary_location = value</span>
+
+    <span class="s1">@property</span>
+    <span class="s2">def </span><span class="s1">arguments(self):</span>
+        <span class="s4">&quot;&quot;&quot; 
+        Returns a list of arguments needed for the browser 
+        &quot;&quot;&quot;</span>
+        <span class="s2">return </span><span class="s1">self._arguments</span>
+
+    <span class="s2">def </span><span class="s1">add_argument(self</span><span class="s2">, </span><span class="s1">argument):</span>
+        <span class="s4">&quot;&quot;&quot; 
+        Adds an argument to the list 
+ 
+        :Args: 
+         - Sets the arguments 
+        &quot;&quot;&quot;</span>
+        <span class="s2">if </span><span class="s1">argument:</span>
+            <span class="s1">self._arguments.append(argument)</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s2">raise </span><span class="s1">ValueError(</span><span class="s3">&quot;argument can not be null&quot;</span><span class="s1">)</span>
+
+    <span class="s1">@property</span>
+    <span class="s2">def </span><span class="s1">overlay_scrollbars_enabled(self):</span>
+        <span class="s4">&quot;&quot;&quot; 
+        Returns whether overlay scrollbars should be enabled 
+        &quot;&quot;&quot;</span>
+        <span class="s2">return </span><span class="s1">self._overlay_scrollbars_enabled</span>
+
+    <span class="s1">@overlay_scrollbars_enabled.setter</span>
+    <span class="s2">def </span><span class="s1">overlay_scrollbars_enabled(self</span><span class="s2">, </span><span class="s1">value):</span>
+        <span class="s4">&quot;&quot;&quot; 
+        Allows you to enable or disable overlay scrollbars 
+ 
+        :Args: 
+         - value : True or False 
+        &quot;&quot;&quot;</span>
+        <span class="s1">self._overlay_scrollbars_enabled = value</span>
+
+    <span class="s2">def </span><span class="s1">to_capabilities(self):</span>
+        <span class="s4">&quot;&quot;&quot; 
+        Creates a capabilities with all the options that have been set and 
+        returns a dictionary with everything 
+        &quot;&quot;&quot;</span>
+        <span class="s1">caps = self._caps</span>
+
+        <span class="s1">browser_options = {}</span>
+        <span class="s2">if </span><span class="s1">self.binary_location:</span>
+            <span class="s1">browser_options[</span><span class="s3">&quot;binary&quot;</span><span class="s1">] = self.binary_location</span>
+        <span class="s2">if </span><span class="s1">self.arguments:</span>
+            <span class="s1">browser_options[</span><span class="s3">&quot;args&quot;</span><span class="s1">] = self.arguments</span>
+        <span class="s1">browser_options[</span><span class="s3">&quot;useOverlayScrollbars&quot;</span><span class="s1">] = self.overlay_scrollbars_enabled</span>
+
+        <span class="s1">caps[Options.KEY] = browser_options</span>
+
+        <span class="s2">return </span><span class="s1">caps</span>
+</pre>
+</body>
+</html>

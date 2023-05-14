@@ -1,0 +1,130 @@
+<html>
+<head>
+<title>xslt.h</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+xslt.h</font>
+</center></td></tr></table>
+<pre><span class="s0">/* 
+ * Summary: Interfaces, constants and types related to the XSLT engine 
+ * Description: Interfaces, constants and types related to the XSLT engine 
+ * 
+ * Copy: See Copyright for the status of this software. 
+ * 
+ * Author: Daniel Veillard 
+ */</span>
+
+<span class="s2">#ifndef </span><span class="s1">__XML_XSLT_H__</span>
+<span class="s2">#define </span><span class="s1">__XML_XSLT_H__</span>
+
+<span class="s2">#include </span><span class="s1">&lt;libxml/tree.h&gt;</span>
+<span class="s2">#include </span><span class="s3">&quot;xsltexports.h&quot;</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s2">extern </span><span class="s3">&quot;C&quot; </span><span class="s1">{</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * XSLT_DEFAULT_VERSION: 
+ * 
+ * The default version of XSLT supported. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XSLT_DEFAULT_VERSION     </span><span class="s3">&quot;1.0&quot;</span>
+
+<span class="s0">/** 
+ * XSLT_DEFAULT_VENDOR: 
+ * 
+ * The XSLT &quot;vendor&quot; string for this processor. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XSLT_DEFAULT_VENDOR      </span><span class="s3">&quot;libxslt&quot;</span>
+
+<span class="s0">/** 
+ * XSLT_DEFAULT_URL: 
+ * 
+ * The XSLT &quot;vendor&quot; URL for this processor. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XSLT_DEFAULT_URL         </span><span class="s3">&quot;http://xmlsoft.org/XSLT/&quot;</span>
+
+<span class="s0">/** 
+ * XSLT_NAMESPACE: 
+ * 
+ * The XSLT specification namespace. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XSLT_NAMESPACE ((</span><span class="s2">const </span><span class="s1">xmlChar *)</span><span class="s3">&quot;http://www.w3.org/1999/XSL/Transform&quot;</span><span class="s1">)</span>
+
+<span class="s0">/** 
+ * XSLT_PARSE_OPTIONS: 
+ * 
+ * The set of options to pass to an xmlReadxxx when loading files for 
+ * XSLT consumption. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XSLT_PARSE_OPTIONS \</span>
+ <span class="s1">XML_PARSE_NOENT | XML_PARSE_DTDLOAD | XML_PARSE_DTDATTR | XML_PARSE_NOCDATA</span>
+
+<span class="s0">/** 
+ * xsltMaxDepth: 
+ * 
+ * This value is used to detect templates loops. 
+ */</span>
+<span class="s1">XSLTPUBVAR </span><span class="s2">int </span><span class="s1">xsltMaxDepth;</span>
+
+<span class="s0">/** 
+ *  * xsltMaxVars: 
+ *   * 
+ *    * This value is used to detect templates loops. 
+ *     */</span>
+<span class="s1">XSLTPUBVAR </span><span class="s2">int </span><span class="s1">xsltMaxVars;</span>
+
+<span class="s0">/** 
+ * xsltEngineVersion: 
+ * 
+ * The version string for libxslt. 
+ */</span>
+<span class="s1">XSLTPUBVAR </span><span class="s2">const char </span><span class="s1">*xsltEngineVersion;</span>
+
+<span class="s0">/** 
+ * xsltLibxsltVersion: 
+ * 
+ * The version of libxslt compiled. 
+ */</span>
+<span class="s1">XSLTPUBVAR </span><span class="s2">const int </span><span class="s1">xsltLibxsltVersion;</span>
+
+<span class="s0">/** 
+ * xsltLibxmlVersion: 
+ * 
+ * The version of libxml libxslt was compiled against. 
+ */</span>
+<span class="s1">XSLTPUBVAR </span><span class="s2">const int </span><span class="s1">xsltLibxmlVersion;</span>
+
+<span class="s0">/* 
+ * Global initialization function. 
+ */</span>
+
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltInit		(</span><span class="s2">void</span><span class="s1">);</span>
+
+<span class="s0">/* 
+ * Global cleanup function. 
+ */</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltCleanupGlobals	(</span><span class="s2">void</span><span class="s1">);</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s1">}</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#endif </span><span class="s0">/* __XML_XSLT_H__ */</span>
+
+</pre>
+</body>
+</html>

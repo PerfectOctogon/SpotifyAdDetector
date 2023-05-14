@@ -1,0 +1,73 @@
+<html>
+<head>
+<title>htmlparser.pxd</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #a9b7c6;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+htmlparser.pxd</font>
+</center></td></tr></table>
+<pre><span class="s0">from libc.string cimport const_char</span>
+
+<span class="s0">from lxml.includes.tree cimport xmlDoc</span>
+<span class="s0">from lxml.includes.tree cimport xmlInputReadCallback, xmlInputCloseCallback</span>
+<span class="s0">from lxml.includes.xmlparser cimport xmlParserCtxt, xmlSAXHandler, xmlSAXHandlerV1</span>
+
+<span class="s0">cdef extern from &quot;libxml/HTMLparser.h&quot;:</span>
+    <span class="s0">ctypedef enum htmlParserOption:</span>
+        <span class="s0">HTML_PARSE_NOERROR    # suppress error reports</span>
+        <span class="s0">HTML_PARSE_NOWARNING  # suppress warning reports</span>
+        <span class="s0">HTML_PARSE_PEDANTIC   # pedantic error reporting</span>
+        <span class="s0">HTML_PARSE_NOBLANKS   # remove blank nodes</span>
+        <span class="s0">HTML_PARSE_NONET      # Forbid network access</span>
+        <span class="s0"># libxml2 2.6.21+ only:</span>
+        <span class="s0">HTML_PARSE_RECOVER    # Relaxed parsing</span>
+        <span class="s0">HTML_PARSE_COMPACT    # compact small text nodes</span>
+        <span class="s0"># libxml2 2.7.7+ only:</span>
+        <span class="s0">HTML_PARSE_NOIMPLIED  # Do not add implied html/body... elements</span>
+        <span class="s0"># libxml2 2.7.8+ only:</span>
+        <span class="s0">HTML_PARSE_NODEFDTD   # do not default a doctype if not found</span>
+        <span class="s0"># libxml2 2.8.0+ only:</span>
+        <span class="s0">XML_PARSE_IGNORE_ENC  # ignore internal document encoding hint</span>
+
+    <span class="s0">xmlSAXHandlerV1 htmlDefaultSAXHandler</span>
+
+    <span class="s0">cdef xmlParserCtxt* htmlCreateMemoryParserCtxt(</span>
+        <span class="s0">char* buffer, int size) nogil</span>
+    <span class="s0">cdef xmlParserCtxt* htmlCreateFileParserCtxt(</span>
+        <span class="s0">char* filename, char* encoding) nogil</span>
+    <span class="s0">cdef xmlParserCtxt* htmlCreatePushParserCtxt(xmlSAXHandler* sax,</span>
+                                                 <span class="s0">void* user_data,</span>
+                                                 <span class="s0">char* chunk, int size,</span>
+                                                 <span class="s0">char* filename, int enc) nogil</span>
+    <span class="s0">cdef void htmlFreeParserCtxt(xmlParserCtxt* ctxt) nogil</span>
+    <span class="s0">cdef void htmlCtxtReset(xmlParserCtxt* ctxt) nogil</span>
+    <span class="s0">cdef int htmlCtxtUseOptions(xmlParserCtxt* ctxt, int options) nogil</span>
+    <span class="s0">cdef int htmlParseDocument(xmlParserCtxt* ctxt) nogil</span>
+    <span class="s0">cdef int htmlParseChunk(xmlParserCtxt* ctxt, </span>
+                            <span class="s0">char* chunk, int size, int terminate) nogil</span>
+
+    <span class="s0">cdef xmlDoc* htmlCtxtReadFile(xmlParserCtxt* ctxt,</span>
+                                  <span class="s0">char* filename, const_char* encoding,</span>
+                                  <span class="s0">int options) nogil</span>
+    <span class="s0">cdef xmlDoc* htmlCtxtReadDoc(xmlParserCtxt* ctxt,</span>
+                                 <span class="s0">char* buffer, char* URL, const_char* encoding,</span>
+                                 <span class="s0">int options) nogil</span>
+    <span class="s0">cdef xmlDoc* htmlCtxtReadIO(xmlParserCtxt* ctxt, </span>
+                                <span class="s0">xmlInputReadCallback ioread, </span>
+                                <span class="s0">xmlInputCloseCallback ioclose, </span>
+                                <span class="s0">void* ioctx,</span>
+                                <span class="s0">char* URL, const_char* encoding,</span>
+                                <span class="s0">int options) nogil</span>
+    <span class="s0">cdef xmlDoc* htmlCtxtReadMemory(xmlParserCtxt* ctxt,</span>
+                                    <span class="s0">char* buffer, int size,</span>
+                                    <span class="s0">char* filename, const_char* encoding,</span>
+                                    <span class="s0">int options) nogil</span>
+</pre>
+</body>
+</html>

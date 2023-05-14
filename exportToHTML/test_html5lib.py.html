@@ -1,0 +1,213 @@
+<html>
+<head>
+<title>test_html5lib.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #629755; font-style: italic;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+.s4 { color: #808080;}
+.s5 { color: #6897bb;}
+.s6 { color: #a5c261;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+test_html5lib.py</font>
+</center></td></tr></table>
+<pre><span class="s0">&quot;&quot;&quot;Tests to ensure that the html5lib tree builder generates good trees.&quot;&quot;&quot;</span>
+
+<span class="s2">import </span><span class="s1">warnings</span>
+
+<span class="s2">try</span><span class="s1">:</span>
+    <span class="s2">from </span><span class="s1">bs4.builder </span><span class="s2">import </span><span class="s1">HTML5TreeBuilder</span>
+    <span class="s1">HTML5LIB_PRESENT = </span><span class="s2">True</span>
+<span class="s2">except </span><span class="s1">ImportError </span><span class="s2">as </span><span class="s1">e:</span>
+    <span class="s1">HTML5LIB_PRESENT = </span><span class="s2">False</span>
+<span class="s2">from </span><span class="s1">bs4.element </span><span class="s2">import </span><span class="s1">SoupStrainer</span>
+<span class="s2">from </span><span class="s1">bs4.testing </span><span class="s2">import </span><span class="s1">(</span>
+    <span class="s1">HTML5TreeBuilderSmokeTest</span><span class="s2">,</span>
+    <span class="s1">SoupTest</span><span class="s2">,</span>
+    <span class="s1">skipIf</span><span class="s2">,</span>
+<span class="s1">)</span>
+
+<span class="s1">@skipIf(</span>
+    <span class="s2">not </span><span class="s1">HTML5LIB_PRESENT</span><span class="s2">,</span>
+    <span class="s3">&quot;html5lib seems not to be present, not testing its tree builder.&quot;</span><span class="s1">)</span>
+<span class="s2">class </span><span class="s1">HTML5LibBuilderSmokeTest(SoupTest</span><span class="s2">, </span><span class="s1">HTML5TreeBuilderSmokeTest):</span>
+    <span class="s0">&quot;&quot;&quot;See ``HTML5TreeBuilderSmokeTest``.&quot;&quot;&quot;</span>
+
+    <span class="s1">@property</span>
+    <span class="s2">def </span><span class="s1">default_builder(self):</span>
+        <span class="s2">return </span><span class="s1">HTML5TreeBuilder</span>
+
+    <span class="s2">def </span><span class="s1">test_soupstrainer(self):</span>
+        <span class="s4"># The html5lib tree builder does not support SoupStrainers.</span>
+        <span class="s1">strainer = SoupStrainer(</span><span class="s3">&quot;b&quot;</span><span class="s1">)</span>
+        <span class="s1">markup = </span><span class="s3">&quot;&lt;p&gt;A &lt;b&gt;bold&lt;/b&gt; statement.&lt;/p&gt;&quot;</span>
+        <span class="s2">with </span><span class="s1">warnings.catch_warnings(record=</span><span class="s2">True</span><span class="s1">) </span><span class="s2">as </span><span class="s1">w:</span>
+            <span class="s1">soup = self.soup(markup</span><span class="s2">, </span><span class="s1">parse_only=strainer)</span>
+        <span class="s1">self.assertEqual(</span>
+            <span class="s1">soup.decode()</span><span class="s2">, </span><span class="s1">self.document_for(markup))</span>
+
+        <span class="s1">self.assertTrue(</span>
+            <span class="s3">&quot;the html5lib tree builder doesn't support parse_only&quot; </span><span class="s2">in</span>
+            <span class="s1">str(w[</span><span class="s5">0</span><span class="s1">].message))</span>
+
+    <span class="s2">def </span><span class="s1">test_correctly_nested_tables(self):</span>
+        <span class="s0">&quot;&quot;&quot;html5lib inserts &lt;tbody&gt; tags where other parsers don't.&quot;&quot;&quot;</span>
+        <span class="s1">markup = (</span><span class="s3">'&lt;table id=&quot;1&quot;&gt;'</span>
+                  <span class="s3">'&lt;tr&gt;'</span>
+                  <span class="s3">&quot;&lt;td&gt;Here's another table:&quot;</span>
+                  <span class="s3">'&lt;table id=&quot;2&quot;&gt;'</span>
+                  <span class="s3">'&lt;tr&gt;&lt;td&gt;foo&lt;/td&gt;&lt;/tr&gt;'</span>
+                  <span class="s3">'&lt;/table&gt;&lt;/td&gt;'</span><span class="s1">)</span>
+
+        <span class="s1">self.assertSoupEquals(</span>
+            <span class="s1">markup</span><span class="s2">,</span>
+            <span class="s3">'&lt;table id=&quot;1&quot;&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td&gt;Here</span><span class="s2">\'</span><span class="s3">s another table:'</span>
+            <span class="s3">'&lt;table id=&quot;2&quot;&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td&gt;foo&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;'</span>
+            <span class="s3">'&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;'</span><span class="s1">)</span>
+
+        <span class="s1">self.assertSoupEquals(</span>
+            <span class="s3">&quot;&lt;table&gt;&lt;thead&gt;&lt;tr&gt;&lt;td&gt;Foo&lt;/td&gt;&lt;/tr&gt;&lt;/thead&gt;&quot;</span>
+            <span class="s3">&quot;&lt;tbody&gt;&lt;tr&gt;&lt;td&gt;Bar&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&quot;</span>
+            <span class="s3">&quot;&lt;tfoot&gt;&lt;tr&gt;&lt;td&gt;Baz&lt;/td&gt;&lt;/tr&gt;&lt;/tfoot&gt;&lt;/table&gt;&quot;</span><span class="s1">)</span>
+
+    <span class="s2">def </span><span class="s1">test_xml_declaration_followed_by_doctype(self):</span>
+        <span class="s1">markup = </span><span class="s3">'''&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt; 
+&lt;!DOCTYPE html&gt; 
+&lt;html&gt; 
+  &lt;head&gt; 
+  &lt;/head&gt; 
+  &lt;body&gt; 
+   &lt;p&gt;foo&lt;/p&gt; 
+  &lt;/body&gt; 
+&lt;/html&gt;'''</span>
+        <span class="s1">soup = self.soup(markup)</span>
+        <span class="s4"># Verify that we can reach the &lt;p&gt; tag; this means the tree is connected.</span>
+        <span class="s1">self.assertEqual(</span><span class="s6">b&quot;&lt;p&gt;foo&lt;/p&gt;&quot;</span><span class="s2">, </span><span class="s1">soup.p.encode())</span>
+
+    <span class="s2">def </span><span class="s1">test_reparented_markup(self):</span>
+        <span class="s1">markup = </span><span class="s3">'&lt;p&gt;&lt;em&gt;foo&lt;/p&gt;</span><span class="s2">\n</span><span class="s3">&lt;p&gt;bar&lt;a&gt;&lt;/a&gt;&lt;/em&gt;&lt;/p&gt;'</span>
+        <span class="s1">soup = self.soup(markup)</span>
+        <span class="s1">self.assertEqual(</span><span class="s3">&quot;&lt;body&gt;&lt;p&gt;&lt;em&gt;foo&lt;/em&gt;&lt;/p&gt;&lt;em&gt;</span><span class="s2">\n</span><span class="s3">&lt;/em&gt;&lt;p&gt;&lt;em&gt;bar&lt;a&gt;&lt;/a&gt;&lt;/em&gt;&lt;/p&gt;&lt;/body&gt;&quot;</span><span class="s2">, </span><span class="s1">soup.body.decode())</span>
+        <span class="s1">self.assertEqual(</span><span class="s5">2</span><span class="s2">, </span><span class="s1">len(soup.find_all(</span><span class="s3">'p'</span><span class="s1">)))</span>
+
+
+    <span class="s2">def </span><span class="s1">test_reparented_markup_ends_with_whitespace(self):</span>
+        <span class="s1">markup = </span><span class="s3">'&lt;p&gt;&lt;em&gt;foo&lt;/p&gt;</span><span class="s2">\n</span><span class="s3">&lt;p&gt;bar&lt;a&gt;&lt;/a&gt;&lt;/em&gt;&lt;/p&gt;</span><span class="s2">\n</span><span class="s3">'</span>
+        <span class="s1">soup = self.soup(markup)</span>
+        <span class="s1">self.assertEqual(</span><span class="s3">&quot;&lt;body&gt;&lt;p&gt;&lt;em&gt;foo&lt;/em&gt;&lt;/p&gt;&lt;em&gt;</span><span class="s2">\n</span><span class="s3">&lt;/em&gt;&lt;p&gt;&lt;em&gt;bar&lt;a&gt;&lt;/a&gt;&lt;/em&gt;&lt;/p&gt;</span><span class="s2">\n</span><span class="s3">&lt;/body&gt;&quot;</span><span class="s2">, </span><span class="s1">soup.body.decode())</span>
+        <span class="s1">self.assertEqual(</span><span class="s5">2</span><span class="s2">, </span><span class="s1">len(soup.find_all(</span><span class="s3">'p'</span><span class="s1">)))</span>
+
+    <span class="s2">def </span><span class="s1">test_reparented_markup_containing_identical_whitespace_nodes(self):</span>
+        <span class="s0">&quot;&quot;&quot;Verify that we keep the two whitespace nodes in this 
+        document distinct when reparenting the adjacent &lt;tbody&gt; tags. 
+        &quot;&quot;&quot;</span>
+        <span class="s1">markup = </span><span class="s3">'&lt;table&gt; &lt;tbody&gt;&lt;tbody&gt;&lt;ims&gt;&lt;/tbody&gt; &lt;/table&gt;'</span>
+        <span class="s1">soup = self.soup(markup)</span>
+        <span class="s1">space1</span><span class="s2">, </span><span class="s1">space2 = soup.find_all(string=</span><span class="s3">' '</span><span class="s1">)</span>
+        <span class="s1">tbody1</span><span class="s2">, </span><span class="s1">tbody2 = soup.find_all(</span><span class="s3">'tbody'</span><span class="s1">)</span>
+        <span class="s2">assert </span><span class="s1">space1.next_element </span><span class="s2">is </span><span class="s1">tbody1</span>
+        <span class="s2">assert </span><span class="s1">tbody2.next_element </span><span class="s2">is </span><span class="s1">space2</span>
+
+    <span class="s2">def </span><span class="s1">test_reparented_markup_containing_children(self):</span>
+        <span class="s1">markup = </span><span class="s3">'&lt;div&gt;&lt;a&gt;aftermath&lt;p&gt;&lt;noscript&gt;target&lt;/noscript&gt;aftermath&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;'</span>
+        <span class="s1">soup = self.soup(markup)</span>
+        <span class="s1">noscript = soup.noscript</span>
+        <span class="s1">self.assertEqual(</span><span class="s3">&quot;target&quot;</span><span class="s2">, </span><span class="s1">noscript.next_element)</span>
+        <span class="s1">target = soup.find(string=</span><span class="s3">'target'</span><span class="s1">)</span>
+
+        <span class="s4"># The 'aftermath' string was duplicated; we want the second one.</span>
+        <span class="s1">final_aftermath = soup.find_all(string=</span><span class="s3">'aftermath'</span><span class="s1">)[-</span><span class="s5">1</span><span class="s1">]</span>
+
+        <span class="s4"># The &lt;noscript&gt; tag was moved beneath a copy of the &lt;a&gt; tag,</span>
+        <span class="s4"># but the 'target' string within is still connected to the</span>
+        <span class="s4"># (second) 'aftermath' string.</span>
+        <span class="s1">self.assertEqual(final_aftermath</span><span class="s2">, </span><span class="s1">target.next_element)</span>
+        <span class="s1">self.assertEqual(target</span><span class="s2">, </span><span class="s1">final_aftermath.previous_element)</span>
+        
+    <span class="s2">def </span><span class="s1">test_processing_instruction(self):</span>
+        <span class="s0">&quot;&quot;&quot;Processing instructions become comments.&quot;&quot;&quot;</span>
+        <span class="s1">markup = </span><span class="s6">b&quot;&quot;&quot;&lt;?PITarget PIContent?&gt;&quot;&quot;&quot;</span>
+        <span class="s1">soup = self.soup(markup)</span>
+        <span class="s2">assert </span><span class="s1">str(soup).startswith(</span><span class="s3">&quot;&lt;!--?PITarget PIContent?--&gt;&quot;</span><span class="s1">)</span>
+
+    <span class="s2">def </span><span class="s1">test_cloned_multivalue_node(self):</span>
+        <span class="s1">markup = </span><span class="s6">b&quot;&quot;&quot;&lt;a class=&quot;my_class&quot;&gt;&lt;p&gt;&lt;/a&gt;&quot;&quot;&quot;</span>
+        <span class="s1">soup = self.soup(markup)</span>
+        <span class="s1">a1</span><span class="s2">, </span><span class="s1">a2 = soup.find_all(</span><span class="s3">'a'</span><span class="s1">)</span>
+        <span class="s1">self.assertEqual(a1</span><span class="s2">, </span><span class="s1">a2)</span>
+        <span class="s2">assert </span><span class="s1">a1 </span><span class="s2">is not </span><span class="s1">a2</span>
+
+    <span class="s2">def </span><span class="s1">test_foster_parenting(self):</span>
+        <span class="s1">markup = </span><span class="s6">b&quot;&quot;&quot;&lt;table&gt;&lt;td&gt;&lt;/tbody&gt;A&quot;&quot;&quot;</span>
+        <span class="s1">soup = self.soup(markup)</span>
+        <span class="s1">self.assertEqual(</span><span class="s3">&quot;&lt;body&gt;A&lt;table&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;&lt;/body&gt;&quot;</span><span class="s2">, </span><span class="s1">soup.body.decode())</span>
+
+    <span class="s2">def </span><span class="s1">test_extraction(self):</span>
+        <span class="s0">&quot;&quot;&quot; 
+        Test that extraction does not destroy the tree. 
+ 
+        https://bugs.launchpad.net/beautifulsoup/+bug/1782928 
+        &quot;&quot;&quot;</span>
+
+        <span class="s1">markup = </span><span class="s3">&quot;&quot;&quot; 
+&lt;html&gt;&lt;head&gt;&lt;/head&gt; 
+&lt;style&gt; 
+&lt;/style&gt;&lt;script&gt;&lt;/script&gt;&lt;body&gt;&lt;p&gt;hello&lt;/p&gt;&lt;/body&gt;&lt;/html&gt; 
+&quot;&quot;&quot;</span>
+        <span class="s1">soup = self.soup(markup)</span>
+        <span class="s1">[s.extract() </span><span class="s2">for </span><span class="s1">s </span><span class="s2">in </span><span class="s1">soup(</span><span class="s3">'script'</span><span class="s1">)]</span>
+        <span class="s1">[s.extract() </span><span class="s2">for </span><span class="s1">s </span><span class="s2">in </span><span class="s1">soup(</span><span class="s3">'style'</span><span class="s1">)]</span>
+
+        <span class="s1">self.assertEqual(len(soup.find_all(</span><span class="s3">&quot;p&quot;</span><span class="s1">))</span><span class="s2">, </span><span class="s5">1</span><span class="s1">)</span>
+
+    <span class="s2">def </span><span class="s1">test_empty_comment(self):</span>
+        <span class="s0">&quot;&quot;&quot; 
+        Test that empty comment does not break structure. 
+ 
+        https://bugs.launchpad.net/beautifulsoup/+bug/1806598 
+        &quot;&quot;&quot;</span>
+
+        <span class="s1">markup = </span><span class="s3">&quot;&quot;&quot; 
+&lt;html&gt; 
+&lt;body&gt; 
+&lt;form&gt; 
+&lt;!----&gt;&lt;input type=&quot;text&quot;&gt; 
+&lt;/form&gt; 
+&lt;/body&gt; 
+&lt;/html&gt; 
+&quot;&quot;&quot;</span>
+        <span class="s1">soup = self.soup(markup)</span>
+        <span class="s1">inputs = []</span>
+        <span class="s2">for </span><span class="s1">form </span><span class="s2">in </span><span class="s1">soup.find_all(</span><span class="s3">'form'</span><span class="s1">):</span>
+            <span class="s1">inputs.extend(form.find_all(</span><span class="s3">'input'</span><span class="s1">))</span>
+        <span class="s1">self.assertEqual(len(inputs)</span><span class="s2">, </span><span class="s5">1</span><span class="s1">)</span>
+
+    <span class="s2">def </span><span class="s1">test_tracking_line_numbers(self):</span>
+        <span class="s4"># The html.parser TreeBuilder keeps track of line number and</span>
+        <span class="s4"># position of each element.</span>
+        <span class="s1">markup = </span><span class="s3">&quot;</span><span class="s2">\n   </span><span class="s3">&lt;p&gt;</span><span class="s2">\n\n</span><span class="s3">&lt;sourceline&gt;</span><span class="s2">\n</span><span class="s3">&lt;b&gt;text&lt;/b&gt;&lt;/sourceline&gt;&lt;sourcepos&gt;&lt;/p&gt;&quot;</span>
+        <span class="s1">soup = self.soup(markup)</span>
+        <span class="s1">self.assertEqual(</span><span class="s5">2</span><span class="s2">, </span><span class="s1">soup.p.sourceline)</span>
+        <span class="s1">self.assertEqual(</span><span class="s5">5</span><span class="s2">, </span><span class="s1">soup.p.sourcepos)</span>
+        <span class="s1">self.assertEqual(</span><span class="s3">&quot;sourceline&quot;</span><span class="s2">, </span><span class="s1">soup.p.find(</span><span class="s3">'sourceline'</span><span class="s1">).name)</span>
+
+        <span class="s4"># You can deactivate this behavior.</span>
+        <span class="s1">soup = self.soup(markup</span><span class="s2">, </span><span class="s1">store_line_numbers=</span><span class="s2">False</span><span class="s1">)</span>
+        <span class="s1">self.assertEqual(</span><span class="s3">&quot;sourceline&quot;</span><span class="s2">, </span><span class="s1">soup.p.sourceline.name)</span>
+        <span class="s1">self.assertEqual(</span><span class="s3">&quot;sourcepos&quot;</span><span class="s2">, </span><span class="s1">soup.p.sourcepos.name)</span>
+
+    <span class="s2">def </span><span class="s1">test_special_string_containers(self):</span>
+        <span class="s4"># The html5lib tree builder doesn't support this standard feature,</span>
+        <span class="s4"># because there's no way of knowing, when a string is created,</span>
+        <span class="s4"># where in the tree it will eventually end up.</span>
+        <span class="s2">pass</span>
+</pre>
+</body>
+</html>

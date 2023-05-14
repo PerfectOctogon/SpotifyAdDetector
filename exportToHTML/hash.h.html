@@ -1,0 +1,253 @@
+<html>
+<head>
+<title>hash.h</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+hash.h</font>
+</center></td></tr></table>
+<pre><span class="s0">/* 
+ * Summary: Chained hash tables 
+ * Description: This module implements the hash table support used in 
+ *      various places in the library. 
+ * 
+ * Copy: See Copyright for the status of this software. 
+ * 
+ * Author: Bjorn Reese &lt;bjorn.reese@systematic.dk&gt; 
+ */</span>
+
+<span class="s2">#ifndef </span><span class="s1">__XML_HASH_H__</span>
+<span class="s2">#define </span><span class="s1">__XML_HASH_H__</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s2">extern </span><span class="s3">&quot;C&quot; </span><span class="s1">{</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/* 
+ * The hash table. 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xmlHashTable xmlHashTable;</span>
+<span class="s2">typedef </span><span class="s1">xmlHashTable *xmlHashTablePtr;</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s1">}</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#include </span><span class="s1">&lt;libxml/xmlversion.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/parser.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/dict.h&gt;</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s2">extern </span><span class="s3">&quot;C&quot; </span><span class="s1">{</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/* 
+ * Recent version of gcc produce a warning when a function pointer is assigned 
+ * to an object pointer, or vice versa.  The following macro is a dirty hack 
+ * to allow suppression of the warning.  If your architecture has function 
+ * pointers which are a different size than a void pointer, there may be some 
+ * serious trouble within the library. 
+ */</span>
+<span class="s0">/** 
+ * XML_CAST_FPTR: 
+ * @fptr:  pointer to a function 
+ * 
+ * Macro to do a casting from an object pointer to a 
+ * function pointer without encountering a warning from 
+ * gcc 
+ * 
+ * #define XML_CAST_FPTR(fptr) (*(void **)(&amp;fptr)) 
+ * This macro violated ISO C aliasing rules (gcc4 on s390 broke) 
+ * so it is disabled now 
+ */</span>
+
+<span class="s2">#define </span><span class="s1">XML_CAST_FPTR(fptr) fptr</span>
+
+
+<span class="s0">/* 
+ * function types: 
+ */</span>
+<span class="s0">/** 
+ * xmlHashDeallocator: 
+ * @payload:  the data in the hash 
+ * @name:  the name associated 
+ * 
+ * Callback to free data from a hash. 
+ */</span>
+<span class="s2">typedef void </span><span class="s1">(*xmlHashDeallocator)(</span><span class="s2">void </span><span class="s1">*payload, xmlChar *name);</span>
+<span class="s0">/** 
+ * xmlHashCopier: 
+ * @payload:  the data in the hash 
+ * @name:  the name associated 
+ * 
+ * Callback to copy data from a hash. 
+ * 
+ * Returns a copy of the data or NULL in case of error. 
+ */</span>
+<span class="s2">typedef void </span><span class="s1">*(*xmlHashCopier)(</span><span class="s2">void </span><span class="s1">*payload, xmlChar *name);</span>
+<span class="s0">/** 
+ * xmlHashScanner: 
+ * @payload:  the data in the hash 
+ * @data:  extra scannner data 
+ * @name:  the name associated 
+ * 
+ * Callback when scanning data in a hash with the simple scanner. 
+ */</span>
+<span class="s2">typedef void </span><span class="s1">(*xmlHashScanner)(</span><span class="s2">void </span><span class="s1">*payload, </span><span class="s2">void </span><span class="s1">*data, xmlChar *name);</span>
+<span class="s0">/** 
+ * xmlHashScannerFull: 
+ * @payload:  the data in the hash 
+ * @data:  extra scannner data 
+ * @name:  the name associated 
+ * @name2:  the second name associated 
+ * @name3:  the third name associated 
+ * 
+ * Callback when scanning data in a hash with the full scanner. 
+ */</span>
+<span class="s2">typedef void </span><span class="s1">(*xmlHashScannerFull)(</span><span class="s2">void </span><span class="s1">*payload, </span><span class="s2">void </span><span class="s1">*data,</span>
+				   <span class="s2">const </span><span class="s1">xmlChar *name, </span><span class="s2">const </span><span class="s1">xmlChar *name2,</span>
+				   <span class="s2">const </span><span class="s1">xmlChar *name3);</span>
+
+<span class="s0">/* 
+ * Constructor and destructor. 
+ */</span>
+<span class="s1">XMLPUBFUN xmlHashTablePtr XMLCALL</span>
+			<span class="s1">xmlHashCreate	(</span><span class="s2">int </span><span class="s1">size);</span>
+<span class="s1">XMLPUBFUN xmlHashTablePtr XMLCALL</span>
+			<span class="s1">xmlHashCreateDict(</span><span class="s2">int </span><span class="s1">size,</span>
+					 <span class="s1">xmlDictPtr dict);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlHashFree	(xmlHashTablePtr table,</span>
+					 <span class="s1">xmlHashDeallocator f);</span>
+
+<span class="s0">/* 
+ * Add a new entry to the hash table. 
+ */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlHashAddEntry	(xmlHashTablePtr table,</span>
+		                         <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+		                         <span class="s2">void </span><span class="s1">*userdata);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlHashUpdateEntry(xmlHashTablePtr table,</span>
+		                         <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+		                         <span class="s2">void </span><span class="s1">*userdata,</span>
+					 <span class="s1">xmlHashDeallocator f);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlHashAddEntry2(xmlHashTablePtr table,</span>
+		                         <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+		                         <span class="s2">const </span><span class="s1">xmlChar *name2,</span>
+		                         <span class="s2">void </span><span class="s1">*userdata);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlHashUpdateEntry2(xmlHashTablePtr table,</span>
+		                         <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+		                         <span class="s2">const </span><span class="s1">xmlChar *name2,</span>
+		                         <span class="s2">void </span><span class="s1">*userdata,</span>
+					 <span class="s1">xmlHashDeallocator f);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlHashAddEntry3(xmlHashTablePtr table,</span>
+		                         <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+		                         <span class="s2">const </span><span class="s1">xmlChar *name2,</span>
+		                         <span class="s2">const </span><span class="s1">xmlChar *name3,</span>
+		                         <span class="s2">void </span><span class="s1">*userdata);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlHashUpdateEntry3(xmlHashTablePtr table,</span>
+		                         <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+		                         <span class="s2">const </span><span class="s1">xmlChar *name2,</span>
+		                         <span class="s2">const </span><span class="s1">xmlChar *name3,</span>
+		                         <span class="s2">void </span><span class="s1">*userdata,</span>
+					 <span class="s1">xmlHashDeallocator f);</span>
+
+<span class="s0">/* 
+ * Remove an entry from the hash table. 
+ */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlHashRemoveEntry(xmlHashTablePtr table, </span><span class="s2">const </span><span class="s1">xmlChar *name,</span>
+                           <span class="s1">xmlHashDeallocator f);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlHashRemoveEntry2(xmlHashTablePtr table, </span><span class="s2">const </span><span class="s1">xmlChar *name,</span>
+                            <span class="s2">const </span><span class="s1">xmlChar *name2, xmlHashDeallocator f);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int  </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlHashRemoveEntry3(xmlHashTablePtr table, </span><span class="s2">const </span><span class="s1">xmlChar *name,</span>
+                            <span class="s2">const </span><span class="s1">xmlChar *name2, </span><span class="s2">const </span><span class="s1">xmlChar *name3,</span>
+                            <span class="s1">xmlHashDeallocator f);</span>
+
+<span class="s0">/* 
+ * Retrieve the userdata. 
+ */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">* XMLCALL</span>
+			<span class="s1">xmlHashLookup	(xmlHashTablePtr table,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *name);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">* XMLCALL</span>
+			<span class="s1">xmlHashLookup2	(xmlHashTablePtr table,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *name2);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">* XMLCALL</span>
+			<span class="s1">xmlHashLookup3	(xmlHashTablePtr table,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *name2,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *name3);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">* XMLCALL</span>
+			<span class="s1">xmlHashQLookup	(xmlHashTablePtr table,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *prefix);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">* XMLCALL</span>
+			<span class="s1">xmlHashQLookup2	(xmlHashTablePtr table,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *prefix,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *name2,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *prefix2);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">* XMLCALL</span>
+			<span class="s1">xmlHashQLookup3	(xmlHashTablePtr table,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *prefix,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *name2,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *prefix2,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *name3,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *prefix3);</span>
+
+<span class="s0">/* 
+ * Helpers. 
+ */</span>
+<span class="s1">XMLPUBFUN xmlHashTablePtr XMLCALL</span>
+			<span class="s1">xmlHashCopy	(xmlHashTablePtr table,</span>
+					 <span class="s1">xmlHashCopier f);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlHashSize	(xmlHashTablePtr table);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlHashScan	(xmlHashTablePtr table,</span>
+					 <span class="s1">xmlHashScanner f,</span>
+					 <span class="s2">void </span><span class="s1">*data);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlHashScan3	(xmlHashTablePtr table,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *name2,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *name3,</span>
+					 <span class="s1">xmlHashScanner f,</span>
+					 <span class="s2">void </span><span class="s1">*data);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlHashScanFull	(xmlHashTablePtr table,</span>
+					 <span class="s1">xmlHashScannerFull f,</span>
+					 <span class="s2">void </span><span class="s1">*data);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlHashScanFull3(xmlHashTablePtr table,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *name2,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *name3,</span>
+					 <span class="s1">xmlHashScannerFull f,</span>
+					 <span class="s2">void </span><span class="s1">*data);</span>
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s1">}</span>
+<span class="s2">#endif</span>
+<span class="s2">#endif </span><span class="s0">/* ! __XML_HASH_H__ */</span>
+</pre>
+</body>
+</html>

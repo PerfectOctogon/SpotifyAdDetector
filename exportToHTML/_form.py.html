@@ -1,0 +1,187 @@
+<html>
+<head>
+<title>_form.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #cc7832;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #6a8759;}
+.s3 { color: #6897bb;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+_form.py</font>
+</center></td></tr></table>
+<pre><span class="s0">from </span><span class="s1">__future__ </span><span class="s0">import </span><span class="s1">absolute_import</span>
+
+<span class="s0">import </span><span class="s1">re</span>
+<span class="s0">from </span><span class="s1">collections </span><span class="s0">import </span><span class="s1">defaultdict</span>
+
+<span class="s0">from </span><span class="s1">._form_controls </span><span class="s0">import </span><span class="s1">HTMLForm</span><span class="s0">, </span><span class="s1">Label</span>
+<span class="s0">from </span><span class="s1">._request </span><span class="s0">import </span><span class="s1">Request</span>
+<span class="s0">from </span><span class="s1">.polyglot </span><span class="s0">import </span><span class="s1">urljoin</span><span class="s0">, </span><span class="s1">is_string</span><span class="s0">, </span><span class="s1">as_unicode</span>
+
+
+<span class="s0">class </span><span class="s1">SkipControl(ValueError):</span>
+    <span class="s0">pass</span>
+
+
+<span class="s0">def </span><span class="s1">normalize_line_endings(text):</span>
+    <span class="s0">return </span><span class="s1">re.sub(as_unicode(</span><span class="s2">r&quot;(?:(?&lt;!\r)\n)|(?:\r(?!\n))&quot;</span><span class="s1">)</span><span class="s0">, </span><span class="s2">u&quot;</span><span class="s0">\r\n</span><span class="s2">&quot;</span><span class="s0">, </span><span class="s1">text)</span>
+
+
+<span class="s0">def </span><span class="s1">label_text(elem):</span>
+    <span class="s1">ans = []</span>
+    <span class="s0">if </span><span class="s1">elem.text:</span>
+        <span class="s1">ans.append(elem.text)</span>
+    <span class="s0">for </span><span class="s1">child </span><span class="s0">in </span><span class="s1">elem:</span>
+        <span class="s0">if </span><span class="s1">child.tail:</span>
+            <span class="s1">ans.append(child.tail)</span>
+    <span class="s0">return </span><span class="s2">''</span><span class="s1">.join(ans)</span>
+
+
+<span class="s0">def </span><span class="s1">parse_control(elem</span><span class="s0">, </span><span class="s1">parent_of</span><span class="s0">, </span><span class="s1">default_type=</span><span class="s2">'text'</span><span class="s1">):</span>
+    <span class="s1">attrs = dict(elem.attrib)</span>
+    <span class="s1">label_elem = parent_of(elem</span><span class="s0">, </span><span class="s2">'label'</span><span class="s1">)</span>
+    <span class="s0">if </span><span class="s1">label_elem </span><span class="s0">is not None</span><span class="s1">:</span>
+        <span class="s1">lt = label_text(label_elem)</span>
+        <span class="s0">if </span><span class="s1">lt:</span>
+            <span class="s1">attrs[</span><span class="s2">&quot;__label&quot;</span><span class="s1">] = lt</span>
+    <span class="s1">ctype = attrs.get(</span><span class="s2">'type'</span><span class="s1">) </span><span class="s0">or </span><span class="s1">default_type</span>
+    <span class="s0">return </span><span class="s1">ctype</span><span class="s0">, </span><span class="s1">attrs.get(</span><span class="s2">'name'</span><span class="s1">)</span><span class="s0">, </span><span class="s1">attrs</span>
+
+
+<span class="s0">def </span><span class="s1">parse_input(elem</span><span class="s0">, </span><span class="s1">parent_of</span><span class="s0">, </span><span class="s1">*a):</span>
+    <span class="s0">return </span><span class="s1">parse_control(elem</span><span class="s0">, </span><span class="s1">parent_of)</span>
+
+
+<span class="s0">def </span><span class="s1">parse_button(elem</span><span class="s0">, </span><span class="s1">parent_of</span><span class="s0">, </span><span class="s1">*a):</span>
+    <span class="s1">ctype</span><span class="s0">, </span><span class="s1">name</span><span class="s0">, </span><span class="s1">attrs = parse_control(elem</span><span class="s0">, </span><span class="s1">parent_of</span><span class="s0">, </span><span class="s1">default_type=</span><span class="s2">'submit'</span><span class="s1">)</span>
+    <span class="s1">ctype += </span><span class="s2">'button'</span>
+    <span class="s0">return </span><span class="s1">ctype</span><span class="s0">, </span><span class="s1">name</span><span class="s0">, </span><span class="s1">attrs</span>
+
+
+<span class="s0">def </span><span class="s1">parse_option(elem</span><span class="s0">, </span><span class="s1">parent_of</span><span class="s0">, </span><span class="s1">attrs_map):</span>
+    <span class="s1">ctype</span><span class="s0">, </span><span class="s1">name</span><span class="s0">, </span><span class="s1">attrs = parse_control(elem</span><span class="s0">, </span><span class="s1">parent_of)</span>
+    <span class="s1">og = parent_of(elem</span><span class="s0">, </span><span class="s2">'optgroup'</span><span class="s1">)</span>
+    <span class="s1">contents = (elem.text </span><span class="s0">or </span><span class="s2">''</span><span class="s1">).strip()</span>
+    <span class="s1">attrs[</span><span class="s2">'contents'</span><span class="s1">] = contents</span>
+    <span class="s1">attrs[</span><span class="s2">'value'</span><span class="s1">] = attrs.get(</span><span class="s2">'value'</span><span class="s0">, </span><span class="s1">contents)</span>
+    <span class="s1">attrs[</span><span class="s2">'label'</span><span class="s1">] = attrs.get(</span><span class="s2">'label'</span><span class="s0">, </span><span class="s1">contents)</span>
+    <span class="s0">if </span><span class="s1">og </span><span class="s0">is not None and </span><span class="s1">og.get(</span><span class="s2">'disabled'</span><span class="s1">) </span><span class="s0">is not None</span><span class="s1">:</span>
+        <span class="s1">attrs[</span><span class="s2">'disabled'</span><span class="s1">] = </span><span class="s2">'disabled'</span>
+    <span class="s1">sel = parent_of(elem</span><span class="s0">, </span><span class="s2">'select'</span><span class="s1">)</span>
+    <span class="s0">if </span><span class="s1">sel </span><span class="s0">is None</span><span class="s1">:</span>
+        <span class="s0">raise </span><span class="s1">SkipControl()</span>
+    <span class="s1">attrs[</span><span class="s2">'__select'</span><span class="s1">] = sel = attrs_map[sel][</span><span class="s2">'__select'</span><span class="s1">]</span>
+    <span class="s0">return </span><span class="s2">'select'</span><span class="s0">, </span><span class="s1">sel.get(</span><span class="s2">'name'</span><span class="s1">)</span><span class="s0">, </span><span class="s1">attrs</span>
+
+
+<span class="s0">def </span><span class="s1">parse_textarea(elem</span><span class="s0">, </span><span class="s1">parent_of</span><span class="s0">, </span><span class="s1">*a):</span>
+    <span class="s1">ctype</span><span class="s0">, </span><span class="s1">name</span><span class="s0">, </span><span class="s1">attrs = parse_control(elem</span><span class="s0">, </span><span class="s1">parent_of)</span>
+    <span class="s1">ctype = </span><span class="s2">'textarea'</span>
+    <span class="s1">attrs[</span><span class="s2">'value'</span><span class="s1">] = normalize_line_endings(elem.text </span><span class="s0">or </span><span class="s2">u''</span><span class="s1">)</span>
+    <span class="s0">return </span><span class="s1">ctype</span><span class="s0">, </span><span class="s1">name</span><span class="s0">, </span><span class="s1">attrs</span>
+
+
+<span class="s0">def </span><span class="s1">parse_select(elem</span><span class="s0">, </span><span class="s1">parent_of</span><span class="s0">, </span><span class="s1">*a):</span>
+    <span class="s1">ctype</span><span class="s0">, </span><span class="s1">name</span><span class="s0">, </span><span class="s1">attrs = parse_control(elem</span><span class="s0">, </span><span class="s1">parent_of)</span>
+    <span class="s1">ctype = </span><span class="s2">'select'</span>
+    <span class="s0">return </span><span class="s1">ctype</span><span class="s0">, </span><span class="s1">name</span><span class="s0">, </span><span class="s1">{</span><span class="s2">'__select'</span><span class="s1">: attrs}</span>
+
+
+<span class="s0">def </span><span class="s1">parse_forms(root</span><span class="s0">, </span><span class="s1">base_url</span><span class="s0">, </span><span class="s1">request_class=</span><span class="s0">None, </span><span class="s1">select_default=</span><span class="s0">False, </span><span class="s1">encoding=</span><span class="s0">None</span><span class="s1">):</span>
+    <span class="s0">if </span><span class="s1">request_class </span><span class="s0">is None</span><span class="s1">:</span>
+        <span class="s1">request_class = Request</span>
+    <span class="s1">global_form = HTMLForm(base_url</span><span class="s0">, </span><span class="s1">encoding=encoding)</span>
+    <span class="s1">forms</span><span class="s0">, </span><span class="s1">labels = []</span><span class="s0">, </span><span class="s1">[]</span>
+    <span class="s1">form_elems = []</span>
+    <span class="s1">form_id_map = {}</span>
+    <span class="s1">all_elems = tuple(</span>
+        <span class="s1">e </span><span class="s0">for </span><span class="s1">e </span><span class="s0">in </span><span class="s1">root.iter(</span><span class="s2">'*'</span><span class="s1">) </span><span class="s0">if </span><span class="s1">is_string(e.tag))</span>
+    <span class="s1">parent_map = {c: p </span><span class="s0">for </span><span class="s1">p </span><span class="s0">in </span><span class="s1">all_elems </span><span class="s0">for </span><span class="s1">c </span><span class="s0">in </span><span class="s1">p}</span>
+    <span class="s1">id_to_labels = defaultdict(list)</span>
+    <span class="s0">for </span><span class="s1">e </span><span class="s0">in </span><span class="s1">all_elems:</span>
+        <span class="s1">q = e.tag.lower()</span>
+        <span class="s0">if </span><span class="s1">q == </span><span class="s2">'form'</span><span class="s1">:</span>
+            <span class="s1">form_elems.append(e)</span>
+            <span class="s1">fid = e.get(</span><span class="s2">'id'</span><span class="s1">)</span>
+            <span class="s0">if </span><span class="s1">fid:</span>
+                <span class="s1">form_id_map[fid] = e</span>
+        <span class="s0">elif </span><span class="s1">q == </span><span class="s2">'label'</span><span class="s1">:</span>
+            <span class="s1">for_id = e.get(</span><span class="s2">'for'</span><span class="s1">)</span>
+            <span class="s0">if </span><span class="s1">for_id </span><span class="s0">is not None</span><span class="s1">:</span>
+                <span class="s1">label = Label(label_text(e)</span><span class="s0">, </span><span class="s1">for_id)</span>
+                <span class="s1">labels.append(label)</span>
+                <span class="s1">id_to_labels[for_id].append(label)</span>
+        <span class="s0">elif </span><span class="s1">q == </span><span class="s2">'base'</span><span class="s1">:</span>
+            <span class="s1">base_url = e.get(</span><span class="s2">'href'</span><span class="s1">) </span><span class="s0">or </span><span class="s1">base_url</span>
+
+    <span class="s0">def </span><span class="s1">parent_of(elem</span><span class="s0">, </span><span class="s1">parent_name):</span>
+        <span class="s1">q = elem</span>
+        <span class="s0">while True</span><span class="s1">:</span>
+            <span class="s1">q = parent_map.get(q)</span>
+            <span class="s0">if </span><span class="s1">q </span><span class="s0">is None</span><span class="s1">:</span>
+                <span class="s0">return</span>
+            <span class="s0">if </span><span class="s1">q.tag.lower() == parent_name:</span>
+                <span class="s0">return </span><span class="s1">q</span>
+
+    <span class="s1">forms_map = {}</span>
+    <span class="s0">for </span><span class="s1">form_elem </span><span class="s0">in </span><span class="s1">form_elems:</span>
+        <span class="s1">name = form_elem.get(</span><span class="s2">'name'</span><span class="s1">) </span><span class="s0">or None</span>
+        <span class="s1">action = form_elem.get(</span><span class="s2">'action'</span><span class="s1">) </span><span class="s0">or None</span>
+        <span class="s1">method = form_elem.get(</span><span class="s2">'method'</span><span class="s1">) </span><span class="s0">or </span><span class="s2">'GET'</span>
+        <span class="s1">enctype = form_elem.get(</span>
+            <span class="s2">'enctype'</span><span class="s1">) </span><span class="s0">or </span><span class="s2">&quot;application/x-www-form-urlencoded&quot;</span>
+        <span class="s0">if </span><span class="s1">action:</span>
+            <span class="s1">action = urljoin(base_url</span><span class="s0">, </span><span class="s1">action)</span>
+        <span class="s0">else</span><span class="s1">:</span>
+            <span class="s1">action = base_url</span>
+        <span class="s1">form = HTMLForm(action</span><span class="s0">, </span><span class="s1">method</span><span class="s0">, </span><span class="s1">enctype</span><span class="s0">, </span><span class="s1">name</span><span class="s0">, </span><span class="s1">form_elem.attrib</span><span class="s0">,</span>
+                        <span class="s1">request_class</span><span class="s0">, </span><span class="s1">forms</span><span class="s0">, </span><span class="s1">labels</span><span class="s0">, </span><span class="s1">id_to_labels</span><span class="s0">, </span><span class="s1">encoding=encoding)</span>
+        <span class="s1">forms_map[form_elem] = form</span>
+        <span class="s1">forms.append(form)</span>
+
+    <span class="s1">attrs_map = {}</span>
+    <span class="s1">control_names = {</span>
+        <span class="s2">'option'</span><span class="s1">: parse_option</span><span class="s0">,</span>
+        <span class="s2">'button'</span><span class="s1">: parse_button</span><span class="s0">,</span>
+        <span class="s2">'input'</span><span class="s1">: parse_input</span><span class="s0">,</span>
+        <span class="s2">'textarea'</span><span class="s1">: parse_textarea</span><span class="s0">,</span>
+        <span class="s2">'select'</span><span class="s1">: parse_select</span><span class="s0">,</span>
+    <span class="s1">}</span>
+
+    <span class="s0">for </span><span class="s1">i</span><span class="s0">, </span><span class="s1">elem </span><span class="s0">in </span><span class="s1">enumerate(all_elems):</span>
+        <span class="s1">q = elem.tag.lower()</span>
+        <span class="s1">cfunc = control_names.get(q)</span>
+        <span class="s0">if </span><span class="s1">cfunc </span><span class="s0">is not None</span><span class="s1">:</span>
+            <span class="s1">fid = elem.get(</span><span class="s2">'form'</span><span class="s1">)</span>
+            <span class="s0">if </span><span class="s1">fid </span><span class="s0">and </span><span class="s1">fid </span><span class="s0">in </span><span class="s1">form_id_map:</span>
+                <span class="s1">form_elem = form_id_map[fid]</span>
+            <span class="s0">else</span><span class="s1">:</span>
+                <span class="s1">form_elem = parent_of(elem</span><span class="s0">, </span><span class="s2">'form'</span><span class="s1">)</span>
+            <span class="s1">form = forms_map.get(form_elem</span><span class="s0">, </span><span class="s1">global_form)</span>
+            <span class="s0">try</span><span class="s1">:</span>
+                <span class="s1">control_type</span><span class="s0">, </span><span class="s1">control_name</span><span class="s0">, </span><span class="s1">attrs = cfunc(elem</span><span class="s0">, </span><span class="s1">parent_of</span><span class="s0">,</span>
+                                                          <span class="s1">attrs_map)</span>
+            <span class="s0">except </span><span class="s1">SkipControl:</span>
+                <span class="s0">continue</span>
+            <span class="s1">attrs_map[elem] = attrs</span>
+            <span class="s1">form.new_control(</span>
+                <span class="s1">control_type</span><span class="s0">,</span>
+                <span class="s1">control_name</span><span class="s0">,</span>
+                <span class="s1">attrs</span><span class="s0">,</span>
+                <span class="s1">index=i * </span><span class="s3">10</span><span class="s0">,</span>
+                <span class="s1">select_default=select_default)</span>
+
+    <span class="s0">for </span><span class="s1">form </span><span class="s0">in </span><span class="s1">forms:</span>
+        <span class="s1">form.fixup()</span>
+    <span class="s1">global_form.fixup()</span>
+
+    <span class="s0">return </span><span class="s1">forms</span><span class="s0">, </span><span class="s1">global_form</span>
+</pre>
+</body>
+</html>

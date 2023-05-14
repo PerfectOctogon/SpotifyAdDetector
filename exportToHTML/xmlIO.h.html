@@ -1,0 +1,386 @@
+<html>
+<head>
+<title>xmlIO.h</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+xmlIO.h</font>
+</center></td></tr></table>
+<pre><span class="s0">/* 
+ * Summary: interface for the I/O interfaces used by the parser 
+ * Description: interface for the I/O interfaces used by the parser 
+ * 
+ * Copy: See Copyright for the status of this software. 
+ * 
+ * Author: Daniel Veillard 
+ */</span>
+
+<span class="s2">#ifndef </span><span class="s1">__XML_IO_H__</span>
+<span class="s2">#define </span><span class="s1">__XML_IO_H__</span>
+
+<span class="s2">#include </span><span class="s1">&lt;stdio.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/xmlversion.h&gt;</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s2">extern </span><span class="s3">&quot;C&quot; </span><span class="s1">{</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/* 
+ * Those are the functions and datatypes for the parser input 
+ * I/O structures. 
+ */</span>
+
+<span class="s0">/** 
+ * xmlInputMatchCallback: 
+ * @filename: the filename or URI 
+ * 
+ * Callback used in the I/O Input API to detect if the current handler 
+ * can provide input fonctionnalities for this resource. 
+ * 
+ * Returns 1 if yes and 0 if another Input module should be used 
+ */</span>
+<span class="s2">typedef int </span><span class="s1">(XMLCALL *xmlInputMatchCallback) (</span><span class="s2">char const </span><span class="s1">*filename);</span>
+<span class="s0">/** 
+ * xmlInputOpenCallback: 
+ * @filename: the filename or URI 
+ * 
+ * Callback used in the I/O Input API to open the resource 
+ * 
+ * Returns an Input context or NULL in case or error 
+ */</span>
+<span class="s2">typedef void </span><span class="s1">* (XMLCALL *xmlInputOpenCallback) (</span><span class="s2">char const </span><span class="s1">*filename);</span>
+<span class="s0">/** 
+ * xmlInputReadCallback: 
+ * @context:  an Input context 
+ * @buffer:  the buffer to store data read 
+ * @len:  the length of the buffer in bytes 
+ * 
+ * Callback used in the I/O Input API to read the resource 
+ * 
+ * Returns the number of bytes read or -1 in case of error 
+ */</span>
+<span class="s2">typedef int </span><span class="s1">(XMLCALL *xmlInputReadCallback) (</span><span class="s2">void </span><span class="s1">* context, </span><span class="s2">char </span><span class="s1">* buffer, </span><span class="s2">int </span><span class="s1">len);</span>
+<span class="s0">/** 
+ * xmlInputCloseCallback: 
+ * @context:  an Input context 
+ * 
+ * Callback used in the I/O Input API to close the resource 
+ * 
+ * Returns 0 or -1 in case of error 
+ */</span>
+<span class="s2">typedef int </span><span class="s1">(XMLCALL *xmlInputCloseCallback) (</span><span class="s2">void </span><span class="s1">* context);</span>
+
+<span class="s2">#ifdef </span><span class="s1">LIBXML_OUTPUT_ENABLED</span>
+<span class="s0">/* 
+ * Those are the functions and datatypes for the library output 
+ * I/O structures. 
+ */</span>
+
+<span class="s0">/** 
+ * xmlOutputMatchCallback: 
+ * @filename: the filename or URI 
+ * 
+ * Callback used in the I/O Output API to detect if the current handler 
+ * can provide output fonctionnalities for this resource. 
+ * 
+ * Returns 1 if yes and 0 if another Output module should be used 
+ */</span>
+<span class="s2">typedef int </span><span class="s1">(XMLCALL *xmlOutputMatchCallback) (</span><span class="s2">char const </span><span class="s1">*filename);</span>
+<span class="s0">/** 
+ * xmlOutputOpenCallback: 
+ * @filename: the filename or URI 
+ * 
+ * Callback used in the I/O Output API to open the resource 
+ * 
+ * Returns an Output context or NULL in case or error 
+ */</span>
+<span class="s2">typedef void </span><span class="s1">* (XMLCALL *xmlOutputOpenCallback) (</span><span class="s2">char const </span><span class="s1">*filename);</span>
+<span class="s0">/** 
+ * xmlOutputWriteCallback: 
+ * @context:  an Output context 
+ * @buffer:  the buffer of data to write 
+ * @len:  the length of the buffer in bytes 
+ * 
+ * Callback used in the I/O Output API to write to the resource 
+ * 
+ * Returns the number of bytes written or -1 in case of error 
+ */</span>
+<span class="s2">typedef int </span><span class="s1">(XMLCALL *xmlOutputWriteCallback) (</span><span class="s2">void </span><span class="s1">* context, </span><span class="s2">const char </span><span class="s1">* buffer,</span>
+                                       <span class="s2">int </span><span class="s1">len);</span>
+<span class="s0">/** 
+ * xmlOutputCloseCallback: 
+ * @context:  an Output context 
+ * 
+ * Callback used in the I/O Output API to close the resource 
+ * 
+ * Returns 0 or -1 in case of error 
+ */</span>
+<span class="s2">typedef int </span><span class="s1">(XMLCALL *xmlOutputCloseCallback) (</span><span class="s2">void </span><span class="s1">* context);</span>
+<span class="s2">#endif </span><span class="s0">/* LIBXML_OUTPUT_ENABLED */</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s1">}</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#include </span><span class="s1">&lt;libxml/globals.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/tree.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/parser.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/encoding.h&gt;</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s2">extern </span><span class="s3">&quot;C&quot; </span><span class="s1">{</span>
+<span class="s2">#endif</span>
+<span class="s2">struct </span><span class="s1">_xmlParserInputBuffer {</span>
+    <span class="s2">void</span><span class="s1">*                  context;</span>
+    <span class="s1">xmlInputReadCallback   readcallback;</span>
+    <span class="s1">xmlInputCloseCallback  closecallback;</span>
+
+    <span class="s1">xmlCharEncodingHandlerPtr encoder; </span><span class="s0">/* I18N conversions to UTF-8 */</span>
+
+    <span class="s1">xmlBufPtr buffer;    </span><span class="s0">/* Local buffer encoded in UTF-8 */</span>
+    <span class="s1">xmlBufPtr raw;       </span><span class="s0">/* if encoder != NULL buffer for raw input */</span>
+    <span class="s2">int	</span><span class="s1">compressed;	    </span><span class="s0">/* -1=unknown, 0=not compressed, 1=compressed */</span>
+    <span class="s2">int </span><span class="s1">error;</span>
+    <span class="s2">unsigned long </span><span class="s1">rawconsumed;</span><span class="s0">/* amount consumed from raw */</span>
+<span class="s1">};</span>
+
+
+<span class="s2">#ifdef </span><span class="s1">LIBXML_OUTPUT_ENABLED</span>
+<span class="s2">struct </span><span class="s1">_xmlOutputBuffer {</span>
+    <span class="s2">void</span><span class="s1">*                   context;</span>
+    <span class="s1">xmlOutputWriteCallback  writecallback;</span>
+    <span class="s1">xmlOutputCloseCallback  closecallback;</span>
+
+    <span class="s1">xmlCharEncodingHandlerPtr encoder; </span><span class="s0">/* I18N conversions to UTF-8 */</span>
+
+    <span class="s1">xmlBufPtr buffer;    </span><span class="s0">/* Local buffer encoded in UTF-8 or ISOLatin */</span>
+    <span class="s1">xmlBufPtr conv;      </span><span class="s0">/* if encoder != NULL buffer for output */</span>
+    <span class="s2">int </span><span class="s1">written;            </span><span class="s0">/* total number of byte written */</span>
+    <span class="s2">int </span><span class="s1">error;</span>
+<span class="s1">};</span>
+<span class="s2">#endif </span><span class="s0">/* LIBXML_OUTPUT_ENABLED */</span>
+
+<span class="s0">/* 
+ * Interfaces for input 
+ */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlCleanupInputCallbacks		(</span><span class="s2">void</span><span class="s1">);</span>
+
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlPopInputCallbacks			(</span><span class="s2">void</span><span class="s1">);</span>
+
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlRegisterDefaultInputCallbacks	(</span><span class="s2">void</span><span class="s1">);</span>
+<span class="s1">XMLPUBFUN xmlParserInputBufferPtr XMLCALL</span>
+	<span class="s1">xmlAllocParserInputBuffer		(xmlCharEncoding enc);</span>
+
+<span class="s1">XMLPUBFUN xmlParserInputBufferPtr XMLCALL</span>
+	<span class="s1">xmlParserInputBufferCreateFilename	(</span><span class="s2">const char </span><span class="s1">*URI,</span>
+                                                 <span class="s1">xmlCharEncoding enc);</span>
+<span class="s1">XMLPUBFUN xmlParserInputBufferPtr XMLCALL</span>
+	<span class="s1">xmlParserInputBufferCreateFile		(FILE *file,</span>
+                                                 <span class="s1">xmlCharEncoding enc);</span>
+<span class="s1">XMLPUBFUN xmlParserInputBufferPtr XMLCALL</span>
+	<span class="s1">xmlParserInputBufferCreateFd		(</span><span class="s2">int </span><span class="s1">fd,</span>
+	                                         <span class="s1">xmlCharEncoding enc);</span>
+<span class="s1">XMLPUBFUN xmlParserInputBufferPtr XMLCALL</span>
+	<span class="s1">xmlParserInputBufferCreateMem		(</span><span class="s2">const char </span><span class="s1">*mem, </span><span class="s2">int </span><span class="s1">size,</span>
+	                                         <span class="s1">xmlCharEncoding enc);</span>
+<span class="s1">XMLPUBFUN xmlParserInputBufferPtr XMLCALL</span>
+	<span class="s1">xmlParserInputBufferCreateStatic	(</span><span class="s2">const char </span><span class="s1">*mem, </span><span class="s2">int </span><span class="s1">size,</span>
+	                                         <span class="s1">xmlCharEncoding enc);</span>
+<span class="s1">XMLPUBFUN xmlParserInputBufferPtr XMLCALL</span>
+	<span class="s1">xmlParserInputBufferCreateIO		(xmlInputReadCallback   ioread,</span>
+						 <span class="s1">xmlInputCloseCallback  ioclose,</span>
+						 <span class="s2">void </span><span class="s1">*ioctx,</span>
+	                                         <span class="s1">xmlCharEncoding enc);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlParserInputBufferRead		(xmlParserInputBufferPtr in,</span>
+						 <span class="s2">int </span><span class="s1">len);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlParserInputBufferGrow		(xmlParserInputBufferPtr in,</span>
+						 <span class="s2">int </span><span class="s1">len);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlParserInputBufferPush		(xmlParserInputBufferPtr in,</span>
+						 <span class="s2">int </span><span class="s1">len,</span>
+						 <span class="s2">const char </span><span class="s1">*buf);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlFreeParserInputBuffer		(xmlParserInputBufferPtr in);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">char </span><span class="s1">* XMLCALL</span>
+	<span class="s1">xmlParserGetDirectory			(</span><span class="s2">const char </span><span class="s1">*filename);</span>
+
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlRegisterInputCallbacks		(xmlInputMatchCallback matchFunc,</span>
+						 <span class="s1">xmlInputOpenCallback openFunc,</span>
+						 <span class="s1">xmlInputReadCallback readFunc,</span>
+						 <span class="s1">xmlInputCloseCallback closeFunc);</span>
+
+<span class="s1">xmlParserInputBufferPtr</span>
+	<span class="s1">__xmlParserInputBufferCreateFilename(</span><span class="s2">const char </span><span class="s1">*URI,</span>
+						<span class="s1">xmlCharEncoding enc);</span>
+
+<span class="s2">#ifdef </span><span class="s1">LIBXML_OUTPUT_ENABLED</span>
+<span class="s0">/* 
+ * Interfaces for output 
+ */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlCleanupOutputCallbacks		(</span><span class="s2">void</span><span class="s1">);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlRegisterDefaultOutputCallbacks(</span><span class="s2">void</span><span class="s1">);</span>
+<span class="s1">XMLPUBFUN xmlOutputBufferPtr XMLCALL</span>
+	<span class="s1">xmlAllocOutputBuffer		(xmlCharEncodingHandlerPtr encoder);</span>
+
+<span class="s1">XMLPUBFUN xmlOutputBufferPtr XMLCALL</span>
+	<span class="s1">xmlOutputBufferCreateFilename	(</span><span class="s2">const char </span><span class="s1">*URI,</span>
+					 <span class="s1">xmlCharEncodingHandlerPtr encoder,</span>
+					 <span class="s2">int </span><span class="s1">compression);</span>
+
+<span class="s1">XMLPUBFUN xmlOutputBufferPtr XMLCALL</span>
+	<span class="s1">xmlOutputBufferCreateFile	(FILE *file,</span>
+					 <span class="s1">xmlCharEncodingHandlerPtr encoder);</span>
+
+<span class="s1">XMLPUBFUN xmlOutputBufferPtr XMLCALL</span>
+	<span class="s1">xmlOutputBufferCreateBuffer	(xmlBufferPtr buffer,</span>
+					 <span class="s1">xmlCharEncodingHandlerPtr encoder);</span>
+
+<span class="s1">XMLPUBFUN xmlOutputBufferPtr XMLCALL</span>
+	<span class="s1">xmlOutputBufferCreateFd		(</span><span class="s2">int </span><span class="s1">fd,</span>
+					 <span class="s1">xmlCharEncodingHandlerPtr encoder);</span>
+
+<span class="s1">XMLPUBFUN xmlOutputBufferPtr XMLCALL</span>
+	<span class="s1">xmlOutputBufferCreateIO		(xmlOutputWriteCallback   iowrite,</span>
+					 <span class="s1">xmlOutputCloseCallback  ioclose,</span>
+					 <span class="s2">void </span><span class="s1">*ioctx,</span>
+					 <span class="s1">xmlCharEncodingHandlerPtr encoder);</span>
+
+<span class="s0">/* Couple of APIs to get the output without digging into the buffers */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">const </span><span class="s1">xmlChar * XMLCALL</span>
+        <span class="s1">xmlOutputBufferGetContent       (xmlOutputBufferPtr out);</span>
+<span class="s1">XMLPUBFUN size_t XMLCALL</span>
+        <span class="s1">xmlOutputBufferGetSize          (xmlOutputBufferPtr out);</span>
+
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlOutputBufferWrite		(xmlOutputBufferPtr out,</span>
+					 <span class="s2">int </span><span class="s1">len,</span>
+					 <span class="s2">const char </span><span class="s1">*buf);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlOutputBufferWriteString	(xmlOutputBufferPtr out,</span>
+					 <span class="s2">const char </span><span class="s1">*str);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlOutputBufferWriteEscape	(xmlOutputBufferPtr out,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *str,</span>
+					 <span class="s1">xmlCharEncodingOutputFunc escaping);</span>
+
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlOutputBufferFlush		(xmlOutputBufferPtr out);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlOutputBufferClose		(xmlOutputBufferPtr out);</span>
+
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlRegisterOutputCallbacks	(xmlOutputMatchCallback matchFunc,</span>
+					 <span class="s1">xmlOutputOpenCallback openFunc,</span>
+					 <span class="s1">xmlOutputWriteCallback writeFunc,</span>
+					 <span class="s1">xmlOutputCloseCallback closeFunc);</span>
+
+<span class="s1">xmlOutputBufferPtr</span>
+	<span class="s1">__xmlOutputBufferCreateFilename(</span><span class="s2">const char </span><span class="s1">*URI,</span>
+                              <span class="s1">xmlCharEncodingHandlerPtr encoder,</span>
+                              <span class="s2">int </span><span class="s1">compression);</span>
+
+<span class="s2">#ifdef </span><span class="s1">LIBXML_HTTP_ENABLED</span>
+<span class="s0">/*  This function only exists if HTTP support built into the library  */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlRegisterHTTPPostCallbacks	(</span><span class="s2">void </span><span class="s1">);</span>
+<span class="s2">#endif </span><span class="s0">/* LIBXML_HTTP_ENABLED */</span>
+
+<span class="s2">#endif </span><span class="s0">/* LIBXML_OUTPUT_ENABLED */</span>
+
+<span class="s1">XMLPUBFUN xmlParserInputPtr XMLCALL</span>
+	<span class="s1">xmlCheckHTTPInput		(xmlParserCtxtPtr ctxt,</span>
+					 <span class="s1">xmlParserInputPtr ret);</span>
+
+<span class="s0">/* 
+ * A predefined entity loader disabling network accesses 
+ */</span>
+<span class="s1">XMLPUBFUN xmlParserInputPtr XMLCALL</span>
+	<span class="s1">xmlNoNetExternalEntityLoader	(</span><span class="s2">const char </span><span class="s1">*URL,</span>
+					 <span class="s2">const char </span><span class="s1">*ID,</span>
+					 <span class="s1">xmlParserCtxtPtr ctxt);</span>
+
+<span class="s0">/* 
+ * xmlNormalizeWindowsPath is obsolete, don't use it. 
+ * Check xmlCanonicPath in uri.h for a better alternative. 
+ */</span>
+<span class="s1">XMLPUBFUN xmlChar * XMLCALL</span>
+	<span class="s1">xmlNormalizeWindowsPath		(</span><span class="s2">const </span><span class="s1">xmlChar *path);</span>
+
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlCheckFilename		(</span><span class="s2">const char </span><span class="s1">*path);</span>
+<span class="s0">/** 
+ * Default 'file://' protocol callbacks 
+ */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlFileMatch			(</span><span class="s2">const char </span><span class="s1">*filename);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">* XMLCALL</span>
+	<span class="s1">xmlFileOpen			(</span><span class="s2">const char </span><span class="s1">*filename);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlFileRead			(</span><span class="s2">void </span><span class="s1">* context,</span>
+					 <span class="s2">char </span><span class="s1">* buffer,</span>
+					 <span class="s2">int </span><span class="s1">len);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlFileClose			(</span><span class="s2">void </span><span class="s1">* context);</span>
+
+<span class="s0">/** 
+ * Default 'http://' protocol callbacks 
+ */</span>
+<span class="s2">#ifdef </span><span class="s1">LIBXML_HTTP_ENABLED</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlIOHTTPMatch			(</span><span class="s2">const char </span><span class="s1">*filename);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">* XMLCALL</span>
+	<span class="s1">xmlIOHTTPOpen			(</span><span class="s2">const char </span><span class="s1">*filename);</span>
+<span class="s2">#ifdef </span><span class="s1">LIBXML_OUTPUT_ENABLED</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">* XMLCALL</span>
+	<span class="s1">xmlIOHTTPOpenW			(</span><span class="s2">const char </span><span class="s1">* post_uri,</span>
+					 <span class="s2">int   </span><span class="s1">compression );</span>
+<span class="s2">#endif </span><span class="s0">/* LIBXML_OUTPUT_ENABLED */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlIOHTTPRead			(</span><span class="s2">void </span><span class="s1">* context,</span>
+					 <span class="s2">char </span><span class="s1">* buffer,</span>
+					 <span class="s2">int </span><span class="s1">len);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlIOHTTPClose			(</span><span class="s2">void </span><span class="s1">* context);</span>
+<span class="s2">#endif </span><span class="s0">/* LIBXML_HTTP_ENABLED */</span>
+
+<span class="s0">/** 
+ * Default 'ftp://' protocol callbacks 
+ */</span>
+<span class="s2">#ifdef </span><span class="s1">LIBXML_FTP_ENABLED</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlIOFTPMatch			(</span><span class="s2">const char </span><span class="s1">*filename);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">* XMLCALL</span>
+	<span class="s1">xmlIOFTPOpen			(</span><span class="s2">const char </span><span class="s1">*filename);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlIOFTPRead			(</span><span class="s2">void </span><span class="s1">* context,</span>
+					 <span class="s2">char </span><span class="s1">* buffer,</span>
+					 <span class="s2">int </span><span class="s1">len);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlIOFTPClose			(</span><span class="s2">void </span><span class="s1">* context);</span>
+<span class="s2">#endif </span><span class="s0">/* LIBXML_FTP_ENABLED */</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s1">}</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#endif </span><span class="s0">/* __XML_IO_H__ */</span>
+</pre>
+</body>
+</html>

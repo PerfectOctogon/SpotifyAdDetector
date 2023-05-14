@@ -1,0 +1,147 @@
+<html>
+<head>
+<title>c14n.h</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+.s4 { color: #6897bb;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+c14n.h</font>
+</center></td></tr></table>
+<pre><span class="s0">/* 
+ * Summary: Provide Canonical XML and Exclusive XML Canonicalization 
+ * Description: the c14n modules provides a 
+ * 
+ * &quot;Canonical XML&quot; implementation 
+ * http://www.w3.org/TR/xml-c14n 
+ * 
+ * and an 
+ * 
+ * &quot;Exclusive XML Canonicalization&quot; implementation 
+ * http://www.w3.org/TR/xml-exc-c14n 
+ 
+ * Copy: See Copyright for the status of this software. 
+ * 
+ * Author: Aleksey Sanin &lt;aleksey@aleksey.com&gt; 
+ */</span>
+<span class="s2">#ifndef </span><span class="s1">__XML_C14N_H__</span>
+<span class="s2">#define </span><span class="s1">__XML_C14N_H__</span>
+<span class="s2">#ifdef </span><span class="s1">LIBXML_C14N_ENABLED</span>
+<span class="s2">#ifdef </span><span class="s1">LIBXML_OUTPUT_ENABLED</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s2">extern </span><span class="s3">&quot;C&quot; </span><span class="s1">{</span>
+<span class="s2">#endif </span><span class="s0">/* __cplusplus */</span>
+
+<span class="s2">#include </span><span class="s1">&lt;libxml/xmlversion.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/tree.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/xpath.h&gt;</span>
+
+<span class="s0">/* 
+ * XML Canonicazation 
+ * http://www.w3.org/TR/xml-c14n 
+ * 
+ * Exclusive XML Canonicazation 
+ * http://www.w3.org/TR/xml-exc-c14n 
+ * 
+ * Canonical form of an XML document could be created if and only if 
+ *  a) default attributes (if any) are added to all nodes 
+ *  b) all character and parsed entity references are resolved 
+ * In order to achive this in libxml2 the document MUST be loaded with 
+ * following global setings: 
+ * 
+ *    xmlLoadExtDtdDefaultValue = XML_DETECT_IDS | XML_COMPLETE_ATTRS; 
+ *    xmlSubstituteEntitiesDefault(1); 
+ * 
+ * or corresponding parser context setting: 
+ *    xmlParserCtxtPtr ctxt; 
+ * 
+ *    ... 
+ *    ctxt-&gt;loadsubset = XML_DETECT_IDS | XML_COMPLETE_ATTRS; 
+ *    ctxt-&gt;replaceEntities = 1; 
+ *    ... 
+ */</span>
+
+<span class="s0">/* 
+ * xmlC14NMode: 
+ * 
+ * Predefined values for C14N modes 
+ * 
+ */</span>
+<span class="s2">typedef enum </span><span class="s1">{</span>
+    <span class="s1">XML_C14N_1_0            = </span><span class="s4">0</span><span class="s1">,    </span><span class="s0">/* Origianal C14N 1.0 spec */</span>
+    <span class="s1">XML_C14N_EXCLUSIVE_1_0  = </span><span class="s4">1</span><span class="s1">,    </span><span class="s0">/* Exclusive C14N 1.0 spec */</span>
+    <span class="s1">XML_C14N_1_1            = </span><span class="s4">2     </span><span class="s0">/* C14N 1.1 spec */</span>
+<span class="s1">} xmlC14NMode;</span>
+
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlC14NDocSaveTo	(xmlDocPtr doc,</span>
+					 <span class="s1">xmlNodeSetPtr nodes,</span>
+					 <span class="s2">int </span><span class="s1">mode, </span><span class="s0">/* a xmlC14NMode */</span>
+					 <span class="s1">xmlChar **inclusive_ns_prefixes,</span>
+					 <span class="s2">int </span><span class="s1">with_comments,</span>
+					 <span class="s1">xmlOutputBufferPtr buf);</span>
+
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlC14NDocDumpMemory	(xmlDocPtr doc,</span>
+					 <span class="s1">xmlNodeSetPtr nodes,</span>
+					 <span class="s2">int </span><span class="s1">mode, </span><span class="s0">/* a xmlC14NMode */</span>
+					 <span class="s1">xmlChar **inclusive_ns_prefixes,</span>
+					 <span class="s2">int </span><span class="s1">with_comments,</span>
+					 <span class="s1">xmlChar **doc_txt_ptr);</span>
+
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlC14NDocSave		(xmlDocPtr doc,</span>
+					 <span class="s1">xmlNodeSetPtr nodes,</span>
+					 <span class="s2">int </span><span class="s1">mode, </span><span class="s0">/* a xmlC14NMode */</span>
+					 <span class="s1">xmlChar **inclusive_ns_prefixes,</span>
+					 <span class="s2">int </span><span class="s1">with_comments,</span>
+					 <span class="s2">const char</span><span class="s1">* filename,</span>
+					 <span class="s2">int </span><span class="s1">compression);</span>
+
+
+<span class="s0">/** 
+ * This is the core C14N function 
+ */</span>
+<span class="s0">/** 
+ * xmlC14NIsVisibleCallback: 
+ * @user_data: user data 
+ * @node: the curent node 
+ * @parent: the parent node 
+ * 
+ * Signature for a C14N callback on visible nodes 
+ * 
+ * Returns 1 if the node should be included 
+ */</span>
+<span class="s2">typedef int </span><span class="s1">(*xmlC14NIsVisibleCallback)	(</span><span class="s2">void</span><span class="s1">* user_data,</span>
+					 <span class="s1">xmlNodePtr node,</span>
+					 <span class="s1">xmlNodePtr parent);</span>
+
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlC14NExecute		(xmlDocPtr doc,</span>
+					 <span class="s1">xmlC14NIsVisibleCallback is_visible_callback,</span>
+					 <span class="s2">void</span><span class="s1">* user_data,</span>
+					 <span class="s2">int </span><span class="s1">mode, </span><span class="s0">/* a xmlC14NMode */</span>
+					 <span class="s1">xmlChar **inclusive_ns_prefixes,</span>
+					 <span class="s2">int </span><span class="s1">with_comments,</span>
+					 <span class="s1">xmlOutputBufferPtr buf);</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s1">}</span>
+<span class="s2">#endif </span><span class="s0">/* __cplusplus */</span>
+
+<span class="s2">#endif </span><span class="s0">/* LIBXML_OUTPUT_ENABLED */</span>
+<span class="s2">#endif </span><span class="s0">/* LIBXML_C14N_ENABLED */</span>
+<span class="s2">#endif </span><span class="s0">/* __XML_C14N_H__ */</span>
+
+</pre>
+</body>
+</html>

@@ -1,0 +1,979 @@
+<html>
+<head>
+<title>schemasInternals.h</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+.s4 { color: #6897bb;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+schemasInternals.h</font>
+</center></td></tr></table>
+<pre><span class="s0">/* 
+ * Summary: internal interfaces for XML Schemas 
+ * Description: internal interfaces for the XML Schemas handling 
+ *              and schema validity checking 
+ *      The Schemas development is a Work In Progress. 
+ *              Some of those interfaces are not guaranteed to be API or ABI stable ! 
+ * 
+ * Copy: See Copyright for the status of this software. 
+ * 
+ * Author: Daniel Veillard 
+ */</span>
+
+
+<span class="s2">#ifndef </span><span class="s1">__XML_SCHEMA_INTERNALS_H__</span>
+<span class="s2">#define </span><span class="s1">__XML_SCHEMA_INTERNALS_H__</span>
+
+<span class="s2">#include </span><span class="s1">&lt;libxml/xmlversion.h&gt;</span>
+
+<span class="s2">#ifdef </span><span class="s1">LIBXML_SCHEMAS_ENABLED</span>
+
+<span class="s2">#include </span><span class="s1">&lt;libxml/xmlregexp.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/hash.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/dict.h&gt;</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s2">extern </span><span class="s3">&quot;C&quot; </span><span class="s1">{</span>
+<span class="s2">#endif</span>
+
+<span class="s2">typedef enum </span><span class="s1">{</span>
+    <span class="s1">XML_SCHEMAS_UNKNOWN = </span><span class="s4">0</span><span class="s1">,</span>
+    <span class="s1">XML_SCHEMAS_STRING = </span><span class="s4">1</span><span class="s1">,</span>
+    <span class="s1">XML_SCHEMAS_NORMSTRING = </span><span class="s4">2</span><span class="s1">,</span>
+    <span class="s1">XML_SCHEMAS_DECIMAL = </span><span class="s4">3</span><span class="s1">,</span>
+    <span class="s1">XML_SCHEMAS_TIME = </span><span class="s4">4</span><span class="s1">,</span>
+    <span class="s1">XML_SCHEMAS_GDAY = </span><span class="s4">5</span><span class="s1">,</span>
+    <span class="s1">XML_SCHEMAS_GMONTH = </span><span class="s4">6</span><span class="s1">,</span>
+    <span class="s1">XML_SCHEMAS_GMONTHDAY = </span><span class="s4">7</span><span class="s1">,</span>
+    <span class="s1">XML_SCHEMAS_GYEAR = </span><span class="s4">8</span><span class="s1">,</span>
+    <span class="s1">XML_SCHEMAS_GYEARMONTH = </span><span class="s4">9</span><span class="s1">,</span>
+    <span class="s1">XML_SCHEMAS_DATE = </span><span class="s4">10</span><span class="s1">,</span>
+    <span class="s1">XML_SCHEMAS_DATETIME = </span><span class="s4">11</span><span class="s1">,</span>
+    <span class="s1">XML_SCHEMAS_DURATION = </span><span class="s4">12</span><span class="s1">,</span>
+    <span class="s1">XML_SCHEMAS_FLOAT = </span><span class="s4">13</span><span class="s1">,</span>
+    <span class="s1">XML_SCHEMAS_DOUBLE = </span><span class="s4">14</span><span class="s1">,</span>
+    <span class="s1">XML_SCHEMAS_BOOLEAN = </span><span class="s4">15</span><span class="s1">,</span>
+    <span class="s1">XML_SCHEMAS_TOKEN = </span><span class="s4">16</span><span class="s1">,</span>
+    <span class="s1">XML_SCHEMAS_LANGUAGE = </span><span class="s4">17</span><span class="s1">,</span>
+    <span class="s1">XML_SCHEMAS_NMTOKEN = </span><span class="s4">18</span><span class="s1">,</span>
+    <span class="s1">XML_SCHEMAS_NMTOKENS = </span><span class="s4">19</span><span class="s1">,</span>
+    <span class="s1">XML_SCHEMAS_NAME = </span><span class="s4">20</span><span class="s1">,</span>
+    <span class="s1">XML_SCHEMAS_QNAME = </span><span class="s4">21</span><span class="s1">,</span>
+    <span class="s1">XML_SCHEMAS_NCNAME = </span><span class="s4">22</span><span class="s1">,</span>
+    <span class="s1">XML_SCHEMAS_ID = </span><span class="s4">23</span><span class="s1">,</span>
+    <span class="s1">XML_SCHEMAS_IDREF = </span><span class="s4">24</span><span class="s1">,</span>
+    <span class="s1">XML_SCHEMAS_IDREFS = </span><span class="s4">25</span><span class="s1">,</span>
+    <span class="s1">XML_SCHEMAS_ENTITY = </span><span class="s4">26</span><span class="s1">,</span>
+    <span class="s1">XML_SCHEMAS_ENTITIES = </span><span class="s4">27</span><span class="s1">,</span>
+    <span class="s1">XML_SCHEMAS_NOTATION = </span><span class="s4">28</span><span class="s1">,</span>
+    <span class="s1">XML_SCHEMAS_ANYURI = </span><span class="s4">29</span><span class="s1">,</span>
+    <span class="s1">XML_SCHEMAS_INTEGER = </span><span class="s4">30</span><span class="s1">,</span>
+    <span class="s1">XML_SCHEMAS_NPINTEGER = </span><span class="s4">31</span><span class="s1">,</span>
+    <span class="s1">XML_SCHEMAS_NINTEGER = </span><span class="s4">32</span><span class="s1">,</span>
+    <span class="s1">XML_SCHEMAS_NNINTEGER = </span><span class="s4">33</span><span class="s1">,</span>
+    <span class="s1">XML_SCHEMAS_PINTEGER = </span><span class="s4">34</span><span class="s1">,</span>
+    <span class="s1">XML_SCHEMAS_INT = </span><span class="s4">35</span><span class="s1">,</span>
+    <span class="s1">XML_SCHEMAS_UINT = </span><span class="s4">36</span><span class="s1">,</span>
+    <span class="s1">XML_SCHEMAS_LONG = </span><span class="s4">37</span><span class="s1">,</span>
+    <span class="s1">XML_SCHEMAS_ULONG = </span><span class="s4">38</span><span class="s1">,</span>
+    <span class="s1">XML_SCHEMAS_SHORT = </span><span class="s4">39</span><span class="s1">,</span>
+    <span class="s1">XML_SCHEMAS_USHORT = </span><span class="s4">40</span><span class="s1">,</span>
+    <span class="s1">XML_SCHEMAS_BYTE = </span><span class="s4">41</span><span class="s1">,</span>
+    <span class="s1">XML_SCHEMAS_UBYTE = </span><span class="s4">42</span><span class="s1">,</span>
+    <span class="s1">XML_SCHEMAS_HEXBINARY = </span><span class="s4">43</span><span class="s1">,</span>
+    <span class="s1">XML_SCHEMAS_BASE64BINARY = </span><span class="s4">44</span><span class="s1">,</span>
+    <span class="s1">XML_SCHEMAS_ANYTYPE = </span><span class="s4">45</span><span class="s1">,</span>
+    <span class="s1">XML_SCHEMAS_ANYSIMPLETYPE = </span><span class="s4">46</span>
+<span class="s1">} xmlSchemaValType;</span>
+
+<span class="s0">/* 
+ * XML Schemas defines multiple type of types. 
+ */</span>
+<span class="s2">typedef enum </span><span class="s1">{</span>
+    <span class="s1">XML_SCHEMA_TYPE_BASIC = </span><span class="s4">1</span><span class="s1">, </span><span class="s0">/* A built-in datatype */</span>
+    <span class="s1">XML_SCHEMA_TYPE_ANY,</span>
+    <span class="s1">XML_SCHEMA_TYPE_FACET,</span>
+    <span class="s1">XML_SCHEMA_TYPE_SIMPLE,</span>
+    <span class="s1">XML_SCHEMA_TYPE_COMPLEX,</span>
+    <span class="s1">XML_SCHEMA_TYPE_SEQUENCE = </span><span class="s4">6</span><span class="s1">,</span>
+    <span class="s1">XML_SCHEMA_TYPE_CHOICE,</span>
+    <span class="s1">XML_SCHEMA_TYPE_ALL,</span>
+    <span class="s1">XML_SCHEMA_TYPE_SIMPLE_CONTENT,</span>
+    <span class="s1">XML_SCHEMA_TYPE_COMPLEX_CONTENT,</span>
+    <span class="s1">XML_SCHEMA_TYPE_UR,</span>
+    <span class="s1">XML_SCHEMA_TYPE_RESTRICTION,</span>
+    <span class="s1">XML_SCHEMA_TYPE_EXTENSION,</span>
+    <span class="s1">XML_SCHEMA_TYPE_ELEMENT,</span>
+    <span class="s1">XML_SCHEMA_TYPE_ATTRIBUTE,</span>
+    <span class="s1">XML_SCHEMA_TYPE_ATTRIBUTEGROUP,</span>
+    <span class="s1">XML_SCHEMA_TYPE_GROUP,</span>
+    <span class="s1">XML_SCHEMA_TYPE_NOTATION,</span>
+    <span class="s1">XML_SCHEMA_TYPE_LIST,</span>
+    <span class="s1">XML_SCHEMA_TYPE_UNION,</span>
+    <span class="s1">XML_SCHEMA_TYPE_ANY_ATTRIBUTE,</span>
+    <span class="s1">XML_SCHEMA_TYPE_IDC_UNIQUE,</span>
+    <span class="s1">XML_SCHEMA_TYPE_IDC_KEY,</span>
+    <span class="s1">XML_SCHEMA_TYPE_IDC_KEYREF,</span>
+    <span class="s1">XML_SCHEMA_TYPE_PARTICLE = </span><span class="s4">25</span><span class="s1">,</span>
+    <span class="s1">XML_SCHEMA_TYPE_ATTRIBUTE_USE,</span>
+    <span class="s1">XML_SCHEMA_FACET_MININCLUSIVE = </span><span class="s4">1000</span><span class="s1">,</span>
+    <span class="s1">XML_SCHEMA_FACET_MINEXCLUSIVE,</span>
+    <span class="s1">XML_SCHEMA_FACET_MAXINCLUSIVE,</span>
+    <span class="s1">XML_SCHEMA_FACET_MAXEXCLUSIVE,</span>
+    <span class="s1">XML_SCHEMA_FACET_TOTALDIGITS,</span>
+    <span class="s1">XML_SCHEMA_FACET_FRACTIONDIGITS,</span>
+    <span class="s1">XML_SCHEMA_FACET_PATTERN,</span>
+    <span class="s1">XML_SCHEMA_FACET_ENUMERATION,</span>
+    <span class="s1">XML_SCHEMA_FACET_WHITESPACE,</span>
+    <span class="s1">XML_SCHEMA_FACET_LENGTH,</span>
+    <span class="s1">XML_SCHEMA_FACET_MAXLENGTH,</span>
+    <span class="s1">XML_SCHEMA_FACET_MINLENGTH,</span>
+    <span class="s1">XML_SCHEMA_EXTRA_QNAMEREF = </span><span class="s4">2000</span><span class="s1">,</span>
+    <span class="s1">XML_SCHEMA_EXTRA_ATTR_USE_PROHIB</span>
+<span class="s1">} xmlSchemaTypeType;</span>
+
+<span class="s2">typedef enum </span><span class="s1">{</span>
+    <span class="s1">XML_SCHEMA_CONTENT_UNKNOWN = </span><span class="s4">0</span><span class="s1">,</span>
+    <span class="s1">XML_SCHEMA_CONTENT_EMPTY = </span><span class="s4">1</span><span class="s1">,</span>
+    <span class="s1">XML_SCHEMA_CONTENT_ELEMENTS,</span>
+    <span class="s1">XML_SCHEMA_CONTENT_MIXED,</span>
+    <span class="s1">XML_SCHEMA_CONTENT_SIMPLE,</span>
+    <span class="s1">XML_SCHEMA_CONTENT_MIXED_OR_ELEMENTS, </span><span class="s0">/* Obsolete */</span>
+    <span class="s1">XML_SCHEMA_CONTENT_BASIC,</span>
+    <span class="s1">XML_SCHEMA_CONTENT_ANY</span>
+<span class="s1">} xmlSchemaContentType;</span>
+
+<span class="s2">typedef struct </span><span class="s1">_xmlSchemaVal xmlSchemaVal;</span>
+<span class="s2">typedef </span><span class="s1">xmlSchemaVal *xmlSchemaValPtr;</span>
+
+<span class="s2">typedef struct </span><span class="s1">_xmlSchemaType xmlSchemaType;</span>
+<span class="s2">typedef </span><span class="s1">xmlSchemaType *xmlSchemaTypePtr;</span>
+
+<span class="s2">typedef struct </span><span class="s1">_xmlSchemaFacet xmlSchemaFacet;</span>
+<span class="s2">typedef </span><span class="s1">xmlSchemaFacet *xmlSchemaFacetPtr;</span>
+
+<span class="s0">/** 
+ * Annotation 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xmlSchemaAnnot xmlSchemaAnnot;</span>
+<span class="s2">typedef </span><span class="s1">xmlSchemaAnnot *xmlSchemaAnnotPtr;</span>
+<span class="s2">struct </span><span class="s1">_xmlSchemaAnnot {</span>
+    <span class="s2">struct </span><span class="s1">_xmlSchemaAnnot *next;</span>
+    <span class="s1">xmlNodePtr content;         </span><span class="s0">/* the annotation */</span>
+<span class="s1">};</span>
+
+<span class="s0">/** 
+ * XML_SCHEMAS_ANYATTR_SKIP: 
+ * 
+ * Skip unknown attribute from validation 
+ * Obsolete, not used anymore. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_ANYATTR_SKIP        </span><span class="s4">1</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_ANYATTR_LAX: 
+ * 
+ * Ignore validation non definition on attributes 
+ * Obsolete, not used anymore. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_ANYATTR_LAX                </span><span class="s4">2</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_ANYATTR_STRICT: 
+ * 
+ * Apply strict validation rules on attributes 
+ * Obsolete, not used anymore. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_ANYATTR_STRICT        </span><span class="s4">3</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_ANY_SKIP: 
+ * 
+ * Skip unknown attribute from validation 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_ANY_SKIP        </span><span class="s4">1</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_ANY_LAX: 
+ * 
+ * Used by wildcards. 
+ * Validate if type found, don't worry if not found 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_ANY_LAX                </span><span class="s4">2</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_ANY_STRICT: 
+ * 
+ * Used by wildcards. 
+ * Apply strict validation rules 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_ANY_STRICT        </span><span class="s4">3</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_ATTR_USE_PROHIBITED: 
+ * 
+ * Used by wildcards. 
+ * The attribute is prohibited. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_ATTR_USE_PROHIBITED </span><span class="s4">0</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_ATTR_USE_REQUIRED: 
+ * 
+ * The attribute is required. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_ATTR_USE_REQUIRED </span><span class="s4">1</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_ATTR_USE_OPTIONAL: 
+ * 
+ * The attribute is optional. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_ATTR_USE_OPTIONAL </span><span class="s4">2</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_ATTR_GLOBAL: 
+ * 
+ * allow elements in no namespace 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_ATTR_GLOBAL        </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">0</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_ATTR_NSDEFAULT: 
+ * 
+ * allow elements in no namespace 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_ATTR_NSDEFAULT        </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">7</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_ATTR_INTERNAL_RESOLVED: 
+ * 
+ * this is set when the &quot;type&quot; and &quot;ref&quot; references 
+ * have been resolved. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_ATTR_INTERNAL_RESOLVED        </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">8</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_ATTR_FIXED: 
+ * 
+ * the attribute has a fixed value 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_ATTR_FIXED        </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">9</span>
+
+<span class="s0">/** 
+ * xmlSchemaAttribute: 
+ * An attribute definition. 
+ */</span>
+
+<span class="s2">typedef struct </span><span class="s1">_xmlSchemaAttribute xmlSchemaAttribute;</span>
+<span class="s2">typedef </span><span class="s1">xmlSchemaAttribute *xmlSchemaAttributePtr;</span>
+<span class="s2">struct </span><span class="s1">_xmlSchemaAttribute {</span>
+    <span class="s1">xmlSchemaTypeType type;</span>
+    <span class="s2">struct </span><span class="s1">_xmlSchemaAttribute *next; </span><span class="s0">/* the next attribute (not used?) */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *name; </span><span class="s0">/* the name of the declaration */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *id; </span><span class="s0">/* Deprecated; not used */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *ref; </span><span class="s0">/* Deprecated; not used */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *refNs; </span><span class="s0">/* Deprecated; not used */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *typeName; </span><span class="s0">/* the local name of the type definition */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *typeNs; </span><span class="s0">/* the ns URI of the type definition */</span>
+    <span class="s1">xmlSchemaAnnotPtr annot;</span>
+
+    <span class="s1">xmlSchemaTypePtr base; </span><span class="s0">/* Deprecated; not used */</span>
+    <span class="s2">int </span><span class="s1">occurs; </span><span class="s0">/* Deprecated; not used */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *defValue; </span><span class="s0">/* The initial value of the value constraint */</span>
+    <span class="s1">xmlSchemaTypePtr subtypes; </span><span class="s0">/* the type definition */</span>
+    <span class="s1">xmlNodePtr node;</span>
+    <span class="s2">const </span><span class="s1">xmlChar *targetNamespace;</span>
+    <span class="s2">int </span><span class="s1">flags;</span>
+    <span class="s2">const </span><span class="s1">xmlChar *refPrefix; </span><span class="s0">/* Deprecated; not used */</span>
+    <span class="s1">xmlSchemaValPtr defVal; </span><span class="s0">/* The compiled value constraint */</span>
+    <span class="s1">xmlSchemaAttributePtr refDecl; </span><span class="s0">/* Deprecated; not used */</span>
+<span class="s1">};</span>
+
+<span class="s0">/** 
+ * xmlSchemaAttributeLink: 
+ * Used to build a list of attribute uses on complexType definitions. 
+ * WARNING: Deprecated; not used. 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xmlSchemaAttributeLink xmlSchemaAttributeLink;</span>
+<span class="s2">typedef </span><span class="s1">xmlSchemaAttributeLink *xmlSchemaAttributeLinkPtr;</span>
+<span class="s2">struct </span><span class="s1">_xmlSchemaAttributeLink {</span>
+    <span class="s2">struct </span><span class="s1">_xmlSchemaAttributeLink *next;</span><span class="s0">/* the next attribute link ... */</span>
+    <span class="s2">struct </span><span class="s1">_xmlSchemaAttribute *attr;</span><span class="s0">/* the linked attribute */</span>
+<span class="s1">};</span>
+
+<span class="s0">/** 
+ * XML_SCHEMAS_WILDCARD_COMPLETE: 
+ * 
+ * If the wildcard is complete. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_WILDCARD_COMPLETE </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">0</span>
+
+<span class="s0">/** 
+ * xmlSchemaCharValueLink: 
+ * Used to build a list of namespaces on wildcards. 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xmlSchemaWildcardNs xmlSchemaWildcardNs;</span>
+<span class="s2">typedef </span><span class="s1">xmlSchemaWildcardNs *xmlSchemaWildcardNsPtr;</span>
+<span class="s2">struct </span><span class="s1">_xmlSchemaWildcardNs {</span>
+    <span class="s2">struct </span><span class="s1">_xmlSchemaWildcardNs *next;</span><span class="s0">/* the next constraint link ... */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *value;</span><span class="s0">/* the value */</span>
+<span class="s1">};</span>
+
+<span class="s0">/** 
+ * xmlSchemaWildcard. 
+ * A wildcard. 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xmlSchemaWildcard xmlSchemaWildcard;</span>
+<span class="s2">typedef </span><span class="s1">xmlSchemaWildcard *xmlSchemaWildcardPtr;</span>
+<span class="s2">struct </span><span class="s1">_xmlSchemaWildcard {</span>
+    <span class="s1">xmlSchemaTypeType type;        </span><span class="s0">/* The kind of type */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *id; </span><span class="s0">/* Deprecated; not used */</span>
+    <span class="s1">xmlSchemaAnnotPtr annot;</span>
+    <span class="s1">xmlNodePtr node;</span>
+    <span class="s2">int </span><span class="s1">minOccurs; </span><span class="s0">/* Deprecated; not used */</span>
+    <span class="s2">int </span><span class="s1">maxOccurs; </span><span class="s0">/* Deprecated; not used */</span>
+    <span class="s2">int </span><span class="s1">processContents;</span>
+    <span class="s2">int </span><span class="s1">any; </span><span class="s0">/* Indicates if the ns constraint is of ##any */</span>
+    <span class="s1">xmlSchemaWildcardNsPtr nsSet; </span><span class="s0">/* The list of allowed namespaces */</span>
+    <span class="s1">xmlSchemaWildcardNsPtr negNsSet; </span><span class="s0">/* The negated namespace */</span>
+    <span class="s2">int </span><span class="s1">flags;</span>
+<span class="s1">};</span>
+
+<span class="s0">/** 
+ * XML_SCHEMAS_ATTRGROUP_WILDCARD_BUILDED: 
+ * 
+ * The attribute wildcard has been already builded. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_ATTRGROUP_WILDCARD_BUILDED </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">0</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_ATTRGROUP_GLOBAL: 
+ * 
+ * The attribute wildcard has been already builded. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_ATTRGROUP_GLOBAL </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">1</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_ATTRGROUP_MARKED: 
+ * 
+ * Marks the attr group as marked; used for circular checks. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_ATTRGROUP_MARKED </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">2</span>
+
+<span class="s0">/** 
+ * XML_SCHEMAS_ATTRGROUP_REDEFINED: 
+ * 
+ * The attr group was redefined. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_ATTRGROUP_REDEFINED </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">3</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_ATTRGROUP_HAS_REFS: 
+ * 
+ * Whether this attr. group contains attr. group references. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_ATTRGROUP_HAS_REFS </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">4</span>
+
+<span class="s0">/** 
+ * An attribute group definition. 
+ * 
+ * xmlSchemaAttribute and xmlSchemaAttributeGroup start of structures 
+ * must be kept similar 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xmlSchemaAttributeGroup xmlSchemaAttributeGroup;</span>
+<span class="s2">typedef </span><span class="s1">xmlSchemaAttributeGroup *xmlSchemaAttributeGroupPtr;</span>
+<span class="s2">struct </span><span class="s1">_xmlSchemaAttributeGroup {</span>
+    <span class="s1">xmlSchemaTypeType type;        </span><span class="s0">/* The kind of type */</span>
+    <span class="s2">struct </span><span class="s1">_xmlSchemaAttribute *next;</span><span class="s0">/* the next attribute if in a group ... */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *name;</span>
+    <span class="s2">const </span><span class="s1">xmlChar *id;</span>
+    <span class="s2">const </span><span class="s1">xmlChar *ref; </span><span class="s0">/* Deprecated; not used */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *refNs; </span><span class="s0">/* Deprecated; not used */</span>
+    <span class="s1">xmlSchemaAnnotPtr annot;</span>
+
+    <span class="s1">xmlSchemaAttributePtr attributes; </span><span class="s0">/* Deprecated; not used */</span>
+    <span class="s1">xmlNodePtr node;</span>
+    <span class="s2">int </span><span class="s1">flags;</span>
+    <span class="s1">xmlSchemaWildcardPtr attributeWildcard;</span>
+    <span class="s2">const </span><span class="s1">xmlChar *refPrefix; </span><span class="s0">/* Deprecated; not used */</span>
+    <span class="s1">xmlSchemaAttributeGroupPtr refItem; </span><span class="s0">/* Deprecated; not used */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *targetNamespace;</span>
+    <span class="s2">void </span><span class="s1">*attrUses;</span>
+<span class="s1">};</span>
+
+<span class="s0">/** 
+ * xmlSchemaTypeLink: 
+ * Used to build a list of types (e.g. member types of 
+ * simpleType with variety &quot;union&quot;). 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xmlSchemaTypeLink xmlSchemaTypeLink;</span>
+<span class="s2">typedef </span><span class="s1">xmlSchemaTypeLink *xmlSchemaTypeLinkPtr;</span>
+<span class="s2">struct </span><span class="s1">_xmlSchemaTypeLink {</span>
+    <span class="s2">struct </span><span class="s1">_xmlSchemaTypeLink *next;</span><span class="s0">/* the next type link ... */</span>
+    <span class="s1">xmlSchemaTypePtr type;</span><span class="s0">/* the linked type */</span>
+<span class="s1">};</span>
+
+<span class="s0">/** 
+ * xmlSchemaFacetLink: 
+ * Used to build a list of facets. 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xmlSchemaFacetLink xmlSchemaFacetLink;</span>
+<span class="s2">typedef </span><span class="s1">xmlSchemaFacetLink *xmlSchemaFacetLinkPtr;</span>
+<span class="s2">struct </span><span class="s1">_xmlSchemaFacetLink {</span>
+    <span class="s2">struct </span><span class="s1">_xmlSchemaFacetLink *next;</span><span class="s0">/* the next facet link ... */</span>
+    <span class="s1">xmlSchemaFacetPtr facet;</span><span class="s0">/* the linked facet */</span>
+<span class="s1">};</span>
+
+<span class="s0">/** 
+ * XML_SCHEMAS_TYPE_MIXED: 
+ * 
+ * the element content type is mixed 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_TYPE_MIXED                </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">0</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_TYPE_DERIVATION_METHOD_EXTENSION: 
+ * 
+ * the simple or complex type has a derivation method of &quot;extension&quot;. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_TYPE_DERIVATION_METHOD_EXTENSION                </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">1</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_TYPE_DERIVATION_METHOD_RESTRICTION: 
+ * 
+ * the simple or complex type has a derivation method of &quot;restriction&quot;. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_TYPE_DERIVATION_METHOD_RESTRICTION                </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">2</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_TYPE_GLOBAL: 
+ * 
+ * the type is global 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_TYPE_GLOBAL                </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">3</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_TYPE_OWNED_ATTR_WILDCARD: 
+ * 
+ * the complexType owns an attribute wildcard, i.e. 
+ * it can be freed by the complexType 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_TYPE_OWNED_ATTR_WILDCARD    </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">4 </span><span class="s0">/* Obsolete. */</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_TYPE_VARIETY_ABSENT: 
+ * 
+ * the simpleType has a variety of &quot;absent&quot;. 
+ * TODO: Actually not necessary :-/, since if 
+ * none of the variety flags occur then it's 
+ * automatically absent. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_TYPE_VARIETY_ABSENT    </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">5</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_TYPE_VARIETY_LIST: 
+ * 
+ * the simpleType has a variety of &quot;list&quot;. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_TYPE_VARIETY_LIST    </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">6</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_TYPE_VARIETY_UNION: 
+ * 
+ * the simpleType has a variety of &quot;union&quot;. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_TYPE_VARIETY_UNION    </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">7</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_TYPE_VARIETY_ATOMIC: 
+ * 
+ * the simpleType has a variety of &quot;union&quot;. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_TYPE_VARIETY_ATOMIC    </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">8</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_TYPE_FINAL_EXTENSION: 
+ * 
+ * the complexType has a final of &quot;extension&quot;. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_TYPE_FINAL_EXTENSION    </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">9</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_TYPE_FINAL_RESTRICTION: 
+ * 
+ * the simpleType/complexType has a final of &quot;restriction&quot;. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_TYPE_FINAL_RESTRICTION    </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">10</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_TYPE_FINAL_LIST: 
+ * 
+ * the simpleType has a final of &quot;list&quot;. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_TYPE_FINAL_LIST    </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">11</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_TYPE_FINAL_UNION: 
+ * 
+ * the simpleType has a final of &quot;union&quot;. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_TYPE_FINAL_UNION    </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">12</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_TYPE_FINAL_DEFAULT: 
+ * 
+ * the simpleType has a final of &quot;default&quot;. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_TYPE_FINAL_DEFAULT    </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">13</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_TYPE_BUILTIN_PRIMITIVE: 
+ * 
+ * Marks the item as a builtin primitive. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_TYPE_BUILTIN_PRIMITIVE    </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">14</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_TYPE_MARKED: 
+ * 
+ * Marks the item as marked; used for circular checks. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_TYPE_MARKED        </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">16</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_TYPE_BLOCK_DEFAULT: 
+ * 
+ * the complexType did not specify 'block' so use the default of the 
+ * &lt;schema&gt; item. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_TYPE_BLOCK_DEFAULT    </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">17</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_TYPE_BLOCK_EXTENSION: 
+ * 
+ * the complexType has a 'block' of &quot;extension&quot;. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_TYPE_BLOCK_EXTENSION    </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">18</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_TYPE_BLOCK_RESTRICTION: 
+ * 
+ * the complexType has a 'block' of &quot;restriction&quot;. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_TYPE_BLOCK_RESTRICTION    </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">19</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_TYPE_ABSTRACT: 
+ * 
+ * the simple/complexType is abstract. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_TYPE_ABSTRACT    </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">20</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_TYPE_FACETSNEEDVALUE: 
+ * 
+ * indicates if the facets need a computed value 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_TYPE_FACETSNEEDVALUE    </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">21</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_TYPE_INTERNAL_RESOLVED: 
+ * 
+ * indicates that the type was typefixed 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_TYPE_INTERNAL_RESOLVED    </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">22</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_TYPE_INTERNAL_INVALID: 
+ * 
+ * indicates that the type is invalid 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_TYPE_INTERNAL_INVALID    </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">23</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_TYPE_WHITESPACE_PRESERVE: 
+ * 
+ * a whitespace-facet value of &quot;preserve&quot; 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_TYPE_WHITESPACE_PRESERVE    </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">24</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_TYPE_WHITESPACE_REPLACE: 
+ * 
+ * a whitespace-facet value of &quot;replace&quot; 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_TYPE_WHITESPACE_REPLACE    </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">25</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_TYPE_WHITESPACE_COLLAPSE: 
+ * 
+ * a whitespace-facet value of &quot;collapse&quot; 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_TYPE_WHITESPACE_COLLAPSE    </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">26</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_TYPE_HAS_FACETS: 
+ * 
+ * has facets 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_TYPE_HAS_FACETS    </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">27</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_TYPE_NORMVALUENEEDED: 
+ * 
+ * indicates if the facets (pattern) need a normalized value 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_TYPE_NORMVALUENEEDED    </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">28</span>
+
+<span class="s0">/** 
+ * XML_SCHEMAS_TYPE_FIXUP_1: 
+ * 
+ * First stage of fixup was done. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_TYPE_FIXUP_1    </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">29</span>
+
+<span class="s0">/** 
+ * XML_SCHEMAS_TYPE_REDEFINED: 
+ * 
+ * The type was redefined. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_TYPE_REDEFINED    </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">30</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_TYPE_REDEFINING: 
+ * 
+ * The type redefines an other type. 
+ */</span>
+<span class="s0">/* #define XML_SCHEMAS_TYPE_REDEFINING    1 &lt;&lt; 31 */</span>
+
+<span class="s0">/** 
+ * _xmlSchemaType: 
+ * 
+ * Schemas type definition. 
+ */</span>
+<span class="s2">struct </span><span class="s1">_xmlSchemaType {</span>
+    <span class="s1">xmlSchemaTypeType type; </span><span class="s0">/* The kind of type */</span>
+    <span class="s2">struct </span><span class="s1">_xmlSchemaType *next; </span><span class="s0">/* the next type if in a sequence ... */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *name;</span>
+    <span class="s2">const </span><span class="s1">xmlChar *id ; </span><span class="s0">/* Deprecated; not used */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *ref; </span><span class="s0">/* Deprecated; not used */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *refNs; </span><span class="s0">/* Deprecated; not used */</span>
+    <span class="s1">xmlSchemaAnnotPtr annot;</span>
+    <span class="s1">xmlSchemaTypePtr subtypes;</span>
+    <span class="s1">xmlSchemaAttributePtr attributes; </span><span class="s0">/* Deprecated; not used */</span>
+    <span class="s1">xmlNodePtr node;</span>
+    <span class="s2">int </span><span class="s1">minOccurs; </span><span class="s0">/* Deprecated; not used */</span>
+    <span class="s2">int </span><span class="s1">maxOccurs; </span><span class="s0">/* Deprecated; not used */</span>
+
+    <span class="s2">int </span><span class="s1">flags;</span>
+    <span class="s1">xmlSchemaContentType contentType;</span>
+    <span class="s2">const </span><span class="s1">xmlChar *base; </span><span class="s0">/* Base type's local name */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *baseNs; </span><span class="s0">/* Base type's target namespace */</span>
+    <span class="s1">xmlSchemaTypePtr baseType; </span><span class="s0">/* The base type component */</span>
+    <span class="s1">xmlSchemaFacetPtr facets; </span><span class="s0">/* Local facets */</span>
+    <span class="s2">struct </span><span class="s1">_xmlSchemaType *redef; </span><span class="s0">/* Deprecated; not used */</span>
+    <span class="s2">int </span><span class="s1">recurse; </span><span class="s0">/* Obsolete */</span>
+    <span class="s1">xmlSchemaAttributeLinkPtr *attributeUses; </span><span class="s0">/* Deprecated; not used */</span>
+    <span class="s1">xmlSchemaWildcardPtr attributeWildcard;</span>
+    <span class="s2">int </span><span class="s1">builtInType; </span><span class="s0">/* Type of built-in types. */</span>
+    <span class="s1">xmlSchemaTypeLinkPtr memberTypes; </span><span class="s0">/* member-types if a union type. */</span>
+    <span class="s1">xmlSchemaFacetLinkPtr facetSet; </span><span class="s0">/* All facets (incl. inherited) */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *refPrefix; </span><span class="s0">/* Deprecated; not used */</span>
+    <span class="s1">xmlSchemaTypePtr contentTypeDef; </span><span class="s0">/* Used for the simple content of complex types. 
+                                        Could we use @subtypes for this? */</span>
+    <span class="s1">xmlRegexpPtr contModel; </span><span class="s0">/* Holds the automaton of the content model */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *targetNamespace;</span>
+    <span class="s2">void </span><span class="s1">*attrUses;</span>
+<span class="s1">};</span>
+
+<span class="s0">/* 
+ * xmlSchemaElement: 
+ * An element definition. 
+ * 
+ * xmlSchemaType, xmlSchemaFacet and xmlSchemaElement start of 
+ * structures must be kept similar 
+ */</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_ELEM_NILLABLE: 
+ * 
+ * the element is nillable 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_ELEM_NILLABLE        </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">0</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_ELEM_GLOBAL: 
+ * 
+ * the element is global 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_ELEM_GLOBAL                </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">1</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_ELEM_DEFAULT: 
+ * 
+ * the element has a default value 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_ELEM_DEFAULT        </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">2</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_ELEM_FIXED: 
+ * 
+ * the element has a fixed value 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_ELEM_FIXED                </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">3</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_ELEM_ABSTRACT: 
+ * 
+ * the element is abstract 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_ELEM_ABSTRACT        </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">4</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_ELEM_TOPLEVEL: 
+ * 
+ * the element is top level 
+ * obsolete: use XML_SCHEMAS_ELEM_GLOBAL instead 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_ELEM_TOPLEVEL        </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">5</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_ELEM_REF: 
+ * 
+ * the element is a reference to a type 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_ELEM_REF                </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">6</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_ELEM_NSDEFAULT: 
+ * 
+ * allow elements in no namespace 
+ * Obsolete, not used anymore. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_ELEM_NSDEFAULT        </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">7</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_ELEM_INTERNAL_RESOLVED: 
+ * 
+ * this is set when &quot;type&quot;, &quot;ref&quot;, &quot;substitutionGroup&quot; 
+ * references have been resolved. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_ELEM_INTERNAL_RESOLVED        </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">8</span>
+ <span class="s0">/** 
+ * XML_SCHEMAS_ELEM_CIRCULAR: 
+ * 
+ * a helper flag for the search of circular references. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_ELEM_CIRCULAR        </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">9</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_ELEM_BLOCK_ABSENT: 
+ * 
+ * the &quot;block&quot; attribute is absent 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_ELEM_BLOCK_ABSENT        </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">10</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_ELEM_BLOCK_EXTENSION: 
+ * 
+ * disallowed substitutions are absent 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_ELEM_BLOCK_EXTENSION        </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">11</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_ELEM_BLOCK_RESTRICTION: 
+ * 
+ * disallowed substitutions: &quot;restriction&quot; 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_ELEM_BLOCK_RESTRICTION        </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">12</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_ELEM_BLOCK_SUBSTITUTION: 
+ * 
+ * disallowed substitutions: &quot;substituion&quot; 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_ELEM_BLOCK_SUBSTITUTION        </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">13</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_ELEM_FINAL_ABSENT: 
+ * 
+ * substitution group exclusions are absent 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_ELEM_FINAL_ABSENT        </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">14</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_ELEM_FINAL_EXTENSION: 
+ * 
+ * substitution group exclusions: &quot;extension&quot; 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_ELEM_FINAL_EXTENSION        </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">15</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_ELEM_FINAL_RESTRICTION: 
+ * 
+ * substitution group exclusions: &quot;restriction&quot; 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_ELEM_FINAL_RESTRICTION        </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">16</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_ELEM_SUBST_GROUP_HEAD: 
+ * 
+ * the declaration is a substitution group head 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_ELEM_SUBST_GROUP_HEAD        </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">17</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_ELEM_INTERNAL_CHECKED: 
+ * 
+ * this is set when the elem decl has been checked against 
+ * all constraints 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_ELEM_INTERNAL_CHECKED        </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">18</span>
+
+<span class="s2">typedef struct </span><span class="s1">_xmlSchemaElement xmlSchemaElement;</span>
+<span class="s2">typedef </span><span class="s1">xmlSchemaElement *xmlSchemaElementPtr;</span>
+<span class="s2">struct </span><span class="s1">_xmlSchemaElement {</span>
+    <span class="s1">xmlSchemaTypeType type; </span><span class="s0">/* The kind of type */</span>
+    <span class="s2">struct </span><span class="s1">_xmlSchemaType *next; </span><span class="s0">/* Not used? */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *name;</span>
+    <span class="s2">const </span><span class="s1">xmlChar *id; </span><span class="s0">/* Deprecated; not used */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *ref; </span><span class="s0">/* Deprecated; not used */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *refNs; </span><span class="s0">/* Deprecated; not used */</span>
+    <span class="s1">xmlSchemaAnnotPtr annot;</span>
+    <span class="s1">xmlSchemaTypePtr subtypes; </span><span class="s0">/* the type definition */</span>
+    <span class="s1">xmlSchemaAttributePtr attributes;</span>
+    <span class="s1">xmlNodePtr node;</span>
+    <span class="s2">int </span><span class="s1">minOccurs; </span><span class="s0">/* Deprecated; not used */</span>
+    <span class="s2">int </span><span class="s1">maxOccurs; </span><span class="s0">/* Deprecated; not used */</span>
+
+    <span class="s2">int </span><span class="s1">flags;</span>
+    <span class="s2">const </span><span class="s1">xmlChar *targetNamespace;</span>
+    <span class="s2">const </span><span class="s1">xmlChar *namedType;</span>
+    <span class="s2">const </span><span class="s1">xmlChar *namedTypeNs;</span>
+    <span class="s2">const </span><span class="s1">xmlChar *substGroup;</span>
+    <span class="s2">const </span><span class="s1">xmlChar *substGroupNs;</span>
+    <span class="s2">const </span><span class="s1">xmlChar *scope;</span>
+    <span class="s2">const </span><span class="s1">xmlChar *value; </span><span class="s0">/* The original value of the value constraint. */</span>
+    <span class="s2">struct </span><span class="s1">_xmlSchemaElement *refDecl; </span><span class="s0">/* This will now be used for the 
+                                          substitution group affiliation */</span>
+    <span class="s1">xmlRegexpPtr contModel; </span><span class="s0">/* Obsolete for WXS, maybe used for RelaxNG */</span>
+    <span class="s1">xmlSchemaContentType contentType;</span>
+    <span class="s2">const </span><span class="s1">xmlChar *refPrefix; </span><span class="s0">/* Deprecated; not used */</span>
+    <span class="s1">xmlSchemaValPtr defVal; </span><span class="s0">/* The compiled value contraint. */</span>
+    <span class="s2">void </span><span class="s1">*idcs; </span><span class="s0">/* The identity-constraint defs */</span>
+<span class="s1">};</span>
+
+<span class="s0">/* 
+ * XML_SCHEMAS_FACET_UNKNOWN: 
+ * 
+ * unknown facet handling 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_FACET_UNKNOWN        </span><span class="s4">0</span>
+<span class="s0">/* 
+ * XML_SCHEMAS_FACET_PRESERVE: 
+ * 
+ * preserve the type of the facet 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_FACET_PRESERVE        </span><span class="s4">1</span>
+<span class="s0">/* 
+ * XML_SCHEMAS_FACET_REPLACE: 
+ * 
+ * replace the type of the facet 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_FACET_REPLACE        </span><span class="s4">2</span>
+<span class="s0">/* 
+ * XML_SCHEMAS_FACET_COLLAPSE: 
+ * 
+ * collapse the types of the facet 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_FACET_COLLAPSE        </span><span class="s4">3</span>
+<span class="s0">/** 
+ * A facet definition. 
+ */</span>
+<span class="s2">struct </span><span class="s1">_xmlSchemaFacet {</span>
+    <span class="s1">xmlSchemaTypeType type;        </span><span class="s0">/* The kind of type */</span>
+    <span class="s2">struct </span><span class="s1">_xmlSchemaFacet *next;</span><span class="s0">/* the next type if in a sequence ... */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *value; </span><span class="s0">/* The original value */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *id; </span><span class="s0">/* Obsolete */</span>
+    <span class="s1">xmlSchemaAnnotPtr annot;</span>
+    <span class="s1">xmlNodePtr node;</span>
+    <span class="s2">int </span><span class="s1">fixed; </span><span class="s0">/* XML_SCHEMAS_FACET_PRESERVE, etc. */</span>
+    <span class="s2">int </span><span class="s1">whitespace;</span>
+    <span class="s1">xmlSchemaValPtr val; </span><span class="s0">/* The compiled value */</span>
+    <span class="s1">xmlRegexpPtr    regexp; </span><span class="s0">/* The regex for patterns */</span>
+<span class="s1">};</span>
+
+<span class="s0">/** 
+ * A notation definition. 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xmlSchemaNotation xmlSchemaNotation;</span>
+<span class="s2">typedef </span><span class="s1">xmlSchemaNotation *xmlSchemaNotationPtr;</span>
+<span class="s2">struct </span><span class="s1">_xmlSchemaNotation {</span>
+    <span class="s1">xmlSchemaTypeType type; </span><span class="s0">/* The kind of type */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *name;</span>
+    <span class="s1">xmlSchemaAnnotPtr annot;</span>
+    <span class="s2">const </span><span class="s1">xmlChar *identifier;</span>
+    <span class="s2">const </span><span class="s1">xmlChar *targetNamespace;</span>
+<span class="s1">};</span>
+
+<span class="s0">/* 
+* TODO: Actually all those flags used for the schema should sit 
+* on the schema parser context, since they are used only 
+* during parsing an XML schema document, and not available 
+* on the component level as per spec. 
+*/</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_QUALIF_ELEM: 
+ * 
+ * Reflects elementFormDefault == qualified in 
+ * an XML schema document. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_QUALIF_ELEM                </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">0</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_QUALIF_ATTR: 
+ * 
+ * Reflects attributeFormDefault == qualified in 
+ * an XML schema document. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_QUALIF_ATTR            </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">1</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_FINAL_DEFAULT_EXTENSION: 
+ * 
+ * the schema has &quot;extension&quot; in the set of finalDefault. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_FINAL_DEFAULT_EXTENSION        </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">2</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_FINAL_DEFAULT_RESTRICTION: 
+ * 
+ * the schema has &quot;restriction&quot; in the set of finalDefault. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_FINAL_DEFAULT_RESTRICTION            </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">3</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_FINAL_DEFAULT_LIST: 
+ * 
+ * the cshema has &quot;list&quot; in the set of finalDefault. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_FINAL_DEFAULT_LIST            </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">4</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_FINAL_DEFAULT_UNION: 
+ * 
+ * the schema has &quot;union&quot; in the set of finalDefault. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_FINAL_DEFAULT_UNION            </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">5</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_BLOCK_DEFAULT_EXTENSION: 
+ * 
+ * the schema has &quot;extension&quot; in the set of blockDefault. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_BLOCK_DEFAULT_EXTENSION            </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">6</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_BLOCK_DEFAULT_RESTRICTION: 
+ * 
+ * the schema has &quot;restriction&quot; in the set of blockDefault. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_BLOCK_DEFAULT_RESTRICTION            </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">7</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_BLOCK_DEFAULT_SUBSTITUTION: 
+ * 
+ * the schema has &quot;substitution&quot; in the set of blockDefault. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_BLOCK_DEFAULT_SUBSTITUTION            </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">8</span>
+<span class="s0">/** 
+ * XML_SCHEMAS_INCLUDING_CONVERT_NS: 
+ * 
+ * the schema is currently including an other schema with 
+ * no target namespace. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SCHEMAS_INCLUDING_CONVERT_NS            </span><span class="s4">1 </span><span class="s1">&lt;&lt; </span><span class="s4">9</span>
+<span class="s0">/** 
+ * _xmlSchema: 
+ * 
+ * A Schemas definition 
+ */</span>
+<span class="s2">struct </span><span class="s1">_xmlSchema {</span>
+    <span class="s2">const </span><span class="s1">xmlChar *name; </span><span class="s0">/* schema name */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *targetNamespace; </span><span class="s0">/* the target namespace */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *version;</span>
+    <span class="s2">const </span><span class="s1">xmlChar *id; </span><span class="s0">/* Obsolete */</span>
+    <span class="s1">xmlDocPtr doc;</span>
+    <span class="s1">xmlSchemaAnnotPtr annot;</span>
+    <span class="s2">int </span><span class="s1">flags;</span>
+
+    <span class="s1">xmlHashTablePtr typeDecl;</span>
+    <span class="s1">xmlHashTablePtr attrDecl;</span>
+    <span class="s1">xmlHashTablePtr attrgrpDecl;</span>
+    <span class="s1">xmlHashTablePtr elemDecl;</span>
+    <span class="s1">xmlHashTablePtr notaDecl;</span>
+
+    <span class="s1">xmlHashTablePtr schemasImports;</span>
+
+    <span class="s2">void </span><span class="s1">*_private;        </span><span class="s0">/* unused by the library for users or bindings */</span>
+    <span class="s1">xmlHashTablePtr groupDecl;</span>
+    <span class="s1">xmlDictPtr      dict;</span>
+    <span class="s2">void </span><span class="s1">*includes;     </span><span class="s0">/* the includes, this is opaque for now */</span>
+    <span class="s2">int </span><span class="s1">preserve;        </span><span class="s0">/* whether to free the document */</span>
+    <span class="s2">int </span><span class="s1">counter; </span><span class="s0">/* used to give ononymous components unique names */</span>
+    <span class="s1">xmlHashTablePtr idcDef; </span><span class="s0">/* All identity-constraint defs. */</span>
+    <span class="s2">void </span><span class="s1">*volatiles; </span><span class="s0">/* Obsolete */</span>
+<span class="s1">};</span>
+
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL         xmlSchemaFreeType        (xmlSchemaTypePtr type);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL         xmlSchemaFreeWildcard(xmlSchemaWildcardPtr wildcard);</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s1">}</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#endif </span><span class="s0">/* LIBXML_SCHEMAS_ENABLED */</span>
+<span class="s2">#endif </span><span class="s0">/* __XML_SCHEMA_INTERNALS_H__ */</span>
+</pre>
+</body>
+</html>

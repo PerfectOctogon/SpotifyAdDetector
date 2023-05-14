@@ -1,0 +1,149 @@
+<html>
+<head>
+<title>xinclude.h</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+xinclude.h</font>
+</center></td></tr></table>
+<pre><span class="s0">/* 
+ * Summary: implementation of XInclude 
+ * Description: API to handle XInclude processing, 
+ * implements the 
+ * World Wide Web Consortium Last Call Working Draft 10 November 2003 
+ * http://www.w3.org/TR/2003/WD-xinclude-20031110 
+ * 
+ * Copy: See Copyright for the status of this software. 
+ * 
+ * Author: Daniel Veillard 
+ */</span>
+
+<span class="s2">#ifndef </span><span class="s1">__XML_XINCLUDE_H__</span>
+<span class="s2">#define </span><span class="s1">__XML_XINCLUDE_H__</span>
+
+<span class="s2">#include </span><span class="s1">&lt;libxml/xmlversion.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/tree.h&gt;</span>
+
+<span class="s2">#ifdef </span><span class="s1">LIBXML_XINCLUDE_ENABLED</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s2">extern </span><span class="s3">&quot;C&quot; </span><span class="s1">{</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * XINCLUDE_NS: 
+ * 
+ * Macro defining the Xinclude namespace: http://www.w3.org/2003/XInclude 
+ */</span>
+<span class="s2">#define </span><span class="s1">XINCLUDE_NS (</span><span class="s2">const </span><span class="s1">xmlChar *) </span><span class="s3">&quot;http://www.w3.org/2003/XInclude&quot;</span>
+<span class="s0">/** 
+ * XINCLUDE_OLD_NS: 
+ * 
+ * Macro defining the draft Xinclude namespace: http://www.w3.org/2001/XInclude 
+ */</span>
+<span class="s2">#define </span><span class="s1">XINCLUDE_OLD_NS (</span><span class="s2">const </span><span class="s1">xmlChar *) </span><span class="s3">&quot;http://www.w3.org/2001/XInclude&quot;</span>
+<span class="s0">/** 
+ * XINCLUDE_NODE: 
+ * 
+ * Macro defining &quot;include&quot; 
+ */</span>
+<span class="s2">#define </span><span class="s1">XINCLUDE_NODE (</span><span class="s2">const </span><span class="s1">xmlChar *) </span><span class="s3">&quot;include&quot;</span>
+<span class="s0">/** 
+ * XINCLUDE_FALLBACK: 
+ * 
+ * Macro defining &quot;fallback&quot; 
+ */</span>
+<span class="s2">#define </span><span class="s1">XINCLUDE_FALLBACK (</span><span class="s2">const </span><span class="s1">xmlChar *) </span><span class="s3">&quot;fallback&quot;</span>
+<span class="s0">/** 
+ * XINCLUDE_HREF: 
+ * 
+ * Macro defining &quot;href&quot; 
+ */</span>
+<span class="s2">#define </span><span class="s1">XINCLUDE_HREF (</span><span class="s2">const </span><span class="s1">xmlChar *) </span><span class="s3">&quot;href&quot;</span>
+<span class="s0">/** 
+ * XINCLUDE_PARSE: 
+ * 
+ * Macro defining &quot;parse&quot; 
+ */</span>
+<span class="s2">#define </span><span class="s1">XINCLUDE_PARSE (</span><span class="s2">const </span><span class="s1">xmlChar *) </span><span class="s3">&quot;parse&quot;</span>
+<span class="s0">/** 
+ * XINCLUDE_PARSE_XML: 
+ * 
+ * Macro defining &quot;xml&quot; 
+ */</span>
+<span class="s2">#define </span><span class="s1">XINCLUDE_PARSE_XML (</span><span class="s2">const </span><span class="s1">xmlChar *) </span><span class="s3">&quot;xml&quot;</span>
+<span class="s0">/** 
+ * XINCLUDE_PARSE_TEXT: 
+ * 
+ * Macro defining &quot;text&quot; 
+ */</span>
+<span class="s2">#define </span><span class="s1">XINCLUDE_PARSE_TEXT (</span><span class="s2">const </span><span class="s1">xmlChar *) </span><span class="s3">&quot;text&quot;</span>
+<span class="s0">/** 
+ * XINCLUDE_PARSE_ENCODING: 
+ * 
+ * Macro defining &quot;encoding&quot; 
+ */</span>
+<span class="s2">#define </span><span class="s1">XINCLUDE_PARSE_ENCODING (</span><span class="s2">const </span><span class="s1">xmlChar *) </span><span class="s3">&quot;encoding&quot;</span>
+<span class="s0">/** 
+ * XINCLUDE_PARSE_XPOINTER: 
+ * 
+ * Macro defining &quot;xpointer&quot; 
+ */</span>
+<span class="s2">#define </span><span class="s1">XINCLUDE_PARSE_XPOINTER (</span><span class="s2">const </span><span class="s1">xmlChar *) </span><span class="s3">&quot;xpointer&quot;</span>
+
+<span class="s2">typedef struct </span><span class="s1">_xmlXIncludeCtxt xmlXIncludeCtxt;</span>
+<span class="s2">typedef </span><span class="s1">xmlXIncludeCtxt *xmlXIncludeCtxtPtr;</span>
+
+<span class="s0">/* 
+ * standalone processing 
+ */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlXIncludeProcess	(xmlDocPtr doc);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlXIncludeProcessFlags	(xmlDocPtr doc,</span>
+					 <span class="s2">int </span><span class="s1">flags);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlXIncludeProcessFlagsData(xmlDocPtr doc,</span>
+					 <span class="s2">int </span><span class="s1">flags,</span>
+					 <span class="s2">void </span><span class="s1">*data);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+                <span class="s1">xmlXIncludeProcessTreeFlagsData(xmlNodePtr tree,</span>
+                                         <span class="s2">int </span><span class="s1">flags,</span>
+                                         <span class="s2">void </span><span class="s1">*data);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlXIncludeProcessTree	(xmlNodePtr tree);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlXIncludeProcessTreeFlags(xmlNodePtr tree,</span>
+					 <span class="s2">int </span><span class="s1">flags);</span>
+<span class="s0">/* 
+ * contextual processing 
+ */</span>
+<span class="s1">XMLPUBFUN xmlXIncludeCtxtPtr XMLCALL</span>
+		<span class="s1">xmlXIncludeNewContext	(xmlDocPtr doc);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlXIncludeSetFlags	(xmlXIncludeCtxtPtr ctxt,</span>
+					 <span class="s2">int </span><span class="s1">flags);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlXIncludeFreeContext	(xmlXIncludeCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlXIncludeProcessNode	(xmlXIncludeCtxtPtr ctxt,</span>
+					 <span class="s1">xmlNodePtr tree);</span>
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s1">}</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#endif </span><span class="s0">/* LIBXML_XINCLUDE_ENABLED */</span>
+
+<span class="s2">#endif </span><span class="s0">/* __XML_XINCLUDE_H__ */</span>
+</pre>
+</body>
+</html>

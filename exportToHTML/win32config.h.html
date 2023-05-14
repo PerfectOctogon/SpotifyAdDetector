@@ -1,0 +1,149 @@
+<html>
+<head>
+<title>win32config.h</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6897bb;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+win32config.h</font>
+</center></td></tr></table>
+<pre><span class="s0">/* 
+ * Summary: Windows configuration header 
+ * Description: Windows configuration header 
+ * 
+ * Copy: See Copyright for the status of this software. 
+ * 
+ * Author: Igor Zlatkovic 
+ */</span>
+<span class="s2">#ifndef </span><span class="s1">__LIBXSLT_WIN32_CONFIG__</span>
+<span class="s2">#define </span><span class="s1">__LIBXSLT_WIN32_CONFIG__</span>
+
+<span class="s2">#define </span><span class="s1">HAVE_CTYPE_H </span><span class="s3">1</span>
+<span class="s2">#define </span><span class="s1">HAVE_STDLIB_H </span><span class="s3">1</span>
+<span class="s2">#define </span><span class="s1">HAVE_STDARG_H </span><span class="s3">1</span>
+<span class="s2">#define </span><span class="s1">HAVE_MALLOC_H </span><span class="s3">1</span>
+<span class="s2">#define </span><span class="s1">HAVE_TIME_H </span><span class="s3">1</span>
+<span class="s2">#define </span><span class="s1">HAVE_LOCALTIME </span><span class="s3">1</span>
+<span class="s2">#define </span><span class="s1">HAVE_GMTIME </span><span class="s3">1</span>
+<span class="s2">#define </span><span class="s1">HAVE_TIME </span><span class="s3">1</span>
+<span class="s2">#define </span><span class="s1">HAVE_MATH_H </span><span class="s3">1</span>
+<span class="s2">#define </span><span class="s1">HAVE_FCNTL_H </span><span class="s3">1</span>
+
+<span class="s2">#include </span><span class="s1">&lt;io.h&gt;</span>
+
+<span class="s2">#define </span><span class="s1">HAVE_ISINF</span>
+<span class="s2">#define </span><span class="s1">HAVE_ISNAN</span>
+
+<span class="s2">#include </span><span class="s1">&lt;math.h&gt;</span>
+<span class="s2">#if </span><span class="s1">defined _MSC_VER || defined __MINGW32__</span>
+<span class="s0">/* MS C-runtime has functions which can be used in order to determine if 
+   a given floating-point variable contains NaN, (+-)INF. These are 
+   preferred, because floating-point technology is considered propriatary 
+   by MS and we can assume that their functions know more about their 
+   oddities than we do. */</span>
+<span class="s2">#include </span><span class="s1">&lt;</span><span class="s2">float</span><span class="s1">.h&gt;</span>
+<span class="s0">/* Bjorn Reese figured a quite nice construct for isinf() using the 
+   _fpclass() function. */</span>
+<span class="s2">#ifndef </span><span class="s1">isinf</span>
+<span class="s2">#define </span><span class="s1">isinf(d) ((_fpclass(d) == _FPCLASS_PINF) ? </span><span class="s3">1 </span><span class="s1">\</span>
+	<span class="s1">: ((_fpclass(d) == _FPCLASS_NINF) ? -</span><span class="s3">1 </span><span class="s1">: </span><span class="s3">0</span><span class="s1">))</span>
+<span class="s2">#endif</span>
+<span class="s0">/* _isnan(x) returns nonzero if (x == NaN) and zero otherwise. */</span>
+<span class="s2">#ifndef </span><span class="s1">isnan</span>
+<span class="s2">#define </span><span class="s1">isnan(d) (_isnan(d))</span>
+<span class="s2">#endif</span>
+<span class="s2">#else </span><span class="s0">/* _MSC_VER */</span>
+<span class="s2">static int </span><span class="s1">isinf (</span><span class="s2">double </span><span class="s1">d) {</span>
+    <span class="s2">int </span><span class="s1">expon = </span><span class="s3">0</span><span class="s1">;</span>
+    <span class="s2">double </span><span class="s1">val = frexp (d, &amp;expon);</span>
+    <span class="s2">if </span><span class="s1">(expon == </span><span class="s3">1025</span><span class="s1">) {</span>
+        <span class="s2">if </span><span class="s1">(val == </span><span class="s3">0.5</span><span class="s1">) {</span>
+            <span class="s2">return </span><span class="s3">1</span><span class="s1">;</span>
+        <span class="s1">} </span><span class="s2">else if </span><span class="s1">(val == -</span><span class="s3">0.5</span><span class="s1">) {</span>
+            <span class="s2">return </span><span class="s1">-</span><span class="s3">1</span><span class="s1">;</span>
+        <span class="s1">} </span><span class="s2">else </span><span class="s1">{</span>
+            <span class="s2">return </span><span class="s3">0</span><span class="s1">;</span>
+        <span class="s1">}</span>
+    <span class="s1">} </span><span class="s2">else </span><span class="s1">{</span>
+        <span class="s2">return </span><span class="s3">0</span><span class="s1">;</span>
+    <span class="s1">}</span>
+<span class="s1">}</span>
+<span class="s2">static int </span><span class="s1">isnan (</span><span class="s2">double </span><span class="s1">d) {</span>
+    <span class="s2">int </span><span class="s1">expon = </span><span class="s3">0</span><span class="s1">;</span>
+    <span class="s2">double </span><span class="s1">val = frexp (d, &amp;expon);</span>
+    <span class="s2">if </span><span class="s1">(expon == </span><span class="s3">1025</span><span class="s1">) {</span>
+        <span class="s2">if </span><span class="s1">(val == </span><span class="s3">0.5</span><span class="s1">) {</span>
+            <span class="s2">return </span><span class="s3">0</span><span class="s1">;</span>
+        <span class="s1">} </span><span class="s2">else if </span><span class="s1">(val == -</span><span class="s3">0.5</span><span class="s1">) {</span>
+            <span class="s2">return </span><span class="s3">0</span><span class="s1">;</span>
+        <span class="s1">} </span><span class="s2">else </span><span class="s1">{</span>
+            <span class="s2">return </span><span class="s3">1</span><span class="s1">;</span>
+        <span class="s1">}</span>
+    <span class="s1">} </span><span class="s2">else </span><span class="s1">{</span>
+        <span class="s2">return </span><span class="s3">0</span><span class="s1">;</span>
+    <span class="s1">}</span>
+<span class="s1">}</span>
+<span class="s2">#endif </span><span class="s0">/* _MSC_VER */</span>
+
+<span class="s2">#include </span><span class="s1">&lt;direct.h&gt;</span>
+
+<span class="s0">/* snprintf emulation taken from http://stackoverflow.com/a/8712996/1956010 */</span>
+<span class="s2">#if </span><span class="s1">defined(_MSC_VER) &amp;&amp; _MSC_VER &lt; </span><span class="s3">1900</span>
+
+<span class="s2">#include </span><span class="s1">&lt;stdarg.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;stdio.h&gt;</span>
+
+<span class="s2">#define </span><span class="s1">snprintf c99_snprintf</span>
+<span class="s2">#define </span><span class="s1">vsnprintf c99_vsnprintf</span>
+
+<span class="s1">__inline </span><span class="s2">int </span><span class="s1">c99_vsnprintf(</span><span class="s2">char </span><span class="s1">*outBuf, size_t size, </span><span class="s2">const char </span><span class="s1">*format, va_list ap)</span>
+<span class="s1">{</span>
+    <span class="s2">int </span><span class="s1">count = -</span><span class="s3">1</span><span class="s1">;</span>
+
+    <span class="s2">if </span><span class="s1">(size != </span><span class="s3">0</span><span class="s1">)</span>
+        <span class="s1">count = _vsnprintf_s(outBuf, size, _TRUNCATE, format, ap);</span>
+    <span class="s2">if </span><span class="s1">(count == -</span><span class="s3">1</span><span class="s1">)</span>
+        <span class="s1">count = _vscprintf(format, ap);</span>
+
+    <span class="s2">return </span><span class="s1">count;</span>
+<span class="s1">}</span>
+
+<span class="s1">__inline </span><span class="s2">int </span><span class="s1">c99_snprintf(</span><span class="s2">char </span><span class="s1">*outBuf, size_t size, </span><span class="s2">const char </span><span class="s1">*format, ...)</span>
+<span class="s1">{</span>
+    <span class="s2">int </span><span class="s1">count;</span>
+    <span class="s1">va_list ap;</span>
+
+    <span class="s1">va_start(ap, format);</span>
+    <span class="s1">count = c99_vsnprintf(outBuf, size, format, ap);</span>
+    <span class="s1">va_end(ap);</span>
+
+    <span class="s2">return </span><span class="s1">count;</span>
+<span class="s1">}</span>
+
+<span class="s2">#endif </span><span class="s0">/* defined(_MSC_VER) &amp;&amp; _MSC_VER &lt; 1900 */</span>
+
+<span class="s2">#define </span><span class="s1">HAVE_SYS_STAT_H</span>
+<span class="s2">#define </span><span class="s1">HAVE__STAT</span>
+<span class="s2">#define </span><span class="s1">HAVE_STRING_H</span>
+
+<span class="s2">#include </span><span class="s1">&lt;libxml/xmlversion.h&gt;</span>
+
+<span class="s2">#ifndef </span><span class="s1">ATTRIBUTE_UNUSED</span>
+<span class="s2">#define </span><span class="s1">ATTRIBUTE_UNUSED</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#define </span><span class="s1">_WINSOCKAPI_</span>
+
+<span class="s2">#endif </span><span class="s0">/* __LIBXSLT_WIN32_CONFIG__ */</span>
+
+</pre>
+</body>
+</html>

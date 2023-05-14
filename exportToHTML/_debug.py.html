@@ -1,0 +1,53 @@
+<html>
+<head>
+<title>_debug.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #cc7832;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #6897bb;}
+.s3 { color: #808080;}
+.s4 { color: #6a8759;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+_debug.py</font>
+</center></td></tr></table>
+<pre><span class="s0">from </span><span class="s1">__future__ </span><span class="s0">import </span><span class="s1">absolute_import</span>
+
+<span class="s0">import </span><span class="s1">logging</span>
+
+<span class="s0">from </span><span class="s1">._response </span><span class="s0">import </span><span class="s1">response_seek_wrapper</span>
+<span class="s0">from </span><span class="s1">._urllib2_fork </span><span class="s0">import </span><span class="s1">BaseHandler</span>
+
+
+<span class="s0">class </span><span class="s1">HTTPResponseDebugProcessor(BaseHandler):</span>
+    <span class="s1">handler_order = </span><span class="s2">900  </span><span class="s3"># before redirections, after everything else</span>
+
+    <span class="s0">def </span><span class="s1">http_response(self</span><span class="s0">, </span><span class="s1">request</span><span class="s0">, </span><span class="s1">response):</span>
+        <span class="s0">if not </span><span class="s1">hasattr(response</span><span class="s0">, </span><span class="s4">&quot;seek&quot;</span><span class="s1">):</span>
+            <span class="s1">response = response_seek_wrapper(response)</span>
+        <span class="s1">info = logging.getLogger(</span><span class="s4">&quot;mechanize.http_responses&quot;</span><span class="s1">).info</span>
+        <span class="s0">try</span><span class="s1">:</span>
+            <span class="s1">info(response.read())</span>
+        <span class="s0">finally</span><span class="s1">:</span>
+            <span class="s1">response.seek(</span><span class="s2">0</span><span class="s1">)</span>
+        <span class="s1">info(</span><span class="s4">&quot;*****************************************************&quot;</span><span class="s1">)</span>
+        <span class="s0">return </span><span class="s1">response</span>
+
+    <span class="s1">https_response = http_response</span>
+
+
+<span class="s0">class </span><span class="s1">HTTPRedirectDebugProcessor(BaseHandler):</span>
+
+    <span class="s0">def </span><span class="s1">http_request(self</span><span class="s0">, </span><span class="s1">request):</span>
+        <span class="s0">if </span><span class="s1">hasattr(request</span><span class="s0">, </span><span class="s4">&quot;redirect_dict&quot;</span><span class="s1">):</span>
+            <span class="s1">info = logging.getLogger(</span><span class="s4">&quot;mechanize.http_redirects&quot;</span><span class="s1">).info</span>
+            <span class="s1">info(</span><span class="s4">&quot;redirecting to %s&quot;</span><span class="s0">, </span><span class="s1">request.get_full_url())</span>
+        <span class="s0">return </span><span class="s1">request</span>
+</pre>
+</body>
+</html>

@@ -1,0 +1,529 @@
+<html>
+<head>
+<title>doctestcompare.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #629755; font-style: italic;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+.s4 { color: #6897bb;}
+.s5 { color: #808080;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+doctestcompare.py</font>
+</center></td></tr></table>
+<pre><span class="s0">&quot;&quot;&quot; 
+lxml-based doctest output comparison. 
+ 
+Note: normally, you should just import the `lxml.usedoctest` and 
+`lxml.html.usedoctest` modules from within a doctest, instead of this 
+one:: 
+ 
+    &gt;&gt;&gt; import lxml.usedoctest # for XML output 
+ 
+    &gt;&gt;&gt; import lxml.html.usedoctest # for HTML output 
+ 
+To use this module directly, you must call ``lxmldoctest.install()``, 
+which will cause doctest to use this in all subsequent calls. 
+ 
+This changes the way output is checked and comparisons are made for 
+XML or HTML-like content. 
+ 
+XML or HTML content is noticed because the example starts with ``&lt;`` 
+(it's HTML if it starts with ``&lt;html``).  You can also use the 
+``PARSE_HTML`` and ``PARSE_XML`` flags to force parsing. 
+ 
+Some rough wildcard-like things are allowed.  Whitespace is generally 
+ignored (except in attributes).  In text (attributes and text in the 
+body) you can use ``...`` as a wildcard.  In an example it also 
+matches any trailing tags in the element, though it does not match 
+leading tags.  You may create a tag ``&lt;any&gt;`` or include an ``any`` 
+attribute in the tag.  An ``any`` tag matches any tag, while the 
+attribute matches any and all attributes. 
+ 
+When a match fails, the reformatted example and gotten text is 
+displayed (indented), and a rough diff-like output is given.  Anything 
+marked with ``+`` is in the output but wasn't supposed to be, and 
+similarly ``-`` means its in the example but wasn't in the output. 
+ 
+You can disable parsing on one line with ``# doctest:+NOPARSE_MARKUP`` 
+&quot;&quot;&quot;</span>
+
+<span class="s2">from </span><span class="s1">lxml </span><span class="s2">import </span><span class="s1">etree</span>
+<span class="s2">import </span><span class="s1">sys</span>
+<span class="s2">import </span><span class="s1">re</span>
+<span class="s2">import </span><span class="s1">doctest</span>
+<span class="s2">try</span><span class="s1">:</span>
+    <span class="s2">from </span><span class="s1">html </span><span class="s2">import </span><span class="s1">escape </span><span class="s2">as </span><span class="s1">html_escape</span>
+<span class="s2">except </span><span class="s1">ImportError:</span>
+    <span class="s2">from </span><span class="s1">cgi </span><span class="s2">import </span><span class="s1">escape </span><span class="s2">as </span><span class="s1">html_escape</span>
+
+<span class="s1">__all__ = [</span><span class="s3">'PARSE_HTML'</span><span class="s2">, </span><span class="s3">'PARSE_XML'</span><span class="s2">, </span><span class="s3">'NOPARSE_MARKUP'</span><span class="s2">, </span><span class="s3">'LXMLOutputChecker'</span><span class="s2">,</span>
+           <span class="s3">'LHTMLOutputChecker'</span><span class="s2">, </span><span class="s3">'install'</span><span class="s2">, </span><span class="s3">'temp_install'</span><span class="s1">]</span>
+
+<span class="s2">try</span><span class="s1">:</span>
+    <span class="s1">_basestring = basestring</span>
+<span class="s2">except </span><span class="s1">NameError:</span>
+    <span class="s1">_basestring = (str</span><span class="s2">, </span><span class="s1">bytes)</span>
+
+<span class="s1">_IS_PYTHON_3 = sys.version_info[</span><span class="s4">0</span><span class="s1">] &gt;= </span><span class="s4">3</span>
+
+<span class="s1">PARSE_HTML = doctest.register_optionflag(</span><span class="s3">'PARSE_HTML'</span><span class="s1">)</span>
+<span class="s1">PARSE_XML = doctest.register_optionflag(</span><span class="s3">'PARSE_XML'</span><span class="s1">)</span>
+<span class="s1">NOPARSE_MARKUP = doctest.register_optionflag(</span><span class="s3">'NOPARSE_MARKUP'</span><span class="s1">)</span>
+
+<span class="s1">OutputChecker = doctest.OutputChecker</span>
+
+<span class="s2">def </span><span class="s1">strip(v):</span>
+    <span class="s2">if </span><span class="s1">v </span><span class="s2">is None</span><span class="s1">:</span>
+        <span class="s2">return None</span>
+    <span class="s2">else</span><span class="s1">:</span>
+        <span class="s2">return </span><span class="s1">v.strip()</span>
+
+<span class="s2">def </span><span class="s1">norm_whitespace(v):</span>
+    <span class="s2">return </span><span class="s1">_norm_whitespace_re.sub(</span><span class="s3">' '</span><span class="s2">, </span><span class="s1">v)</span>
+
+<span class="s1">_html_parser = etree.HTMLParser(recover=</span><span class="s2">False, </span><span class="s1">remove_blank_text=</span><span class="s2">True</span><span class="s1">)</span>
+
+<span class="s2">def </span><span class="s1">html_fromstring(html):</span>
+    <span class="s2">return </span><span class="s1">etree.fromstring(html</span><span class="s2">, </span><span class="s1">_html_parser)</span>
+
+<span class="s5"># We use this to distinguish repr()s from elements:</span>
+<span class="s1">_repr_re = re.compile(</span><span class="s3">r'^&lt;[^&gt;]+ (at|object) '</span><span class="s1">)</span>
+<span class="s1">_norm_whitespace_re = re.compile(</span><span class="s3">r'[ \t\n][ \t\n]+'</span><span class="s1">)</span>
+
+<span class="s2">class </span><span class="s1">LXMLOutputChecker(OutputChecker):</span>
+
+    <span class="s1">empty_tags = (</span>
+        <span class="s3">'param'</span><span class="s2">, </span><span class="s3">'img'</span><span class="s2">, </span><span class="s3">'area'</span><span class="s2">, </span><span class="s3">'br'</span><span class="s2">, </span><span class="s3">'basefont'</span><span class="s2">, </span><span class="s3">'input'</span><span class="s2">,</span>
+        <span class="s3">'base'</span><span class="s2">, </span><span class="s3">'meta'</span><span class="s2">, </span><span class="s3">'link'</span><span class="s2">, </span><span class="s3">'col'</span><span class="s1">)</span>
+
+    <span class="s2">def </span><span class="s1">get_default_parser(self):</span>
+        <span class="s2">return </span><span class="s1">etree.XML</span>
+
+    <span class="s2">def </span><span class="s1">check_output(self</span><span class="s2">, </span><span class="s1">want</span><span class="s2">, </span><span class="s1">got</span><span class="s2">, </span><span class="s1">optionflags):</span>
+        <span class="s1">alt_self = getattr(self</span><span class="s2">, </span><span class="s3">'_temp_override_self'</span><span class="s2">, None</span><span class="s1">)</span>
+        <span class="s2">if </span><span class="s1">alt_self </span><span class="s2">is not None</span><span class="s1">:</span>
+            <span class="s1">super_method = self._temp_call_super_check_output</span>
+            <span class="s1">self = alt_self</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s1">super_method = OutputChecker.check_output</span>
+        <span class="s1">parser = self.get_parser(want</span><span class="s2">, </span><span class="s1">got</span><span class="s2">, </span><span class="s1">optionflags)</span>
+        <span class="s2">if not </span><span class="s1">parser:</span>
+            <span class="s2">return </span><span class="s1">super_method(</span>
+                <span class="s1">self</span><span class="s2">, </span><span class="s1">want</span><span class="s2">, </span><span class="s1">got</span><span class="s2">, </span><span class="s1">optionflags)</span>
+        <span class="s2">try</span><span class="s1">:</span>
+            <span class="s1">want_doc = parser(want)</span>
+        <span class="s2">except </span><span class="s1">etree.XMLSyntaxError:</span>
+            <span class="s2">return False</span>
+        <span class="s2">try</span><span class="s1">:</span>
+            <span class="s1">got_doc = parser(got)</span>
+        <span class="s2">except </span><span class="s1">etree.XMLSyntaxError:</span>
+            <span class="s2">return False</span>
+        <span class="s2">return </span><span class="s1">self.compare_docs(want_doc</span><span class="s2">, </span><span class="s1">got_doc)</span>
+
+    <span class="s2">def </span><span class="s1">get_parser(self</span><span class="s2">, </span><span class="s1">want</span><span class="s2">, </span><span class="s1">got</span><span class="s2">, </span><span class="s1">optionflags):</span>
+        <span class="s1">parser = </span><span class="s2">None</span>
+        <span class="s2">if </span><span class="s1">NOPARSE_MARKUP &amp; optionflags:</span>
+            <span class="s2">return None</span>
+        <span class="s2">if </span><span class="s1">PARSE_HTML &amp; optionflags:</span>
+            <span class="s1">parser = html_fromstring</span>
+        <span class="s2">elif </span><span class="s1">PARSE_XML &amp; optionflags:</span>
+            <span class="s1">parser = etree.XML</span>
+        <span class="s2">elif </span><span class="s1">(want.strip().lower().startswith(</span><span class="s3">'&lt;html'</span><span class="s1">)</span>
+              <span class="s2">and </span><span class="s1">got.strip().startswith(</span><span class="s3">'&lt;html'</span><span class="s1">)):</span>
+            <span class="s1">parser = html_fromstring</span>
+        <span class="s2">elif </span><span class="s1">(self._looks_like_markup(want)</span>
+              <span class="s2">and </span><span class="s1">self._looks_like_markup(got)):</span>
+            <span class="s1">parser = self.get_default_parser()</span>
+        <span class="s2">return </span><span class="s1">parser</span>
+
+    <span class="s2">def </span><span class="s1">_looks_like_markup(self</span><span class="s2">, </span><span class="s1">s):</span>
+        <span class="s1">s = s.strip()</span>
+        <span class="s2">return </span><span class="s1">(s.startswith(</span><span class="s3">'&lt;'</span><span class="s1">)</span>
+                <span class="s2">and not </span><span class="s1">_repr_re.search(s))</span>
+
+    <span class="s2">def </span><span class="s1">compare_docs(self</span><span class="s2">, </span><span class="s1">want</span><span class="s2">, </span><span class="s1">got):</span>
+        <span class="s2">if not </span><span class="s1">self.tag_compare(want.tag</span><span class="s2">, </span><span class="s1">got.tag):</span>
+            <span class="s2">return False</span>
+        <span class="s2">if not </span><span class="s1">self.text_compare(want.text</span><span class="s2">, </span><span class="s1">got.text</span><span class="s2">, True</span><span class="s1">):</span>
+            <span class="s2">return False</span>
+        <span class="s2">if not </span><span class="s1">self.text_compare(want.tail</span><span class="s2">, </span><span class="s1">got.tail</span><span class="s2">, True</span><span class="s1">):</span>
+            <span class="s2">return False</span>
+        <span class="s2">if </span><span class="s3">'any' </span><span class="s2">not in </span><span class="s1">want.attrib:</span>
+            <span class="s1">want_keys = sorted(want.attrib.keys())</span>
+            <span class="s1">got_keys = sorted(got.attrib.keys())</span>
+            <span class="s2">if </span><span class="s1">want_keys != got_keys:</span>
+                <span class="s2">return False</span>
+            <span class="s2">for </span><span class="s1">key </span><span class="s2">in </span><span class="s1">want_keys:</span>
+                <span class="s2">if not </span><span class="s1">self.text_compare(want.attrib[key]</span><span class="s2">, </span><span class="s1">got.attrib[key]</span><span class="s2">, False</span><span class="s1">):</span>
+                    <span class="s2">return False</span>
+        <span class="s2">if </span><span class="s1">want.text != </span><span class="s3">'...' </span><span class="s2">or </span><span class="s1">len(want):</span>
+            <span class="s1">want_children = list(want)</span>
+            <span class="s1">got_children = list(got)</span>
+            <span class="s2">while </span><span class="s1">want_children </span><span class="s2">or </span><span class="s1">got_children:</span>
+                <span class="s2">if not </span><span class="s1">want_children </span><span class="s2">or not </span><span class="s1">got_children:</span>
+                    <span class="s2">return False</span>
+                <span class="s1">want_first = want_children.pop(</span><span class="s4">0</span><span class="s1">)</span>
+                <span class="s1">got_first = got_children.pop(</span><span class="s4">0</span><span class="s1">)</span>
+                <span class="s2">if not </span><span class="s1">self.compare_docs(want_first</span><span class="s2">, </span><span class="s1">got_first):</span>
+                    <span class="s2">return False</span>
+                <span class="s2">if not </span><span class="s1">got_children </span><span class="s2">and </span><span class="s1">want_first.tail == </span><span class="s3">'...'</span><span class="s1">:</span>
+                    <span class="s2">break</span>
+        <span class="s2">return True</span>
+
+    <span class="s2">def </span><span class="s1">text_compare(self</span><span class="s2">, </span><span class="s1">want</span><span class="s2">, </span><span class="s1">got</span><span class="s2">, </span><span class="s1">strip):</span>
+        <span class="s1">want = want </span><span class="s2">or </span><span class="s3">''</span>
+        <span class="s1">got = got </span><span class="s2">or </span><span class="s3">''</span>
+        <span class="s2">if </span><span class="s1">strip:</span>
+            <span class="s1">want = norm_whitespace(want).strip()</span>
+            <span class="s1">got = norm_whitespace(got).strip()</span>
+        <span class="s1">want = </span><span class="s3">'^%s$' </span><span class="s1">% re.escape(want)</span>
+        <span class="s1">want = want.replace(</span><span class="s3">r'\.\.\.'</span><span class="s2">, </span><span class="s3">'.*'</span><span class="s1">)</span>
+        <span class="s2">if </span><span class="s1">re.search(want</span><span class="s2">, </span><span class="s1">got):</span>
+            <span class="s2">return True</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s2">return False</span>
+
+    <span class="s2">def </span><span class="s1">tag_compare(self</span><span class="s2">, </span><span class="s1">want</span><span class="s2">, </span><span class="s1">got):</span>
+        <span class="s2">if </span><span class="s1">want == </span><span class="s3">'any'</span><span class="s1">:</span>
+            <span class="s2">return True</span>
+        <span class="s2">if </span><span class="s1">(</span><span class="s2">not </span><span class="s1">isinstance(want</span><span class="s2">, </span><span class="s1">_basestring)</span>
+            <span class="s2">or not </span><span class="s1">isinstance(got</span><span class="s2">, </span><span class="s1">_basestring)):</span>
+            <span class="s2">return </span><span class="s1">want == got</span>
+        <span class="s1">want = want </span><span class="s2">or </span><span class="s3">''</span>
+        <span class="s1">got = got </span><span class="s2">or </span><span class="s3">''</span>
+        <span class="s2">if </span><span class="s1">want.startswith(</span><span class="s3">'{...}'</span><span class="s1">):</span>
+            <span class="s5"># Ellipsis on the namespace</span>
+            <span class="s2">return </span><span class="s1">want.split(</span><span class="s3">'}'</span><span class="s1">)[-</span><span class="s4">1</span><span class="s1">] == got.split(</span><span class="s3">'}'</span><span class="s1">)[-</span><span class="s4">1</span><span class="s1">]</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s2">return </span><span class="s1">want == got</span>
+
+    <span class="s2">def </span><span class="s1">output_difference(self</span><span class="s2">, </span><span class="s1">example</span><span class="s2">, </span><span class="s1">got</span><span class="s2">, </span><span class="s1">optionflags):</span>
+        <span class="s1">want = example.want</span>
+        <span class="s1">parser = self.get_parser(want</span><span class="s2">, </span><span class="s1">got</span><span class="s2">, </span><span class="s1">optionflags)</span>
+        <span class="s1">errors = []</span>
+        <span class="s2">if </span><span class="s1">parser </span><span class="s2">is not None</span><span class="s1">:</span>
+            <span class="s2">try</span><span class="s1">:</span>
+                <span class="s1">want_doc = parser(want)</span>
+            <span class="s2">except </span><span class="s1">etree.XMLSyntaxError:</span>
+                <span class="s1">e = sys.exc_info()[</span><span class="s4">1</span><span class="s1">]</span>
+                <span class="s1">errors.append(</span><span class="s3">'In example: %s' </span><span class="s1">% e)</span>
+            <span class="s2">try</span><span class="s1">:</span>
+                <span class="s1">got_doc = parser(got)</span>
+            <span class="s2">except </span><span class="s1">etree.XMLSyntaxError:</span>
+                <span class="s1">e = sys.exc_info()[</span><span class="s4">1</span><span class="s1">]</span>
+                <span class="s1">errors.append(</span><span class="s3">'In actual output: %s' </span><span class="s1">% e)</span>
+        <span class="s2">if </span><span class="s1">parser </span><span class="s2">is None or </span><span class="s1">errors:</span>
+            <span class="s1">value = OutputChecker.output_difference(</span>
+                <span class="s1">self</span><span class="s2">, </span><span class="s1">example</span><span class="s2">, </span><span class="s1">got</span><span class="s2">, </span><span class="s1">optionflags)</span>
+            <span class="s2">if </span><span class="s1">errors:</span>
+                <span class="s1">errors.append(value)</span>
+                <span class="s2">return </span><span class="s3">'</span><span class="s2">\n</span><span class="s3">'</span><span class="s1">.join(errors)</span>
+            <span class="s2">else</span><span class="s1">:</span>
+                <span class="s2">return </span><span class="s1">value</span>
+        <span class="s1">html = parser </span><span class="s2">is </span><span class="s1">html_fromstring</span>
+        <span class="s1">diff_parts = [</span><span class="s3">'Expected:'</span><span class="s2">,</span>
+                      <span class="s1">self.format_doc(want_doc</span><span class="s2">, </span><span class="s1">html</span><span class="s2">, </span><span class="s4">2</span><span class="s1">)</span><span class="s2">,</span>
+                      <span class="s3">'Got:'</span><span class="s2">,</span>
+                      <span class="s1">self.format_doc(got_doc</span><span class="s2">, </span><span class="s1">html</span><span class="s2">, </span><span class="s4">2</span><span class="s1">)</span><span class="s2">,</span>
+                      <span class="s3">'Diff:'</span><span class="s2">,</span>
+                      <span class="s1">self.collect_diff(want_doc</span><span class="s2">, </span><span class="s1">got_doc</span><span class="s2">, </span><span class="s1">html</span><span class="s2">, </span><span class="s4">2</span><span class="s1">)]</span>
+        <span class="s2">return </span><span class="s3">'</span><span class="s2">\n</span><span class="s3">'</span><span class="s1">.join(diff_parts)</span>
+
+    <span class="s2">def </span><span class="s1">html_empty_tag(self</span><span class="s2">, </span><span class="s1">el</span><span class="s2">, </span><span class="s1">html=</span><span class="s2">True</span><span class="s1">):</span>
+        <span class="s2">if not </span><span class="s1">html:</span>
+            <span class="s2">return False</span>
+        <span class="s2">if </span><span class="s1">el.tag </span><span class="s2">not in </span><span class="s1">self.empty_tags:</span>
+            <span class="s2">return False</span>
+        <span class="s2">if </span><span class="s1">el.text </span><span class="s2">or </span><span class="s1">len(el):</span>
+            <span class="s5"># This shouldn't happen (contents in an empty tag)</span>
+            <span class="s2">return False</span>
+        <span class="s2">return True</span>
+
+    <span class="s2">def </span><span class="s1">format_doc(self</span><span class="s2">, </span><span class="s1">doc</span><span class="s2">, </span><span class="s1">html</span><span class="s2">, </span><span class="s1">indent</span><span class="s2">, </span><span class="s1">prefix=</span><span class="s3">''</span><span class="s1">):</span>
+        <span class="s1">parts = []</span>
+        <span class="s2">if not </span><span class="s1">len(doc):</span>
+            <span class="s5"># No children...</span>
+            <span class="s1">parts.append(</span><span class="s3">' '</span><span class="s1">*indent)</span>
+            <span class="s1">parts.append(prefix)</span>
+            <span class="s1">parts.append(self.format_tag(doc))</span>
+            <span class="s2">if not </span><span class="s1">self.html_empty_tag(doc</span><span class="s2">, </span><span class="s1">html):</span>
+                <span class="s2">if </span><span class="s1">strip(doc.text):</span>
+                    <span class="s1">parts.append(self.format_text(doc.text))</span>
+                <span class="s1">parts.append(self.format_end_tag(doc))</span>
+            <span class="s2">if </span><span class="s1">strip(doc.tail):</span>
+                <span class="s1">parts.append(self.format_text(doc.tail))</span>
+            <span class="s1">parts.append(</span><span class="s3">'</span><span class="s2">\n</span><span class="s3">'</span><span class="s1">)</span>
+            <span class="s2">return </span><span class="s3">''</span><span class="s1">.join(parts)</span>
+        <span class="s1">parts.append(</span><span class="s3">' '</span><span class="s1">*indent)</span>
+        <span class="s1">parts.append(prefix)</span>
+        <span class="s1">parts.append(self.format_tag(doc))</span>
+        <span class="s2">if not </span><span class="s1">self.html_empty_tag(doc</span><span class="s2">, </span><span class="s1">html):</span>
+            <span class="s1">parts.append(</span><span class="s3">'</span><span class="s2">\n</span><span class="s3">'</span><span class="s1">)</span>
+            <span class="s2">if </span><span class="s1">strip(doc.text):</span>
+                <span class="s1">parts.append(</span><span class="s3">' '</span><span class="s1">*indent)</span>
+                <span class="s1">parts.append(self.format_text(doc.text))</span>
+                <span class="s1">parts.append(</span><span class="s3">'</span><span class="s2">\n</span><span class="s3">'</span><span class="s1">)</span>
+            <span class="s2">for </span><span class="s1">el </span><span class="s2">in </span><span class="s1">doc:</span>
+                <span class="s1">parts.append(self.format_doc(el</span><span class="s2">, </span><span class="s1">html</span><span class="s2">, </span><span class="s1">indent+</span><span class="s4">2</span><span class="s1">))</span>
+            <span class="s1">parts.append(</span><span class="s3">' '</span><span class="s1">*indent)</span>
+            <span class="s1">parts.append(self.format_end_tag(doc))</span>
+            <span class="s1">parts.append(</span><span class="s3">'</span><span class="s2">\n</span><span class="s3">'</span><span class="s1">)</span>
+        <span class="s2">if </span><span class="s1">strip(doc.tail):</span>
+            <span class="s1">parts.append(</span><span class="s3">' '</span><span class="s1">*indent)</span>
+            <span class="s1">parts.append(self.format_text(doc.tail))</span>
+            <span class="s1">parts.append(</span><span class="s3">'</span><span class="s2">\n</span><span class="s3">'</span><span class="s1">)</span>
+        <span class="s2">return </span><span class="s3">''</span><span class="s1">.join(parts)</span>
+
+    <span class="s2">def </span><span class="s1">format_text(self</span><span class="s2">, </span><span class="s1">text</span><span class="s2">, </span><span class="s1">strip=</span><span class="s2">True</span><span class="s1">):</span>
+        <span class="s2">if </span><span class="s1">text </span><span class="s2">is None</span><span class="s1">:</span>
+            <span class="s2">return </span><span class="s3">''</span>
+        <span class="s2">if </span><span class="s1">strip:</span>
+            <span class="s1">text = text.strip()</span>
+        <span class="s2">return </span><span class="s1">html_escape(text</span><span class="s2">, </span><span class="s4">1</span><span class="s1">)</span>
+
+    <span class="s2">def </span><span class="s1">format_tag(self</span><span class="s2">, </span><span class="s1">el):</span>
+        <span class="s1">attrs = []</span>
+        <span class="s2">if </span><span class="s1">isinstance(el</span><span class="s2">, </span><span class="s1">etree.CommentBase):</span>
+            <span class="s5"># FIXME: probably PIs should be handled specially too?</span>
+            <span class="s2">return </span><span class="s3">'&lt;!--'</span>
+        <span class="s2">for </span><span class="s1">name</span><span class="s2">, </span><span class="s1">value </span><span class="s2">in </span><span class="s1">sorted(el.attrib.items()):</span>
+            <span class="s1">attrs.append(</span><span class="s3">'%s=&quot;%s&quot;' </span><span class="s1">% (name</span><span class="s2">, </span><span class="s1">self.format_text(value</span><span class="s2">, False</span><span class="s1">)))</span>
+        <span class="s2">if not </span><span class="s1">attrs:</span>
+            <span class="s2">return </span><span class="s3">'&lt;%s&gt;' </span><span class="s1">% el.tag</span>
+        <span class="s2">return </span><span class="s3">'&lt;%s %s&gt;' </span><span class="s1">% (el.tag</span><span class="s2">, </span><span class="s3">' '</span><span class="s1">.join(attrs))</span>
+    
+    <span class="s2">def </span><span class="s1">format_end_tag(self</span><span class="s2">, </span><span class="s1">el):</span>
+        <span class="s2">if </span><span class="s1">isinstance(el</span><span class="s2">, </span><span class="s1">etree.CommentBase):</span>
+            <span class="s5"># FIXME: probably PIs should be handled specially too?</span>
+            <span class="s2">return </span><span class="s3">'--&gt;'</span>
+        <span class="s2">return </span><span class="s3">'&lt;/%s&gt;' </span><span class="s1">% el.tag</span>
+
+    <span class="s2">def </span><span class="s1">collect_diff(self</span><span class="s2">, </span><span class="s1">want</span><span class="s2">, </span><span class="s1">got</span><span class="s2">, </span><span class="s1">html</span><span class="s2">, </span><span class="s1">indent):</span>
+        <span class="s1">parts = []</span>
+        <span class="s2">if not </span><span class="s1">len(want) </span><span class="s2">and not </span><span class="s1">len(got):</span>
+            <span class="s1">parts.append(</span><span class="s3">' '</span><span class="s1">*indent)</span>
+            <span class="s1">parts.append(self.collect_diff_tag(want</span><span class="s2">, </span><span class="s1">got))</span>
+            <span class="s2">if not </span><span class="s1">self.html_empty_tag(got</span><span class="s2">, </span><span class="s1">html):</span>
+                <span class="s1">parts.append(self.collect_diff_text(want.text</span><span class="s2">, </span><span class="s1">got.text))</span>
+                <span class="s1">parts.append(self.collect_diff_end_tag(want</span><span class="s2">, </span><span class="s1">got))</span>
+            <span class="s1">parts.append(self.collect_diff_text(want.tail</span><span class="s2">, </span><span class="s1">got.tail))</span>
+            <span class="s1">parts.append(</span><span class="s3">'</span><span class="s2">\n</span><span class="s3">'</span><span class="s1">)</span>
+            <span class="s2">return </span><span class="s3">''</span><span class="s1">.join(parts)</span>
+        <span class="s1">parts.append(</span><span class="s3">' '</span><span class="s1">*indent)</span>
+        <span class="s1">parts.append(self.collect_diff_tag(want</span><span class="s2">, </span><span class="s1">got))</span>
+        <span class="s1">parts.append(</span><span class="s3">'</span><span class="s2">\n</span><span class="s3">'</span><span class="s1">)</span>
+        <span class="s2">if </span><span class="s1">strip(want.text) </span><span class="s2">or </span><span class="s1">strip(got.text):</span>
+            <span class="s1">parts.append(</span><span class="s3">' '</span><span class="s1">*indent)</span>
+            <span class="s1">parts.append(self.collect_diff_text(want.text</span><span class="s2">, </span><span class="s1">got.text))</span>
+            <span class="s1">parts.append(</span><span class="s3">'</span><span class="s2">\n</span><span class="s3">'</span><span class="s1">)</span>
+        <span class="s1">want_children = list(want)</span>
+        <span class="s1">got_children = list(got)</span>
+        <span class="s2">while </span><span class="s1">want_children </span><span class="s2">or </span><span class="s1">got_children:</span>
+            <span class="s2">if not </span><span class="s1">want_children:</span>
+                <span class="s1">parts.append(self.format_doc(got_children.pop(</span><span class="s4">0</span><span class="s1">)</span><span class="s2">, </span><span class="s1">html</span><span class="s2">, </span><span class="s1">indent+</span><span class="s4">2</span><span class="s2">, </span><span class="s3">'+'</span><span class="s1">))</span>
+                <span class="s2">continue</span>
+            <span class="s2">if not </span><span class="s1">got_children:</span>
+                <span class="s1">parts.append(self.format_doc(want_children.pop(</span><span class="s4">0</span><span class="s1">)</span><span class="s2">, </span><span class="s1">html</span><span class="s2">, </span><span class="s1">indent+</span><span class="s4">2</span><span class="s2">, </span><span class="s3">'-'</span><span class="s1">))</span>
+                <span class="s2">continue</span>
+            <span class="s1">parts.append(self.collect_diff(</span>
+                <span class="s1">want_children.pop(</span><span class="s4">0</span><span class="s1">)</span><span class="s2">, </span><span class="s1">got_children.pop(</span><span class="s4">0</span><span class="s1">)</span><span class="s2">, </span><span class="s1">html</span><span class="s2">, </span><span class="s1">indent+</span><span class="s4">2</span><span class="s1">))</span>
+        <span class="s1">parts.append(</span><span class="s3">' '</span><span class="s1">*indent)</span>
+        <span class="s1">parts.append(self.collect_diff_end_tag(want</span><span class="s2">, </span><span class="s1">got))</span>
+        <span class="s1">parts.append(</span><span class="s3">'</span><span class="s2">\n</span><span class="s3">'</span><span class="s1">)</span>
+        <span class="s2">if </span><span class="s1">strip(want.tail) </span><span class="s2">or </span><span class="s1">strip(got.tail):</span>
+            <span class="s1">parts.append(</span><span class="s3">' '</span><span class="s1">*indent)</span>
+            <span class="s1">parts.append(self.collect_diff_text(want.tail</span><span class="s2">, </span><span class="s1">got.tail))</span>
+            <span class="s1">parts.append(</span><span class="s3">'</span><span class="s2">\n</span><span class="s3">'</span><span class="s1">)</span>
+        <span class="s2">return </span><span class="s3">''</span><span class="s1">.join(parts)</span>
+
+    <span class="s2">def </span><span class="s1">collect_diff_tag(self</span><span class="s2">, </span><span class="s1">want</span><span class="s2">, </span><span class="s1">got):</span>
+        <span class="s2">if not </span><span class="s1">self.tag_compare(want.tag</span><span class="s2">, </span><span class="s1">got.tag):</span>
+            <span class="s1">tag = </span><span class="s3">'%s (got: %s)' </span><span class="s1">% (want.tag</span><span class="s2">, </span><span class="s1">got.tag)</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s1">tag = got.tag</span>
+        <span class="s1">attrs = []</span>
+        <span class="s1">any = want.tag == </span><span class="s3">'any' </span><span class="s2">or </span><span class="s3">'any' </span><span class="s2">in </span><span class="s1">want.attrib</span>
+        <span class="s2">for </span><span class="s1">name</span><span class="s2">, </span><span class="s1">value </span><span class="s2">in </span><span class="s1">sorted(got.attrib.items()):</span>
+            <span class="s2">if </span><span class="s1">name </span><span class="s2">not in </span><span class="s1">want.attrib </span><span class="s2">and not </span><span class="s1">any:</span>
+                <span class="s1">attrs.append(</span><span class="s3">'+%s=&quot;%s&quot;' </span><span class="s1">% (name</span><span class="s2">, </span><span class="s1">self.format_text(value</span><span class="s2">, False</span><span class="s1">)))</span>
+            <span class="s2">else</span><span class="s1">:</span>
+                <span class="s2">if </span><span class="s1">name </span><span class="s2">in </span><span class="s1">want.attrib:</span>
+                    <span class="s1">text = self.collect_diff_text(want.attrib[name]</span><span class="s2">, </span><span class="s1">value</span><span class="s2">, False</span><span class="s1">)</span>
+                <span class="s2">else</span><span class="s1">:</span>
+                    <span class="s1">text = self.format_text(value</span><span class="s2">, False</span><span class="s1">)</span>
+                <span class="s1">attrs.append(</span><span class="s3">'%s=&quot;%s&quot;' </span><span class="s1">% (name</span><span class="s2">, </span><span class="s1">text))</span>
+        <span class="s2">if not </span><span class="s1">any:</span>
+            <span class="s2">for </span><span class="s1">name</span><span class="s2">, </span><span class="s1">value </span><span class="s2">in </span><span class="s1">sorted(want.attrib.items()):</span>
+                <span class="s2">if </span><span class="s1">name </span><span class="s2">in </span><span class="s1">got.attrib:</span>
+                    <span class="s2">continue</span>
+                <span class="s1">attrs.append(</span><span class="s3">'-%s=&quot;%s&quot;' </span><span class="s1">% (name</span><span class="s2">, </span><span class="s1">self.format_text(value</span><span class="s2">, False</span><span class="s1">)))</span>
+        <span class="s2">if </span><span class="s1">attrs:</span>
+            <span class="s1">tag = </span><span class="s3">'&lt;%s %s&gt;' </span><span class="s1">% (tag</span><span class="s2">, </span><span class="s3">' '</span><span class="s1">.join(attrs))</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s1">tag = </span><span class="s3">'&lt;%s&gt;' </span><span class="s1">% tag</span>
+        <span class="s2">return </span><span class="s1">tag</span>
+
+    <span class="s2">def </span><span class="s1">collect_diff_end_tag(self</span><span class="s2">, </span><span class="s1">want</span><span class="s2">, </span><span class="s1">got):</span>
+        <span class="s2">if </span><span class="s1">want.tag != got.tag:</span>
+            <span class="s1">tag = </span><span class="s3">'%s (got: %s)' </span><span class="s1">% (want.tag</span><span class="s2">, </span><span class="s1">got.tag)</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s1">tag = got.tag</span>
+        <span class="s2">return </span><span class="s3">'&lt;/%s&gt;' </span><span class="s1">% tag</span>
+
+    <span class="s2">def </span><span class="s1">collect_diff_text(self</span><span class="s2">, </span><span class="s1">want</span><span class="s2">, </span><span class="s1">got</span><span class="s2">, </span><span class="s1">strip=</span><span class="s2">True</span><span class="s1">):</span>
+        <span class="s2">if </span><span class="s1">self.text_compare(want</span><span class="s2">, </span><span class="s1">got</span><span class="s2">, </span><span class="s1">strip):</span>
+            <span class="s2">if not </span><span class="s1">got:</span>
+                <span class="s2">return </span><span class="s3">''</span>
+            <span class="s2">return </span><span class="s1">self.format_text(got</span><span class="s2">, </span><span class="s1">strip)</span>
+        <span class="s1">text = </span><span class="s3">'%s (got: %s)' </span><span class="s1">% (want</span><span class="s2">, </span><span class="s1">got)</span>
+        <span class="s2">return </span><span class="s1">self.format_text(text</span><span class="s2">, </span><span class="s1">strip)</span>
+
+<span class="s2">class </span><span class="s1">LHTMLOutputChecker(LXMLOutputChecker):</span>
+    <span class="s2">def </span><span class="s1">get_default_parser(self):</span>
+        <span class="s2">return </span><span class="s1">html_fromstring</span>
+    
+<span class="s2">def </span><span class="s1">install(html=</span><span class="s2">False</span><span class="s1">):</span>
+    <span class="s0">&quot;&quot;&quot; 
+    Install doctestcompare for all future doctests. 
+ 
+    If html is true, then by default the HTML parser will be used; 
+    otherwise the XML parser is used. 
+    &quot;&quot;&quot;</span>
+    <span class="s2">if </span><span class="s1">html:</span>
+        <span class="s1">doctest.OutputChecker = LHTMLOutputChecker</span>
+    <span class="s2">else</span><span class="s1">:</span>
+        <span class="s1">doctest.OutputChecker = LXMLOutputChecker</span>
+
+<span class="s2">def </span><span class="s1">temp_install(html=</span><span class="s2">False, </span><span class="s1">del_module=</span><span class="s2">None</span><span class="s1">):</span>
+    <span class="s0">&quot;&quot;&quot; 
+    Use this *inside* a doctest to enable this checker for this 
+    doctest only. 
+ 
+    If html is true, then by default the HTML parser will be used; 
+    otherwise the XML parser is used. 
+    &quot;&quot;&quot;</span>
+    <span class="s2">if </span><span class="s1">html:</span>
+        <span class="s1">Checker = LHTMLOutputChecker</span>
+    <span class="s2">else</span><span class="s1">:</span>
+        <span class="s1">Checker = LXMLOutputChecker</span>
+    <span class="s1">frame = _find_doctest_frame()</span>
+    <span class="s1">dt_self = frame.f_locals[</span><span class="s3">'self'</span><span class="s1">]</span>
+    <span class="s1">checker = Checker()</span>
+    <span class="s1">old_checker = dt_self._checker</span>
+    <span class="s1">dt_self._checker = checker</span>
+    <span class="s5"># The unfortunate thing is that there is a local variable 'check'</span>
+    <span class="s5"># in the function that runs the doctests, that is a bound method</span>
+    <span class="s5"># into the output checker.  We have to update that.  We can't</span>
+    <span class="s5"># modify the frame, so we have to modify the object in place.  The</span>
+    <span class="s5"># only way to do this is to actually change the func_code</span>
+    <span class="s5"># attribute of the method.  We change it, and then wait for</span>
+    <span class="s5"># __record_outcome to be run, which signals the end of the __run</span>
+    <span class="s5"># method, at which point we restore the previous check_output</span>
+    <span class="s5"># implementation.</span>
+    <span class="s2">if </span><span class="s1">_IS_PYTHON_3:</span>
+        <span class="s1">check_func = frame.f_locals[</span><span class="s3">'check'</span><span class="s1">].__func__</span>
+        <span class="s1">checker_check_func = checker.check_output.__func__</span>
+    <span class="s2">else</span><span class="s1">:</span>
+        <span class="s1">check_func = frame.f_locals[</span><span class="s3">'check'</span><span class="s1">].im_func</span>
+        <span class="s1">checker_check_func = checker.check_output.im_func</span>
+    <span class="s5"># Because we can't patch up func_globals, this is the only global</span>
+    <span class="s5"># in check_output that we care about:</span>
+    <span class="s1">doctest.etree = etree</span>
+    <span class="s1">_RestoreChecker(dt_self</span><span class="s2">, </span><span class="s1">old_checker</span><span class="s2">, </span><span class="s1">checker</span><span class="s2">,</span>
+                    <span class="s1">check_func</span><span class="s2">, </span><span class="s1">checker_check_func</span><span class="s2">,</span>
+                    <span class="s1">del_module)</span>
+
+<span class="s2">class </span><span class="s1">_RestoreChecker(object):</span>
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">dt_self</span><span class="s2">, </span><span class="s1">old_checker</span><span class="s2">, </span><span class="s1">new_checker</span><span class="s2">, </span><span class="s1">check_func</span><span class="s2">, </span><span class="s1">clone_func</span><span class="s2">,</span>
+                 <span class="s1">del_module):</span>
+        <span class="s1">self.dt_self = dt_self</span>
+        <span class="s1">self.checker = old_checker</span>
+        <span class="s1">self.checker._temp_call_super_check_output = self.call_super</span>
+        <span class="s1">self.checker._temp_override_self = new_checker</span>
+        <span class="s1">self.check_func = check_func</span>
+        <span class="s1">self.clone_func = clone_func</span>
+        <span class="s1">self.del_module = del_module</span>
+        <span class="s1">self.install_clone()</span>
+        <span class="s1">self.install_dt_self()</span>
+    <span class="s2">def </span><span class="s1">install_clone(self):</span>
+        <span class="s2">if </span><span class="s1">_IS_PYTHON_3:</span>
+            <span class="s1">self.func_code = self.check_func.__code__</span>
+            <span class="s1">self.func_globals = self.check_func.__globals__</span>
+            <span class="s1">self.check_func.__code__ = self.clone_func.__code__</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s1">self.func_code = self.check_func.func_code</span>
+            <span class="s1">self.func_globals = self.check_func.func_globals</span>
+            <span class="s1">self.check_func.func_code = self.clone_func.func_code</span>
+    <span class="s2">def </span><span class="s1">uninstall_clone(self):</span>
+        <span class="s2">if </span><span class="s1">_IS_PYTHON_3:</span>
+            <span class="s1">self.check_func.__code__ = self.func_code</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s1">self.check_func.func_code = self.func_code</span>
+    <span class="s2">def </span><span class="s1">install_dt_self(self):</span>
+        <span class="s1">self.prev_func = self.dt_self._DocTestRunner__record_outcome</span>
+        <span class="s1">self.dt_self._DocTestRunner__record_outcome = self</span>
+    <span class="s2">def </span><span class="s1">uninstall_dt_self(self):</span>
+        <span class="s1">self.dt_self._DocTestRunner__record_outcome = self.prev_func</span>
+    <span class="s2">def </span><span class="s1">uninstall_module(self):</span>
+        <span class="s2">if </span><span class="s1">self.del_module:</span>
+            <span class="s2">import </span><span class="s1">sys</span>
+            <span class="s2">del </span><span class="s1">sys.modules[self.del_module]</span>
+            <span class="s2">if </span><span class="s3">'.' </span><span class="s2">in </span><span class="s1">self.del_module:</span>
+                <span class="s1">package</span><span class="s2">, </span><span class="s1">module = self.del_module.rsplit(</span><span class="s3">'.'</span><span class="s2">, </span><span class="s4">1</span><span class="s1">)</span>
+                <span class="s1">package_mod = sys.modules[package]</span>
+                <span class="s1">delattr(package_mod</span><span class="s2">, </span><span class="s1">module)</span>
+    <span class="s2">def </span><span class="s1">__call__(self</span><span class="s2">, </span><span class="s1">*args</span><span class="s2">, </span><span class="s1">**kw):</span>
+        <span class="s1">self.uninstall_clone()</span>
+        <span class="s1">self.uninstall_dt_self()</span>
+        <span class="s2">del </span><span class="s1">self.checker._temp_override_self</span>
+        <span class="s2">del </span><span class="s1">self.checker._temp_call_super_check_output</span>
+        <span class="s1">result = self.prev_func(*args</span><span class="s2">, </span><span class="s1">**kw)</span>
+        <span class="s1">self.uninstall_module()</span>
+        <span class="s2">return </span><span class="s1">result</span>
+    <span class="s2">def </span><span class="s1">call_super(self</span><span class="s2">, </span><span class="s1">*args</span><span class="s2">, </span><span class="s1">**kw):</span>
+        <span class="s1">self.uninstall_clone()</span>
+        <span class="s2">try</span><span class="s1">:</span>
+            <span class="s2">return </span><span class="s1">self.check_func(*args</span><span class="s2">, </span><span class="s1">**kw)</span>
+        <span class="s2">finally</span><span class="s1">:</span>
+            <span class="s1">self.install_clone()</span>
+            
+<span class="s2">def </span><span class="s1">_find_doctest_frame():</span>
+    <span class="s2">import </span><span class="s1">sys</span>
+    <span class="s1">frame = sys._getframe(</span><span class="s4">1</span><span class="s1">)</span>
+    <span class="s2">while </span><span class="s1">frame:</span>
+        <span class="s1">l = frame.f_locals</span>
+        <span class="s2">if </span><span class="s3">'BOOM' </span><span class="s2">in </span><span class="s1">l:</span>
+            <span class="s5"># Sign of doctest</span>
+            <span class="s2">return </span><span class="s1">frame</span>
+        <span class="s1">frame = frame.f_back</span>
+    <span class="s2">raise </span><span class="s1">LookupError(</span>
+        <span class="s3">&quot;Could not find doctest (only use this function *inside* a doctest)&quot;</span><span class="s1">)</span>
+    
+<span class="s1">__test__ = {</span>
+    <span class="s3">'basic'</span><span class="s1">: </span><span class="s3">''' 
+    &gt;&gt;&gt; temp_install() 
+    &gt;&gt;&gt; print &quot;&quot;&quot;&lt;xml a=&quot;1&quot; b=&quot;2&quot;&gt;stuff&lt;/xml&gt;&quot;&quot;&quot; 
+    &lt;xml b=&quot;2&quot; a=&quot;1&quot;&gt;...&lt;/xml&gt; 
+    &gt;&gt;&gt; print &quot;&quot;&quot;&lt;xml xmlns=&quot;http://example.com&quot;&gt;&lt;tag   attr=&quot;bar&quot;   /&gt;&lt;/xml&gt;&quot;&quot;&quot; 
+    &lt;xml xmlns=&quot;...&quot;&gt; 
+      &lt;tag attr=&quot;...&quot; /&gt; 
+    &lt;/xml&gt; 
+    &gt;&gt;&gt; print &quot;&quot;&quot;&lt;xml&gt;blahblahblah&lt;foo /&gt;&lt;/xml&gt;&quot;&quot;&quot; # doctest: +NOPARSE_MARKUP, +ELLIPSIS 
+    &lt;xml&gt;...foo /&gt;&lt;/xml&gt; 
+    '''</span><span class="s1">}</span>
+
+<span class="s2">if </span><span class="s1">__name__ == </span><span class="s3">'__main__'</span><span class="s1">:</span>
+    <span class="s2">import </span><span class="s1">doctest</span>
+    <span class="s1">doctest.testmod()</span>
+    
+    
+</pre>
+</body>
+</html>

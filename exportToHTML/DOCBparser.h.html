@@ -1,0 +1,116 @@
+<html>
+<head>
+<title>DOCBparser.h</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+DOCBparser.h</font>
+</center></td></tr></table>
+<pre><span class="s0">/* 
+ * Summary: old DocBook SGML parser 
+ * Description: interface for a DocBook SGML non-verifying parser 
+ * This code is DEPRECATED, and should not be used anymore. 
+ * 
+ * Copy: See Copyright for the status of this software. 
+ * 
+ * Author: Daniel Veillard 
+ */</span>
+
+<span class="s2">#ifndef </span><span class="s1">__DOCB_PARSER_H__</span>
+<span class="s2">#define </span><span class="s1">__DOCB_PARSER_H__</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/xmlversion.h&gt;</span>
+
+<span class="s2">#ifdef </span><span class="s1">LIBXML_DOCB_ENABLED</span>
+
+<span class="s2">#include </span><span class="s1">&lt;libxml/parser.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/parserInternals.h&gt;</span>
+
+<span class="s2">#ifndef </span><span class="s1">IN_LIBXML</span>
+<span class="s2">#ifdef </span><span class="s1">__GNUC__</span>
+<span class="s1">#warning </span><span class="s3">&quot;The DOCBparser module has been deprecated in libxml2-2.6.0&quot;</span>
+<span class="s2">#endif</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s2">extern </span><span class="s3">&quot;C&quot; </span><span class="s1">{</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/* 
+ * Most of the back-end structures from XML and SGML are shared. 
+ */</span>
+<span class="s2">typedef </span><span class="s1">xmlParserCtxt docbParserCtxt;</span>
+<span class="s2">typedef </span><span class="s1">xmlParserCtxtPtr docbParserCtxtPtr;</span>
+<span class="s2">typedef </span><span class="s1">xmlSAXHandler docbSAXHandler;</span>
+<span class="s2">typedef </span><span class="s1">xmlSAXHandlerPtr docbSAXHandlerPtr;</span>
+<span class="s2">typedef </span><span class="s1">xmlParserInput docbParserInput;</span>
+<span class="s2">typedef </span><span class="s1">xmlParserInputPtr docbParserInputPtr;</span>
+<span class="s2">typedef </span><span class="s1">xmlDocPtr docbDocPtr;</span>
+
+<span class="s0">/* 
+ * There is only few public functions. 
+ */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		     <span class="s1">docbEncodeEntities(</span><span class="s2">unsigned char </span><span class="s1">*out,</span>
+                                        <span class="s2">int </span><span class="s1">*outlen,</span>
+                                        <span class="s2">const unsigned char </span><span class="s1">*in,</span>
+                                        <span class="s2">int </span><span class="s1">*inlen, </span><span class="s2">int </span><span class="s1">quoteChar);</span>
+
+<span class="s1">XMLPUBFUN docbDocPtr XMLCALL</span>
+		     <span class="s1">docbSAXParseDoc   (xmlChar *cur,</span>
+                                        <span class="s2">const char </span><span class="s1">*encoding,</span>
+                                        <span class="s1">docbSAXHandlerPtr sax,</span>
+                                        <span class="s2">void </span><span class="s1">*userData);</span>
+<span class="s1">XMLPUBFUN docbDocPtr XMLCALL</span>
+		     <span class="s1">docbParseDoc      (xmlChar *cur,</span>
+                                        <span class="s2">const char </span><span class="s1">*encoding);</span>
+<span class="s1">XMLPUBFUN docbDocPtr XMLCALL</span>
+		     <span class="s1">docbSAXParseFile  (</span><span class="s2">const char </span><span class="s1">*filename,</span>
+                                        <span class="s2">const char </span><span class="s1">*encoding,</span>
+                                        <span class="s1">docbSAXHandlerPtr sax,</span>
+                                        <span class="s2">void </span><span class="s1">*userData);</span>
+<span class="s1">XMLPUBFUN docbDocPtr XMLCALL</span>
+		     <span class="s1">docbParseFile     (</span><span class="s2">const char </span><span class="s1">*filename,</span>
+                                        <span class="s2">const char </span><span class="s1">*encoding);</span>
+
+<span class="s0">/** 
+ * Interfaces for the Push mode. 
+ */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		     <span class="s1">docbFreeParserCtxt      (docbParserCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN docbParserCtxtPtr XMLCALL</span>
+		     <span class="s1">docbCreatePushParserCtxt(docbSAXHandlerPtr sax,</span>
+                                              <span class="s2">void </span><span class="s1">*user_data,</span>
+                                              <span class="s2">const char </span><span class="s1">*chunk,</span>
+                                              <span class="s2">int </span><span class="s1">size,</span>
+                                              <span class="s2">const char </span><span class="s1">*filename,</span>
+                                              <span class="s1">xmlCharEncoding enc);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		     <span class="s1">docbParseChunk          (docbParserCtxtPtr ctxt,</span>
+                                              <span class="s2">const char </span><span class="s1">*chunk,</span>
+                                              <span class="s2">int </span><span class="s1">size,</span>
+                                              <span class="s2">int </span><span class="s1">terminate);</span>
+<span class="s1">XMLPUBFUN docbParserCtxtPtr XMLCALL</span>
+		     <span class="s1">docbCreateFileParserCtxt(</span><span class="s2">const char </span><span class="s1">*filename,</span>
+                                              <span class="s2">const char </span><span class="s1">*encoding);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		     <span class="s1">docbParseDocument       (docbParserCtxtPtr ctxt);</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s1">}</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#endif </span><span class="s0">/* LIBXML_DOCB_ENABLED */</span>
+
+<span class="s2">#endif </span><span class="s0">/* __DOCB_PARSER_H__ */</span>
+</pre>
+</body>
+</html>

@@ -1,0 +1,227 @@
+<html>
+<head>
+<title>transform.h</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+transform.h</font>
+</center></td></tr></table>
+<pre><span class="s0">/* 
+ * Summary: the XSLT engine transformation part. 
+ * Description: This module implements the bulk of the actual 
+ *              transformation processing. Most of the xsl: element 
+ *              constructs are implemented in this module. 
+ * 
+ * Copy: See Copyright for the status of this software. 
+ * 
+ * Author: Daniel Veillard 
+ */</span>
+
+<span class="s2">#ifndef </span><span class="s1">__XML_XSLT_TRANSFORM_H__</span>
+<span class="s2">#define </span><span class="s1">__XML_XSLT_TRANSFORM_H__</span>
+
+<span class="s2">#include </span><span class="s1">&lt;libxml/parser.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/xmlIO.h&gt;</span>
+<span class="s2">#include </span><span class="s3">&quot;xsltexports.h&quot;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxslt/xsltInternals.h&gt;</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s2">extern </span><span class="s3">&quot;C&quot; </span><span class="s1">{</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * XInclude default processing. 
+ */</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltSetXIncludeDefault	(</span><span class="s2">int </span><span class="s1">xinclude);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltGetXIncludeDefault	(</span><span class="s2">void</span><span class="s1">);</span>
+
+<span class="s0">/** 
+ * Export context to users. 
+ */</span>
+<span class="s1">XSLTPUBFUN xsltTransformContextPtr XSLTCALL</span>
+		<span class="s1">xsltNewTransformContext	(xsltStylesheetPtr style,</span>
+					 <span class="s1">xmlDocPtr doc);</span>
+
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltFreeTransformContext(xsltTransformContextPtr ctxt);</span>
+
+<span class="s1">XSLTPUBFUN xmlDocPtr XSLTCALL</span>
+		<span class="s1">xsltApplyStylesheetUser	(xsltStylesheetPtr style,</span>
+					 <span class="s1">xmlDocPtr doc,</span>
+					 <span class="s2">const char </span><span class="s1">**params,</span>
+					 <span class="s2">const char </span><span class="s1">*output,</span>
+					 <span class="s1">FILE * profile,</span>
+					 <span class="s1">xsltTransformContextPtr userCtxt);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+                <span class="s1">xsltProcessOneNode      (xsltTransformContextPtr ctxt,</span>
+                                         <span class="s1">xmlNodePtr node,</span>
+                                         <span class="s1">xsltStackElemPtr params);</span>
+<span class="s0">/** 
+ * Private Interfaces. 
+ */</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltApplyStripSpaces	(xsltTransformContextPtr ctxt,</span>
+					 <span class="s1">xmlNodePtr node);</span>
+<span class="s1">XSLTPUBFUN xmlDocPtr XSLTCALL</span>
+		<span class="s1">xsltApplyStylesheet	(xsltStylesheetPtr style,</span>
+					 <span class="s1">xmlDocPtr doc,</span>
+					 <span class="s2">const char </span><span class="s1">**params);</span>
+<span class="s1">XSLTPUBFUN xmlDocPtr XSLTCALL</span>
+		<span class="s1">xsltProfileStylesheet	(xsltStylesheetPtr style,</span>
+					 <span class="s1">xmlDocPtr doc,</span>
+					 <span class="s2">const char </span><span class="s1">**params,</span>
+					 <span class="s1">FILE * output);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltRunStylesheet	(xsltStylesheetPtr style,</span>
+					 <span class="s1">xmlDocPtr doc,</span>
+					 <span class="s2">const char </span><span class="s1">**params,</span>
+					 <span class="s2">const char </span><span class="s1">*output,</span>
+					 <span class="s1">xmlSAXHandlerPtr SAX,</span>
+					 <span class="s1">xmlOutputBufferPtr IObuf);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltRunStylesheetUser	(xsltStylesheetPtr style,</span>
+					 <span class="s1">xmlDocPtr doc,</span>
+					 <span class="s2">const char </span><span class="s1">**params,</span>
+					 <span class="s2">const char </span><span class="s1">*output,</span>
+					 <span class="s1">xmlSAXHandlerPtr SAX,</span>
+					 <span class="s1">xmlOutputBufferPtr IObuf,</span>
+					 <span class="s1">FILE * profile,</span>
+					 <span class="s1">xsltTransformContextPtr userCtxt);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltApplyOneTemplate	(xsltTransformContextPtr ctxt,</span>
+					 <span class="s1">xmlNodePtr node,</span>
+					 <span class="s1">xmlNodePtr list,</span>
+					 <span class="s1">xsltTemplatePtr templ,</span>
+					 <span class="s1">xsltStackElemPtr params);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltDocumentElem	(xsltTransformContextPtr ctxt,</span>
+	                                 <span class="s1">xmlNodePtr node,</span>
+					 <span class="s1">xmlNodePtr inst,</span>
+					 <span class="s1">xsltStylePreCompPtr comp);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltSort		(xsltTransformContextPtr ctxt,</span>
+	                                 <span class="s1">xmlNodePtr node,</span>
+					 <span class="s1">xmlNodePtr inst,</span>
+					 <span class="s1">xsltStylePreCompPtr comp);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltCopy		(xsltTransformContextPtr ctxt,</span>
+	                                 <span class="s1">xmlNodePtr node,</span>
+					 <span class="s1">xmlNodePtr inst,</span>
+					 <span class="s1">xsltStylePreCompPtr comp);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltText		(xsltTransformContextPtr ctxt,</span>
+	                                 <span class="s1">xmlNodePtr node,</span>
+					 <span class="s1">xmlNodePtr inst,</span>
+					 <span class="s1">xsltStylePreCompPtr comp);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltElement		(xsltTransformContextPtr ctxt,</span>
+	                                 <span class="s1">xmlNodePtr node,</span>
+					 <span class="s1">xmlNodePtr inst,</span>
+					 <span class="s1">xsltStylePreCompPtr comp);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltComment		(xsltTransformContextPtr ctxt,</span>
+	                                 <span class="s1">xmlNodePtr node,</span>
+					 <span class="s1">xmlNodePtr inst,</span>
+					 <span class="s1">xsltStylePreCompPtr comp);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltAttribute		(xsltTransformContextPtr ctxt,</span>
+	                                 <span class="s1">xmlNodePtr node,</span>
+					 <span class="s1">xmlNodePtr inst,</span>
+					 <span class="s1">xsltStylePreCompPtr comp);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltProcessingInstruction(xsltTransformContextPtr ctxt,</span>
+	                                 <span class="s1">xmlNodePtr node,</span>
+					 <span class="s1">xmlNodePtr inst,</span>
+					 <span class="s1">xsltStylePreCompPtr comp);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltCopyOf		(xsltTransformContextPtr ctxt,</span>
+	                                 <span class="s1">xmlNodePtr node,</span>
+					 <span class="s1">xmlNodePtr inst,</span>
+					 <span class="s1">xsltStylePreCompPtr comp);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltValueOf		(xsltTransformContextPtr ctxt,</span>
+	                                 <span class="s1">xmlNodePtr node,</span>
+					 <span class="s1">xmlNodePtr inst,</span>
+					 <span class="s1">xsltStylePreCompPtr comp);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltNumber		(xsltTransformContextPtr ctxt,</span>
+	                                 <span class="s1">xmlNodePtr node,</span>
+					 <span class="s1">xmlNodePtr inst,</span>
+					 <span class="s1">xsltStylePreCompPtr comp);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltApplyImports	(xsltTransformContextPtr ctxt,</span>
+	                                 <span class="s1">xmlNodePtr node,</span>
+					 <span class="s1">xmlNodePtr inst,</span>
+					 <span class="s1">xsltStylePreCompPtr comp);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltCallTemplate	(xsltTransformContextPtr ctxt,</span>
+	                                 <span class="s1">xmlNodePtr node,</span>
+					 <span class="s1">xmlNodePtr inst,</span>
+					 <span class="s1">xsltStylePreCompPtr comp);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltApplyTemplates	(xsltTransformContextPtr ctxt,</span>
+	                                 <span class="s1">xmlNodePtr node,</span>
+					 <span class="s1">xmlNodePtr inst,</span>
+					 <span class="s1">xsltStylePreCompPtr comp);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltChoose		(xsltTransformContextPtr ctxt,</span>
+	                                 <span class="s1">xmlNodePtr node,</span>
+					 <span class="s1">xmlNodePtr inst,</span>
+					 <span class="s1">xsltStylePreCompPtr comp);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltIf			(xsltTransformContextPtr ctxt,</span>
+	                                 <span class="s1">xmlNodePtr node,</span>
+					 <span class="s1">xmlNodePtr inst,</span>
+					 <span class="s1">xsltStylePreCompPtr comp);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltForEach		(xsltTransformContextPtr ctxt,</span>
+	                                 <span class="s1">xmlNodePtr node,</span>
+					 <span class="s1">xmlNodePtr inst,</span>
+					 <span class="s1">xsltStylePreCompPtr comp);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltRegisterAllElement	(xsltTransformContextPtr ctxt);</span>
+
+<span class="s1">XSLTPUBFUN xmlNodePtr XSLTCALL</span>
+		<span class="s1">xsltCopyTextString	(xsltTransformContextPtr ctxt,</span>
+					 <span class="s1">xmlNodePtr target,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *string,</span>
+					 <span class="s2">int </span><span class="s1">noescape);</span>
+
+<span class="s0">/* Following 2 functions needed for libexslt/functions.c */</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltLocalVariablePop	(xsltTransformContextPtr ctxt,</span>
+					 <span class="s2">int </span><span class="s1">limitNr,</span>
+					 <span class="s2">int </span><span class="s1">level);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltLocalVariablePush	(xsltTransformContextPtr ctxt,</span>
+					 <span class="s1">xsltStackElemPtr variable,</span>
+					 <span class="s2">int </span><span class="s1">level);</span>
+<span class="s0">/* 
+ * Hook for the debugger if activated. 
+ */</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xslHandleDebugger	(xmlNodePtr cur,</span>
+					 <span class="s1">xmlNodePtr node,</span>
+					 <span class="s1">xsltTemplatePtr templ,</span>
+					 <span class="s1">xsltTransformContextPtr ctxt);</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s1">}</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#endif </span><span class="s0">/* __XML_XSLT_TRANSFORM_H__ */</span>
+
+</pre>
+</body>
+</html>

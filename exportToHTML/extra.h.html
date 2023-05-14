@@ -1,0 +1,92 @@
+<html>
+<head>
+<title>extra.h</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+extra.h</font>
+</center></td></tr></table>
+<pre><span class="s0">/* 
+ * Summary: interface for the non-standard features 
+ * Description: implement some extension outside the XSLT namespace 
+ *              but not EXSLT with is in a different library. 
+ * 
+ * Copy: See Copyright for the status of this software. 
+ * 
+ * Author: Daniel Veillard 
+ */</span>
+
+<span class="s2">#ifndef </span><span class="s1">__XML_XSLT_EXTRA_H__</span>
+<span class="s2">#define </span><span class="s1">__XML_XSLT_EXTRA_H__</span>
+
+<span class="s2">#include </span><span class="s1">&lt;libxml/xpath.h&gt;</span>
+<span class="s2">#include </span><span class="s3">&quot;xsltexports.h&quot;</span>
+<span class="s2">#include </span><span class="s3">&quot;xsltInternals.h&quot;</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s2">extern </span><span class="s3">&quot;C&quot; </span><span class="s1">{</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * XSLT_LIBXSLT_NAMESPACE: 
+ * 
+ * This is the libxslt namespace for specific extensions. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XSLT_LIBXSLT_NAMESPACE ((xmlChar *) </span><span class="s3">&quot;http://xmlsoft.org/XSLT/namespace&quot;</span><span class="s1">)</span>
+
+<span class="s0">/** 
+ * XSLT_SAXON_NAMESPACE: 
+ * 
+ * This is Michael Kay's Saxon processor namespace for extensions. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XSLT_SAXON_NAMESPACE ((xmlChar *) </span><span class="s3">&quot;http://icl.com/saxon&quot;</span><span class="s1">)</span>
+
+<span class="s0">/** 
+ * XSLT_XT_NAMESPACE: 
+ * 
+ * This is James Clark's XT processor namespace for extensions. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XSLT_XT_NAMESPACE ((xmlChar *) </span><span class="s3">&quot;http://www.jclark.com/xt&quot;</span><span class="s1">)</span>
+
+<span class="s0">/** 
+ * XSLT_XALAN_NAMESPACE: 
+ * 
+ * This is the Apache project XALAN processor namespace for extensions. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XSLT_XALAN_NAMESPACE ((xmlChar *)	\</span>
+	                        <span class="s3">&quot;org.apache.xalan.xslt.extensions.Redirect&quot;</span><span class="s1">)</span>
+
+
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltFunctionNodeSet	(xmlXPathParserContextPtr ctxt,</span>
+					 <span class="s2">int </span><span class="s1">nargs);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltDebug		(xsltTransformContextPtr ctxt,</span>
+					 <span class="s1">xmlNodePtr node,</span>
+					 <span class="s1">xmlNodePtr inst,</span>
+					 <span class="s1">xsltStylePreCompPtr comp);</span>
+
+
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltRegisterExtras	(xsltTransformContextPtr ctxt);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltRegisterAllExtras	(</span><span class="s2">void</span><span class="s1">);</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s1">}</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#endif </span><span class="s0">/* __XML_XSLT_EXTRA_H__ */</span>
+
+</pre>
+</body>
+</html>

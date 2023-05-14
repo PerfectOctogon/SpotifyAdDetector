@@ -1,0 +1,239 @@
+<html>
+<head>
+<title>firefox_binary.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+.s4 { color: #629755; font-style: italic;}
+.s5 { color: #6897bb;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+firefox_binary.py</font>
+</center></td></tr></table>
+<pre><span class="s0"># Licensed to the Software Freedom Conservancy (SFC) under one</span>
+<span class="s0"># or more contributor license agreements.  See the NOTICE file</span>
+<span class="s0"># distributed with this work for additional information</span>
+<span class="s0"># regarding copyright ownership.  The SFC licenses this file</span>
+<span class="s0"># to you under the Apache License, Version 2.0 (the</span>
+<span class="s0"># &quot;License&quot;); you may not use this file except in compliance</span>
+<span class="s0"># with the License.  You may obtain a copy of the License at</span>
+<span class="s0">#</span>
+<span class="s0">#   http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="s0">#</span>
+<span class="s0"># Unless required by applicable law or agreed to in writing,</span>
+<span class="s0"># software distributed under the License is distributed on an</span>
+<span class="s0"># &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY</span>
+<span class="s0"># KIND, either express or implied.  See the License for the</span>
+<span class="s0"># specific language governing permissions and limitations</span>
+<span class="s0"># under the License.</span>
+
+
+<span class="s2">import </span><span class="s1">os</span>
+<span class="s2">import </span><span class="s1">platform</span>
+<span class="s2">from </span><span class="s1">subprocess </span><span class="s2">import </span><span class="s1">Popen</span><span class="s2">, </span><span class="s1">STDOUT</span>
+<span class="s2">from </span><span class="s1">selenium.common.exceptions </span><span class="s2">import </span><span class="s1">WebDriverException</span>
+<span class="s2">from </span><span class="s1">selenium.webdriver.common </span><span class="s2">import </span><span class="s1">utils</span>
+<span class="s2">import </span><span class="s1">time</span>
+
+
+<span class="s2">class </span><span class="s1">FirefoxBinary(object):</span>
+
+    <span class="s1">NO_FOCUS_LIBRARY_NAME = </span><span class="s3">&quot;x_ignore_nofocus.so&quot;</span>
+
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">firefox_path=</span><span class="s2">None, </span><span class="s1">log_file=</span><span class="s2">None</span><span class="s1">):</span>
+        <span class="s4">&quot;&quot;&quot; 
+        Creates a new instance of Firefox binary. 
+ 
+        :Args: 
+         - firefox_path - Path to the Firefox executable. By default, it will be detected from the standard locations. 
+         - log_file - A file object to redirect the firefox process output to. It can be sys.stdout. 
+                      Please note that with parallel run the output won't be synchronous. 
+                      By default, it will be redirected to /dev/null. 
+        &quot;&quot;&quot;</span>
+        <span class="s1">self._start_cmd = firefox_path</span>
+        <span class="s0"># We used to default to subprocess.PIPE instead of /dev/null, but after</span>
+        <span class="s0"># a while the pipe would fill up and Firefox would freeze.</span>
+        <span class="s1">self._log_file = log_file </span><span class="s2">or </span><span class="s1">open(os.devnull</span><span class="s2">, </span><span class="s3">&quot;wb&quot;</span><span class="s1">)</span>
+        <span class="s1">self.command_line = </span><span class="s2">None</span>
+        <span class="s2">if </span><span class="s1">self._start_cmd </span><span class="s2">is None</span><span class="s1">:</span>
+            <span class="s1">self._start_cmd = self._get_firefox_start_cmd()</span>
+        <span class="s2">if not </span><span class="s1">self._start_cmd.strip():</span>
+            <span class="s2">raise </span><span class="s1">WebDriverException(</span>
+                <span class="s3">&quot;Failed to find firefox binary. You can set it by specifying &quot;</span>
+                <span class="s3">&quot;the path to 'firefox_binary':</span><span class="s2">\n\n</span><span class="s3">from &quot;</span>
+                <span class="s3">&quot;selenium.webdriver.firefox.firefox_binary import &quot;</span>
+                <span class="s3">&quot;FirefoxBinary</span><span class="s2">\n\n</span><span class="s3">binary = &quot;</span>
+                <span class="s3">&quot;FirefoxBinary('/path/to/binary')</span><span class="s2">\n</span><span class="s3">driver = &quot;</span>
+                <span class="s3">&quot;webdriver.Firefox(firefox_binary=binary)&quot;</span><span class="s1">)</span>
+        <span class="s0"># Rather than modifying the environment of the calling Python process</span>
+        <span class="s0"># copy it and modify as needed.</span>
+        <span class="s1">self._firefox_env = os.environ.copy()</span>
+        <span class="s1">self._firefox_env[</span><span class="s3">&quot;MOZ_CRASHREPORTER_DISABLE&quot;</span><span class="s1">] = </span><span class="s3">&quot;1&quot;</span>
+        <span class="s1">self._firefox_env[</span><span class="s3">&quot;MOZ_NO_REMOTE&quot;</span><span class="s1">] = </span><span class="s3">&quot;1&quot;</span>
+        <span class="s1">self._firefox_env[</span><span class="s3">&quot;NO_EM_RESTART&quot;</span><span class="s1">] = </span><span class="s3">&quot;1&quot;</span>
+
+    <span class="s2">def </span><span class="s1">add_command_line_options(self</span><span class="s2">, </span><span class="s1">*args):</span>
+        <span class="s1">self.command_line = args</span>
+
+    <span class="s2">def </span><span class="s1">launch_browser(self</span><span class="s2">, </span><span class="s1">profile</span><span class="s2">, </span><span class="s1">timeout=</span><span class="s5">30</span><span class="s1">):</span>
+        <span class="s4">&quot;&quot;&quot;Launches the browser for the given profile name. 
+        It is assumed the profile already exists. 
+        &quot;&quot;&quot;</span>
+        <span class="s1">self.profile = profile</span>
+
+        <span class="s1">self._start_from_profile_path(self.profile.path)</span>
+        <span class="s1">self._wait_until_connectable(timeout=timeout)</span>
+
+    <span class="s2">def </span><span class="s1">kill(self):</span>
+        <span class="s4">&quot;&quot;&quot;Kill the browser. 
+ 
+        This is useful when the browser is stuck. 
+        &quot;&quot;&quot;</span>
+        <span class="s2">if </span><span class="s1">self.process:</span>
+            <span class="s1">self.process.kill()</span>
+            <span class="s1">self.process.wait()</span>
+
+    <span class="s2">def </span><span class="s1">_start_from_profile_path(self</span><span class="s2">, </span><span class="s1">path):</span>
+        <span class="s1">self._firefox_env[</span><span class="s3">&quot;XRE_PROFILE_PATH&quot;</span><span class="s1">] = path</span>
+
+        <span class="s2">if </span><span class="s1">platform.system().lower() == </span><span class="s3">'linux'</span><span class="s1">:</span>
+            <span class="s1">self._modify_link_library_path()</span>
+        <span class="s1">command = [self._start_cmd</span><span class="s2">, </span><span class="s3">&quot;-foreground&quot;</span><span class="s1">]</span>
+        <span class="s2">if </span><span class="s1">self.command_line </span><span class="s2">is not None</span><span class="s1">:</span>
+            <span class="s2">for </span><span class="s1">cli </span><span class="s2">in </span><span class="s1">self.command_line:</span>
+                <span class="s1">command.append(cli)</span>
+        <span class="s1">self.process = Popen(</span>
+            <span class="s1">command</span><span class="s2">, </span><span class="s1">stdout=self._log_file</span><span class="s2">, </span><span class="s1">stderr=STDOUT</span><span class="s2">,</span>
+            <span class="s1">env=self._firefox_env)</span>
+
+    <span class="s2">def </span><span class="s1">_wait_until_connectable(self</span><span class="s2">, </span><span class="s1">timeout=</span><span class="s5">30</span><span class="s1">):</span>
+        <span class="s4">&quot;&quot;&quot;Blocks until the extension is connectable in the firefox.&quot;&quot;&quot;</span>
+        <span class="s1">count = </span><span class="s5">0</span>
+        <span class="s2">while not </span><span class="s1">utils.is_connectable(self.profile.port):</span>
+            <span class="s2">if </span><span class="s1">self.process.poll() </span><span class="s2">is not None</span><span class="s1">:</span>
+                <span class="s0"># Browser has exited</span>
+                <span class="s2">raise </span><span class="s1">WebDriverException(</span>
+                    <span class="s3">&quot;The browser appears to have exited &quot;</span>
+                    <span class="s3">&quot;before we could connect. If you specified a log_file in &quot;</span>
+                    <span class="s3">&quot;the FirefoxBinary constructor, check it for details.&quot;</span><span class="s1">)</span>
+            <span class="s2">if </span><span class="s1">count &gt;= timeout:</span>
+                <span class="s1">self.kill()</span>
+                <span class="s2">raise </span><span class="s1">WebDriverException(</span>
+                    <span class="s3">&quot;Can't load the profile. Possible firefox version mismatch. &quot;</span>
+                    <span class="s3">&quot;You must use GeckoDriver instead for Firefox 48+. Profile &quot;</span>
+                    <span class="s3">&quot;Dir: %s If you specified a log_file in the &quot;</span>
+                    <span class="s3">&quot;FirefoxBinary constructor, check it for details.&quot;</span>
+                    <span class="s1">% (self.profile.path))</span>
+            <span class="s1">count += </span><span class="s5">1</span>
+            <span class="s1">time.sleep(</span><span class="s5">1</span><span class="s1">)</span>
+        <span class="s2">return True</span>
+
+    <span class="s2">def </span><span class="s1">_find_exe_in_registry(self):</span>
+        <span class="s2">try</span><span class="s1">:</span>
+            <span class="s2">from </span><span class="s1">_winreg </span><span class="s2">import </span><span class="s1">OpenKey</span><span class="s2">, </span><span class="s1">QueryValue</span><span class="s2">, </span><span class="s1">HKEY_LOCAL_MACHINE</span><span class="s2">, </span><span class="s1">HKEY_CURRENT_USER</span>
+        <span class="s2">except </span><span class="s1">ImportError:</span>
+            <span class="s2">from </span><span class="s1">winreg </span><span class="s2">import </span><span class="s1">OpenKey</span><span class="s2">, </span><span class="s1">QueryValue</span><span class="s2">, </span><span class="s1">HKEY_LOCAL_MACHINE</span><span class="s2">, </span><span class="s1">HKEY_CURRENT_USER</span>
+        <span class="s2">import </span><span class="s1">shlex</span>
+        <span class="s1">keys = (</span><span class="s3">r&quot;SOFTWARE\Classes\FirefoxHTML\shell\open\command&quot;</span><span class="s2">,</span>
+                <span class="s3">r&quot;SOFTWARE\Classes\Applications\firefox.exe\shell\open\command&quot;</span><span class="s1">)</span>
+        <span class="s1">command = </span><span class="s3">&quot;&quot;</span>
+        <span class="s2">for </span><span class="s1">path </span><span class="s2">in </span><span class="s1">keys:</span>
+            <span class="s2">try</span><span class="s1">:</span>
+                <span class="s1">key = OpenKey(HKEY_LOCAL_MACHINE</span><span class="s2">, </span><span class="s1">path)</span>
+                <span class="s1">command = QueryValue(key</span><span class="s2">, </span><span class="s3">&quot;&quot;</span><span class="s1">)</span>
+                <span class="s2">break</span>
+            <span class="s2">except </span><span class="s1">OSError:</span>
+                <span class="s2">try</span><span class="s1">:</span>
+                    <span class="s1">key = OpenKey(HKEY_CURRENT_USER</span><span class="s2">, </span><span class="s1">path)</span>
+                    <span class="s1">command = QueryValue(key</span><span class="s2">, </span><span class="s3">&quot;&quot;</span><span class="s1">)</span>
+                    <span class="s2">break</span>
+                <span class="s2">except </span><span class="s1">OSError:</span>
+                    <span class="s2">pass</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s2">return </span><span class="s3">&quot;&quot;</span>
+
+        <span class="s2">if not </span><span class="s1">command:</span>
+            <span class="s2">return </span><span class="s3">&quot;&quot;</span>
+
+        <span class="s2">return </span><span class="s1">shlex.split(command)[</span><span class="s5">0</span><span class="s1">]</span>
+
+    <span class="s2">def </span><span class="s1">_get_firefox_start_cmd(self):</span>
+        <span class="s4">&quot;&quot;&quot;Return the command to start firefox.&quot;&quot;&quot;</span>
+        <span class="s1">start_cmd = </span><span class="s3">&quot;&quot;</span>
+        <span class="s2">if </span><span class="s1">platform.system() == </span><span class="s3">&quot;Darwin&quot;</span><span class="s1">:</span>
+            <span class="s1">start_cmd = </span><span class="s3">&quot;/Applications/Firefox.app/Contents/MacOS/firefox-bin&quot;</span>
+            <span class="s0"># fallback to homebrew installation for mac users</span>
+            <span class="s2">if not </span><span class="s1">os.path.exists(start_cmd):</span>
+                <span class="s1">start_cmd = os.path.expanduser(</span><span class="s3">&quot;~&quot;</span><span class="s1">) + start_cmd</span>
+        <span class="s2">elif </span><span class="s1">platform.system() == </span><span class="s3">&quot;Windows&quot;</span><span class="s1">:</span>
+            <span class="s1">start_cmd = (self._find_exe_in_registry() </span><span class="s2">or </span><span class="s1">self._default_windows_location())</span>
+        <span class="s2">elif </span><span class="s1">platform.system() == </span><span class="s3">'Java' </span><span class="s2">and </span><span class="s1">os._name == </span><span class="s3">'nt'</span><span class="s1">:</span>
+            <span class="s1">start_cmd = self._default_windows_location()</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s2">for </span><span class="s1">ffname </span><span class="s2">in </span><span class="s1">[</span><span class="s3">&quot;firefox&quot;</span><span class="s2">, </span><span class="s3">&quot;iceweasel&quot;</span><span class="s1">]:</span>
+                <span class="s1">start_cmd = self.which(ffname)</span>
+                <span class="s2">if </span><span class="s1">start_cmd </span><span class="s2">is not None</span><span class="s1">:</span>
+                    <span class="s2">break</span>
+            <span class="s2">else</span><span class="s1">:</span>
+                <span class="s0"># couldn't find firefox on the system path</span>
+                <span class="s2">raise </span><span class="s1">RuntimeError(</span>
+                    <span class="s3">&quot;Could not find firefox in your system PATH.&quot; </span><span class="s1">+</span>
+                    <span class="s3">&quot; Please specify the firefox binary location or install firefox&quot;</span><span class="s1">)</span>
+        <span class="s2">return </span><span class="s1">start_cmd</span>
+
+    <span class="s2">def </span><span class="s1">_default_windows_location(self):</span>
+        <span class="s1">program_files = [os.getenv(</span><span class="s3">&quot;PROGRAMFILES&quot;</span><span class="s2">, </span><span class="s3">r&quot;C:\Program Files&quot;</span><span class="s1">)</span><span class="s2">,</span>
+                         <span class="s1">os.getenv(</span><span class="s3">&quot;PROGRAMFILES(X86)&quot;</span><span class="s2">, </span><span class="s3">r&quot;C:\Program Files (x86)&quot;</span><span class="s1">)]</span>
+        <span class="s2">for </span><span class="s1">path </span><span class="s2">in </span><span class="s1">program_files:</span>
+            <span class="s1">binary_path = os.path.join(path</span><span class="s2">, </span><span class="s3">r&quot;Mozilla Firefox\firefox.exe&quot;</span><span class="s1">)</span>
+            <span class="s2">if </span><span class="s1">os.access(binary_path</span><span class="s2">, </span><span class="s1">os.X_OK):</span>
+                <span class="s2">return </span><span class="s1">binary_path</span>
+        <span class="s2">return </span><span class="s3">&quot;&quot;</span>
+
+    <span class="s2">def </span><span class="s1">_modify_link_library_path(self):</span>
+        <span class="s1">existing_ld_lib_path = os.environ.get(</span><span class="s3">'LD_LIBRARY_PATH'</span><span class="s2">, </span><span class="s3">''</span><span class="s1">)</span>
+
+        <span class="s1">new_ld_lib_path = self._extract_and_check(</span>
+            <span class="s1">self.profile</span><span class="s2">, </span><span class="s1">self.NO_FOCUS_LIBRARY_NAME</span><span class="s2">, </span><span class="s3">&quot;x86&quot;</span><span class="s2">, </span><span class="s3">&quot;amd64&quot;</span><span class="s1">)</span>
+
+        <span class="s1">new_ld_lib_path += existing_ld_lib_path</span>
+
+        <span class="s1">self._firefox_env[</span><span class="s3">&quot;LD_LIBRARY_PATH&quot;</span><span class="s1">] = new_ld_lib_path</span>
+        <span class="s1">self._firefox_env[</span><span class="s3">'LD_PRELOAD'</span><span class="s1">] = self.NO_FOCUS_LIBRARY_NAME</span>
+
+    <span class="s2">def </span><span class="s1">_extract_and_check(self</span><span class="s2">, </span><span class="s1">profile</span><span class="s2">, </span><span class="s1">no_focus_so_name</span><span class="s2">, </span><span class="s1">x86</span><span class="s2">, </span><span class="s1">amd64):</span>
+
+        <span class="s1">paths = [x86</span><span class="s2">, </span><span class="s1">amd64]</span>
+        <span class="s1">built_path = </span><span class="s3">&quot;&quot;</span>
+        <span class="s2">for </span><span class="s1">path </span><span class="s2">in </span><span class="s1">paths:</span>
+            <span class="s1">library_path = os.path.join(profile.path</span><span class="s2">, </span><span class="s1">path)</span>
+            <span class="s2">if not </span><span class="s1">os.path.exists(library_path):</span>
+                <span class="s1">os.makedirs(library_path)</span>
+            <span class="s2">import </span><span class="s1">shutil</span>
+            <span class="s1">shutil.copy(os.path.join(</span>
+                <span class="s1">os.path.dirname(__file__)</span><span class="s2">,</span>
+                <span class="s1">path</span><span class="s2">,</span>
+                <span class="s1">self.NO_FOCUS_LIBRARY_NAME)</span><span class="s2">,</span>
+                <span class="s1">library_path)</span>
+            <span class="s1">built_path += library_path + </span><span class="s3">&quot;:&quot;</span>
+
+        <span class="s2">return </span><span class="s1">built_path</span>
+
+    <span class="s2">def </span><span class="s1">which(self</span><span class="s2">, </span><span class="s1">fname):</span>
+        <span class="s4">&quot;&quot;&quot;Returns the fully qualified path by searching Path of the given 
+        name&quot;&quot;&quot;</span>
+        <span class="s2">for </span><span class="s1">pe </span><span class="s2">in </span><span class="s1">os.environ[</span><span class="s3">'PATH'</span><span class="s1">].split(os.pathsep):</span>
+            <span class="s1">checkname = os.path.join(pe</span><span class="s2">, </span><span class="s1">fname)</span>
+            <span class="s2">if </span><span class="s1">os.access(checkname</span><span class="s2">, </span><span class="s1">os.X_OK) </span><span class="s2">and not </span><span class="s1">os.path.isdir(checkname):</span>
+                <span class="s2">return </span><span class="s1">checkname</span>
+        <span class="s2">return None</span>
+</pre>
+</body>
+</html>

@@ -1,0 +1,335 @@
+<html>
+<head>
+<title>_http.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #629755; font-style: italic;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+.s4 { color: #6897bb;}
+.s5 { color: #808080;}
+.s6 { color: #a5c261;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+_http.py</font>
+</center></td></tr></table>
+<pre><span class="s0">&quot;&quot;&quot;HTTP related handlers. 
+ 
+Note that some other HTTP handlers live in more specific modules: _auth.py, 
+_gzip.py, etc. 
+ 
+ 
+Copyright 2002-2006 John J Lee &lt;jjl@pobox.com&gt; 
+ 
+This code is free software; you can redistribute it and/or modify it 
+under the terms of the BSD or ZPL 2.1 licenses (see the file 
+LICENSE included with the distribution). 
+ 
+&quot;&quot;&quot;</span>
+
+<span class="s2">from </span><span class="s1">__future__ </span><span class="s2">import </span><span class="s1">absolute_import</span>
+
+<span class="s2">import </span><span class="s1">logging</span>
+<span class="s2">import </span><span class="s1">socket</span>
+<span class="s2">import </span><span class="s1">time</span>
+<span class="s2">from </span><span class="s1">io </span><span class="s2">import </span><span class="s1">BytesIO</span>
+
+<span class="s2">from </span><span class="s1">. </span><span class="s2">import </span><span class="s1">_rfc3986</span><span class="s2">, </span><span class="s1">_sockettimeout</span>
+<span class="s2">from </span><span class="s1">._headersutil </span><span class="s2">import </span><span class="s1">is_html</span>
+<span class="s2">from </span><span class="s1">._request </span><span class="s2">import </span><span class="s1">Request</span>
+<span class="s2">from </span><span class="s1">._response </span><span class="s2">import </span><span class="s1">response_seek_wrapper</span>
+<span class="s2">from </span><span class="s1">._urllib2_fork </span><span class="s2">import </span><span class="s1">BaseHandler</span><span class="s2">, </span><span class="s1">HTTPError</span>
+<span class="s2">from </span><span class="s1">._equiv </span><span class="s2">import </span><span class="s1">HTTPEquivParser</span>
+<span class="s2">from </span><span class="s1">.polyglot </span><span class="s2">import </span><span class="s1">create_response_info</span><span class="s2">, </span><span class="s1">RobotFileParser</span><span class="s2">, </span><span class="s1">is_py2</span><span class="s2">, </span><span class="s1">as_unicode</span>
+
+<span class="s1">debug = logging.getLogger(</span><span class="s3">&quot;mechanize&quot;</span><span class="s1">).debug</span>
+<span class="s1">debug_robots = logging.getLogger(</span><span class="s3">&quot;mechanize.robots&quot;</span><span class="s1">).debug</span>
+
+
+<span class="s2">def </span><span class="s1">parse_head(fileobj):</span>
+    <span class="s0">&quot;&quot;&quot;Return a list of key, value pairs.&quot;&quot;&quot;</span>
+    <span class="s1">p = HTTPEquivParser(fileobj.read(</span><span class="s4">4096</span><span class="s1">))</span>
+    <span class="s2">return </span><span class="s1">p()</span>
+
+
+<span class="s2">class </span><span class="s1">HTTPEquivProcessor(BaseHandler):</span>
+    <span class="s0">&quot;&quot;&quot;Append META HTTP-EQUIV headers to regular HTTP headers.&quot;&quot;&quot;</span>
+
+    <span class="s1">handler_order = </span><span class="s4">300  </span><span class="s5"># before handlers that look at HTTP headers</span>
+
+    <span class="s2">def </span><span class="s1">http_response(self</span><span class="s2">, </span><span class="s1">request</span><span class="s2">, </span><span class="s1">response):</span>
+        <span class="s2">if not </span><span class="s1">hasattr(response</span><span class="s2">, </span><span class="s3">&quot;seek&quot;</span><span class="s1">):</span>
+            <span class="s1">response = response_seek_wrapper(response)</span>
+        <span class="s1">http_message = response.info()</span>
+        <span class="s1">url = response.geturl()</span>
+        <span class="s1">ct_hdrs = http_message.getheaders(</span><span class="s3">&quot;content-type&quot;</span><span class="s1">)</span>
+        <span class="s2">if </span><span class="s1">is_html(ct_hdrs</span><span class="s2">, </span><span class="s1">url</span><span class="s2">, True</span><span class="s1">):</span>
+            <span class="s2">try</span><span class="s1">:</span>
+                <span class="s2">try</span><span class="s1">:</span>
+                    <span class="s1">html_headers = parse_head(response)</span>
+                <span class="s2">finally</span><span class="s1">:</span>
+                    <span class="s1">response.seek(</span><span class="s4">0</span><span class="s1">)</span>
+            <span class="s2">except </span><span class="s1">Exception:</span>
+                <span class="s2">pass</span>
+            <span class="s2">else</span><span class="s1">:</span>
+                <span class="s2">for </span><span class="s1">hdr</span><span class="s2">, </span><span class="s1">val </span><span class="s2">in </span><span class="s1">html_headers:</span>
+                    <span class="s2">if </span><span class="s1">is_py2:</span>
+                        <span class="s5"># add a header</span>
+                        <span class="s1">http_message.dict[hdr.lower()] = val</span>
+                        <span class="s1">text = hdr + </span><span class="s6">b&quot;: &quot; </span><span class="s1">+ val</span>
+                        <span class="s2">for </span><span class="s1">line </span><span class="s2">in </span><span class="s1">text.split(</span><span class="s6">b&quot;</span><span class="s2">\n</span><span class="s6">&quot;</span><span class="s1">):</span>
+                            <span class="s1">http_message.headers.append(line + </span><span class="s6">b&quot;</span><span class="s2">\n</span><span class="s6">&quot;</span><span class="s1">)</span>
+                    <span class="s2">else</span><span class="s1">:</span>
+                        <span class="s1">hdr = hdr.decode(</span><span class="s3">'iso-8859-1'</span><span class="s1">)</span>
+                        <span class="s1">http_message[hdr] = val.decode(</span><span class="s3">'iso-8859-1'</span><span class="s1">)</span>
+        <span class="s2">return </span><span class="s1">response</span>
+
+    <span class="s1">https_response = http_response</span>
+
+
+<span class="s2">class </span><span class="s1">MechanizeRobotFileParser(RobotFileParser):</span>
+
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">url=</span><span class="s3">''</span><span class="s2">, </span><span class="s1">opener=</span><span class="s2">None</span><span class="s1">):</span>
+        <span class="s1">RobotFileParser.__init__(self</span><span class="s2">, </span><span class="s1">url)</span>
+        <span class="s1">self._opener = opener</span>
+        <span class="s1">self._timeout = _sockettimeout._GLOBAL_DEFAULT_TIMEOUT</span>
+
+    <span class="s2">def </span><span class="s1">set_opener(self</span><span class="s2">, </span><span class="s1">opener=</span><span class="s2">None</span><span class="s1">):</span>
+        <span class="s2">from </span><span class="s1">. </span><span class="s2">import </span><span class="s1">_opener</span>
+        <span class="s2">if </span><span class="s1">opener </span><span class="s2">is None</span><span class="s1">:</span>
+            <span class="s1">opener = _opener.OpenerDirector()</span>
+        <span class="s1">self._opener = opener</span>
+
+    <span class="s2">def </span><span class="s1">set_timeout(self</span><span class="s2">, </span><span class="s1">timeout):</span>
+        <span class="s1">self._timeout = timeout</span>
+
+    <span class="s2">def </span><span class="s1">read(self):</span>
+        <span class="s0">&quot;&quot;&quot;Reads the robots.txt URL and feeds it to the parser.&quot;&quot;&quot;</span>
+        <span class="s2">if </span><span class="s1">self._opener </span><span class="s2">is None</span><span class="s1">:</span>
+            <span class="s1">self.set_opener()</span>
+        <span class="s1">req = Request(self.url</span><span class="s2">, </span><span class="s1">unverifiable=</span><span class="s2">True, </span><span class="s1">visit=</span><span class="s2">False,</span>
+                      <span class="s1">timeout=self._timeout)</span>
+        <span class="s2">try</span><span class="s1">:</span>
+            <span class="s1">f = self._opener.open(req)</span>
+        <span class="s2">except </span><span class="s1">HTTPError </span><span class="s2">as </span><span class="s1">err:</span>
+            <span class="s1">f = err</span>
+        <span class="s2">except </span><span class="s1">(IOError</span><span class="s2">, </span><span class="s1">socket.error</span><span class="s2">, </span><span class="s1">OSError) </span><span class="s2">as </span><span class="s1">exc:</span>
+            <span class="s1">debug_robots(</span><span class="s3">&quot;ignoring error opening %r: %s&quot; </span><span class="s1">%</span>
+                         <span class="s1">(self.url</span><span class="s2">, </span><span class="s1">exc))</span>
+            <span class="s2">return</span>
+        <span class="s1">lines = []</span>
+        <span class="s1">line = f.readline()</span>
+        <span class="s2">while </span><span class="s1">line:</span>
+            <span class="s1">lines.append(line.strip())</span>
+            <span class="s1">line = f.readline()</span>
+        <span class="s1">status = f.code</span>
+        <span class="s2">if </span><span class="s1">status == </span><span class="s4">401 </span><span class="s2">or </span><span class="s1">status == </span><span class="s4">403</span><span class="s1">:</span>
+            <span class="s1">self.disallow_all = </span><span class="s2">True</span>
+            <span class="s1">debug_robots(</span><span class="s3">&quot;disallow all&quot;</span><span class="s1">)</span>
+        <span class="s2">elif </span><span class="s1">status &gt;= </span><span class="s4">400</span><span class="s1">:</span>
+            <span class="s1">self.allow_all = </span><span class="s2">True</span>
+            <span class="s1">debug_robots(</span><span class="s3">&quot;allow all&quot;</span><span class="s1">)</span>
+        <span class="s2">elif </span><span class="s1">status == </span><span class="s4">200 </span><span class="s2">and </span><span class="s1">lines:</span>
+            <span class="s1">debug_robots(</span><span class="s3">&quot;parse lines&quot;</span><span class="s1">)</span>
+            <span class="s2">if </span><span class="s1">is_py2:</span>
+                <span class="s1">self.parse(lines)</span>
+            <span class="s2">else</span><span class="s1">:</span>
+                <span class="s1">self.parse(map(as_unicode</span><span class="s2">, </span><span class="s1">lines))</span>
+
+
+<span class="s2">class </span><span class="s1">RobotExclusionError(HTTPError):</span>
+
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">request</span><span class="s2">, </span><span class="s1">*args):</span>
+        <span class="s1">HTTPError.__init__(self</span><span class="s2">, </span><span class="s1">*args)</span>
+        <span class="s1">self.request = request</span>
+
+
+<span class="s2">class </span><span class="s1">HTTPRobotRulesProcessor(BaseHandler):</span>
+    <span class="s5"># before redirections, after everything else</span>
+    <span class="s1">handler_order = </span><span class="s4">800</span>
+    <span class="s1">http_response_class = </span><span class="s2">None</span>
+
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">rfp_class=MechanizeRobotFileParser):</span>
+        <span class="s1">self.rfp_class = rfp_class</span>
+        <span class="s1">self.rfp = </span><span class="s2">None</span>
+        <span class="s1">self._host = </span><span class="s2">None</span>
+
+    <span class="s2">def </span><span class="s1">__copy__(self):</span>
+        <span class="s2">return </span><span class="s1">self.__class__(self.rfp_class)</span>
+
+    <span class="s2">def </span><span class="s1">http_request(self</span><span class="s2">, </span><span class="s1">request):</span>
+        <span class="s1">scheme = request.get_type()</span>
+        <span class="s2">if </span><span class="s1">scheme </span><span class="s2">not in </span><span class="s1">[</span><span class="s3">&quot;http&quot;</span><span class="s2">, </span><span class="s3">&quot;https&quot;</span><span class="s1">]:</span>
+            <span class="s5"># robots exclusion only applies to HTTP</span>
+            <span class="s2">return </span><span class="s1">request</span>
+
+        <span class="s2">if </span><span class="s1">request.get_selector() == </span><span class="s3">&quot;/robots.txt&quot;</span><span class="s1">:</span>
+            <span class="s5"># /robots.txt is always OK to fetch</span>
+            <span class="s2">return </span><span class="s1">request</span>
+
+        <span class="s1">host = request.get_host()</span>
+
+        <span class="s5"># robots.txt requests don't need to be allowed by robots.txt :-)</span>
+        <span class="s1">origin_req = getattr(request</span><span class="s2">, </span><span class="s3">&quot;_origin_req&quot;</span><span class="s2">, None</span><span class="s1">)</span>
+        <span class="s2">if </span><span class="s1">(origin_req </span><span class="s2">is not None and</span>
+                <span class="s1">origin_req.get_selector() == </span><span class="s3">&quot;/robots.txt&quot; </span><span class="s2">and</span>
+                <span class="s1">origin_req.get_host() == host):</span>
+            <span class="s2">return </span><span class="s1">request</span>
+
+        <span class="s2">if </span><span class="s1">host != self._host:</span>
+            <span class="s1">self.rfp = self.rfp_class()</span>
+            <span class="s2">try</span><span class="s1">:</span>
+                <span class="s1">self.rfp.set_opener(self.parent)</span>
+            <span class="s2">except </span><span class="s1">AttributeError:</span>
+                <span class="s1">debug(</span><span class="s3">&quot;%r instance does not support set_opener&quot; </span><span class="s1">%</span>
+                      <span class="s1">self.rfp.__class__)</span>
+            <span class="s1">self.rfp.set_url(scheme + </span><span class="s3">&quot;://&quot; </span><span class="s1">+ host + </span><span class="s3">&quot;/robots.txt&quot;</span><span class="s1">)</span>
+            <span class="s1">self.rfp.set_timeout(request.timeout)</span>
+            <span class="s1">self.rfp.read()</span>
+            <span class="s1">self._host = host</span>
+
+        <span class="s1">ua = request.get_header(</span><span class="s3">&quot;User-agent&quot;</span><span class="s2">, </span><span class="s3">&quot;&quot;</span><span class="s1">)</span>
+        <span class="s2">if </span><span class="s1">self.rfp.can_fetch(ua</span><span class="s2">, </span><span class="s1">request.get_full_url()):</span>
+            <span class="s2">return </span><span class="s1">request</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s5"># XXX This should really have raised URLError.  Too late now...</span>
+            <span class="s1">factory = self.http_response_class </span><span class="s2">or </span><span class="s1">create_response_info</span>
+            <span class="s1">msg = </span><span class="s6">b&quot;request disallowed by robots.txt&quot;</span>
+            <span class="s2">raise </span><span class="s1">RobotExclusionError(</span>
+                <span class="s1">request</span><span class="s2">,</span>
+                <span class="s1">request.get_full_url()</span><span class="s2">,</span>
+                <span class="s4">403</span><span class="s2">, </span><span class="s1">msg</span><span class="s2">,</span>
+                <span class="s1">factory(BytesIO())</span><span class="s2">, </span><span class="s1">BytesIO(msg))</span>
+
+    <span class="s1">https_request = http_request</span>
+
+
+<span class="s2">class </span><span class="s1">HTTPRefererProcessor(BaseHandler):</span>
+    <span class="s0">&quot;&quot;&quot;Add Referer header to requests. 
+ 
+    This only makes sense if you use each RefererProcessor for a single 
+    chain of requests only (so, for example, if you use a single 
+    HTTPRefererProcessor to fetch a series of URLs extracted from a single 
+    page, this will break). 
+ 
+    There's a proper implementation of this in mechanize.Browser. 
+ 
+    &quot;&quot;&quot;</span>
+
+    <span class="s2">def </span><span class="s1">__init__(self):</span>
+        <span class="s1">self.referer = </span><span class="s2">None</span>
+
+    <span class="s2">def </span><span class="s1">http_request(self</span><span class="s2">, </span><span class="s1">request):</span>
+        <span class="s2">if </span><span class="s1">((self.referer </span><span class="s2">is not None</span><span class="s1">) </span><span class="s2">and</span>
+                <span class="s2">not </span><span class="s1">request.has_header(</span><span class="s3">&quot;Referer&quot;</span><span class="s1">)):</span>
+            <span class="s1">request.add_unredirected_header(</span><span class="s3">&quot;Referer&quot;</span><span class="s2">, </span><span class="s1">self.referer)</span>
+        <span class="s2">return </span><span class="s1">request</span>
+
+    <span class="s2">def </span><span class="s1">http_response(self</span><span class="s2">, </span><span class="s1">request</span><span class="s2">, </span><span class="s1">response):</span>
+        <span class="s1">self.referer = response.geturl()</span>
+        <span class="s2">return </span><span class="s1">response</span>
+
+    <span class="s1">https_request = http_request</span>
+    <span class="s1">https_response = http_response</span>
+
+
+<span class="s2">def </span><span class="s1">clean_refresh_url(url):</span>
+    <span class="s5"># e.g. Firefox 1.5 does (something like) this</span>
+    <span class="s2">if </span><span class="s1">((url.startswith(</span><span class="s3">'&quot;'</span><span class="s1">) </span><span class="s2">and </span><span class="s1">url.endswith(</span><span class="s3">'&quot;'</span><span class="s1">)) </span><span class="s2">or</span>
+            <span class="s1">(url.startswith(</span><span class="s3">&quot;'&quot;</span><span class="s1">) </span><span class="s2">and </span><span class="s1">url.endswith(</span><span class="s3">&quot;'&quot;</span><span class="s1">))):</span>
+        <span class="s1">url = url[</span><span class="s4">1</span><span class="s1">:-</span><span class="s4">1</span><span class="s1">]</span>
+    <span class="s2">return </span><span class="s1">_rfc3986.clean_url(url</span><span class="s2">, </span><span class="s3">'utf-8'</span><span class="s1">)  </span><span class="s5"># XXX encoding</span>
+
+
+<span class="s2">def </span><span class="s1">parse_refresh_header(refresh):</span>
+    <span class="s0">&quot;&quot;&quot; 
+    &gt;&gt;&gt; parse_refresh_header(&quot;1; url=http://example.com/&quot;) 
+    (1.0, 'http://example.com/') 
+    &gt;&gt;&gt; parse_refresh_header(&quot;1; url='http://example.com/'&quot;) 
+    (1.0, 'http://example.com/') 
+    &gt;&gt;&gt; parse_refresh_header(&quot;1&quot;) 
+    (1.0, None) 
+    &gt;&gt;&gt; parse_refresh_header(&quot;blah&quot;)  # doctest: +IGNORE_EXCEPTION_DETAIL 
+    Traceback (most recent call last): 
+    ValueError: invalid literal for float(): blah 
+ 
+    &quot;&quot;&quot;</span>
+
+    <span class="s1">ii = refresh.find(</span><span class="s3">&quot;;&quot;</span><span class="s1">)</span>
+    <span class="s2">if </span><span class="s1">ii != -</span><span class="s4">1</span><span class="s1">:</span>
+        <span class="s1">pause</span><span class="s2">, </span><span class="s1">newurl_spec = float(refresh[:ii])</span><span class="s2">, </span><span class="s1">refresh[ii + </span><span class="s4">1</span><span class="s1">:]</span>
+        <span class="s1">jj = newurl_spec.find(</span><span class="s3">&quot;=&quot;</span><span class="s1">)</span>
+        <span class="s1">key = </span><span class="s2">None</span>
+        <span class="s2">if </span><span class="s1">jj != -</span><span class="s4">1</span><span class="s1">:</span>
+            <span class="s1">key</span><span class="s2">, </span><span class="s1">newurl = newurl_spec[:jj]</span><span class="s2">, </span><span class="s1">newurl_spec[jj + </span><span class="s4">1</span><span class="s1">:]</span>
+            <span class="s1">newurl = clean_refresh_url(newurl)</span>
+        <span class="s2">if </span><span class="s1">key </span><span class="s2">is None or </span><span class="s1">key.strip().lower() != </span><span class="s3">&quot;url&quot;</span><span class="s1">:</span>
+            <span class="s2">raise </span><span class="s1">ValueError()</span>
+    <span class="s2">else</span><span class="s1">:</span>
+        <span class="s1">pause</span><span class="s2">, </span><span class="s1">newurl = float(refresh)</span><span class="s2">, None</span>
+    <span class="s2">return </span><span class="s1">pause</span><span class="s2">, </span><span class="s1">newurl</span>
+
+
+<span class="s2">class </span><span class="s1">HTTPRefreshProcessor(BaseHandler):</span>
+    <span class="s0">&quot;&quot;&quot;Perform HTTP Refresh redirections. 
+ 
+    Note that if a non-200 HTTP code has occurred (for example, a 30x 
+    redirect), this processor will do nothing. 
+ 
+    By default, only zero-time Refresh headers are redirected.  Use the 
+    max_time attribute / constructor argument to allow Refresh with longer 
+    pauses.  Use the honor_time attribute / constructor argument to control 
+    whether the requested pause is honoured (with a time.sleep()) or 
+    skipped in favour of immediate redirection. 
+ 
+    Public attributes: 
+ 
+    max_time: see above 
+    honor_time: see above 
+ 
+    &quot;&quot;&quot;</span>
+    <span class="s1">handler_order = </span><span class="s4">1000</span>
+
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">max_time=</span><span class="s4">0</span><span class="s2">, </span><span class="s1">honor_time=</span><span class="s2">True</span><span class="s1">):</span>
+        <span class="s1">self.max_time = max_time</span>
+        <span class="s1">self.honor_time = honor_time</span>
+        <span class="s1">self._sleep = time.sleep</span>
+
+    <span class="s2">def </span><span class="s1">__copy__(self):</span>
+        <span class="s2">return </span><span class="s1">self.__class__(self.max_time</span><span class="s2">, </span><span class="s1">self.honor_time)</span>
+
+    <span class="s2">def </span><span class="s1">http_response(self</span><span class="s2">, </span><span class="s1">request</span><span class="s2">, </span><span class="s1">response):</span>
+        <span class="s1">code</span><span class="s2">, </span><span class="s1">msg</span><span class="s2">, </span><span class="s1">hdrs = response.code</span><span class="s2">, </span><span class="s1">response.msg</span><span class="s2">, </span><span class="s1">response.info()</span>
+
+        <span class="s2">if </span><span class="s1">code == </span><span class="s4">200 </span><span class="s2">and </span><span class="s3">'refresh' </span><span class="s2">in </span><span class="s1">hdrs:</span>
+            <span class="s1">refresh = hdrs.getheaders(</span><span class="s3">&quot;refresh&quot;</span><span class="s1">)[</span><span class="s4">0</span><span class="s1">]</span>
+            <span class="s2">try</span><span class="s1">:</span>
+                <span class="s1">pause</span><span class="s2">, </span><span class="s1">newurl = parse_refresh_header(refresh)</span>
+            <span class="s2">except </span><span class="s1">ValueError:</span>
+                <span class="s1">debug(</span><span class="s3">&quot;bad Refresh header: %r&quot; </span><span class="s1">% refresh)</span>
+                <span class="s2">return </span><span class="s1">response</span>
+
+            <span class="s2">if </span><span class="s1">newurl </span><span class="s2">is None</span><span class="s1">:</span>
+                <span class="s1">newurl = response.geturl()</span>
+            <span class="s2">if </span><span class="s1">(self.max_time </span><span class="s2">is None</span><span class="s1">) </span><span class="s2">or </span><span class="s1">(pause &lt;= self.max_time):</span>
+                <span class="s2">if </span><span class="s1">pause &gt; </span><span class="s4">1E-3 </span><span class="s2">and </span><span class="s1">self.honor_time:</span>
+                    <span class="s1">self._sleep(pause)</span>
+                <span class="s1">hdrs[</span><span class="s3">&quot;location&quot;</span><span class="s1">] = newurl</span>
+                <span class="s5"># hardcoded http is NOT a bug</span>
+                <span class="s1">response = self.parent.error(</span>
+                    <span class="s3">&quot;http&quot;</span><span class="s2">, </span><span class="s1">request</span><span class="s2">, </span><span class="s1">response</span><span class="s2">,</span>
+                    <span class="s3">&quot;refresh&quot;</span><span class="s2">, </span><span class="s1">msg</span><span class="s2">, </span><span class="s1">hdrs)</span>
+            <span class="s2">else</span><span class="s1">:</span>
+                <span class="s1">debug(</span><span class="s3">&quot;Refresh header ignored: %r&quot; </span><span class="s1">% refresh)</span>
+
+        <span class="s2">return </span><span class="s1">response</span>
+
+    <span class="s1">https_response = http_response</span>
+</pre>
+</body>
+</html>

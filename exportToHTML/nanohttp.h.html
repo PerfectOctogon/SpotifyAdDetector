@@ -1,0 +1,101 @@
+<html>
+<head>
+<title>nanohttp.h</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+nanohttp.h</font>
+</center></td></tr></table>
+<pre><span class="s0">/* 
+ * Summary: minimal HTTP implementation 
+ * Description: minimal HTTP implementation allowing to fetch resources 
+ *              like external subset. 
+ * 
+ * Copy: See Copyright for the status of this software. 
+ * 
+ * Author: Daniel Veillard 
+ */</span>
+
+<span class="s2">#ifndef </span><span class="s1">__NANO_HTTP_H__</span>
+<span class="s2">#define </span><span class="s1">__NANO_HTTP_H__</span>
+
+<span class="s2">#include </span><span class="s1">&lt;libxml/xmlversion.h&gt;</span>
+
+<span class="s2">#ifdef </span><span class="s1">LIBXML_HTTP_ENABLED</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s2">extern </span><span class="s3">&quot;C&quot; </span><span class="s1">{</span>
+<span class="s2">#endif</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlNanoHTTPInit		(</span><span class="s2">void</span><span class="s1">);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlNanoHTTPCleanup	(</span><span class="s2">void</span><span class="s1">);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlNanoHTTPScanProxy	(</span><span class="s2">const char </span><span class="s1">*URL);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlNanoHTTPFetch	(</span><span class="s2">const char </span><span class="s1">*URL,</span>
+				 <span class="s2">const char </span><span class="s1">*filename,</span>
+				 <span class="s2">char </span><span class="s1">**contentType);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">* XMLCALL</span>
+	<span class="s1">xmlNanoHTTPMethod	(</span><span class="s2">const char </span><span class="s1">*URL,</span>
+				 <span class="s2">const char </span><span class="s1">*method,</span>
+				 <span class="s2">const char </span><span class="s1">*input,</span>
+				 <span class="s2">char </span><span class="s1">**contentType,</span>
+				 <span class="s2">const char </span><span class="s1">*headers,</span>
+				 <span class="s2">int   </span><span class="s1">ilen);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">* XMLCALL</span>
+	<span class="s1">xmlNanoHTTPMethodRedir	(</span><span class="s2">const char </span><span class="s1">*URL,</span>
+				 <span class="s2">const char </span><span class="s1">*method,</span>
+				 <span class="s2">const char </span><span class="s1">*input,</span>
+				 <span class="s2">char </span><span class="s1">**contentType,</span>
+				 <span class="s2">char </span><span class="s1">**redir,</span>
+				 <span class="s2">const char </span><span class="s1">*headers,</span>
+				 <span class="s2">int   </span><span class="s1">ilen);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">* XMLCALL</span>
+	<span class="s1">xmlNanoHTTPOpen		(</span><span class="s2">const char </span><span class="s1">*URL,</span>
+				 <span class="s2">char </span><span class="s1">**contentType);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">* XMLCALL</span>
+	<span class="s1">xmlNanoHTTPOpenRedir	(</span><span class="s2">const char </span><span class="s1">*URL,</span>
+				 <span class="s2">char </span><span class="s1">**contentType,</span>
+				 <span class="s2">char </span><span class="s1">**redir);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlNanoHTTPReturnCode	(</span><span class="s2">void </span><span class="s1">*ctx);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">const char </span><span class="s1">* XMLCALL</span>
+	<span class="s1">xmlNanoHTTPAuthHeader	(</span><span class="s2">void </span><span class="s1">*ctx);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">const char </span><span class="s1">* XMLCALL</span>
+	<span class="s1">xmlNanoHTTPRedir	(</span><span class="s2">void </span><span class="s1">*ctx);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlNanoHTTPContentLength( </span><span class="s2">void </span><span class="s1">* ctx );</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">const char </span><span class="s1">* XMLCALL</span>
+	<span class="s1">xmlNanoHTTPEncoding	(</span><span class="s2">void </span><span class="s1">*ctx);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">const char </span><span class="s1">* XMLCALL</span>
+	<span class="s1">xmlNanoHTTPMimeType	(</span><span class="s2">void </span><span class="s1">*ctx);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlNanoHTTPRead		(</span><span class="s2">void </span><span class="s1">*ctx,</span>
+				 <span class="s2">void </span><span class="s1">*dest,</span>
+				 <span class="s2">int </span><span class="s1">len);</span>
+<span class="s2">#ifdef </span><span class="s1">LIBXML_OUTPUT_ENABLED</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlNanoHTTPSave		(</span><span class="s2">void </span><span class="s1">*ctxt,</span>
+				 <span class="s2">const char </span><span class="s1">*filename);</span>
+<span class="s2">#endif </span><span class="s0">/* LIBXML_OUTPUT_ENABLED */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlNanoHTTPClose	(</span><span class="s2">void </span><span class="s1">*ctx);</span>
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s1">}</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#endif </span><span class="s0">/* LIBXML_HTTP_ENABLED */</span>
+<span class="s2">#endif </span><span class="s0">/* __NANO_HTTP_H__ */</span>
+</pre>
+</body>
+</html>

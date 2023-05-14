@@ -1,0 +1,497 @@
+<html>
+<head>
+<title>tree.pxd</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #a9b7c6;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+tree.pxd</font>
+</center></td></tr></table>
+<pre><span class="s0">from libc cimport stdio</span>
+<span class="s0">from libc.string cimport const_char, const_uchar</span>
+
+<span class="s0">cdef extern from &quot;lxml-version.h&quot;:</span>
+    <span class="s0"># deprecated declaration, use etreepublic.pxd instead</span>
+    <span class="s0">cdef char* LXML_VERSION_STRING</span>
+
+<span class="s0">cdef extern from &quot;libxml/xmlversion.h&quot;:</span>
+    <span class="s0">cdef const_char* xmlParserVersion</span>
+    <span class="s0">cdef int LIBXML_VERSION</span>
+
+<span class="s0">cdef extern from &quot;libxml/xmlstring.h&quot;:</span>
+    <span class="s0">ctypedef unsigned char xmlChar</span>
+    <span class="s0">ctypedef const xmlChar const_xmlChar &quot;const xmlChar&quot;</span>
+    <span class="s0">cdef int xmlStrlen(const_xmlChar* str) nogil</span>
+    <span class="s0">cdef xmlChar* xmlStrdup(const_xmlChar* cur) nogil</span>
+    <span class="s0">cdef int xmlStrncmp(const_xmlChar* str1, const_xmlChar* str2, int length) nogil</span>
+    <span class="s0">cdef int xmlStrcmp(const_xmlChar* str1, const_xmlChar* str2) nogil</span>
+    <span class="s0">cdef int xmlStrcasecmp(const xmlChar *str1, const xmlChar *str2) nogil</span>
+    <span class="s0">cdef const_xmlChar* xmlStrstr(const_xmlChar* str1, const_xmlChar* str2) nogil</span>
+    <span class="s0">cdef const_xmlChar* xmlStrchr(const_xmlChar* str1, xmlChar ch) nogil</span>
+    <span class="s0">cdef const_xmlChar* _xcstr &quot;(const xmlChar*)PyBytes_AS_STRING&quot; (object s)</span>
+
+<span class="s0">cdef extern from &quot;libxml/encoding.h&quot;:</span>
+    <span class="s0">ctypedef enum xmlCharEncoding:</span>
+        <span class="s0">XML_CHAR_ENCODING_ERROR = -1 # No char encoding detected</span>
+        <span class="s0">XML_CHAR_ENCODING_NONE = 0 # No char encoding detected</span>
+        <span class="s0">XML_CHAR_ENCODING_UTF8 = 1 # UTF-8</span>
+        <span class="s0">XML_CHAR_ENCODING_UTF16LE = 2 # UTF-16 little endian</span>
+        <span class="s0">XML_CHAR_ENCODING_UTF16BE = 3 # UTF-16 big endian</span>
+        <span class="s0">XML_CHAR_ENCODING_UCS4LE = 4 # UCS-4 little endian</span>
+        <span class="s0">XML_CHAR_ENCODING_UCS4BE = 5 # UCS-4 big endian</span>
+        <span class="s0">XML_CHAR_ENCODING_EBCDIC = 6 # EBCDIC uh!</span>
+        <span class="s0">XML_CHAR_ENCODING_UCS4_2143 = 7 # UCS-4 unusual ordering</span>
+        <span class="s0">XML_CHAR_ENCODING_UCS4_3412 = 8 # UCS-4 unusual ordering</span>
+        <span class="s0">XML_CHAR_ENCODING_UCS2 = 9 # UCS-2</span>
+        <span class="s0">XML_CHAR_ENCODING_8859_1 = 10 # ISO-8859-1 ISO Latin 1</span>
+        <span class="s0">XML_CHAR_ENCODING_8859_2 = 11 # ISO-8859-2 ISO Latin 2</span>
+        <span class="s0">XML_CHAR_ENCODING_8859_3 = 12 # ISO-8859-3</span>
+        <span class="s0">XML_CHAR_ENCODING_8859_4 = 13 # ISO-8859-4</span>
+        <span class="s0">XML_CHAR_ENCODING_8859_5 = 14 # ISO-8859-5</span>
+        <span class="s0">XML_CHAR_ENCODING_8859_6 = 15 # ISO-8859-6</span>
+        <span class="s0">XML_CHAR_ENCODING_8859_7 = 16 # ISO-8859-7</span>
+        <span class="s0">XML_CHAR_ENCODING_8859_8 = 17 # ISO-8859-8</span>
+        <span class="s0">XML_CHAR_ENCODING_8859_9 = 18 # ISO-8859-9</span>
+        <span class="s0">XML_CHAR_ENCODING_2022_JP = 19 # ISO-2022-JP</span>
+        <span class="s0">XML_CHAR_ENCODING_SHIFT_JIS = 20 # Shift_JIS</span>
+        <span class="s0">XML_CHAR_ENCODING_EUC_JP = 21 # EUC-JP</span>
+        <span class="s0">XML_CHAR_ENCODING_ASCII = 22 # pure ASCII</span>
+
+    <span class="s0">ctypedef struct xmlCharEncodingHandler</span>
+    <span class="s0">cdef xmlCharEncodingHandler* xmlFindCharEncodingHandler(char* name) nogil</span>
+    <span class="s0">cdef xmlCharEncodingHandler* xmlGetCharEncodingHandler(</span>
+        <span class="s0">xmlCharEncoding enc) nogil</span>
+    <span class="s0">cdef int xmlCharEncCloseFunc(xmlCharEncodingHandler* handler) nogil</span>
+    <span class="s0">cdef xmlCharEncoding xmlDetectCharEncoding(const_xmlChar* text, int len) nogil</span>
+    <span class="s0">cdef const_char* xmlGetCharEncodingName(xmlCharEncoding enc) nogil</span>
+    <span class="s0">cdef xmlCharEncoding xmlParseCharEncoding(char* name) nogil</span>
+    <span class="s0">ctypedef int (*xmlCharEncodingOutputFunc)(</span>
+            <span class="s0">unsigned char *out_buf, int *outlen, const_uchar *in_buf, int *inlen)</span>
+
+<span class="s0">cdef extern from &quot;libxml/chvalid.h&quot;:</span>
+    <span class="s0">cdef int xmlIsChar_ch(char c) nogil</span>
+    <span class="s0">cdef int xmlIsCharQ(int ch) nogil</span>
+
+<span class="s0">cdef extern from &quot;libxml/hash.h&quot;:</span>
+    <span class="s0">ctypedef struct xmlHashTable</span>
+    <span class="s0">ctypedef void (*xmlHashScanner)(void* payload, void* data, const_xmlChar* name) # may require GIL!</span>
+    <span class="s0">void xmlHashScan(xmlHashTable* table, xmlHashScanner f, void* data) nogil</span>
+    <span class="s0">void* xmlHashLookup(xmlHashTable* table, const_xmlChar* name) nogil</span>
+    <span class="s0">ctypedef void (*xmlHashDeallocator)(void *payload, xmlChar *name)</span>
+    <span class="s0">cdef xmlHashTable* xmlHashCreate(int size)</span>
+    <span class="s0">cdef xmlHashTable* xmlHashCreateDict(int size, xmlDict *dict)</span>
+    <span class="s0">cdef int xmlHashSize(xmlHashTable* table)</span>
+    <span class="s0">cdef void xmlHashFree(xmlHashTable* table, xmlHashDeallocator f)</span>
+
+<span class="s0">cdef extern from *: # actually &quot;libxml/dict.h&quot;</span>
+    <span class="s0"># libxml/dict.h appears to be broken to include in C</span>
+    <span class="s0">ctypedef struct xmlDict</span>
+    <span class="s0">cdef const_xmlChar* xmlDictLookup(xmlDict* dict, const_xmlChar* name, int len) nogil</span>
+    <span class="s0">cdef const_xmlChar* xmlDictExists(xmlDict* dict, const_xmlChar* name, int len) nogil</span>
+    <span class="s0">cdef int xmlDictOwns(xmlDict* dict, const_xmlChar* name) nogil</span>
+    <span class="s0">cdef size_t xmlDictSize(xmlDict* dict) nogil</span>
+
+<span class="s0">cdef extern from &quot;libxml/tree.h&quot;:</span>
+    <span class="s0">ctypedef struct xmlDoc</span>
+    <span class="s0">ctypedef struct xmlAttr</span>
+    <span class="s0">ctypedef struct xmlNotationTable</span>
+
+    <span class="s0">ctypedef enum xmlElementType:</span>
+        <span class="s0">XML_ELEMENT_NODE=           1</span>
+        <span class="s0">XML_ATTRIBUTE_NODE=         2</span>
+        <span class="s0">XML_TEXT_NODE=              3</span>
+        <span class="s0">XML_CDATA_SECTION_NODE=     4</span>
+        <span class="s0">XML_ENTITY_REF_NODE=        5</span>
+        <span class="s0">XML_ENTITY_NODE=            6</span>
+        <span class="s0">XML_PI_NODE=                7</span>
+        <span class="s0">XML_COMMENT_NODE=           8</span>
+        <span class="s0">XML_DOCUMENT_NODE=          9</span>
+        <span class="s0">XML_DOCUMENT_TYPE_NODE=     10</span>
+        <span class="s0">XML_DOCUMENT_FRAG_NODE=     11</span>
+        <span class="s0">XML_NOTATION_NODE=          12</span>
+        <span class="s0">XML_HTML_DOCUMENT_NODE=     13</span>
+        <span class="s0">XML_DTD_NODE=               14</span>
+        <span class="s0">XML_ELEMENT_DECL=           15</span>
+        <span class="s0">XML_ATTRIBUTE_DECL=         16</span>
+        <span class="s0">XML_ENTITY_DECL=            17</span>
+        <span class="s0">XML_NAMESPACE_DECL=         18</span>
+        <span class="s0">XML_XINCLUDE_START=         19</span>
+        <span class="s0">XML_XINCLUDE_END=           20</span>
+
+    <span class="s0">ctypedef enum xmlElementTypeVal:</span>
+        <span class="s0">XML_ELEMENT_TYPE_UNDEFINED= 0</span>
+        <span class="s0">XML_ELEMENT_TYPE_EMPTY=     1</span>
+        <span class="s0">XML_ELEMENT_TYPE_ANY=       2</span>
+        <span class="s0">XML_ELEMENT_TYPE_MIXED=     3</span>
+        <span class="s0">XML_ELEMENT_TYPE_ELEMENT=   4</span>
+
+    <span class="s0">ctypedef enum xmlElementContentType:</span>
+        <span class="s0">XML_ELEMENT_CONTENT_PCDATA=  1</span>
+        <span class="s0">XML_ELEMENT_CONTENT_ELEMENT= 2</span>
+        <span class="s0">XML_ELEMENT_CONTENT_SEQ=     3</span>
+        <span class="s0">XML_ELEMENT_CONTENT_OR=      4</span>
+
+    <span class="s0">ctypedef enum xmlElementContentOccur:</span>
+        <span class="s0">XML_ELEMENT_CONTENT_ONCE= 1</span>
+        <span class="s0">XML_ELEMENT_CONTENT_OPT=  2</span>
+        <span class="s0">XML_ELEMENT_CONTENT_MULT= 3</span>
+        <span class="s0">XML_ELEMENT_CONTENT_PLUS= 4</span>
+
+    <span class="s0">ctypedef enum xmlAttributeType:</span>
+        <span class="s0">XML_ATTRIBUTE_CDATA =      1</span>
+        <span class="s0">XML_ATTRIBUTE_ID=          2</span>
+        <span class="s0">XML_ATTRIBUTE_IDREF=       3</span>
+        <span class="s0">XML_ATTRIBUTE_IDREFS=      4</span>
+        <span class="s0">XML_ATTRIBUTE_ENTITY=      5</span>
+        <span class="s0">XML_ATTRIBUTE_ENTITIES=    6</span>
+        <span class="s0">XML_ATTRIBUTE_NMTOKEN=     7</span>
+        <span class="s0">XML_ATTRIBUTE_NMTOKENS=    8</span>
+        <span class="s0">XML_ATTRIBUTE_ENUMERATION= 9</span>
+        <span class="s0">XML_ATTRIBUTE_NOTATION=    10</span>
+    
+    <span class="s0">ctypedef enum xmlAttributeDefault:</span>
+        <span class="s0">XML_ATTRIBUTE_NONE=     1</span>
+        <span class="s0">XML_ATTRIBUTE_REQUIRED= 2</span>
+        <span class="s0">XML_ATTRIBUTE_IMPLIED=  3</span>
+        <span class="s0">XML_ATTRIBUTE_FIXED=    4</span>
+
+    <span class="s0">ctypedef enum xmlEntityType:</span>
+        <span class="s0">XML_INTERNAL_GENERAL_ENTITY=          1</span>
+        <span class="s0">XML_EXTERNAL_GENERAL_PARSED_ENTITY=   2</span>
+        <span class="s0">XML_EXTERNAL_GENERAL_UNPARSED_ENTITY= 3</span>
+        <span class="s0">XML_INTERNAL_PARAMETER_ENTITY=        4</span>
+        <span class="s0">XML_EXTERNAL_PARAMETER_ENTITY=        5</span>
+        <span class="s0">XML_INTERNAL_PREDEFINED_ENTITY=       6</span>
+
+    <span class="s0">ctypedef struct xmlNs:</span>
+        <span class="s0">const_xmlChar* href</span>
+        <span class="s0">const_xmlChar* prefix</span>
+        <span class="s0">xmlNs* next</span>
+
+    <span class="s0">ctypedef struct xmlNode:</span>
+        <span class="s0">void* _private</span>
+        <span class="s0">xmlElementType   type</span>
+        <span class="s0">const_xmlChar* name</span>
+        <span class="s0">xmlNode* children</span>
+        <span class="s0">xmlNode* last</span>
+        <span class="s0">xmlNode* parent</span>
+        <span class="s0">xmlNode* next</span>
+        <span class="s0">xmlNode* prev</span>
+        <span class="s0">xmlDoc* doc</span>
+        <span class="s0">xmlChar* content</span>
+        <span class="s0">xmlAttr* properties</span>
+        <span class="s0">xmlNs* ns</span>
+        <span class="s0">xmlNs* nsDef</span>
+        <span class="s0">unsigned short line</span>
+
+    <span class="s0">ctypedef struct xmlElementContent:</span>
+        <span class="s0">xmlElementContentType type</span>
+        <span class="s0">xmlElementContentOccur ocur</span>
+        <span class="s0">const_xmlChar *name</span>
+        <span class="s0">xmlElementContent *c1</span>
+        <span class="s0">xmlElementContent *c2</span>
+        <span class="s0">xmlElementContent *parent</span>
+        <span class="s0">const_xmlChar *prefix</span>
+
+    <span class="s0">ctypedef struct xmlEnumeration:</span>
+        <span class="s0">xmlEnumeration *next</span>
+        <span class="s0">const_xmlChar *name</span>
+
+    <span class="s0">ctypedef struct xmlAttribute:</span>
+        <span class="s0">void* _private</span>
+        <span class="s0">xmlElementType type</span>
+        <span class="s0">const_xmlChar* name</span>
+        <span class="s0">xmlNode* children</span>
+        <span class="s0">xmlNode* last</span>
+        <span class="s0">xmlDtd* parent</span>
+        <span class="s0">xmlNode* next</span>
+        <span class="s0">xmlNode* prev</span>
+        <span class="s0">xmlDoc* doc</span>
+        <span class="s0">xmlAttribute* nexth</span>
+        <span class="s0">xmlAttributeType atype</span>
+        <span class="s0">xmlAttributeDefault def_ &quot;def&quot;</span>
+        <span class="s0">const_xmlChar* defaultValue</span>
+        <span class="s0">xmlEnumeration* tree</span>
+        <span class="s0">const_xmlChar* prefix</span>
+        <span class="s0">const_xmlChar* elem</span>
+
+    <span class="s0">ctypedef struct xmlElement:</span>
+        <span class="s0">void* _private</span>
+        <span class="s0">xmlElementType   type</span>
+        <span class="s0">const_xmlChar* name</span>
+        <span class="s0">xmlNode* children</span>
+        <span class="s0">xmlNode* last</span>
+        <span class="s0">xmlNode* parent</span>
+        <span class="s0">xmlNode* next</span>
+        <span class="s0">xmlNode* prev</span>
+        <span class="s0">xmlDoc* doc</span>
+        <span class="s0">xmlElementTypeVal etype</span>
+        <span class="s0">xmlElementContent* content</span>
+        <span class="s0">xmlAttribute* attributes</span>
+        <span class="s0">const_xmlChar* prefix</span>
+        <span class="s0">void *contModel</span>
+
+    <span class="s0">ctypedef struct xmlEntity:</span>
+        <span class="s0">void* _private</span>
+        <span class="s0">xmlElementType type</span>
+        <span class="s0">const_xmlChar* name</span>
+        <span class="s0">xmlNode* children</span>
+        <span class="s0">xmlNode* last</span>
+        <span class="s0">xmlDtd* parent</span>
+        <span class="s0">xmlNode* next</span>
+        <span class="s0">xmlNode* prev</span>
+        <span class="s0">xmlDoc* doc</span>
+        <span class="s0">xmlChar* orig</span>
+        <span class="s0">xmlChar* content</span>
+        <span class="s0">int length</span>
+        <span class="s0">xmlEntityType etype</span>
+        <span class="s0">const_xmlChar* ExternalID</span>
+        <span class="s0">const_xmlChar* SystemID</span>
+        <span class="s0">xmlEntity* nexte</span>
+        <span class="s0">const_xmlChar* URI</span>
+        <span class="s0">int owner</span>
+        <span class="s0">int checked</span>
+
+    <span class="s0">ctypedef struct xmlDtd:</span>
+        <span class="s0">const_xmlChar* name</span>
+        <span class="s0">const_xmlChar* ExternalID</span>
+        <span class="s0">const_xmlChar* SystemID</span>
+        <span class="s0">void* notations</span>
+        <span class="s0">void* entities</span>
+        <span class="s0">void* pentities</span>
+        <span class="s0">void* attributes</span>
+        <span class="s0">void* elements</span>
+        <span class="s0">xmlNode* children</span>
+        <span class="s0">xmlNode* last</span>
+        <span class="s0">xmlDoc* doc</span>
+
+    <span class="s0">ctypedef struct xmlDoc:</span>
+        <span class="s0">xmlElementType type</span>
+        <span class="s0">char* name</span>
+        <span class="s0">xmlNode* children</span>
+        <span class="s0">xmlNode* last</span>
+        <span class="s0">xmlNode* parent</span>
+        <span class="s0">xmlNode* next</span>
+        <span class="s0">xmlNode* prev</span>
+        <span class="s0">xmlDoc* doc</span>
+        <span class="s0">xmlDict* dict</span>
+        <span class="s0">xmlHashTable* ids</span>
+        <span class="s0">int standalone</span>
+        <span class="s0">const_xmlChar* version</span>
+        <span class="s0">const_xmlChar* encoding</span>
+        <span class="s0">const_xmlChar* URL</span>
+        <span class="s0">void* _private</span>
+        <span class="s0">xmlDtd* intSubset</span>
+        <span class="s0">xmlDtd* extSubset</span>
+        
+    <span class="s0">ctypedef struct xmlAttr:</span>
+        <span class="s0">void* _private</span>
+        <span class="s0">xmlElementType type</span>
+        <span class="s0">const_xmlChar* name</span>
+        <span class="s0">xmlNode* children</span>
+        <span class="s0">xmlNode* last</span>
+        <span class="s0">xmlNode* parent</span>
+        <span class="s0">xmlAttr* next</span>
+        <span class="s0">xmlAttr* prev</span>
+        <span class="s0">xmlDoc* doc</span>
+        <span class="s0">xmlNs* ns</span>
+        <span class="s0">xmlAttributeType atype</span>
+
+    <span class="s0">ctypedef struct xmlID:</span>
+        <span class="s0">const_xmlChar* value</span>
+        <span class="s0">const_xmlChar* name</span>
+        <span class="s0">xmlAttr* attr</span>
+        <span class="s0">xmlDoc* doc</span>
+        
+    <span class="s0">ctypedef struct xmlBuffer</span>
+
+    <span class="s0">ctypedef struct xmlBuf   # new in libxml2 2.9</span>
+
+    <span class="s0">ctypedef struct xmlOutputBuffer:</span>
+        <span class="s0">xmlBuf* buffer</span>
+        <span class="s0">xmlBuf* conv</span>
+        <span class="s0">int error</span>
+
+    <span class="s0">const_xmlChar* XML_XML_NAMESPACE</span>
+        
+    <span class="s0">cdef void xmlFreeDoc(xmlDoc* cur) nogil</span>
+    <span class="s0">cdef void xmlFreeDtd(xmlDtd* cur) nogil</span>
+    <span class="s0">cdef void xmlFreeNode(xmlNode* cur) nogil</span>
+    <span class="s0">cdef void xmlFreeNsList(xmlNs* ns) nogil</span>
+    <span class="s0">cdef void xmlFreeNs(xmlNs* ns) nogil</span>
+    <span class="s0">cdef void xmlFree(void* buf) nogil</span>
+    
+    <span class="s0">cdef xmlNode* xmlNewNode(xmlNs* ns, const_xmlChar* name) nogil</span>
+    <span class="s0">cdef xmlNode* xmlNewDocText(xmlDoc* doc, const_xmlChar* content) nogil</span>
+    <span class="s0">cdef xmlNode* xmlNewDocComment(xmlDoc* doc, const_xmlChar* content) nogil</span>
+    <span class="s0">cdef xmlNode* xmlNewDocPI(xmlDoc* doc, const_xmlChar* name, const_xmlChar* content) nogil</span>
+    <span class="s0">cdef xmlNode* xmlNewReference(xmlDoc* doc, const_xmlChar* name) nogil</span>
+    <span class="s0">cdef xmlNode* xmlNewCDataBlock(xmlDoc* doc, const_xmlChar* text, int len) nogil</span>
+    <span class="s0">cdef xmlNs* xmlNewNs(xmlNode* node, const_xmlChar* href, const_xmlChar* prefix) nogil</span>
+    <span class="s0">cdef xmlNode* xmlAddChild(xmlNode* parent, xmlNode* cur) nogil</span>
+    <span class="s0">cdef xmlNode* xmlReplaceNode(xmlNode* old, xmlNode* cur) nogil</span>
+    <span class="s0">cdef xmlNode* xmlAddPrevSibling(xmlNode* cur, xmlNode* elem) nogil</span>
+    <span class="s0">cdef xmlNode* xmlAddNextSibling(xmlNode* cur, xmlNode* elem) nogil</span>
+    <span class="s0">cdef xmlNode* xmlNewDocNode(xmlDoc* doc, xmlNs* ns,</span>
+                                <span class="s0">const_xmlChar* name, const_xmlChar* content) nogil</span>
+    <span class="s0">cdef xmlDoc* xmlNewDoc(const_xmlChar* version) nogil</span>
+    <span class="s0">cdef xmlAttr* xmlNewProp(xmlNode* node, const_xmlChar* name, const_xmlChar* value) nogil</span>
+    <span class="s0">cdef xmlAttr* xmlNewNsProp(xmlNode* node, xmlNs* ns,</span>
+                               <span class="s0">const_xmlChar* name, const_xmlChar* value) nogil</span>
+    <span class="s0">cdef xmlChar* xmlGetNoNsProp(xmlNode* node, const_xmlChar* name) nogil</span>
+    <span class="s0">cdef xmlChar* xmlGetNsProp(xmlNode* node, const_xmlChar* name, const_xmlChar* nameSpace) nogil</span>
+    <span class="s0">cdef void xmlSetNs(xmlNode* node, xmlNs* ns) nogil</span>
+    <span class="s0">cdef xmlAttr* xmlSetProp(xmlNode* node, const_xmlChar* name, const_xmlChar* value) nogil</span>
+    <span class="s0">cdef xmlAttr* xmlSetNsProp(xmlNode* node, xmlNs* ns,</span>
+                               <span class="s0">const_xmlChar* name, const_xmlChar* value) nogil</span>
+    <span class="s0">cdef int xmlRemoveID(xmlDoc* doc, xmlAttr* cur) nogil</span>
+    <span class="s0">cdef int xmlRemoveProp(xmlAttr* cur) nogil</span>
+    <span class="s0">cdef void xmlFreePropList(xmlAttr* cur) nogil</span>
+    <span class="s0">cdef xmlChar* xmlGetNodePath(xmlNode* node) nogil</span>
+    <span class="s0">cdef void xmlDocDumpMemory(xmlDoc* cur, char** mem, int* size) nogil</span>
+    <span class="s0">cdef void xmlDocDumpMemoryEnc(xmlDoc* cur, char** mem, int* size,</span>
+                                  <span class="s0">char* encoding) nogil</span>
+    <span class="s0">cdef int xmlSaveFileTo(xmlOutputBuffer* out, xmlDoc* cur,</span>
+                           <span class="s0">char* encoding) nogil</span>
+
+    <span class="s0">cdef void xmlUnlinkNode(xmlNode* cur) nogil</span>
+    <span class="s0">cdef xmlNode* xmlDocSetRootElement(xmlDoc* doc, xmlNode* root) nogil</span>
+    <span class="s0">cdef xmlNode* xmlDocGetRootElement(xmlDoc* doc) nogil</span>
+    <span class="s0">cdef void xmlSetTreeDoc(xmlNode* tree, xmlDoc* doc) nogil</span>
+    <span class="s0">cdef xmlAttr* xmlHasProp(xmlNode* node, const_xmlChar* name) nogil</span>
+    <span class="s0">cdef xmlAttr* xmlHasNsProp(xmlNode* node, const_xmlChar* name, const_xmlChar* nameSpace) nogil</span>
+    <span class="s0">cdef xmlChar* xmlNodeGetContent(xmlNode* cur) nogil</span>
+    <span class="s0">cdef int xmlNodeBufGetContent(xmlBuffer* buffer, xmlNode* cur) nogil</span>
+    <span class="s0">cdef xmlNs* xmlSearchNs(xmlDoc* doc, xmlNode* node, const_xmlChar* prefix) nogil</span>
+    <span class="s0">cdef xmlNs* xmlSearchNsByHref(xmlDoc* doc, xmlNode* node, const_xmlChar* href) nogil</span>
+    <span class="s0">cdef int xmlIsBlankNode(xmlNode* node) nogil</span>
+    <span class="s0">cdef long xmlGetLineNo(xmlNode* node) nogil</span>
+    <span class="s0">cdef void xmlElemDump(stdio.FILE* f, xmlDoc* doc, xmlNode* cur) nogil</span>
+    <span class="s0">cdef void xmlNodeDumpOutput(xmlOutputBuffer* buf,</span>
+                                <span class="s0">xmlDoc* doc, xmlNode* cur, int level,</span>
+                                <span class="s0">int format, const_char* encoding) nogil</span>
+    <span class="s0">cdef void xmlBufAttrSerializeTxtContent(xmlOutputBuffer *buf, xmlDoc *doc,</span>
+                                <span class="s0">xmlAttr *attr, const_xmlChar *string) nogil</span>
+    <span class="s0">cdef void xmlNodeSetName(xmlNode* cur, const_xmlChar* name) nogil</span>
+    <span class="s0">cdef void xmlNodeSetContent(xmlNode* cur, const_xmlChar* content) nogil</span>
+    <span class="s0">cdef xmlDtd* xmlCopyDtd(xmlDtd* dtd) nogil</span>
+    <span class="s0">cdef xmlDoc* xmlCopyDoc(xmlDoc* doc, int recursive) nogil</span>
+    <span class="s0">cdef xmlNode* xmlCopyNode(xmlNode* node, int extended) nogil</span>
+    <span class="s0">cdef xmlNode* xmlDocCopyNode(xmlNode* node, xmlDoc* doc, int extended) nogil</span>
+    <span class="s0">cdef int xmlReconciliateNs(xmlDoc* doc, xmlNode* tree) nogil</span>
+    <span class="s0">cdef xmlNs* xmlNewReconciliedNs(xmlDoc* doc, xmlNode* tree, xmlNs* ns) nogil</span>
+    <span class="s0">cdef xmlBuffer* xmlBufferCreate() nogil</span>
+    <span class="s0">cdef void xmlBufferWriteChar(xmlBuffer* buf, char* string) nogil</span>
+    <span class="s0">cdef void xmlBufferFree(xmlBuffer* buf) nogil</span>
+    <span class="s0">cdef const_xmlChar* xmlBufferContent(xmlBuffer* buf) nogil</span>
+    <span class="s0">cdef int xmlBufferLength(xmlBuffer* buf) nogil</span>
+    <span class="s0">cdef const_xmlChar* xmlBufContent(xmlBuf* buf) nogil # new in libxml2 2.9</span>
+    <span class="s0">cdef size_t xmlBufUse(xmlBuf* buf) nogil # new in libxml2 2.9</span>
+    <span class="s0">cdef int xmlKeepBlanksDefault(int val) nogil</span>
+    <span class="s0">cdef xmlChar* xmlNodeGetBase(xmlDoc* doc, xmlNode* node) nogil</span>
+    <span class="s0">cdef xmlDtd* xmlCreateIntSubset(xmlDoc* doc, const_xmlChar* name,</span>
+                                    <span class="s0">const_xmlChar* ExternalID, const_xmlChar* SystemID) nogil</span>
+    <span class="s0">cdef void xmlNodeSetBase(xmlNode* node, const_xmlChar* uri) nogil</span>
+    <span class="s0">cdef int xmlValidateNCName(const_xmlChar* value, int space) nogil</span>
+
+<span class="s0">cdef extern from &quot;libxml/uri.h&quot;:</span>
+    <span class="s0">cdef const_xmlChar* xmlBuildURI(const_xmlChar* href, const_xmlChar* base) nogil</span>
+
+<span class="s0">cdef extern from &quot;libxml/HTMLtree.h&quot;:</span>
+    <span class="s0">cdef void htmlNodeDumpFormatOutput(xmlOutputBuffer* buf,</span>
+                                       <span class="s0">xmlDoc* doc, xmlNode* cur,</span>
+                                       <span class="s0">char* encoding, int format) nogil</span>
+    <span class="s0">cdef xmlDoc* htmlNewDoc(const_xmlChar* uri, const_xmlChar* externalID) nogil</span>
+
+<span class="s0">cdef extern from &quot;libxml/valid.h&quot;:</span>
+    <span class="s0">cdef xmlAttr* xmlGetID(xmlDoc* doc, const_xmlChar* ID) nogil</span>
+    <span class="s0">cdef void xmlDumpNotationTable(xmlBuffer* buffer,</span>
+                                   <span class="s0">xmlNotationTable* table) nogil</span>
+    <span class="s0">cdef int xmlValidateNameValue(const_xmlChar* value) nogil</span>
+
+<span class="s0">cdef extern from &quot;libxml/xmlIO.h&quot;:</span>
+    <span class="s0">cdef int xmlOutputBufferWrite(xmlOutputBuffer* out,</span>
+                                  <span class="s0">int len, const_char* str) nogil</span>
+    <span class="s0">cdef int xmlOutputBufferWriteString(xmlOutputBuffer* out, const_char* str) nogil</span>
+    <span class="s0">cdef int xmlOutputBufferWriteEscape(xmlOutputBuffer* out,</span>
+                                        <span class="s0">const_xmlChar* str,</span>
+                                        <span class="s0">xmlCharEncodingOutputFunc escapefunc) nogil</span>
+    <span class="s0">cdef int xmlOutputBufferFlush(xmlOutputBuffer* out) nogil</span>
+    <span class="s0">cdef int xmlOutputBufferClose(xmlOutputBuffer* out) nogil</span>
+
+    <span class="s0">ctypedef int (*xmlInputReadCallback)(void* context,</span>
+                                         <span class="s0">char* buffer, int len)</span>
+    <span class="s0">ctypedef int (*xmlInputCloseCallback)(void* context)</span>
+
+    <span class="s0">ctypedef int (*xmlOutputWriteCallback)(void* context,</span>
+                                           <span class="s0">char* buffer, int len)</span>
+    <span class="s0">ctypedef int (*xmlOutputCloseCallback)(void* context)</span>
+
+    <span class="s0">cdef xmlOutputBuffer* xmlAllocOutputBuffer(</span>
+        <span class="s0">xmlCharEncodingHandler* encoder) nogil</span>
+    <span class="s0">cdef xmlOutputBuffer* xmlOutputBufferCreateIO(</span>
+        <span class="s0">xmlOutputWriteCallback iowrite,</span>
+        <span class="s0">xmlOutputCloseCallback ioclose,</span>
+        <span class="s0">void * ioctx, </span>
+        <span class="s0">xmlCharEncodingHandler* encoder) nogil</span>
+    <span class="s0">cdef xmlOutputBuffer* xmlOutputBufferCreateFile(</span>
+        <span class="s0">stdio.FILE* file, xmlCharEncodingHandler* encoder) nogil</span>
+    <span class="s0">cdef xmlOutputBuffer* xmlOutputBufferCreateFilename(</span>
+        <span class="s0">char* URI, xmlCharEncodingHandler* encoder, int compression) nogil</span>
+
+<span class="s0">cdef extern from &quot;libxml/xmlsave.h&quot;:</span>
+    <span class="s0">ctypedef struct xmlSaveCtxt</span>
+
+    <span class="s0">ctypedef enum xmlSaveOption:</span>
+        <span class="s0">XML_SAVE_FORMAT   = 1   # format save output            (2.6.17)</span>
+        <span class="s0">XML_SAVE_NO_DECL  = 2   # drop the xml declaration      (2.6.21)</span>
+        <span class="s0">XML_SAVE_NO_EMPTY = 4   # no empty tags                 (2.6.22)</span>
+        <span class="s0">XML_SAVE_NO_XHTML = 8   # disable XHTML1 specific rules (2.6.22)</span>
+        <span class="s0">XML_SAVE_XHTML = 16     # force XHTML1 specific rules         (2.7.2)</span>
+        <span class="s0">XML_SAVE_AS_XML = 32    # force XML serialization on HTML doc (2.7.2)</span>
+        <span class="s0">XML_SAVE_AS_HTML = 64   # force HTML serialization on XML doc (2.7.2)</span>
+
+    <span class="s0">cdef xmlSaveCtxt* xmlSaveToFilename(char* filename, char* encoding,</span>
+                                        <span class="s0">int options) nogil</span>
+    <span class="s0">cdef xmlSaveCtxt* xmlSaveToBuffer(xmlBuffer* buffer, char* encoding,</span>
+                                      <span class="s0">int options) nogil # libxml2 2.6.23</span>
+    <span class="s0">cdef long xmlSaveDoc(xmlSaveCtxt* ctxt, xmlDoc* doc) nogil</span>
+    <span class="s0">cdef long xmlSaveTree(xmlSaveCtxt* ctxt, xmlNode* node) nogil</span>
+    <span class="s0">cdef int xmlSaveClose(xmlSaveCtxt* ctxt) nogil</span>
+    <span class="s0">cdef int xmlSaveFlush(xmlSaveCtxt* ctxt) nogil</span>
+    <span class="s0">cdef int xmlSaveSetAttrEscape(xmlSaveCtxt* ctxt, void* escape_func) nogil</span>
+    <span class="s0">cdef int xmlSaveSetEscape(xmlSaveCtxt* ctxt, void* escape_func) nogil</span>
+
+<span class="s0">cdef extern from &quot;libxml/globals.h&quot;:</span>
+    <span class="s0">cdef int xmlThrDefKeepBlanksDefaultValue(int onoff) nogil</span>
+    <span class="s0">cdef int xmlThrDefLineNumbersDefaultValue(int onoff) nogil</span>
+    <span class="s0">cdef int xmlThrDefIndentTreeOutput(int onoff) nogil</span>
+    
+<span class="s0">cdef extern from &quot;libxml/xmlmemory.h&quot; nogil:</span>
+    <span class="s0">cdef void* xmlMalloc(size_t size)</span>
+    <span class="s0">cdef int xmlMemBlocks()</span>
+    <span class="s0">cdef int xmlMemUsed()</span>
+    <span class="s0">cdef void xmlMemDisplay(stdio.FILE* file)</span>
+    <span class="s0">cdef void xmlMemDisplayLast(stdio.FILE* file, long num_bytes)</span>
+    <span class="s0">cdef void xmlMemShow(stdio.FILE* file, int count)</span>
+
+<span class="s0">cdef extern from &quot;etree_defs.h&quot;:</span>
+    <span class="s0">cdef bint _isElement(xmlNode* node) nogil</span>
+    <span class="s0">cdef bint _isElementOrXInclude(xmlNode* node) nogil</span>
+    <span class="s0">cdef const_xmlChar* _getNs(xmlNode* node) nogil</span>
+    <span class="s0">cdef void BEGIN_FOR_EACH_ELEMENT_FROM(xmlNode* tree_top,</span>
+                                          <span class="s0">xmlNode* start_node,</span>
+                                          <span class="s0">bint inclusive) nogil</span>
+    <span class="s0">cdef void END_FOR_EACH_ELEMENT_FROM(xmlNode* start_node) nogil</span>
+    <span class="s0">cdef void BEGIN_FOR_EACH_FROM(xmlNode* tree_top,</span>
+                                  <span class="s0">xmlNode* start_node,</span>
+                                  <span class="s0">bint inclusive) nogil</span>
+    <span class="s0">cdef void END_FOR_EACH_FROM(xmlNode* start_node) nogil</span>
+</pre>
+</body>
+</html>

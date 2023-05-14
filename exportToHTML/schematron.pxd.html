@@ -1,0 +1,51 @@
+<html>
+<head>
+<title>schematron.pxd</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #a9b7c6;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+schematron.pxd</font>
+</center></td></tr></table>
+<pre><span class="s0">from lxml.includes cimport xmlerror</span>
+<span class="s0">from lxml.includes.tree cimport xmlDoc</span>
+
+<span class="s0">cdef extern from &quot;libxml/schematron.h&quot;:</span>
+    <span class="s0">ctypedef struct xmlSchematron</span>
+    <span class="s0">ctypedef struct xmlSchematronParserCtxt</span>
+    <span class="s0">ctypedef struct xmlSchematronValidCtxt</span>
+
+    <span class="s0">ctypedef enum xmlSchematronValidOptions:</span>
+        <span class="s0">XML_SCHEMATRON_OUT_QUIET     =    1 # quiet no report</span>
+        <span class="s0">XML_SCHEMATRON_OUT_TEXT      =    2 # build a textual report</span>
+        <span class="s0">XML_SCHEMATRON_OUT_XML       =    4 # output SVRL</span>
+        <span class="s0">XML_SCHEMATRON_OUT_ERROR     =    8 # output via xmlStructuredErrorFunc</span>
+        <span class="s0">XML_SCHEMATRON_OUT_FILE      =  256 # output to a file descriptor</span>
+        <span class="s0">XML_SCHEMATRON_OUT_BUFFER    =  512 # output to a buffer</span>
+        <span class="s0">XML_SCHEMATRON_OUT_IO        = 1024 # output to I/O mechanism</span>
+
+    <span class="s0">cdef xmlSchematronParserCtxt* xmlSchematronNewDocParserCtxt(</span>
+        <span class="s0">xmlDoc* doc) nogil</span>
+    <span class="s0">cdef xmlSchematronParserCtxt* xmlSchematronNewParserCtxt(</span>
+        <span class="s0">char* filename) nogil</span>
+    <span class="s0">cdef xmlSchematronValidCtxt* xmlSchematronNewValidCtxt(</span>
+        <span class="s0">xmlSchematron* schema, int options) nogil</span>
+
+    <span class="s0">cdef xmlSchematron* xmlSchematronParse(xmlSchematronParserCtxt* ctxt) nogil</span>
+    <span class="s0">cdef int xmlSchematronValidateDoc(xmlSchematronValidCtxt* ctxt,</span>
+                                      <span class="s0">xmlDoc* instance) nogil</span>
+
+    <span class="s0">cdef void xmlSchematronFreeParserCtxt(xmlSchematronParserCtxt* ctxt) nogil</span>
+    <span class="s0">cdef void xmlSchematronFreeValidCtxt(xmlSchematronValidCtxt* ctxt) nogil</span>
+    <span class="s0">cdef void xmlSchematronFree(xmlSchematron* schema) nogil</span>
+    <span class="s0">cdef void xmlSchematronSetValidStructuredErrors(</span>
+        <span class="s0">xmlSchematronValidCtxt* ctxt,</span>
+        <span class="s0">xmlerror.xmlStructuredErrorFunc error_func, void *data)</span>
+</pre>
+</body>
+</html>

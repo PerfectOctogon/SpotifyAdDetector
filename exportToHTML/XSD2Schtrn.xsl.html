@@ -1,0 +1,99 @@
+<html>
+<head>
+<title>XSD2Schtrn.xsl</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #e8bf6a;}
+.s1 { color: #bababa;}
+.s2 { color: #6a8759;}
+.s3 { color: #a9b7c6;}
+.s4 { color: #808080;}
+.s5 { color: #6d9cbe;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+XSD2Schtrn.xsl</font>
+</center></td></tr></table>
+<pre><span class="s0">&lt;?</span><span class="s1">xml version</span><span class="s2">=&quot;1.0&quot; </span><span class="s1">encoding</span><span class="s2">=&quot;UTF-8&quot;</span><span class="s0">?&gt;</span>
+<span class="s4">&lt;!--</span>
+        <span class="s4">based on an original transform by Eddie Robertsson 
+        2001/04/21      fn: added support for included schemas 
+        2001/06/27      er: changed XMl Schema prefix from xsd: to xs: and changed to the Rec namespace 
+        2009/12/10      hj: changed Schematron namespace to ISO URI (Holger Joukl) 
+--&gt;</span>
+<span class="s0">&lt;xsl:transform </span><span class="s1">version</span><span class="s2">=&quot;1.0&quot; </span><span class="s1">xmlns:xsl</span><span class="s2">=&quot;http://www.w3.org/1999/XSL/Transform&quot; </span>
+<span class="s1">xmlns:sch</span><span class="s2">=&quot;http://purl.oclc.org/dsdl/schematron&quot; </span><span class="s1">xmlns:xs</span><span class="s2">=&quot;http://www.w3.org/2001/XMLSchema&quot;</span><span class="s0">&gt;</span>
+        <span class="s4">&lt;!-- Set the output to be XML with an XML declaration and use indentation --&gt;</span>
+        <span class="s0">&lt;xsl:output </span><span class="s1">method</span><span class="s2">=&quot;xml&quot; </span><span class="s1">omit-xml-declaration</span><span class="s2">=&quot;no&quot; </span><span class="s1">indent</span><span class="s2">=&quot;yes&quot; </span><span class="s1">standalone</span><span class="s2">=&quot;yes&quot;</span><span class="s0">/&gt;</span>
+        <span class="s4">&lt;!-- --&gt;</span>
+        <span class="s4">&lt;!-- match schema and call recursive template to extract included schemas --&gt;</span>
+        <span class="s4">&lt;!-- --&gt;</span>
+        <span class="s0">&lt;xsl:template </span><span class="s1">match</span><span class="s2">=&quot;xs:schema&quot;</span><span class="s0">&gt;</span>
+                <span class="s4">&lt;!-- call the schema definition template ... --&gt;</span>
+                <span class="s0">&lt;xsl:call-template </span><span class="s1">name</span><span class="s2">=&quot;gatherSchema&quot;</span><span class="s0">&gt;</span>
+                        <span class="s4">&lt;!-- ... with current current root as the $schemas parameter ... --&gt;</span>
+                        <span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;schemas&quot; </span><span class="s1">select</span><span class="s2">=&quot;/&quot;</span><span class="s0">/&gt;</span>
+                        <span class="s4">&lt;!-- ... and any includes in the $include parameter --&gt;</span>
+                        <span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;includes&quot; </span>
+						<span class="s1">select</span><span class="s2">=&quot;document(/xs:schema/xs:*[self::xs:include or self::xs:import or self::xs:redefine]/@schemaLocation)&quot;</span><span class="s0">/&gt;</span>
+                <span class="s0">&lt;/xsl:call-template&gt;</span>
+        <span class="s0">&lt;/xsl:template&gt;</span>
+        <span class="s4">&lt;!-- --&gt;</span>
+        <span class="s4">&lt;!-- gather all included schemas into a single parameter variable --&gt;</span>
+        <span class="s4">&lt;!-- --&gt;</span>
+        <span class="s0">&lt;xsl:template </span><span class="s1">name</span><span class="s2">=&quot;gatherSchema&quot;</span><span class="s0">&gt;</span>
+                <span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;schemas&quot;</span><span class="s0">/&gt;</span>
+                <span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;includes&quot;</span><span class="s0">/&gt;</span>
+                <span class="s0">&lt;xsl:choose&gt;</span>
+                        <span class="s0">&lt;xsl:when </span><span class="s1">test</span><span class="s2">=&quot;count($schemas) </span><span class="s5">&amp;lt; </span><span class="s2">count($schemas | $includes)&quot;</span><span class="s0">&gt;</span>
+                                <span class="s4">&lt;!-- when $includes includes something new, recurse ... --&gt;</span>
+                                <span class="s0">&lt;xsl:call-template </span><span class="s1">name</span><span class="s2">=&quot;gatherSchema&quot;</span><span class="s0">&gt;</span>
+                                        <span class="s4">&lt;!-- ... with current $includes added to the $schemas parameter ... --&gt;</span>
+                                        <span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;schemas&quot; </span><span class="s1">select</span><span class="s2">=&quot;$schemas | $includes&quot;</span><span class="s0">/&gt;</span>
+                                        <span class="s4">&lt;!-- ... and any *new* includes in the $include parameter --&gt;</span>
+                                        <span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;includes&quot; </span>
+										<span class="s1">select</span><span class="s2">=&quot;document($includes/xs:schema/xs:*[self::xs:include or self::xs:import or self::xs:redefine]/@schemaLocation)&quot;</span><span class="s0">/&gt;</span>
+                                <span class="s0">&lt;/xsl:call-template&gt;</span>
+                        <span class="s0">&lt;/xsl:when&gt;</span>
+                        <span class="s0">&lt;xsl:otherwise&gt;</span>
+                                <span class="s4">&lt;!-- we have the complete set of included schemas,  
+                                so now let's output the embedded schematron --&gt;</span>
+                                <span class="s0">&lt;xsl:call-template </span><span class="s1">name</span><span class="s2">=&quot;output&quot;</span><span class="s0">&gt;</span>
+                                        <span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;schemas&quot; </span><span class="s1">select</span><span class="s2">=&quot;$schemas&quot;</span><span class="s0">/&gt;</span>
+                                <span class="s0">&lt;/xsl:call-template&gt;</span>
+                        <span class="s0">&lt;/xsl:otherwise&gt;</span>
+                <span class="s0">&lt;/xsl:choose&gt;</span>
+        <span class="s0">&lt;/xsl:template&gt;</span>
+        <span class="s4">&lt;!-- --&gt;</span>
+        <span class="s4">&lt;!-- output the schematron information --&gt;</span>
+        <span class="s4">&lt;!-- --&gt;</span>
+        <span class="s0">&lt;xsl:template </span><span class="s1">name</span><span class="s2">=&quot;output&quot;</span><span class="s0">&gt;</span>
+                <span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;schemas&quot;</span><span class="s0">/&gt;</span>
+                <span class="s4">&lt;!-- --&gt;</span>
+                <span class="s0">&lt;sch:schema&gt;</span>
+                        <span class="s4">&lt;!-- get header-type elements - eg title and especially ns --&gt;</span>
+                        <span class="s4">&lt;!-- title (just one) --&gt;</span>
+                        <span class="s0">&lt;xsl:copy-of </span><span class="s1">select</span><span class="s2">=&quot;$schemas//xs:appinfo/sch:title[1]&quot;</span><span class="s0">/&gt;</span>
+                        <span class="s4">&lt;!-- get remaining schematron schema children --&gt;</span>
+                        <span class="s4">&lt;!-- get non-blank namespace elements, dropping duplicates --&gt;</span>
+                        <span class="s0">&lt;xsl:for-each </span><span class="s1">select</span><span class="s2">=&quot;$schemas//xs:appinfo/sch:ns&quot;</span><span class="s0">&gt;</span>
+                                <span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;generate-id(.) =  
+                                generate-id($schemas//xs:appinfo/sch:ns[@prefix = current()/@prefix][1])&quot;</span><span class="s0">&gt;</span>
+                                        <span class="s0">&lt;xsl:copy-of </span><span class="s1">select</span><span class="s2">=&quot;.&quot;</span><span class="s0">/&gt;</span>
+                                <span class="s0">&lt;/xsl:if&gt;</span>
+                        <span class="s0">&lt;/xsl:for-each&gt;</span>
+                        <span class="s0">&lt;xsl:copy-of </span><span class="s1">select</span><span class="s2">=&quot;$schemas//xs:appinfo/sch:phase&quot;</span><span class="s0">/&gt;</span>
+                        <span class="s0">&lt;xsl:copy-of </span><span class="s1">select</span><span class="s2">=&quot;$schemas//xs:appinfo/sch:pattern&quot;</span><span class="s0">/&gt;</span>
+                        <span class="s0">&lt;sch:diagnostics&gt;</span>
+                                <span class="s0">&lt;xsl:copy-of </span><span class="s1">select</span><span class="s2">=&quot;$schemas//xs:appinfo/sch:diagnostics/*&quot;</span><span class="s0">/&gt;</span>
+                        <span class="s0">&lt;/sch:diagnostics&gt;</span>
+                <span class="s0">&lt;/sch:schema&gt;</span>
+        <span class="s0">&lt;/xsl:template&gt;</span>
+        <span class="s4">&lt;!-- --&gt;</span>
+<span class="s0">&lt;/xsl:transform&gt;</span>
+</pre>
+</body>
+</html>

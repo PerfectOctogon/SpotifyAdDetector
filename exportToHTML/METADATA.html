@@ -1,0 +1,149 @@
+<html>
+<head>
+<title>METADATA</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #a9b7c6;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+METADATA</font>
+</center></td></tr></table>
+<pre><span class="s0">Metadata-Version: 2.1</span>
+<span class="s0">Name: beautifulsoup4</span>
+<span class="s0">Version: 4.9.3</span>
+<span class="s0">Summary: Screen-scraping library</span>
+<span class="s0">Home-page: http://www.crummy.com/software/BeautifulSoup/bs4/</span>
+<span class="s0">Author: Leonard Richardson</span>
+<span class="s0">Author-email: leonardr@segfault.org</span>
+<span class="s0">License: MIT</span>
+<span class="s0">Download-URL: http://www.crummy.com/software/BeautifulSoup/bs4/download/</span>
+<span class="s0">Platform: UNKNOWN</span>
+<span class="s0">Classifier: Development Status :: 5 - Production/Stable</span>
+<span class="s0">Classifier: Intended Audience :: Developers</span>
+<span class="s0">Classifier: License :: OSI Approved :: MIT License</span>
+<span class="s0">Classifier: Programming Language :: Python</span>
+<span class="s0">Classifier: Programming Language :: Python :: 2.7</span>
+<span class="s0">Classifier: Programming Language :: Python :: 3</span>
+<span class="s0">Classifier: Topic :: Text Processing :: Markup :: HTML</span>
+<span class="s0">Classifier: Topic :: Text Processing :: Markup :: XML</span>
+<span class="s0">Classifier: Topic :: Text Processing :: Markup :: SGML</span>
+<span class="s0">Classifier: Topic :: Software Development :: Libraries :: Python Modules</span>
+<span class="s0">Description-Content-Type: text/markdown</span>
+<span class="s0">Requires-Dist: soupsieve (&lt;2.0,&gt;1.2) ; python_version &lt; &quot;3.0&quot;</span>
+<span class="s0">Requires-Dist: soupsieve (&gt;1.2) ; python_version &gt;= &quot;3.0&quot;</span>
+<span class="s0">Provides-Extra: html5lib</span>
+<span class="s0">Requires-Dist: html5lib ; extra == 'html5lib'</span>
+<span class="s0">Provides-Extra: lxml</span>
+<span class="s0">Requires-Dist: lxml ; extra == 'lxml'</span>
+
+<span class="s0">Beautiful Soup is a library that makes it easy to scrape information</span>
+<span class="s0">from web pages. It sits atop an HTML or XML parser, providing Pythonic</span>
+<span class="s0">idioms for iterating, searching, and modifying the parse tree.</span>
+
+<span class="s0"># Quick start</span>
+
+<span class="s0">```</span>
+<span class="s0">&gt;&gt;&gt; from bs4 import BeautifulSoup</span>
+<span class="s0">&gt;&gt;&gt; soup = BeautifulSoup(&quot;&lt;p&gt;Some&lt;b&gt;bad&lt;i&gt;HTML&quot;)</span>
+<span class="s0">&gt;&gt;&gt; print(soup.prettify())</span>
+<span class="s0">&lt;html&gt;</span>
+ <span class="s0">&lt;body&gt;</span>
+  <span class="s0">&lt;p&gt;</span>
+   <span class="s0">Some</span>
+   <span class="s0">&lt;b&gt;</span>
+    <span class="s0">bad</span>
+    <span class="s0">&lt;i&gt;</span>
+     <span class="s0">HTML</span>
+    <span class="s0">&lt;/i&gt;</span>
+   <span class="s0">&lt;/b&gt;</span>
+  <span class="s0">&lt;/p&gt;</span>
+ <span class="s0">&lt;/body&gt;</span>
+<span class="s0">&lt;/html&gt;</span>
+<span class="s0">&gt;&gt;&gt; soup.find(text=&quot;bad&quot;)</span>
+<span class="s0">'bad'</span>
+<span class="s0">&gt;&gt;&gt; soup.i</span>
+<span class="s0">&lt;i&gt;HTML&lt;/i&gt;</span>
+<span class="s0">#</span>
+<span class="s0">&gt;&gt;&gt; soup = BeautifulSoup(&quot;&lt;tag1&gt;Some&lt;tag2/&gt;bad&lt;tag3&gt;XML&quot;, &quot;xml&quot;)</span>
+<span class="s0">#</span>
+<span class="s0">&gt;&gt;&gt; print(soup.prettify())</span>
+<span class="s0">&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;</span>
+<span class="s0">&lt;tag1&gt;</span>
+ <span class="s0">Some</span>
+ <span class="s0">&lt;tag2/&gt;</span>
+ <span class="s0">bad</span>
+ <span class="s0">&lt;tag3&gt;</span>
+  <span class="s0">XML</span>
+ <span class="s0">&lt;/tag3&gt;</span>
+<span class="s0">&lt;/tag1&gt;</span>
+<span class="s0">```</span>
+
+<span class="s0">To go beyond the basics, [comprehensive documentation is available](http://www.crummy.com/software/BeautifulSoup/bs4/doc/).</span>
+
+<span class="s0"># Links</span>
+
+<span class="s0">* [Homepage](http://www.crummy.com/software/BeautifulSoup/bs4/)</span>
+<span class="s0">* [Documentation](http://www.crummy.com/software/BeautifulSoup/bs4/doc/)</span>
+<span class="s0">* [Discussion group](http://groups.google.com/group/beautifulsoup/)</span>
+<span class="s0">* [Development](https://code.launchpad.net/beautifulsoup/)</span>
+<span class="s0">* [Bug tracker](https://bugs.launchpad.net/beautifulsoup/)</span>
+<span class="s0">* [Complete changelog](https://bazaar.launchpad.net/~leonardr/beautifulsoup/bs4/view/head:/CHANGELOG)</span>
+
+<span class="s0"># Note on Python 2 sunsetting</span>
+
+<span class="s0">Since 2012, Beautiful Soup has been developed as a Python 2 library</span>
+<span class="s0">which is automatically converted to Python 3 code as necessary. This</span>
+<span class="s0">makes it impossible to take advantage of some features of Python</span>
+<span class="s0">3.</span>
+
+<span class="s0">For this reason, I plan to discontinue Beautiful Soup's Python 2</span>
+<span class="s0">support at some point after December 31, 2020: one year after the</span>
+<span class="s0">sunset date for Python 2 itself. Beyond that point, new Beautiful Soup</span>
+<span class="s0">development will exclusively target Python 3. Of course, older</span>
+<span class="s0">releases of Beautiful Soup, which support both versions, will continue</span>
+<span class="s0">to be available.</span>
+
+<span class="s0"># Supporting the project</span>
+
+<span class="s0">If you use Beautiful Soup as part of your professional work, please consider a</span>
+<span class="s0">[Tidelift subscription](https://tidelift.com/subscription/pkg/pypi-beautifulsoup4?utm_source=pypi-beautifulsoup4&amp;utm_medium=referral&amp;utm_campaign=readme).</span>
+<span class="s0">This will support many of the free software projects your organization</span>
+<span class="s0">depends on, not just Beautiful Soup.</span>
+
+<span class="s0">If you use Beautiful Soup for personal projects, the best way to say</span>
+<span class="s0">thank you is to read</span>
+<span class="s0">[Tool Safety](https://www.crummy.com/software/BeautifulSoup/zine/), a zine I</span>
+<span class="s0">wrote about what Beautiful Soup has taught me about software</span>
+<span class="s0">development.</span>
+
+<span class="s0"># Building the documentation</span>
+
+<span class="s0">The bs4/doc/ directory contains full documentation in Sphinx</span>
+<span class="s0">format. Run `make html` in that directory to create HTML</span>
+<span class="s0">documentation.</span>
+
+<span class="s0"># Running the unit tests</span>
+
+<span class="s0">Beautiful Soup supports unit test discovery from the project root directory:</span>
+
+<span class="s0">```</span>
+<span class="s0">$ nosetests</span>
+<span class="s0">```</span>
+
+<span class="s0">```</span>
+<span class="s0">$ python -m unittest discover -s bs4</span>
+<span class="s0">```</span>
+
+<span class="s0">If you checked out the source tree, you should see a script in the</span>
+<span class="s0">home directory called test-all-versions. This script will run the unit</span>
+<span class="s0">tests under Python 2, then create a temporary Python 3 conversion of</span>
+<span class="s0">the source and run the unit tests again under Python 3.</span>
+
+
+</pre>
+</body>
+</html>

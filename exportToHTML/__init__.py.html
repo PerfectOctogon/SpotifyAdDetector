@@ -1,0 +1,150 @@
+<html>
+<head>
+<title>__init__.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #cc7832;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #6a8759;}
+.s3 { color: #6897bb;}
+.s4 { color: #808080;}
+.s5 { color: #629755; font-style: italic;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+__init__.py</font>
+</center></td></tr></table>
+<pre><span class="s0">import </span><span class="s1">sys</span>
+<span class="s0">import </span><span class="s1">os</span>
+<span class="s0">import </span><span class="s1">re</span>
+<span class="s0">import </span><span class="s1">importlib</span>
+<span class="s0">import </span><span class="s1">warnings</span>
+
+
+<span class="s1">is_pypy = </span><span class="s2">'__pypy__' </span><span class="s0">in </span><span class="s1">sys.builtin_module_names</span>
+
+
+<span class="s1">warnings.filterwarnings(</span><span class="s2">'ignore'</span><span class="s0">,</span>
+                        <span class="s2">r'.+ distutils\b.+ deprecated'</span><span class="s0">,</span>
+                        <span class="s1">DeprecationWarning)</span>
+
+
+<span class="s0">def </span><span class="s1">warn_distutils_present():</span>
+    <span class="s0">if </span><span class="s2">'distutils' </span><span class="s0">not in </span><span class="s1">sys.modules:</span>
+        <span class="s0">return</span>
+    <span class="s0">if </span><span class="s1">is_pypy </span><span class="s0">and </span><span class="s1">sys.version_info &lt; (</span><span class="s3">3</span><span class="s0">, </span><span class="s3">7</span><span class="s1">):</span>
+        <span class="s4"># PyPy for 3.6 unconditionally imports distutils, so bypass the warning</span>
+        <span class="s4"># https://foss.heptapod.net/pypy/pypy/-/blob/be829135bc0d758997b3566062999ee8b23872b4/lib-python/3/site.py#L250</span>
+        <span class="s0">return</span>
+    <span class="s1">warnings.warn(</span>
+        <span class="s2">&quot;Distutils was imported before Setuptools, but importing Setuptools &quot;</span>
+        <span class="s2">&quot;also replaces the `distutils` module in `sys.modules`. This may lead &quot;</span>
+        <span class="s2">&quot;to undesirable behaviors or errors. To avoid these issues, avoid &quot;</span>
+        <span class="s2">&quot;using distutils directly, ensure that setuptools is installed in the &quot;</span>
+        <span class="s2">&quot;traditional way (e.g. not an editable install), and/or make sure &quot;</span>
+        <span class="s2">&quot;that setuptools is always imported before distutils.&quot;</span><span class="s1">)</span>
+
+
+<span class="s0">def </span><span class="s1">clear_distutils():</span>
+    <span class="s0">if </span><span class="s2">'distutils' </span><span class="s0">not in </span><span class="s1">sys.modules:</span>
+        <span class="s0">return</span>
+    <span class="s1">warnings.warn(</span><span class="s2">&quot;Setuptools is replacing distutils.&quot;</span><span class="s1">)</span>
+    <span class="s1">mods = [name </span><span class="s0">for </span><span class="s1">name </span><span class="s0">in </span><span class="s1">sys.modules </span><span class="s0">if </span><span class="s1">re.match(</span><span class="s2">r'distutils\b'</span><span class="s0">, </span><span class="s1">name)]</span>
+    <span class="s0">for </span><span class="s1">name </span><span class="s0">in </span><span class="s1">mods:</span>
+        <span class="s0">del </span><span class="s1">sys.modules[name]</span>
+
+
+<span class="s0">def </span><span class="s1">enabled():</span>
+    <span class="s5">&quot;&quot;&quot; 
+    Allow selection of distutils by environment variable. 
+    &quot;&quot;&quot;</span>
+    <span class="s1">which = os.environ.get(</span><span class="s2">'SETUPTOOLS_USE_DISTUTILS'</span><span class="s0">, </span><span class="s2">'stdlib'</span><span class="s1">)</span>
+    <span class="s0">return </span><span class="s1">which == </span><span class="s2">'local'</span>
+
+
+<span class="s0">def </span><span class="s1">ensure_local_distutils():</span>
+    <span class="s1">clear_distutils()</span>
+    <span class="s1">distutils = importlib.import_module(</span><span class="s2">'setuptools._distutils'</span><span class="s1">)</span>
+    <span class="s1">distutils.__name__ = </span><span class="s2">'distutils'</span>
+    <span class="s1">sys.modules[</span><span class="s2">'distutils'</span><span class="s1">] = distutils</span>
+
+    <span class="s4"># sanity check that submodules load as expected</span>
+    <span class="s1">core = importlib.import_module(</span><span class="s2">'distutils.core'</span><span class="s1">)</span>
+    <span class="s0">assert </span><span class="s2">'_distutils' </span><span class="s0">in </span><span class="s1">core.__file__</span><span class="s0">, </span><span class="s1">core.__file__</span>
+
+
+<span class="s0">def </span><span class="s1">do_override():</span>
+    <span class="s5">&quot;&quot;&quot; 
+    Ensure that the local copy of distutils is preferred over stdlib. 
+ 
+    See https://github.com/pypa/setuptools/issues/417#issuecomment-392298401 
+    for more motivation. 
+    &quot;&quot;&quot;</span>
+    <span class="s0">if </span><span class="s1">enabled():</span>
+        <span class="s1">warn_distutils_present()</span>
+        <span class="s1">ensure_local_distutils()</span>
+
+
+<span class="s0">class </span><span class="s1">DistutilsMetaFinder:</span>
+    <span class="s0">def </span><span class="s1">find_spec(self</span><span class="s0">, </span><span class="s1">fullname</span><span class="s0">, </span><span class="s1">path</span><span class="s0">, </span><span class="s1">target=</span><span class="s0">None</span><span class="s1">):</span>
+        <span class="s0">if </span><span class="s1">path </span><span class="s0">is not None</span><span class="s1">:</span>
+            <span class="s0">return</span>
+
+        <span class="s1">method_name = </span><span class="s2">'spec_for_{fullname}'</span><span class="s1">.format(**locals())</span>
+        <span class="s1">method = getattr(self</span><span class="s0">, </span><span class="s1">method_name</span><span class="s0">, lambda</span><span class="s1">: </span><span class="s0">None</span><span class="s1">)</span>
+        <span class="s0">return </span><span class="s1">method()</span>
+
+    <span class="s0">def </span><span class="s1">spec_for_distutils(self):</span>
+        <span class="s0">import </span><span class="s1">importlib.abc</span>
+        <span class="s0">import </span><span class="s1">importlib.util</span>
+
+        <span class="s0">class </span><span class="s1">DistutilsLoader(importlib.abc.Loader):</span>
+
+            <span class="s0">def </span><span class="s1">create_module(self</span><span class="s0">, </span><span class="s1">spec):</span>
+                <span class="s0">return </span><span class="s1">importlib.import_module(</span><span class="s2">'setuptools._distutils'</span><span class="s1">)</span>
+
+            <span class="s0">def </span><span class="s1">exec_module(self</span><span class="s0">, </span><span class="s1">module):</span>
+                <span class="s0">pass</span>
+
+        <span class="s0">return </span><span class="s1">importlib.util.spec_from_loader(</span><span class="s2">'distutils'</span><span class="s0">, </span><span class="s1">DistutilsLoader())</span>
+
+    <span class="s0">def </span><span class="s1">spec_for_pip(self):</span>
+        <span class="s5">&quot;&quot;&quot; 
+        Ensure stdlib distutils when running under pip. 
+        See pypa/pip#8761 for rationale. 
+        &quot;&quot;&quot;</span>
+        <span class="s0">if </span><span class="s1">self.pip_imported_during_build():</span>
+            <span class="s0">return</span>
+        <span class="s1">clear_distutils()</span>
+        <span class="s1">self.spec_for_distutils = </span><span class="s0">lambda</span><span class="s1">: </span><span class="s0">None</span>
+
+    <span class="s1">@staticmethod</span>
+    <span class="s0">def </span><span class="s1">pip_imported_during_build():</span>
+        <span class="s5">&quot;&quot;&quot; 
+        Detect if pip is being imported in a build script. Ref #2355. 
+        &quot;&quot;&quot;</span>
+        <span class="s0">import </span><span class="s1">traceback</span>
+        <span class="s0">return </span><span class="s1">any(</span>
+            <span class="s1">frame.f_globals[</span><span class="s2">'__file__'</span><span class="s1">].endswith(</span><span class="s2">'setup.py'</span><span class="s1">)</span>
+            <span class="s0">for </span><span class="s1">frame</span><span class="s0">, </span><span class="s1">line </span><span class="s0">in </span><span class="s1">traceback.walk_stack(</span><span class="s0">None</span><span class="s1">)</span>
+        <span class="s1">)</span>
+
+
+<span class="s1">DISTUTILS_FINDER = DistutilsMetaFinder()</span>
+
+
+<span class="s0">def </span><span class="s1">add_shim():</span>
+    <span class="s1">sys.meta_path.insert(</span><span class="s3">0</span><span class="s0">, </span><span class="s1">DISTUTILS_FINDER)</span>
+
+
+<span class="s0">def </span><span class="s1">remove_shim():</span>
+    <span class="s0">try</span><span class="s1">:</span>
+        <span class="s1">sys.meta_path.remove(DISTUTILS_FINDER)</span>
+    <span class="s0">except </span><span class="s1">ValueError:</span>
+        <span class="s0">pass</span>
+</pre>
+</body>
+</html>

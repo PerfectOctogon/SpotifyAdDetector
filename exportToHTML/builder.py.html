@@ -1,0 +1,154 @@
+<html>
+<head>
+<title>builder.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #629755; font-style: italic;}
+.s3 { color: #cc7832;}
+.s4 { color: #6a8759;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+builder.py</font>
+</center></td></tr></table>
+<pre><span class="s0"># --------------------------------------------------------------------</span>
+<span class="s0"># The ElementTree toolkit is</span>
+<span class="s0"># Copyright (c) 1999-2004 by Fredrik Lundh</span>
+<span class="s0"># --------------------------------------------------------------------</span>
+
+<span class="s2">&quot;&quot;&quot; 
+A set of HTML generator tags for building HTML documents. 
+ 
+Usage:: 
+ 
+    &gt;&gt;&gt; from lxml.html.builder import * 
+    &gt;&gt;&gt; html = HTML( 
+    ...            HEAD( TITLE(&quot;Hello World&quot;) ), 
+    ...            BODY( CLASS(&quot;main&quot;), 
+    ...                  H1(&quot;Hello World !&quot;) 
+    ...            ) 
+    ...        ) 
+ 
+    &gt;&gt;&gt; import lxml.etree 
+    &gt;&gt;&gt; print lxml.etree.tostring(html, pretty_print=True) 
+    &lt;html&gt; 
+      &lt;head&gt; 
+        &lt;title&gt;Hello World&lt;/title&gt; 
+      &lt;/head&gt; 
+      &lt;body class=&quot;main&quot;&gt; 
+        &lt;h1&gt;Hello World !&lt;/h1&gt; 
+      &lt;/body&gt; 
+    &lt;/html&gt; 
+ 
+&quot;&quot;&quot;</span>
+
+<span class="s3">from </span><span class="s1">lxml.builder </span><span class="s3">import </span><span class="s1">ElementMaker</span>
+<span class="s3">from </span><span class="s1">lxml.html </span><span class="s3">import </span><span class="s1">html_parser</span>
+
+<span class="s1">E = ElementMaker(makeelement=html_parser.makeelement)</span>
+
+<span class="s0"># elements</span>
+<span class="s1">A = E.a  </span><span class="s0">#: anchor</span>
+<span class="s1">ABBR = E.abbr  </span><span class="s0">#: abbreviated form (e.g., WWW, HTTP, etc.)</span>
+<span class="s1">ACRONYM = E.acronym  </span><span class="s0">#: </span>
+<span class="s1">ADDRESS = E.address  </span><span class="s0">#: information on author</span>
+<span class="s1">APPLET = E.applet  </span><span class="s0">#: Java applet (DEPRECATED)</span>
+<span class="s1">AREA = E.area  </span><span class="s0">#: client-side image map area</span>
+<span class="s1">B = E.b  </span><span class="s0">#: bold text style</span>
+<span class="s1">BASE = E.base  </span><span class="s0">#: document base URI</span>
+<span class="s1">BASEFONT = E.basefont  </span><span class="s0">#: base font size (DEPRECATED)</span>
+<span class="s1">BDO = E.bdo  </span><span class="s0">#: I18N BiDi over-ride</span>
+<span class="s1">BIG = E.big  </span><span class="s0">#: large text style</span>
+<span class="s1">BLOCKQUOTE = E.blockquote  </span><span class="s0">#: long quotation</span>
+<span class="s1">BODY = E.body  </span><span class="s0">#: document body</span>
+<span class="s1">BR = E.br  </span><span class="s0">#: forced line break</span>
+<span class="s1">BUTTON = E.button  </span><span class="s0">#: push button</span>
+<span class="s1">CAPTION = E.caption  </span><span class="s0">#: table caption</span>
+<span class="s1">CENTER = E.center  </span><span class="s0">#: shorthand for DIV align=center (DEPRECATED)</span>
+<span class="s1">CITE = E.cite  </span><span class="s0">#: citation</span>
+<span class="s1">CODE = E.code  </span><span class="s0">#: computer code fragment</span>
+<span class="s1">COL = E.col  </span><span class="s0">#: table column</span>
+<span class="s1">COLGROUP = E.colgroup  </span><span class="s0">#: table column group</span>
+<span class="s1">DD = E.dd  </span><span class="s0">#: definition description</span>
+<span class="s1">DEL = getattr(E</span><span class="s3">, </span><span class="s4">'del'</span><span class="s1">)  </span><span class="s0">#: deleted text</span>
+<span class="s1">DFN = E.dfn  </span><span class="s0">#: instance definition</span>
+<span class="s1">DIR = E.dir  </span><span class="s0">#: directory list (DEPRECATED)</span>
+<span class="s1">DIV = E.div  </span><span class="s0">#: generic language/style container</span>
+<span class="s1">DL = E.dl  </span><span class="s0">#: definition list</span>
+<span class="s1">DT = E.dt  </span><span class="s0">#: definition term</span>
+<span class="s1">EM = E.em  </span><span class="s0">#: emphasis</span>
+<span class="s1">FIELDSET = E.fieldset  </span><span class="s0">#: form control group</span>
+<span class="s1">FONT = E.font  </span><span class="s0">#: local change to font (DEPRECATED)</span>
+<span class="s1">FORM = E.form  </span><span class="s0">#: interactive form</span>
+<span class="s1">FRAME = E.frame  </span><span class="s0">#: subwindow</span>
+<span class="s1">FRAMESET = E.frameset  </span><span class="s0">#: window subdivision</span>
+<span class="s1">H1 = E.h1  </span><span class="s0">#: heading</span>
+<span class="s1">H2 = E.h2  </span><span class="s0">#: heading</span>
+<span class="s1">H3 = E.h3  </span><span class="s0">#: heading</span>
+<span class="s1">H4 = E.h4  </span><span class="s0">#: heading</span>
+<span class="s1">H5 = E.h5  </span><span class="s0">#: heading</span>
+<span class="s1">H6 = E.h6  </span><span class="s0">#: heading</span>
+<span class="s1">HEAD = E.head  </span><span class="s0">#: document head</span>
+<span class="s1">HR = E.hr  </span><span class="s0">#: horizontal rule</span>
+<span class="s1">HTML = E.html  </span><span class="s0">#: document root element</span>
+<span class="s1">I = E.i  </span><span class="s0">#: italic text style</span>
+<span class="s1">IFRAME = E.iframe  </span><span class="s0">#: inline subwindow</span>
+<span class="s1">IMG = E.img  </span><span class="s0">#: Embedded image</span>
+<span class="s1">INPUT = E.input  </span><span class="s0">#: form control</span>
+<span class="s1">INS = E.ins  </span><span class="s0">#: inserted text</span>
+<span class="s1">ISINDEX = E.isindex  </span><span class="s0">#: single line prompt (DEPRECATED)</span>
+<span class="s1">KBD = E.kbd  </span><span class="s0">#: text to be entered by the user</span>
+<span class="s1">LABEL = E.label  </span><span class="s0">#: form field label text</span>
+<span class="s1">LEGEND = E.legend  </span><span class="s0">#: fieldset legend</span>
+<span class="s1">LI = E.li  </span><span class="s0">#: list item</span>
+<span class="s1">LINK = E.link  </span><span class="s0">#: a media-independent link</span>
+<span class="s1">MAP = E.map  </span><span class="s0">#: client-side image map</span>
+<span class="s1">MENU = E.menu  </span><span class="s0">#: menu list (DEPRECATED)</span>
+<span class="s1">META = E.meta  </span><span class="s0">#: generic metainformation</span>
+<span class="s1">NOFRAMES = E.noframes  </span><span class="s0">#: alternate content container for non frame-based rendering</span>
+<span class="s1">NOSCRIPT = E.noscript  </span><span class="s0">#: alternate content container for non script-based rendering</span>
+<span class="s1">OBJECT = E.object  </span><span class="s0">#: generic embedded object</span>
+<span class="s1">OL = E.ol  </span><span class="s0">#: ordered list</span>
+<span class="s1">OPTGROUP = E.optgroup  </span><span class="s0">#: option group</span>
+<span class="s1">OPTION = E.option  </span><span class="s0">#: selectable choice</span>
+<span class="s1">P = E.p  </span><span class="s0">#: paragraph</span>
+<span class="s1">PARAM = E.param  </span><span class="s0">#: named property value</span>
+<span class="s1">PRE = E.pre  </span><span class="s0">#: preformatted text</span>
+<span class="s1">Q = E.q  </span><span class="s0">#: short inline quotation</span>
+<span class="s1">S = E.s  </span><span class="s0">#: strike-through text style (DEPRECATED)</span>
+<span class="s1">SAMP = E.samp  </span><span class="s0">#: sample program output, scripts, etc.</span>
+<span class="s1">SCRIPT = E.script  </span><span class="s0">#: script statements</span>
+<span class="s1">SELECT = E.select  </span><span class="s0">#: option selector</span>
+<span class="s1">SMALL = E.small  </span><span class="s0">#: small text style</span>
+<span class="s1">SPAN = E.span  </span><span class="s0">#: generic language/style container</span>
+<span class="s1">STRIKE = E.strike  </span><span class="s0">#: strike-through text (DEPRECATED)</span>
+<span class="s1">STRONG = E.strong  </span><span class="s0">#: strong emphasis</span>
+<span class="s1">STYLE = E.style  </span><span class="s0">#: style info</span>
+<span class="s1">SUB = E.sub  </span><span class="s0">#: subscript</span>
+<span class="s1">SUP = E.sup  </span><span class="s0">#: superscript</span>
+<span class="s1">TABLE = E.table  </span><span class="s0">#: </span>
+<span class="s1">TBODY = E.tbody  </span><span class="s0">#: table body</span>
+<span class="s1">TD = E.td  </span><span class="s0">#: table data cell</span>
+<span class="s1">TEXTAREA = E.textarea  </span><span class="s0">#: multi-line text field</span>
+<span class="s1">TFOOT = E.tfoot  </span><span class="s0">#: table footer</span>
+<span class="s1">TH = E.th  </span><span class="s0">#: table header cell</span>
+<span class="s1">THEAD = E.thead  </span><span class="s0">#: table header</span>
+<span class="s1">TITLE = E.title  </span><span class="s0">#: document title</span>
+<span class="s1">TR = E.tr  </span><span class="s0">#: table row</span>
+<span class="s1">TT = E.tt  </span><span class="s0">#: teletype or monospaced text style</span>
+<span class="s1">U = E.u  </span><span class="s0">#: underlined text style (DEPRECATED)</span>
+<span class="s1">UL = E.ul  </span><span class="s0">#: unordered list</span>
+<span class="s1">VAR = E.var  </span><span class="s0">#: instance of a variable or program argument</span>
+
+<span class="s0"># attributes (only reserved words are included here)</span>
+<span class="s1">ATTR = dict</span>
+<span class="s3">def </span><span class="s1">CLASS(v): </span><span class="s3">return </span><span class="s1">{</span><span class="s4">'class'</span><span class="s1">: v}</span>
+<span class="s3">def </span><span class="s1">FOR(v): </span><span class="s3">return </span><span class="s1">{</span><span class="s4">'for'</span><span class="s1">: v}</span>
+</pre>
+</body>
+</html>

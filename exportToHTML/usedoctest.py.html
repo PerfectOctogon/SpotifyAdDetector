@@ -1,0 +1,32 @@
+<html>
+<head>
+<title>usedoctest.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #629755; font-style: italic;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+usedoctest.py</font>
+</center></td></tr></table>
+<pre><span class="s0">&quot;&quot;&quot;Doctest module for HTML comparison. 
+ 
+Usage:: 
+ 
+   &gt;&gt;&gt; import lxml.html.usedoctest 
+   &gt;&gt;&gt; # now do your HTML doctests ... 
+ 
+See `lxml.doctestcompare`. 
+&quot;&quot;&quot;</span>
+
+<span class="s2">from </span><span class="s1">lxml </span><span class="s2">import </span><span class="s1">doctestcompare</span>
+
+<span class="s1">doctestcompare.temp_install(html=</span><span class="s2">True, </span><span class="s1">del_module=__name__)</span>
+</pre>
+</body>
+</html>

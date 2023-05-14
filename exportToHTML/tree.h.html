@@ -1,0 +1,1333 @@
+<html>
+<head>
+<title>tree.h</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+.s4 { color: #6897bb;}
+.s5 { color: #0f9795;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+tree.h</font>
+</center></td></tr></table>
+<pre><span class="s0">/* 
+ * Summary: interfaces for tree manipulation 
+ * Description: this module describes the structures found in an tree resulting 
+ *              from an XML or HTML parsing, as well as the API provided for 
+ *              various processing on that tree 
+ * 
+ * Copy: See Copyright for the status of this software. 
+ * 
+ * Author: Daniel Veillard 
+ */</span>
+
+<span class="s2">#ifndef </span><span class="s1">__XML_TREE_H__</span>
+<span class="s2">#define </span><span class="s1">__XML_TREE_H__</span>
+
+<span class="s2">#include </span><span class="s1">&lt;stdio.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;limits.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/xmlversion.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/xmlstring.h&gt;</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s2">extern </span><span class="s3">&quot;C&quot; </span><span class="s1">{</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/* 
+ * Some of the basic types pointer to structures: 
+ */</span>
+<span class="s0">/* xmlIO.h */</span>
+<span class="s2">typedef struct </span><span class="s1">_xmlParserInputBuffer xmlParserInputBuffer;</span>
+<span class="s2">typedef </span><span class="s1">xmlParserInputBuffer *xmlParserInputBufferPtr;</span>
+
+<span class="s2">typedef struct </span><span class="s1">_xmlOutputBuffer xmlOutputBuffer;</span>
+<span class="s2">typedef </span><span class="s1">xmlOutputBuffer *xmlOutputBufferPtr;</span>
+
+<span class="s0">/* parser.h */</span>
+<span class="s2">typedef struct </span><span class="s1">_xmlParserInput xmlParserInput;</span>
+<span class="s2">typedef </span><span class="s1">xmlParserInput *xmlParserInputPtr;</span>
+
+<span class="s2">typedef struct </span><span class="s1">_xmlParserCtxt xmlParserCtxt;</span>
+<span class="s2">typedef </span><span class="s1">xmlParserCtxt *xmlParserCtxtPtr;</span>
+
+<span class="s2">typedef struct </span><span class="s1">_xmlSAXLocator xmlSAXLocator;</span>
+<span class="s2">typedef </span><span class="s1">xmlSAXLocator *xmlSAXLocatorPtr;</span>
+
+<span class="s2">typedef struct </span><span class="s1">_xmlSAXHandler xmlSAXHandler;</span>
+<span class="s2">typedef </span><span class="s1">xmlSAXHandler *xmlSAXHandlerPtr;</span>
+
+<span class="s0">/* entities.h */</span>
+<span class="s2">typedef struct </span><span class="s1">_xmlEntity xmlEntity;</span>
+<span class="s2">typedef </span><span class="s1">xmlEntity *xmlEntityPtr;</span>
+
+<span class="s0">/** 
+ * BASE_BUFFER_SIZE: 
+ * 
+ * default buffer size 4000. 
+ */</span>
+<span class="s2">#define </span><span class="s1">BASE_BUFFER_SIZE </span><span class="s4">4096</span>
+
+<span class="s0">/** 
+ * LIBXML_NAMESPACE_DICT: 
+ * 
+ * Defines experimental behaviour: 
+ * 1) xmlNs gets an additional field @context (a xmlDoc) 
+ * 2) when creating a tree, xmlNs-&gt;href is stored in the dict of xmlDoc. 
+ */</span>
+<span class="s0">/* #define LIBXML_NAMESPACE_DICT */</span>
+
+<span class="s0">/** 
+ * xmlBufferAllocationScheme: 
+ * 
+ * A buffer allocation scheme can be defined to either match exactly the 
+ * need or double it's allocated size each time it is found too small. 
+ */</span>
+
+<span class="s2">typedef enum </span><span class="s1">{</span>
+    <span class="s1">XML_BUFFER_ALLOC_DOUBLEIT,	</span><span class="s0">/* double each time one need to grow */</span>
+    <span class="s1">XML_BUFFER_ALLOC_EXACT,	</span><span class="s0">/* grow only to the minimal size */</span>
+    <span class="s1">XML_BUFFER_ALLOC_IMMUTABLE, </span><span class="s0">/* immutable buffer */</span>
+    <span class="s1">XML_BUFFER_ALLOC_IO,	</span><span class="s0">/* special allocation scheme used for I/O */</span>
+    <span class="s1">XML_BUFFER_ALLOC_HYBRID,	</span><span class="s0">/* exact up to a threshold, and doubleit thereafter */</span>
+    <span class="s1">XML_BUFFER_ALLOC_BOUNDED	</span><span class="s0">/* limit the upper size of the buffer */</span>
+<span class="s1">} xmlBufferAllocationScheme;</span>
+
+<span class="s0">/** 
+ * xmlBuffer: 
+ * 
+ * A buffer structure, this old construct is limited to 2GB and 
+ * is being deprecated, use API with xmlBuf instead 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xmlBuffer xmlBuffer;</span>
+<span class="s2">typedef </span><span class="s1">xmlBuffer *xmlBufferPtr;</span>
+<span class="s2">struct </span><span class="s1">_xmlBuffer {</span>
+    <span class="s1">xmlChar *content;		</span><span class="s0">/* The buffer content UTF8 */</span>
+    <span class="s2">unsigned int </span><span class="s1">use;		</span><span class="s0">/* The buffer size used */</span>
+    <span class="s2">unsigned int </span><span class="s1">size;		</span><span class="s0">/* The buffer size */</span>
+    <span class="s1">xmlBufferAllocationScheme alloc; </span><span class="s0">/* The realloc method */</span>
+    <span class="s1">xmlChar *contentIO;		</span><span class="s0">/* in IO mode we may have a different base */</span>
+<span class="s1">};</span>
+
+<span class="s0">/** 
+ * xmlBuf: 
+ * 
+ * A buffer structure, new one, the actual structure internals are not public 
+ */</span>
+
+<span class="s2">typedef struct </span><span class="s1">_xmlBuf xmlBuf;</span>
+
+<span class="s0">/** 
+ * xmlBufPtr: 
+ * 
+ * A pointer to a buffer structure, the actual structure internals are not 
+ * public 
+ */</span>
+
+<span class="s2">typedef </span><span class="s1">xmlBuf *xmlBufPtr;</span>
+
+<span class="s0">/* 
+ * A few public routines for xmlBuf. As those are expected to be used 
+ * mostly internally the bulk of the routines are internal in buf.h 
+ */</span>
+<span class="s1">XMLPUBFUN xmlChar* XMLCALL       xmlBufContent	(</span><span class="s2">const </span><span class="s1">xmlBuf* buf);</span>
+<span class="s1">XMLPUBFUN xmlChar* XMLCALL       xmlBufEnd      (xmlBufPtr buf);</span>
+<span class="s1">XMLPUBFUN size_t XMLCALL         xmlBufUse      (</span><span class="s2">const </span><span class="s1">xmlBufPtr buf);</span>
+<span class="s1">XMLPUBFUN size_t XMLCALL         xmlBufShrink	(xmlBufPtr buf, size_t len);</span>
+
+<span class="s0">/* 
+ * LIBXML2_NEW_BUFFER: 
+ * 
+ * Macro used to express that the API use the new buffers for 
+ * xmlParserInputBuffer and xmlOutputBuffer. The change was 
+ * introduced in 2.9.0. 
+ */</span>
+<span class="s2">#define </span><span class="s1">LIBXML2_NEW_BUFFER</span>
+
+<span class="s0">/** 
+ * XML_XML_NAMESPACE: 
+ * 
+ * This is the namespace for the special xml: prefix predefined in the 
+ * XML Namespace specification. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_XML_NAMESPACE \</span>
+    <span class="s1">(</span><span class="s2">const </span><span class="s1">xmlChar *) </span><span class="s3">&quot;http://www.w3.org/XML/1998/namespace&quot;</span>
+
+<span class="s0">/** 
+ * XML_XML_ID: 
+ * 
+ * This is the name for the special xml:id attribute 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_XML_ID (</span><span class="s2">const </span><span class="s1">xmlChar *) </span><span class="s3">&quot;xml:id&quot;</span>
+
+<span class="s0">/* 
+ * The different element types carried by an XML tree. 
+ * 
+ * NOTE: This is synchronized with DOM Level1 values 
+ *       See http://www.w3.org/TR/REC-DOM-Level-1/ 
+ * 
+ * Actually this had diverged a bit, and now XML_DOCUMENT_TYPE_NODE should 
+ * be deprecated to use an XML_DTD_NODE. 
+ */</span>
+<span class="s2">typedef enum </span><span class="s1">{</span>
+    <span class="s1">XML_ELEMENT_NODE=		</span><span class="s4">1</span><span class="s1">,</span>
+    <span class="s1">XML_ATTRIBUTE_NODE=		</span><span class="s4">2</span><span class="s1">,</span>
+    <span class="s1">XML_TEXT_NODE=		</span><span class="s4">3</span><span class="s1">,</span>
+    <span class="s1">XML_CDATA_SECTION_NODE=	</span><span class="s4">4</span><span class="s1">,</span>
+    <span class="s1">XML_ENTITY_REF_NODE=	</span><span class="s4">5</span><span class="s1">,</span>
+    <span class="s1">XML_ENTITY_NODE=		</span><span class="s4">6</span><span class="s1">,</span>
+    <span class="s1">XML_PI_NODE=		</span><span class="s4">7</span><span class="s1">,</span>
+    <span class="s1">XML_COMMENT_NODE=		</span><span class="s4">8</span><span class="s1">,</span>
+    <span class="s1">XML_DOCUMENT_NODE=		</span><span class="s4">9</span><span class="s1">,</span>
+    <span class="s1">XML_DOCUMENT_TYPE_NODE=	</span><span class="s4">10</span><span class="s1">,</span>
+    <span class="s1">XML_DOCUMENT_FRAG_NODE=	</span><span class="s4">11</span><span class="s1">,</span>
+    <span class="s1">XML_NOTATION_NODE=		</span><span class="s4">12</span><span class="s1">,</span>
+    <span class="s1">XML_HTML_DOCUMENT_NODE=	</span><span class="s4">13</span><span class="s1">,</span>
+    <span class="s1">XML_DTD_NODE=		</span><span class="s4">14</span><span class="s1">,</span>
+    <span class="s1">XML_ELEMENT_DECL=		</span><span class="s4">15</span><span class="s1">,</span>
+    <span class="s1">XML_ATTRIBUTE_DECL=		</span><span class="s4">16</span><span class="s1">,</span>
+    <span class="s1">XML_ENTITY_DECL=		</span><span class="s4">17</span><span class="s1">,</span>
+    <span class="s1">XML_NAMESPACE_DECL=		</span><span class="s4">18</span><span class="s1">,</span>
+    <span class="s1">XML_XINCLUDE_START=		</span><span class="s4">19</span><span class="s1">,</span>
+    <span class="s1">XML_XINCLUDE_END=		</span><span class="s4">20</span>
+<span class="s2">#ifdef </span><span class="s1">LIBXML_DOCB_ENABLED</span>
+   <span class="s1">,XML_DOCB_DOCUMENT_NODE=	</span><span class="s4">21</span>
+<span class="s2">#endif</span>
+<span class="s1">} xmlElementType;</span>
+
+
+<span class="s0">/** 
+ * xmlNotation: 
+ * 
+ * A DTD Notation definition. 
+ */</span>
+
+<span class="s2">typedef struct </span><span class="s1">_xmlNotation xmlNotation;</span>
+<span class="s2">typedef </span><span class="s1">xmlNotation *xmlNotationPtr;</span>
+<span class="s2">struct </span><span class="s1">_xmlNotation {</span>
+    <span class="s2">const </span><span class="s1">xmlChar               *name;	        </span><span class="s0">/* Notation name */</span>
+    <span class="s2">const </span><span class="s1">xmlChar               *PublicID;	</span><span class="s0">/* Public identifier, if any */</span>
+    <span class="s2">const </span><span class="s1">xmlChar               *SystemID;	</span><span class="s0">/* System identifier, if any */</span>
+<span class="s1">};</span>
+
+<span class="s0">/** 
+ * xmlAttributeType: 
+ * 
+ * A DTD Attribute type definition. 
+ */</span>
+
+<span class="s2">typedef enum </span><span class="s1">{</span>
+    <span class="s1">XML_ATTRIBUTE_CDATA = </span><span class="s4">1</span><span class="s1">,</span>
+    <span class="s1">XML_ATTRIBUTE_ID,</span>
+    <span class="s1">XML_ATTRIBUTE_IDREF	,</span>
+    <span class="s1">XML_ATTRIBUTE_IDREFS,</span>
+    <span class="s1">XML_ATTRIBUTE_ENTITY,</span>
+    <span class="s1">XML_ATTRIBUTE_ENTITIES,</span>
+    <span class="s1">XML_ATTRIBUTE_NMTOKEN,</span>
+    <span class="s1">XML_ATTRIBUTE_NMTOKENS,</span>
+    <span class="s1">XML_ATTRIBUTE_ENUMERATION,</span>
+    <span class="s1">XML_ATTRIBUTE_NOTATION</span>
+<span class="s1">} xmlAttributeType;</span>
+
+<span class="s0">/** 
+ * xmlAttributeDefault: 
+ * 
+ * A DTD Attribute default definition. 
+ */</span>
+
+<span class="s2">typedef enum </span><span class="s1">{</span>
+    <span class="s1">XML_ATTRIBUTE_NONE = </span><span class="s4">1</span><span class="s1">,</span>
+    <span class="s1">XML_ATTRIBUTE_REQUIRED,</span>
+    <span class="s1">XML_ATTRIBUTE_IMPLIED,</span>
+    <span class="s1">XML_ATTRIBUTE_FIXED</span>
+<span class="s1">} xmlAttributeDefault;</span>
+
+<span class="s0">/** 
+ * xmlEnumeration: 
+ * 
+ * List structure used when there is an enumeration in DTDs. 
+ */</span>
+
+<span class="s2">typedef struct </span><span class="s1">_xmlEnumeration xmlEnumeration;</span>
+<span class="s2">typedef </span><span class="s1">xmlEnumeration *xmlEnumerationPtr;</span>
+<span class="s2">struct </span><span class="s1">_xmlEnumeration {</span>
+    <span class="s2">struct </span><span class="s1">_xmlEnumeration    *next;	</span><span class="s0">/* next one */</span>
+    <span class="s2">const </span><span class="s1">xmlChar            *name;	</span><span class="s0">/* Enumeration name */</span>
+<span class="s1">};</span>
+
+<span class="s0">/** 
+ * xmlAttribute: 
+ * 
+ * An Attribute declaration in a DTD. 
+ */</span>
+
+<span class="s2">typedef struct </span><span class="s1">_xmlAttribute xmlAttribute;</span>
+<span class="s2">typedef </span><span class="s1">xmlAttribute *xmlAttributePtr;</span>
+<span class="s2">struct </span><span class="s1">_xmlAttribute {</span>
+    <span class="s2">void           </span><span class="s1">*_private;	        </span><span class="s0">/* application data */</span>
+    <span class="s1">xmlElementType          type;       </span><span class="s0">/* XML_ATTRIBUTE_DECL, must be second ! */</span>
+    <span class="s2">const </span><span class="s1">xmlChar          *name;	</span><span class="s0">/* Attribute name */</span>
+    <span class="s2">struct </span><span class="s1">_xmlNode    *children;	</span><span class="s0">/* NULL */</span>
+    <span class="s2">struct </span><span class="s1">_xmlNode        *last;	</span><span class="s0">/* NULL */</span>
+    <span class="s2">struct </span><span class="s1">_xmlDtd       *parent;	</span><span class="s0">/* -&gt; DTD */</span>
+    <span class="s2">struct </span><span class="s1">_xmlNode        *next;	</span><span class="s0">/* next sibling link  */</span>
+    <span class="s2">struct </span><span class="s1">_xmlNode        *prev;	</span><span class="s0">/* previous sibling link  */</span>
+    <span class="s2">struct </span><span class="s1">_xmlDoc          *doc;       </span><span class="s0">/* the containing document */</span>
+
+    <span class="s2">struct </span><span class="s1">_xmlAttribute  *nexth;	</span><span class="s0">/* next in hash table */</span>
+    <span class="s1">xmlAttributeType       atype;	</span><span class="s0">/* The attribute type */</span>
+    <span class="s1">xmlAttributeDefault      def;	</span><span class="s0">/* the default */</span>
+    <span class="s2">const </span><span class="s1">xmlChar  *defaultValue;	</span><span class="s0">/* or the default value */</span>
+    <span class="s1">xmlEnumerationPtr       tree;       </span><span class="s0">/* or the enumeration tree if any */</span>
+    <span class="s2">const </span><span class="s1">xmlChar        *prefix;	</span><span class="s0">/* the namespace prefix if any */</span>
+    <span class="s2">const </span><span class="s1">xmlChar          *elem;	</span><span class="s0">/* Element holding the attribute */</span>
+<span class="s1">};</span>
+
+<span class="s0">/** 
+ * xmlElementContentType: 
+ * 
+ * Possible definitions of element content types. 
+ */</span>
+<span class="s2">typedef enum </span><span class="s1">{</span>
+    <span class="s1">XML_ELEMENT_CONTENT_PCDATA = </span><span class="s4">1</span><span class="s1">,</span>
+    <span class="s1">XML_ELEMENT_CONTENT_ELEMENT,</span>
+    <span class="s1">XML_ELEMENT_CONTENT_SEQ,</span>
+    <span class="s1">XML_ELEMENT_CONTENT_OR</span>
+<span class="s1">} xmlElementContentType;</span>
+
+<span class="s0">/** 
+ * xmlElementContentOccur: 
+ * 
+ * Possible definitions of element content occurrences. 
+ */</span>
+<span class="s2">typedef enum </span><span class="s1">{</span>
+    <span class="s1">XML_ELEMENT_CONTENT_ONCE = </span><span class="s4">1</span><span class="s1">,</span>
+    <span class="s1">XML_ELEMENT_CONTENT_OPT,</span>
+    <span class="s1">XML_ELEMENT_CONTENT_MULT,</span>
+    <span class="s1">XML_ELEMENT_CONTENT_PLUS</span>
+<span class="s1">} xmlElementContentOccur;</span>
+
+<span class="s0">/** 
+ * xmlElementContent: 
+ * 
+ * An XML Element content as stored after parsing an element definition 
+ * in a DTD. 
+ */</span>
+
+<span class="s2">typedef struct </span><span class="s1">_xmlElementContent xmlElementContent;</span>
+<span class="s2">typedef </span><span class="s1">xmlElementContent *xmlElementContentPtr;</span>
+<span class="s2">struct </span><span class="s1">_xmlElementContent {</span>
+    <span class="s1">xmlElementContentType     type;	</span><span class="s0">/* PCDATA, ELEMENT, SEQ or OR */</span>
+    <span class="s1">xmlElementContentOccur    ocur;	</span><span class="s0">/* ONCE, OPT, MULT or PLUS */</span>
+    <span class="s2">const </span><span class="s1">xmlChar             *name;	</span><span class="s0">/* Element name */</span>
+    <span class="s2">struct </span><span class="s1">_xmlElementContent *c1;	</span><span class="s0">/* first child */</span>
+    <span class="s2">struct </span><span class="s1">_xmlElementContent *c2;	</span><span class="s0">/* second child */</span>
+    <span class="s2">struct </span><span class="s1">_xmlElementContent *parent;	</span><span class="s0">/* parent */</span>
+    <span class="s2">const </span><span class="s1">xmlChar             *prefix;	</span><span class="s0">/* Namespace prefix */</span>
+<span class="s1">};</span>
+
+<span class="s0">/** 
+ * xmlElementTypeVal: 
+ * 
+ * The different possibilities for an element content type. 
+ */</span>
+
+<span class="s2">typedef enum </span><span class="s1">{</span>
+    <span class="s1">XML_ELEMENT_TYPE_UNDEFINED = </span><span class="s4">0</span><span class="s1">,</span>
+    <span class="s1">XML_ELEMENT_TYPE_EMPTY = </span><span class="s4">1</span><span class="s1">,</span>
+    <span class="s1">XML_ELEMENT_TYPE_ANY,</span>
+    <span class="s1">XML_ELEMENT_TYPE_MIXED,</span>
+    <span class="s1">XML_ELEMENT_TYPE_ELEMENT</span>
+<span class="s1">} xmlElementTypeVal;</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s1">}</span>
+<span class="s2">#endif</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/xmlregexp.h&gt;</span>
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s2">extern </span><span class="s3">&quot;C&quot; </span><span class="s1">{</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * xmlElement: 
+ * 
+ * An XML Element declaration from a DTD. 
+ */</span>
+
+<span class="s2">typedef struct </span><span class="s1">_xmlElement xmlElement;</span>
+<span class="s2">typedef </span><span class="s1">xmlElement *xmlElementPtr;</span>
+<span class="s2">struct </span><span class="s1">_xmlElement {</span>
+    <span class="s2">void           </span><span class="s1">*_private;	        </span><span class="s0">/* application data */</span>
+    <span class="s1">xmlElementType          type;       </span><span class="s0">/* XML_ELEMENT_DECL, must be second ! */</span>
+    <span class="s2">const </span><span class="s1">xmlChar          *name;	</span><span class="s0">/* Element name */</span>
+    <span class="s2">struct </span><span class="s1">_xmlNode    *children;	</span><span class="s0">/* NULL */</span>
+    <span class="s2">struct </span><span class="s1">_xmlNode        *last;	</span><span class="s0">/* NULL */</span>
+    <span class="s2">struct </span><span class="s1">_xmlDtd       *parent;	</span><span class="s0">/* -&gt; DTD */</span>
+    <span class="s2">struct </span><span class="s1">_xmlNode        *next;	</span><span class="s0">/* next sibling link  */</span>
+    <span class="s2">struct </span><span class="s1">_xmlNode        *prev;	</span><span class="s0">/* previous sibling link  */</span>
+    <span class="s2">struct </span><span class="s1">_xmlDoc          *doc;       </span><span class="s0">/* the containing document */</span>
+
+    <span class="s1">xmlElementTypeVal      etype;	</span><span class="s0">/* The type */</span>
+    <span class="s1">xmlElementContentPtr content;	</span><span class="s0">/* the allowed element content */</span>
+    <span class="s1">xmlAttributePtr   attributes;	</span><span class="s0">/* List of the declared attributes */</span>
+    <span class="s2">const </span><span class="s1">xmlChar        *prefix;	</span><span class="s0">/* the namespace prefix if any */</span>
+<span class="s2">#ifdef </span><span class="s1">LIBXML_REGEXP_ENABLED</span>
+    <span class="s1">xmlRegexpPtr       contModel;	</span><span class="s0">/* the validating regexp */</span>
+<span class="s2">#else</span>
+    <span class="s2">void	      </span><span class="s1">*contModel;</span>
+<span class="s2">#endif</span>
+<span class="s1">};</span>
+
+
+<span class="s0">/** 
+ * XML_LOCAL_NAMESPACE: 
+ * 
+ * A namespace declaration node. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_LOCAL_NAMESPACE XML_NAMESPACE_DECL</span>
+<span class="s2">typedef </span><span class="s1">xmlElementType xmlNsType;</span>
+
+<span class="s0">/** 
+ * xmlNs: 
+ * 
+ * An XML namespace. 
+ * Note that prefix == NULL is valid, it defines the default namespace 
+ * within the subtree (until overridden). 
+ * 
+ * xmlNsType is unified with xmlElementType. 
+ */</span>
+
+<span class="s2">typedef struct </span><span class="s1">_xmlNs xmlNs;</span>
+<span class="s2">typedef </span><span class="s1">xmlNs *xmlNsPtr;</span>
+<span class="s2">struct </span><span class="s1">_xmlNs {</span>
+    <span class="s2">struct </span><span class="s1">_xmlNs  *next;	</span><span class="s0">/* next Ns link for this node  */</span>
+    <span class="s1">xmlNsType      type;	</span><span class="s0">/* global or local */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *href;	</span><span class="s0">/* URL for the namespace */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *prefix;	</span><span class="s0">/* prefix for the namespace */</span>
+    <span class="s2">void           </span><span class="s1">*_private;   </span><span class="s0">/* application data */</span>
+    <span class="s2">struct </span><span class="s1">_xmlDoc *context;		</span><span class="s0">/* normally an xmlDoc */</span>
+<span class="s1">};</span>
+
+<span class="s0">/** 
+ * xmlDtd: 
+ * 
+ * An XML DTD, as defined by &lt;!DOCTYPE ... There is actually one for 
+ * the internal subset and for the external subset. 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xmlDtd xmlDtd;</span>
+<span class="s2">typedef </span><span class="s1">xmlDtd *xmlDtdPtr;</span>
+<span class="s2">struct </span><span class="s1">_xmlDtd {</span>
+    <span class="s2">void           </span><span class="s1">*_private;	</span><span class="s0">/* application data */</span>
+    <span class="s1">xmlElementType  type;       </span><span class="s0">/* XML_DTD_NODE, must be second ! */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *name;	</span><span class="s0">/* Name of the DTD */</span>
+    <span class="s2">struct </span><span class="s1">_xmlNode *children;	</span><span class="s0">/* the value of the property link */</span>
+    <span class="s2">struct </span><span class="s1">_xmlNode *last;	</span><span class="s0">/* last child link */</span>
+    <span class="s2">struct </span><span class="s1">_xmlDoc  *parent;	</span><span class="s0">/* child-&gt;parent link */</span>
+    <span class="s2">struct </span><span class="s1">_xmlNode *next;	</span><span class="s0">/* next sibling link  */</span>
+    <span class="s2">struct </span><span class="s1">_xmlNode *prev;	</span><span class="s0">/* previous sibling link  */</span>
+    <span class="s2">struct </span><span class="s1">_xmlDoc  *doc;	</span><span class="s0">/* the containing document */</span>
+
+    <span class="s0">/* End of common part */</span>
+    <span class="s2">void          </span><span class="s1">*notations;   </span><span class="s0">/* Hash table for notations if any */</span>
+    <span class="s2">void          </span><span class="s1">*elements;    </span><span class="s0">/* Hash table for elements if any */</span>
+    <span class="s2">void          </span><span class="s1">*attributes;  </span><span class="s0">/* Hash table for attributes if any */</span>
+    <span class="s2">void          </span><span class="s1">*entities;    </span><span class="s0">/* Hash table for entities if any */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *ExternalID;	</span><span class="s0">/* External identifier for PUBLIC DTD */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *SystemID;	</span><span class="s0">/* URI for a SYSTEM or PUBLIC DTD */</span>
+    <span class="s2">void          </span><span class="s1">*pentities;   </span><span class="s0">/* Hash table for param entities if any */</span>
+<span class="s1">};</span>
+
+<span class="s0">/** 
+ * xmlAttr: 
+ * 
+ * An attribute on an XML node. 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xmlAttr xmlAttr;</span>
+<span class="s2">typedef </span><span class="s1">xmlAttr *xmlAttrPtr;</span>
+<span class="s2">struct </span><span class="s1">_xmlAttr {</span>
+    <span class="s2">void           </span><span class="s1">*_private;	</span><span class="s0">/* application data */</span>
+    <span class="s1">xmlElementType   type;      </span><span class="s0">/* XML_ATTRIBUTE_NODE, must be second ! */</span>
+    <span class="s2">const </span><span class="s1">xmlChar   *name;      </span><span class="s0">/* the name of the property */</span>
+    <span class="s2">struct </span><span class="s1">_xmlNode *children;	</span><span class="s0">/* the value of the property */</span>
+    <span class="s2">struct </span><span class="s1">_xmlNode *last;	</span><span class="s0">/* NULL */</span>
+    <span class="s2">struct </span><span class="s1">_xmlNode *parent;	</span><span class="s0">/* child-&gt;parent link */</span>
+    <span class="s2">struct </span><span class="s1">_xmlAttr *next;	</span><span class="s0">/* next sibling link  */</span>
+    <span class="s2">struct </span><span class="s1">_xmlAttr *prev;	</span><span class="s0">/* previous sibling link  */</span>
+    <span class="s2">struct </span><span class="s1">_xmlDoc  *doc;	</span><span class="s0">/* the containing document */</span>
+    <span class="s1">xmlNs           *ns;        </span><span class="s0">/* pointer to the associated namespace */</span>
+    <span class="s1">xmlAttributeType atype;     </span><span class="s0">/* the attribute type if validating */</span>
+    <span class="s2">void            </span><span class="s1">*psvi;	</span><span class="s0">/* for type/PSVI informations */</span>
+<span class="s1">};</span>
+
+<span class="s0">/** 
+ * xmlID: 
+ * 
+ * An XML ID instance. 
+ */</span>
+
+<span class="s2">typedef struct </span><span class="s1">_xmlID xmlID;</span>
+<span class="s2">typedef </span><span class="s1">xmlID *xmlIDPtr;</span>
+<span class="s2">struct </span><span class="s1">_xmlID {</span>
+    <span class="s2">struct </span><span class="s1">_xmlID    *next;	</span><span class="s0">/* next ID */</span>
+    <span class="s2">const </span><span class="s1">xmlChar    *value;	</span><span class="s0">/* The ID name */</span>
+    <span class="s1">xmlAttrPtr        attr;	</span><span class="s0">/* The attribute holding it */</span>
+    <span class="s2">const </span><span class="s1">xmlChar    *name;	</span><span class="s0">/* The attribute if attr is not available */</span>
+    <span class="s2">int               </span><span class="s1">lineno;	</span><span class="s0">/* The line number if attr is not available */</span>
+    <span class="s2">struct </span><span class="s1">_xmlDoc   *doc;	</span><span class="s0">/* The document holding the ID */</span>
+<span class="s1">};</span>
+
+<span class="s0">/** 
+ * xmlRef: 
+ * 
+ * An XML IDREF instance. 
+ */</span>
+
+<span class="s2">typedef struct </span><span class="s1">_xmlRef xmlRef;</span>
+<span class="s2">typedef </span><span class="s1">xmlRef *xmlRefPtr;</span>
+<span class="s2">struct </span><span class="s1">_xmlRef {</span>
+    <span class="s2">struct </span><span class="s1">_xmlRef    *next;	</span><span class="s0">/* next Ref */</span>
+    <span class="s2">const </span><span class="s1">xmlChar     *value;	</span><span class="s0">/* The Ref name */</span>
+    <span class="s1">xmlAttrPtr        attr;	</span><span class="s0">/* The attribute holding it */</span>
+    <span class="s2">const </span><span class="s1">xmlChar    *name;	</span><span class="s0">/* The attribute if attr is not available */</span>
+    <span class="s2">int               </span><span class="s1">lineno;	</span><span class="s0">/* The line number if attr is not available */</span>
+<span class="s1">};</span>
+
+<span class="s0">/** 
+ * xmlNode: 
+ * 
+ * A node in an XML tree. 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xmlNode xmlNode;</span>
+<span class="s2">typedef </span><span class="s1">xmlNode *xmlNodePtr;</span>
+<span class="s2">struct </span><span class="s1">_xmlNode {</span>
+    <span class="s2">void           </span><span class="s1">*_private;	</span><span class="s0">/* application data */</span>
+    <span class="s1">xmlElementType   type;	</span><span class="s0">/* type number, must be second ! */</span>
+    <span class="s2">const </span><span class="s1">xmlChar   *name;      </span><span class="s0">/* the name of the node, or the entity */</span>
+    <span class="s2">struct </span><span class="s1">_xmlNode *children;	</span><span class="s0">/* parent-&gt;childs link */</span>
+    <span class="s2">struct </span><span class="s1">_xmlNode *last;	</span><span class="s0">/* last child link */</span>
+    <span class="s2">struct </span><span class="s1">_xmlNode *parent;	</span><span class="s0">/* child-&gt;parent link */</span>
+    <span class="s2">struct </span><span class="s1">_xmlNode *next;	</span><span class="s0">/* next sibling link  */</span>
+    <span class="s2">struct </span><span class="s1">_xmlNode *prev;	</span><span class="s0">/* previous sibling link  */</span>
+    <span class="s2">struct </span><span class="s1">_xmlDoc  *doc;	</span><span class="s0">/* the containing document */</span>
+
+    <span class="s0">/* End of common part */</span>
+    <span class="s1">xmlNs           *ns;        </span><span class="s0">/* pointer to the associated namespace */</span>
+    <span class="s1">xmlChar         *content;   </span><span class="s0">/* the content */</span>
+    <span class="s2">struct </span><span class="s1">_xmlAttr *properties;</span><span class="s0">/* properties list */</span>
+    <span class="s1">xmlNs           *nsDef;     </span><span class="s0">/* namespace definitions on this node */</span>
+    <span class="s2">void            </span><span class="s1">*psvi;	</span><span class="s0">/* for type/PSVI informations */</span>
+    <span class="s2">unsigned short   </span><span class="s1">line;	</span><span class="s0">/* line number */</span>
+    <span class="s2">unsigned short   </span><span class="s1">extra;	</span><span class="s0">/* extra data for XPath/XSLT */</span>
+<span class="s1">};</span>
+
+<span class="s0">/** 
+ * XML_GET_CONTENT: 
+ * 
+ * Macro to extract the content pointer of a node. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_GET_CONTENT(n)					\</span>
+    <span class="s1">((n)</span><span class="s5">-&gt;</span><span class="s1">type == XML_ELEMENT_NODE ? NULL : (n)</span><span class="s5">-&gt;</span><span class="s1">content)</span>
+
+<span class="s0">/** 
+ * XML_GET_LINE: 
+ * 
+ * Macro to extract the line number of an element node. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_GET_LINE(n)						\</span>
+    <span class="s1">(xmlGetLineNo(n))</span>
+
+<span class="s0">/** 
+ * xmlDocProperty 
+ * 
+ * Set of properties of the document as found by the parser 
+ * Some of them are linked to similary named xmlParserOption 
+ */</span>
+<span class="s2">typedef enum </span><span class="s1">{</span>
+    <span class="s1">XML_DOC_WELLFORMED		= </span><span class="s4">1</span><span class="s1">&lt;&lt;</span><span class="s4">0</span><span class="s1">, </span><span class="s0">/* document is XML well formed */</span>
+    <span class="s1">XML_DOC_NSVALID		= </span><span class="s4">1</span><span class="s1">&lt;&lt;</span><span class="s4">1</span><span class="s1">, </span><span class="s0">/* document is Namespace valid */</span>
+    <span class="s1">XML_DOC_OLD10		= </span><span class="s4">1</span><span class="s1">&lt;&lt;</span><span class="s4">2</span><span class="s1">, </span><span class="s0">/* parsed with old XML-1.0 parser */</span>
+    <span class="s1">XML_DOC_DTDVALID		= </span><span class="s4">1</span><span class="s1">&lt;&lt;</span><span class="s4">3</span><span class="s1">, </span><span class="s0">/* DTD validation was successful */</span>
+    <span class="s1">XML_DOC_XINCLUDE		= </span><span class="s4">1</span><span class="s1">&lt;&lt;</span><span class="s4">4</span><span class="s1">, </span><span class="s0">/* XInclude substitution was done */</span>
+    <span class="s1">XML_DOC_USERBUILT		= </span><span class="s4">1</span><span class="s1">&lt;&lt;</span><span class="s4">5</span><span class="s1">, </span><span class="s0">/* Document was built using the API 
+                                           and not by parsing an instance */</span>
+    <span class="s1">XML_DOC_INTERNAL		= </span><span class="s4">1</span><span class="s1">&lt;&lt;</span><span class="s4">6</span><span class="s1">, </span><span class="s0">/* built for internal processing */</span>
+    <span class="s1">XML_DOC_HTML		= </span><span class="s4">1</span><span class="s1">&lt;&lt;</span><span class="s4">7  </span><span class="s0">/* parsed or built HTML document */</span>
+<span class="s1">} xmlDocProperties;</span>
+
+<span class="s0">/** 
+ * xmlDoc: 
+ * 
+ * An XML document. 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xmlDoc xmlDoc;</span>
+<span class="s2">typedef </span><span class="s1">xmlDoc *xmlDocPtr;</span>
+<span class="s2">struct </span><span class="s1">_xmlDoc {</span>
+    <span class="s2">void           </span><span class="s1">*_private;	</span><span class="s0">/* application data */</span>
+    <span class="s1">xmlElementType  type;       </span><span class="s0">/* XML_DOCUMENT_NODE, must be second ! */</span>
+    <span class="s2">char           </span><span class="s1">*name;	</span><span class="s0">/* name/filename/URI of the document */</span>
+    <span class="s2">struct </span><span class="s1">_xmlNode *children;	</span><span class="s0">/* the document tree */</span>
+    <span class="s2">struct </span><span class="s1">_xmlNode *last;	</span><span class="s0">/* last child link */</span>
+    <span class="s2">struct </span><span class="s1">_xmlNode *parent;	</span><span class="s0">/* child-&gt;parent link */</span>
+    <span class="s2">struct </span><span class="s1">_xmlNode *next;	</span><span class="s0">/* next sibling link  */</span>
+    <span class="s2">struct </span><span class="s1">_xmlNode *prev;	</span><span class="s0">/* previous sibling link  */</span>
+    <span class="s2">struct </span><span class="s1">_xmlDoc  *doc;	</span><span class="s0">/* autoreference to itself */</span>
+
+    <span class="s0">/* End of common part */</span>
+    <span class="s2">int             </span><span class="s1">compression;</span><span class="s0">/* level of zlib compression */</span>
+    <span class="s2">int             </span><span class="s1">standalone; </span><span class="s0">/* standalone document (no external refs) 
+                     1 if standalone=&quot;yes&quot; 
+                     0 if standalone=&quot;no&quot; 
+                    -1 if there is no XML declaration 
+                    -2 if there is an XML declaration, but no 
+                    standalone attribute was specified */</span>
+    <span class="s2">struct </span><span class="s1">_xmlDtd  *intSubset;	</span><span class="s0">/* the document internal subset */</span>
+    <span class="s2">struct </span><span class="s1">_xmlDtd  *extSubset;	</span><span class="s0">/* the document external subset */</span>
+    <span class="s2">struct </span><span class="s1">_xmlNs   *oldNs;	</span><span class="s0">/* Global namespace, the old way */</span>
+    <span class="s2">const </span><span class="s1">xmlChar  *version;	</span><span class="s0">/* the XML version string */</span>
+    <span class="s2">const </span><span class="s1">xmlChar  *encoding;   </span><span class="s0">/* external initial encoding, if any */</span>
+    <span class="s2">void           </span><span class="s1">*ids;        </span><span class="s0">/* Hash table for ID attributes if any */</span>
+    <span class="s2">void           </span><span class="s1">*refs;       </span><span class="s0">/* Hash table for IDREFs attributes if any */</span>
+    <span class="s2">const </span><span class="s1">xmlChar  *URL;	</span><span class="s0">/* The URI for that document */</span>
+    <span class="s2">int             </span><span class="s1">charset;    </span><span class="s0">/* encoding of the in-memory content 
+                   actually an xmlCharEncoding */</span>
+    <span class="s2">struct </span><span class="s1">_xmlDict *dict;      </span><span class="s0">/* dict used to allocate names or NULL */</span>
+    <span class="s2">void           </span><span class="s1">*psvi;	</span><span class="s0">/* for type/PSVI informations */</span>
+    <span class="s2">int             </span><span class="s1">parseFlags;	</span><span class="s0">/* set of xmlParserOption used to parse the 
+                   document */</span>
+    <span class="s2">int             </span><span class="s1">properties;	</span><span class="s0">/* set of xmlDocProperties for this document 
+                   set at the end of parsing */</span>
+<span class="s1">};</span>
+
+
+<span class="s2">typedef struct </span><span class="s1">_xmlDOMWrapCtxt xmlDOMWrapCtxt;</span>
+<span class="s2">typedef </span><span class="s1">xmlDOMWrapCtxt *xmlDOMWrapCtxtPtr;</span>
+
+<span class="s0">/** 
+ * xmlDOMWrapAcquireNsFunction: 
+ * @ctxt:  a DOM wrapper context 
+ * @node:  the context node (element or attribute) 
+ * @nsName:  the requested namespace name 
+ * @nsPrefix:  the requested namespace prefix 
+ * 
+ * A function called to acquire namespaces (xmlNs) from the wrapper. 
+ * 
+ * Returns an xmlNsPtr or NULL in case of an error. 
+ */</span>
+<span class="s2">typedef </span><span class="s1">xmlNsPtr (*xmlDOMWrapAcquireNsFunction) (xmlDOMWrapCtxtPtr ctxt,</span>
+						 <span class="s1">xmlNodePtr node,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *nsName,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *nsPrefix);</span>
+
+<span class="s0">/** 
+ * xmlDOMWrapCtxt: 
+ * 
+ * Context for DOM wrapper-operations. 
+ */</span>
+<span class="s2">struct </span><span class="s1">_xmlDOMWrapCtxt {</span>
+    <span class="s2">void </span><span class="s1">* _private;</span>
+    <span class="s0">/* 
+    * The type of this context, just in case we need specialized 
+    * contexts in the future. 
+    */</span>
+    <span class="s2">int </span><span class="s1">type;</span>
+    <span class="s0">/* 
+    * Internal namespace map used for various operations. 
+    */</span>
+    <span class="s2">void </span><span class="s1">* namespaceMap;</span>
+    <span class="s0">/* 
+    * Use this one to acquire an xmlNsPtr intended for node-&gt;ns. 
+    * (Note that this is not intended for elem-&gt;nsDef). 
+    */</span>
+    <span class="s1">xmlDOMWrapAcquireNsFunction getNsForNodeFunc;</span>
+<span class="s1">};</span>
+
+<span class="s0">/** 
+ * xmlChildrenNode: 
+ * 
+ * Macro for compatibility naming layer with libxml1. Maps 
+ * to &quot;children.&quot; 
+ */</span>
+<span class="s2">#ifndef </span><span class="s1">xmlChildrenNode</span>
+<span class="s2">#define </span><span class="s1">xmlChildrenNode children</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * xmlRootNode: 
+ * 
+ * Macro for compatibility naming layer with libxml1. Maps 
+ * to &quot;children&quot;. 
+ */</span>
+<span class="s2">#ifndef </span><span class="s1">xmlRootNode</span>
+<span class="s2">#define </span><span class="s1">xmlRootNode children</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/* 
+ * Variables. 
+ */</span>
+
+<span class="s0">/* 
+ * Some helper functions 
+ */</span>
+<span class="s2">#if </span><span class="s1">defined(LIBXML_TREE_ENABLED) || defined(LIBXML_XPATH_ENABLED) || \</span>
+    <span class="s1">defined(LIBXML_SCHEMAS_ENABLED) || defined(LIBXML_DEBUG_ENABLED) || \</span>
+    <span class="s1">defined (LIBXML_HTML_ENABLED) || defined(LIBXML_SAX1_ENABLED) || \</span>
+    <span class="s1">defined(LIBXML_HTML_ENABLED) || defined(LIBXML_WRITER_ENABLED) || \</span>
+    <span class="s1">defined(LIBXML_DOCB_ENABLED) || defined(LIBXML_LEGACY_ENABLED)</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlValidateNCName	(</span><span class="s2">const </span><span class="s1">xmlChar *value,</span>
+					 <span class="s2">int </span><span class="s1">space);</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#if </span><span class="s1">defined(LIBXML_TREE_ENABLED) || defined(LIBXML_SCHEMAS_ENABLED)</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlValidateQName	(</span><span class="s2">const </span><span class="s1">xmlChar *value,</span>
+					 <span class="s2">int </span><span class="s1">space);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlValidateName		(</span><span class="s2">const </span><span class="s1">xmlChar *value,</span>
+					 <span class="s2">int </span><span class="s1">space);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlValidateNMToken	(</span><span class="s2">const </span><span class="s1">xmlChar *value,</span>
+					 <span class="s2">int </span><span class="s1">space);</span>
+<span class="s2">#endif</span>
+
+<span class="s1">XMLPUBFUN xmlChar * XMLCALL</span>
+		<span class="s1">xmlBuildQName		(</span><span class="s2">const </span><span class="s1">xmlChar *ncname,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *prefix,</span>
+					 <span class="s1">xmlChar *memory,</span>
+					 <span class="s2">int </span><span class="s1">len);</span>
+<span class="s1">XMLPUBFUN xmlChar * XMLCALL</span>
+		<span class="s1">xmlSplitQName2		(</span><span class="s2">const </span><span class="s1">xmlChar *name,</span>
+					 <span class="s1">xmlChar **prefix);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">const </span><span class="s1">xmlChar * XMLCALL</span>
+		<span class="s1">xmlSplitQName3		(</span><span class="s2">const </span><span class="s1">xmlChar *name,</span>
+					 <span class="s2">int </span><span class="s1">*len);</span>
+
+<span class="s0">/* 
+ * Handling Buffers, the old ones see @xmlBuf for the new ones. 
+ */</span>
+
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSetBufferAllocationScheme(xmlBufferAllocationScheme scheme);</span>
+<span class="s1">XMLPUBFUN xmlBufferAllocationScheme XMLCALL</span>
+		<span class="s1">xmlGetBufferAllocationScheme(</span><span class="s2">void</span><span class="s1">);</span>
+
+<span class="s1">XMLPUBFUN xmlBufferPtr XMLCALL</span>
+		<span class="s1">xmlBufferCreate		(</span><span class="s2">void</span><span class="s1">);</span>
+<span class="s1">XMLPUBFUN xmlBufferPtr XMLCALL</span>
+		<span class="s1">xmlBufferCreateSize	(size_t size);</span>
+<span class="s1">XMLPUBFUN xmlBufferPtr XMLCALL</span>
+		<span class="s1">xmlBufferCreateStatic	(</span><span class="s2">void </span><span class="s1">*mem,</span>
+					 <span class="s1">size_t size);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlBufferResize		(xmlBufferPtr buf,</span>
+					 <span class="s2">unsigned int </span><span class="s1">size);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlBufferFree		(xmlBufferPtr buf);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlBufferDump		(FILE *file,</span>
+					 <span class="s1">xmlBufferPtr buf);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlBufferAdd		(xmlBufferPtr buf,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *str,</span>
+					 <span class="s2">int </span><span class="s1">len);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlBufferAddHead	(xmlBufferPtr buf,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *str,</span>
+					 <span class="s2">int </span><span class="s1">len);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlBufferCat		(xmlBufferPtr buf,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *str);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlBufferCCat		(xmlBufferPtr buf,</span>
+					 <span class="s2">const char </span><span class="s1">*str);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlBufferShrink		(xmlBufferPtr buf,</span>
+					 <span class="s2">unsigned int </span><span class="s1">len);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlBufferGrow		(xmlBufferPtr buf,</span>
+					 <span class="s2">unsigned int </span><span class="s1">len);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlBufferEmpty		(xmlBufferPtr buf);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">const </span><span class="s1">xmlChar* XMLCALL</span>
+		<span class="s1">xmlBufferContent	(</span><span class="s2">const </span><span class="s1">xmlBuffer *buf);</span>
+<span class="s1">XMLPUBFUN xmlChar* XMLCALL</span>
+		<span class="s1">xmlBufferDetach         (xmlBufferPtr buf);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlBufferSetAllocationScheme(xmlBufferPtr buf,</span>
+					 <span class="s1">xmlBufferAllocationScheme scheme);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlBufferLength		(</span><span class="s2">const </span><span class="s1">xmlBuffer *buf);</span>
+
+<span class="s0">/* 
+ * Creating/freeing new structures. 
+ */</span>
+<span class="s1">XMLPUBFUN xmlDtdPtr XMLCALL</span>
+		<span class="s1">xmlCreateIntSubset	(xmlDocPtr doc,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *ExternalID,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *SystemID);</span>
+<span class="s1">XMLPUBFUN xmlDtdPtr XMLCALL</span>
+		<span class="s1">xmlNewDtd		(xmlDocPtr doc,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *ExternalID,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *SystemID);</span>
+<span class="s1">XMLPUBFUN xmlDtdPtr XMLCALL</span>
+		<span class="s1">xmlGetIntSubset		(</span><span class="s2">const </span><span class="s1">xmlDoc *doc);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlFreeDtd		(xmlDtdPtr cur);</span>
+<span class="s2">#ifdef </span><span class="s1">LIBXML_LEGACY_ENABLED</span>
+<span class="s1">XMLPUBFUN xmlNsPtr XMLCALL</span>
+		<span class="s1">xmlNewGlobalNs		(xmlDocPtr doc,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *href,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *prefix);</span>
+<span class="s2">#endif </span><span class="s0">/* LIBXML_LEGACY_ENABLED */</span>
+<span class="s1">XMLPUBFUN xmlNsPtr XMLCALL</span>
+		<span class="s1">xmlNewNs		(xmlNodePtr node,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *href,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *prefix);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlFreeNs		(xmlNsPtr cur);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlFreeNsList		(xmlNsPtr cur);</span>
+<span class="s1">XMLPUBFUN xmlDocPtr XMLCALL</span>
+		<span class="s1">xmlNewDoc		(</span><span class="s2">const </span><span class="s1">xmlChar *version);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlFreeDoc		(xmlDocPtr cur);</span>
+<span class="s1">XMLPUBFUN xmlAttrPtr XMLCALL</span>
+		<span class="s1">xmlNewDocProp		(xmlDocPtr doc,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *value);</span>
+<span class="s2">#if </span><span class="s1">defined(LIBXML_TREE_ENABLED) || defined(LIBXML_HTML_ENABLED) || \</span>
+    <span class="s1">defined(LIBXML_SCHEMAS_ENABLED)</span>
+<span class="s1">XMLPUBFUN xmlAttrPtr XMLCALL</span>
+		<span class="s1">xmlNewProp		(xmlNodePtr node,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *value);</span>
+<span class="s2">#endif</span>
+<span class="s1">XMLPUBFUN xmlAttrPtr XMLCALL</span>
+		<span class="s1">xmlNewNsProp		(xmlNodePtr node,</span>
+					 <span class="s1">xmlNsPtr ns,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *value);</span>
+<span class="s1">XMLPUBFUN xmlAttrPtr XMLCALL</span>
+		<span class="s1">xmlNewNsPropEatName	(xmlNodePtr node,</span>
+					 <span class="s1">xmlNsPtr ns,</span>
+					 <span class="s1">xmlChar *name,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *value);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlFreePropList		(xmlAttrPtr cur);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlFreeProp		(xmlAttrPtr cur);</span>
+<span class="s1">XMLPUBFUN xmlAttrPtr XMLCALL</span>
+		<span class="s1">xmlCopyProp		(xmlNodePtr target,</span>
+					 <span class="s1">xmlAttrPtr cur);</span>
+<span class="s1">XMLPUBFUN xmlAttrPtr XMLCALL</span>
+		<span class="s1">xmlCopyPropList		(xmlNodePtr target,</span>
+					 <span class="s1">xmlAttrPtr cur);</span>
+<span class="s2">#ifdef </span><span class="s1">LIBXML_TREE_ENABLED</span>
+<span class="s1">XMLPUBFUN xmlDtdPtr XMLCALL</span>
+		<span class="s1">xmlCopyDtd		(xmlDtdPtr dtd);</span>
+<span class="s2">#endif </span><span class="s0">/* LIBXML_TREE_ENABLED */</span>
+<span class="s2">#if </span><span class="s1">defined(LIBXML_TREE_ENABLED) || defined(LIBXML_SCHEMAS_ENABLED)</span>
+<span class="s1">XMLPUBFUN xmlDocPtr XMLCALL</span>
+		<span class="s1">xmlCopyDoc		(xmlDocPtr doc,</span>
+					 <span class="s2">int </span><span class="s1">recursive);</span>
+<span class="s2">#endif </span><span class="s0">/* defined(LIBXML_TREE_ENABLED) || defined(LIBXML_SCHEMAS_ENABLED) */</span>
+<span class="s0">/* 
+ * Creating new nodes. 
+ */</span>
+<span class="s1">XMLPUBFUN xmlNodePtr XMLCALL</span>
+		<span class="s1">xmlNewDocNode		(xmlDocPtr doc,</span>
+					 <span class="s1">xmlNsPtr ns,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *content);</span>
+<span class="s1">XMLPUBFUN xmlNodePtr XMLCALL</span>
+		<span class="s1">xmlNewDocNodeEatName	(xmlDocPtr doc,</span>
+					 <span class="s1">xmlNsPtr ns,</span>
+					 <span class="s1">xmlChar *name,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *content);</span>
+<span class="s1">XMLPUBFUN xmlNodePtr XMLCALL</span>
+		<span class="s1">xmlNewNode		(xmlNsPtr ns,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *name);</span>
+<span class="s1">XMLPUBFUN xmlNodePtr XMLCALL</span>
+		<span class="s1">xmlNewNodeEatName	(xmlNsPtr ns,</span>
+					 <span class="s1">xmlChar *name);</span>
+<span class="s2">#if </span><span class="s1">defined(LIBXML_TREE_ENABLED) || defined(LIBXML_SCHEMAS_ENABLED)</span>
+<span class="s1">XMLPUBFUN xmlNodePtr XMLCALL</span>
+		<span class="s1">xmlNewChild		(xmlNodePtr parent,</span>
+					 <span class="s1">xmlNsPtr ns,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *content);</span>
+<span class="s2">#endif</span>
+<span class="s1">XMLPUBFUN xmlNodePtr XMLCALL</span>
+		<span class="s1">xmlNewDocText		(</span><span class="s2">const </span><span class="s1">xmlDoc *doc,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *content);</span>
+<span class="s1">XMLPUBFUN xmlNodePtr XMLCALL</span>
+		<span class="s1">xmlNewText		(</span><span class="s2">const </span><span class="s1">xmlChar *content);</span>
+<span class="s1">XMLPUBFUN xmlNodePtr XMLCALL</span>
+		<span class="s1">xmlNewDocPI		(xmlDocPtr doc,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *content);</span>
+<span class="s1">XMLPUBFUN xmlNodePtr XMLCALL</span>
+		<span class="s1">xmlNewPI		(</span><span class="s2">const </span><span class="s1">xmlChar *name,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *content);</span>
+<span class="s1">XMLPUBFUN xmlNodePtr XMLCALL</span>
+		<span class="s1">xmlNewDocTextLen	(xmlDocPtr doc,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *content,</span>
+					 <span class="s2">int </span><span class="s1">len);</span>
+<span class="s1">XMLPUBFUN xmlNodePtr XMLCALL</span>
+		<span class="s1">xmlNewTextLen		(</span><span class="s2">const </span><span class="s1">xmlChar *content,</span>
+					 <span class="s2">int </span><span class="s1">len);</span>
+<span class="s1">XMLPUBFUN xmlNodePtr XMLCALL</span>
+		<span class="s1">xmlNewDocComment	(xmlDocPtr doc,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *content);</span>
+<span class="s1">XMLPUBFUN xmlNodePtr XMLCALL</span>
+		<span class="s1">xmlNewComment		(</span><span class="s2">const </span><span class="s1">xmlChar *content);</span>
+<span class="s1">XMLPUBFUN xmlNodePtr XMLCALL</span>
+		<span class="s1">xmlNewCDataBlock	(xmlDocPtr doc,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *content,</span>
+					 <span class="s2">int </span><span class="s1">len);</span>
+<span class="s1">XMLPUBFUN xmlNodePtr XMLCALL</span>
+		<span class="s1">xmlNewCharRef		(xmlDocPtr doc,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *name);</span>
+<span class="s1">XMLPUBFUN xmlNodePtr XMLCALL</span>
+		<span class="s1">xmlNewReference		(</span><span class="s2">const </span><span class="s1">xmlDoc *doc,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *name);</span>
+<span class="s1">XMLPUBFUN xmlNodePtr XMLCALL</span>
+		<span class="s1">xmlCopyNode		(xmlNodePtr node,</span>
+					 <span class="s2">int </span><span class="s1">recursive);</span>
+<span class="s1">XMLPUBFUN xmlNodePtr XMLCALL</span>
+		<span class="s1">xmlDocCopyNode		(xmlNodePtr node,</span>
+					 <span class="s1">xmlDocPtr doc,</span>
+					 <span class="s2">int </span><span class="s1">recursive);</span>
+<span class="s1">XMLPUBFUN xmlNodePtr XMLCALL</span>
+		<span class="s1">xmlDocCopyNodeList	(xmlDocPtr doc,</span>
+					 <span class="s1">xmlNodePtr node);</span>
+<span class="s1">XMLPUBFUN xmlNodePtr XMLCALL</span>
+		<span class="s1">xmlCopyNodeList		(xmlNodePtr node);</span>
+<span class="s2">#ifdef </span><span class="s1">LIBXML_TREE_ENABLED</span>
+<span class="s1">XMLPUBFUN xmlNodePtr XMLCALL</span>
+		<span class="s1">xmlNewTextChild		(xmlNodePtr parent,</span>
+					 <span class="s1">xmlNsPtr ns,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *content);</span>
+<span class="s1">XMLPUBFUN xmlNodePtr XMLCALL</span>
+		<span class="s1">xmlNewDocRawNode	(xmlDocPtr doc,</span>
+					 <span class="s1">xmlNsPtr ns,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *content);</span>
+<span class="s1">XMLPUBFUN xmlNodePtr XMLCALL</span>
+		<span class="s1">xmlNewDocFragment	(xmlDocPtr doc);</span>
+<span class="s2">#endif </span><span class="s0">/* LIBXML_TREE_ENABLED */</span>
+
+<span class="s0">/* 
+ * Navigating. 
+ */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">long </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlGetLineNo		(</span><span class="s2">const </span><span class="s1">xmlNode *node);</span>
+<span class="s2">#if </span><span class="s1">defined(LIBXML_TREE_ENABLED) || defined(LIBXML_DEBUG_ENABLED)</span>
+<span class="s1">XMLPUBFUN xmlChar * XMLCALL</span>
+		<span class="s1">xmlGetNodePath		(</span><span class="s2">const </span><span class="s1">xmlNode *node);</span>
+<span class="s2">#endif </span><span class="s0">/* defined(LIBXML_TREE_ENABLED) || defined(LIBXML_DEBUG_ENABLED) */</span>
+<span class="s1">XMLPUBFUN xmlNodePtr XMLCALL</span>
+		<span class="s1">xmlDocGetRootElement	(</span><span class="s2">const </span><span class="s1">xmlDoc *doc);</span>
+<span class="s1">XMLPUBFUN xmlNodePtr XMLCALL</span>
+		<span class="s1">xmlGetLastChild		(</span><span class="s2">const </span><span class="s1">xmlNode *parent);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlNodeIsText		(</span><span class="s2">const </span><span class="s1">xmlNode *node);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlIsBlankNode		(</span><span class="s2">const </span><span class="s1">xmlNode *node);</span>
+
+<span class="s0">/* 
+ * Changing the structure. 
+ */</span>
+<span class="s2">#if </span><span class="s1">defined(LIBXML_TREE_ENABLED) || defined(LIBXML_WRITER_ENABLED)</span>
+<span class="s1">XMLPUBFUN xmlNodePtr XMLCALL</span>
+		<span class="s1">xmlDocSetRootElement	(xmlDocPtr doc,</span>
+					 <span class="s1">xmlNodePtr root);</span>
+<span class="s2">#endif </span><span class="s0">/* defined(LIBXML_TREE_ENABLED) || defined(LIBXML_WRITER_ENABLED) */</span>
+<span class="s2">#ifdef </span><span class="s1">LIBXML_TREE_ENABLED</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlNodeSetName		(xmlNodePtr cur,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *name);</span>
+<span class="s2">#endif </span><span class="s0">/* LIBXML_TREE_ENABLED */</span>
+<span class="s1">XMLPUBFUN xmlNodePtr XMLCALL</span>
+		<span class="s1">xmlAddChild		(xmlNodePtr parent,</span>
+					 <span class="s1">xmlNodePtr cur);</span>
+<span class="s1">XMLPUBFUN xmlNodePtr XMLCALL</span>
+		<span class="s1">xmlAddChildList		(xmlNodePtr parent,</span>
+					 <span class="s1">xmlNodePtr cur);</span>
+<span class="s2">#if </span><span class="s1">defined(LIBXML_TREE_ENABLED) || defined(LIBXML_WRITER_ENABLED)</span>
+<span class="s1">XMLPUBFUN xmlNodePtr XMLCALL</span>
+		<span class="s1">xmlReplaceNode		(xmlNodePtr old,</span>
+					 <span class="s1">xmlNodePtr cur);</span>
+<span class="s2">#endif </span><span class="s0">/* defined(LIBXML_TREE_ENABLED) || defined(LIBXML_WRITER_ENABLED) */</span>
+<span class="s2">#if </span><span class="s1">defined(LIBXML_TREE_ENABLED) || defined(LIBXML_HTML_ENABLED) || \</span>
+    <span class="s1">defined(LIBXML_SCHEMAS_ENABLED) || defined(LIBXML_XINCLUDE_ENABLED)</span>
+<span class="s1">XMLPUBFUN xmlNodePtr XMLCALL</span>
+		<span class="s1">xmlAddPrevSibling	(xmlNodePtr cur,</span>
+					 <span class="s1">xmlNodePtr elem);</span>
+<span class="s2">#endif </span><span class="s0">/* LIBXML_TREE_ENABLED || LIBXML_HTML_ENABLED || LIBXML_SCHEMAS_ENABLED */</span>
+<span class="s1">XMLPUBFUN xmlNodePtr XMLCALL</span>
+		<span class="s1">xmlAddSibling		(xmlNodePtr cur,</span>
+					 <span class="s1">xmlNodePtr elem);</span>
+<span class="s1">XMLPUBFUN xmlNodePtr XMLCALL</span>
+		<span class="s1">xmlAddNextSibling	(xmlNodePtr cur,</span>
+					 <span class="s1">xmlNodePtr elem);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlUnlinkNode		(xmlNodePtr cur);</span>
+<span class="s1">XMLPUBFUN xmlNodePtr XMLCALL</span>
+		<span class="s1">xmlTextMerge		(xmlNodePtr first,</span>
+					 <span class="s1">xmlNodePtr second);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlTextConcat		(xmlNodePtr node,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *content,</span>
+					 <span class="s2">int </span><span class="s1">len);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlFreeNodeList		(xmlNodePtr cur);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlFreeNode		(xmlNodePtr cur);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSetTreeDoc		(xmlNodePtr tree,</span>
+					 <span class="s1">xmlDocPtr doc);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSetListDoc		(xmlNodePtr list,</span>
+					 <span class="s1">xmlDocPtr doc);</span>
+<span class="s0">/* 
+ * Namespaces. 
+ */</span>
+<span class="s1">XMLPUBFUN xmlNsPtr XMLCALL</span>
+		<span class="s1">xmlSearchNs		(xmlDocPtr doc,</span>
+					 <span class="s1">xmlNodePtr node,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *nameSpace);</span>
+<span class="s1">XMLPUBFUN xmlNsPtr XMLCALL</span>
+		<span class="s1">xmlSearchNsByHref	(xmlDocPtr doc,</span>
+					 <span class="s1">xmlNodePtr node,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *href);</span>
+<span class="s2">#if </span><span class="s1">defined(LIBXML_TREE_ENABLED) || defined(LIBXML_XPATH_ENABLED) || \</span>
+    <span class="s1">defined(LIBXML_SCHEMAS_ENABLED)</span>
+<span class="s1">XMLPUBFUN xmlNsPtr * XMLCALL</span>
+		<span class="s1">xmlGetNsList		(</span><span class="s2">const </span><span class="s1">xmlDoc *doc,</span>
+					 <span class="s2">const </span><span class="s1">xmlNode *node);</span>
+<span class="s2">#endif </span><span class="s0">/* defined(LIBXML_TREE_ENABLED) || defined(LIBXML_XPATH_ENABLED) */</span>
+
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSetNs		(xmlNodePtr node,</span>
+					 <span class="s1">xmlNsPtr ns);</span>
+<span class="s1">XMLPUBFUN xmlNsPtr XMLCALL</span>
+		<span class="s1">xmlCopyNamespace	(xmlNsPtr cur);</span>
+<span class="s1">XMLPUBFUN xmlNsPtr XMLCALL</span>
+		<span class="s1">xmlCopyNamespaceList	(xmlNsPtr cur);</span>
+
+<span class="s0">/* 
+ * Changing the content. 
+ */</span>
+<span class="s2">#if </span><span class="s1">defined(LIBXML_TREE_ENABLED) || defined(LIBXML_XINCLUDE_ENABLED) || \</span>
+    <span class="s1">defined(LIBXML_SCHEMAS_ENABLED) || defined(LIBXML_HTML_ENABLED)</span>
+<span class="s1">XMLPUBFUN xmlAttrPtr XMLCALL</span>
+		<span class="s1">xmlSetProp		(xmlNodePtr node,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *value);</span>
+<span class="s1">XMLPUBFUN xmlAttrPtr XMLCALL</span>
+		<span class="s1">xmlSetNsProp		(xmlNodePtr node,</span>
+					 <span class="s1">xmlNsPtr ns,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *value);</span>
+<span class="s2">#endif </span><span class="s0">/* defined(LIBXML_TREE_ENABLED) || defined(LIBXML_XINCLUDE_ENABLED) || \ 
+      defined(LIBXML_SCHEMAS_ENABLED) || defined(LIBXML_HTML_ENABLED) */</span>
+<span class="s1">XMLPUBFUN xmlChar * XMLCALL</span>
+		<span class="s1">xmlGetNoNsProp		(</span><span class="s2">const </span><span class="s1">xmlNode *node,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *name);</span>
+<span class="s1">XMLPUBFUN xmlChar * XMLCALL</span>
+		<span class="s1">xmlGetProp		(</span><span class="s2">const </span><span class="s1">xmlNode *node,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *name);</span>
+<span class="s1">XMLPUBFUN xmlAttrPtr XMLCALL</span>
+		<span class="s1">xmlHasProp		(</span><span class="s2">const </span><span class="s1">xmlNode *node,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *name);</span>
+<span class="s1">XMLPUBFUN xmlAttrPtr XMLCALL</span>
+		<span class="s1">xmlHasNsProp		(</span><span class="s2">const </span><span class="s1">xmlNode *node,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *nameSpace);</span>
+<span class="s1">XMLPUBFUN xmlChar * XMLCALL</span>
+		<span class="s1">xmlGetNsProp		(</span><span class="s2">const </span><span class="s1">xmlNode *node,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *nameSpace);</span>
+<span class="s1">XMLPUBFUN xmlNodePtr XMLCALL</span>
+		<span class="s1">xmlStringGetNodeList	(</span><span class="s2">const </span><span class="s1">xmlDoc *doc,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *value);</span>
+<span class="s1">XMLPUBFUN xmlNodePtr XMLCALL</span>
+		<span class="s1">xmlStringLenGetNodeList	(</span><span class="s2">const </span><span class="s1">xmlDoc *doc,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *value,</span>
+					 <span class="s2">int </span><span class="s1">len);</span>
+<span class="s1">XMLPUBFUN xmlChar * XMLCALL</span>
+		<span class="s1">xmlNodeListGetString	(xmlDocPtr doc,</span>
+					 <span class="s2">const </span><span class="s1">xmlNode *list,</span>
+					 <span class="s2">int </span><span class="s1">inLine);</span>
+<span class="s2">#ifdef </span><span class="s1">LIBXML_TREE_ENABLED</span>
+<span class="s1">XMLPUBFUN xmlChar * XMLCALL</span>
+		<span class="s1">xmlNodeListGetRawString	(</span><span class="s2">const </span><span class="s1">xmlDoc *doc,</span>
+					 <span class="s2">const </span><span class="s1">xmlNode *list,</span>
+					 <span class="s2">int </span><span class="s1">inLine);</span>
+<span class="s2">#endif </span><span class="s0">/* LIBXML_TREE_ENABLED */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlNodeSetContent	(xmlNodePtr cur,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *content);</span>
+<span class="s2">#ifdef </span><span class="s1">LIBXML_TREE_ENABLED</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlNodeSetContentLen	(xmlNodePtr cur,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *content,</span>
+					 <span class="s2">int </span><span class="s1">len);</span>
+<span class="s2">#endif </span><span class="s0">/* LIBXML_TREE_ENABLED */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlNodeAddContent	(xmlNodePtr cur,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *content);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlNodeAddContentLen	(xmlNodePtr cur,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *content,</span>
+					 <span class="s2">int </span><span class="s1">len);</span>
+<span class="s1">XMLPUBFUN xmlChar * XMLCALL</span>
+		<span class="s1">xmlNodeGetContent	(</span><span class="s2">const </span><span class="s1">xmlNode *cur);</span>
+
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlNodeBufGetContent	(xmlBufferPtr buffer,</span>
+					 <span class="s2">const </span><span class="s1">xmlNode *cur);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlBufGetNodeContent	(xmlBufPtr buf,</span>
+					 <span class="s2">const </span><span class="s1">xmlNode *cur);</span>
+
+<span class="s1">XMLPUBFUN xmlChar * XMLCALL</span>
+		<span class="s1">xmlNodeGetLang		(</span><span class="s2">const </span><span class="s1">xmlNode *cur);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlNodeGetSpacePreserve	(</span><span class="s2">const </span><span class="s1">xmlNode *cur);</span>
+<span class="s2">#ifdef </span><span class="s1">LIBXML_TREE_ENABLED</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlNodeSetLang		(xmlNodePtr cur,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *lang);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlNodeSetSpacePreserve (xmlNodePtr cur,</span>
+					 <span class="s2">int </span><span class="s1">val);</span>
+<span class="s2">#endif </span><span class="s0">/* LIBXML_TREE_ENABLED */</span>
+<span class="s1">XMLPUBFUN xmlChar * XMLCALL</span>
+		<span class="s1">xmlNodeGetBase		(</span><span class="s2">const </span><span class="s1">xmlDoc *doc,</span>
+					 <span class="s2">const </span><span class="s1">xmlNode *cur);</span>
+<span class="s2">#if </span><span class="s1">defined(LIBXML_TREE_ENABLED) || defined(LIBXML_XINCLUDE_ENABLED)</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlNodeSetBase		(xmlNodePtr cur,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *uri);</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/* 
+ * Removing content. 
+ */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlRemoveProp		(xmlAttrPtr cur);</span>
+<span class="s2">#if </span><span class="s1">defined(LIBXML_TREE_ENABLED) || defined(LIBXML_SCHEMAS_ENABLED)</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlUnsetNsProp		(xmlNodePtr node,</span>
+					 <span class="s1">xmlNsPtr ns,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *name);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlUnsetProp		(xmlNodePtr node,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *name);</span>
+<span class="s2">#endif </span><span class="s0">/* defined(LIBXML_TREE_ENABLED) || defined(LIBXML_SCHEMAS_ENABLED) */</span>
+
+<span class="s0">/* 
+ * Internal, don't use. 
+ */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlBufferWriteCHAR	(xmlBufferPtr buf,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *string);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlBufferWriteChar	(xmlBufferPtr buf,</span>
+					 <span class="s2">const char </span><span class="s1">*string);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlBufferWriteQuotedString(xmlBufferPtr buf,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *string);</span>
+
+<span class="s2">#ifdef </span><span class="s1">LIBXML_OUTPUT_ENABLED</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">xmlAttrSerializeTxtContent(xmlBufferPtr buf,</span>
+					 <span class="s1">xmlDocPtr doc,</span>
+					 <span class="s1">xmlAttrPtr attr,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *string);</span>
+<span class="s2">#endif </span><span class="s0">/* LIBXML_OUTPUT_ENABLED */</span>
+
+<span class="s2">#ifdef </span><span class="s1">LIBXML_TREE_ENABLED</span>
+<span class="s0">/* 
+ * Namespace handling. 
+ */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlReconciliateNs	(xmlDocPtr doc,</span>
+					 <span class="s1">xmlNodePtr tree);</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#ifdef </span><span class="s1">LIBXML_OUTPUT_ENABLED</span>
+<span class="s0">/* 
+ * Saving. 
+ */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlDocDumpFormatMemory	(xmlDocPtr cur,</span>
+					 <span class="s1">xmlChar **mem,</span>
+					 <span class="s2">int </span><span class="s1">*size,</span>
+					 <span class="s2">int </span><span class="s1">format);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlDocDumpMemory	(xmlDocPtr cur,</span>
+					 <span class="s1">xmlChar **mem,</span>
+					 <span class="s2">int </span><span class="s1">*size);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlDocDumpMemoryEnc	(xmlDocPtr out_doc,</span>
+					 <span class="s1">xmlChar **doc_txt_ptr,</span>
+					 <span class="s2">int </span><span class="s1">* doc_txt_len,</span>
+					 <span class="s2">const char </span><span class="s1">*txt_encoding);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlDocDumpFormatMemoryEnc(xmlDocPtr out_doc,</span>
+					 <span class="s1">xmlChar **doc_txt_ptr,</span>
+					 <span class="s2">int </span><span class="s1">* doc_txt_len,</span>
+					 <span class="s2">const char </span><span class="s1">*txt_encoding,</span>
+					 <span class="s2">int </span><span class="s1">format);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlDocFormatDump	(FILE *f,</span>
+					 <span class="s1">xmlDocPtr cur,</span>
+					 <span class="s2">int </span><span class="s1">format);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlDocDump		(FILE *f,</span>
+					 <span class="s1">xmlDocPtr cur);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlElemDump		(FILE *f,</span>
+					 <span class="s1">xmlDocPtr doc,</span>
+					 <span class="s1">xmlNodePtr cur);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSaveFile		(</span><span class="s2">const char </span><span class="s1">*filename,</span>
+					 <span class="s1">xmlDocPtr cur);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSaveFormatFile	(</span><span class="s2">const char </span><span class="s1">*filename,</span>
+					 <span class="s1">xmlDocPtr cur,</span>
+					 <span class="s2">int </span><span class="s1">format);</span>
+<span class="s1">XMLPUBFUN size_t XMLCALL</span>
+		<span class="s1">xmlBufNodeDump		(xmlBufPtr buf,</span>
+					 <span class="s1">xmlDocPtr doc,</span>
+					 <span class="s1">xmlNodePtr cur,</span>
+					 <span class="s2">int </span><span class="s1">level,</span>
+					 <span class="s2">int </span><span class="s1">format);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlNodeDump		(xmlBufferPtr buf,</span>
+					 <span class="s1">xmlDocPtr doc,</span>
+					 <span class="s1">xmlNodePtr cur,</span>
+					 <span class="s2">int </span><span class="s1">level,</span>
+					 <span class="s2">int </span><span class="s1">format);</span>
+
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSaveFileTo		(xmlOutputBufferPtr buf,</span>
+					 <span class="s1">xmlDocPtr cur,</span>
+					 <span class="s2">const char </span><span class="s1">*encoding);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSaveFormatFileTo     (xmlOutputBufferPtr buf,</span>
+					 <span class="s1">xmlDocPtr cur,</span>
+				         <span class="s2">const char </span><span class="s1">*encoding,</span>
+				         <span class="s2">int </span><span class="s1">format);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlNodeDumpOutput	(xmlOutputBufferPtr buf,</span>
+					 <span class="s1">xmlDocPtr doc,</span>
+					 <span class="s1">xmlNodePtr cur,</span>
+					 <span class="s2">int </span><span class="s1">level,</span>
+					 <span class="s2">int </span><span class="s1">format,</span>
+					 <span class="s2">const char </span><span class="s1">*encoding);</span>
+
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSaveFormatFileEnc    (</span><span class="s2">const char </span><span class="s1">*filename,</span>
+					 <span class="s1">xmlDocPtr cur,</span>
+					 <span class="s2">const char </span><span class="s1">*encoding,</span>
+					 <span class="s2">int </span><span class="s1">format);</span>
+
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSaveFileEnc		(</span><span class="s2">const char </span><span class="s1">*filename,</span>
+					 <span class="s1">xmlDocPtr cur,</span>
+					 <span class="s2">const char </span><span class="s1">*encoding);</span>
+
+<span class="s2">#endif </span><span class="s0">/* LIBXML_OUTPUT_ENABLED */</span>
+<span class="s0">/* 
+ * XHTML 
+ */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlIsXHTML		(</span><span class="s2">const </span><span class="s1">xmlChar *systemID,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *publicID);</span>
+
+<span class="s0">/* 
+ * Compression. 
+ */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlGetDocCompressMode	(</span><span class="s2">const </span><span class="s1">xmlDoc *doc);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSetDocCompressMode	(xmlDocPtr doc,</span>
+					 <span class="s2">int </span><span class="s1">mode);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlGetCompressMode	(</span><span class="s2">void</span><span class="s1">);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSetCompressMode	(</span><span class="s2">int </span><span class="s1">mode);</span>
+
+<span class="s0">/* 
+* DOM-wrapper helper functions. 
+*/</span>
+<span class="s1">XMLPUBFUN xmlDOMWrapCtxtPtr XMLCALL</span>
+		<span class="s1">xmlDOMWrapNewCtxt	(</span><span class="s2">void</span><span class="s1">);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlDOMWrapFreeCtxt	(xmlDOMWrapCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	    <span class="s1">xmlDOMWrapReconcileNamespaces(xmlDOMWrapCtxtPtr ctxt,</span>
+					 <span class="s1">xmlNodePtr elem,</span>
+					 <span class="s2">int </span><span class="s1">options);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	    <span class="s1">xmlDOMWrapAdoptNode		(xmlDOMWrapCtxtPtr ctxt,</span>
+					 <span class="s1">xmlDocPtr sourceDoc,</span>
+					 <span class="s1">xmlNodePtr node,</span>
+					 <span class="s1">xmlDocPtr destDoc,</span>
+					 <span class="s1">xmlNodePtr destParent,</span>
+					 <span class="s2">int </span><span class="s1">options);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	    <span class="s1">xmlDOMWrapRemoveNode	(xmlDOMWrapCtxtPtr ctxt,</span>
+					 <span class="s1">xmlDocPtr doc,</span>
+					 <span class="s1">xmlNodePtr node,</span>
+					 <span class="s2">int </span><span class="s1">options);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	    <span class="s1">xmlDOMWrapCloneNode		(xmlDOMWrapCtxtPtr ctxt,</span>
+					 <span class="s1">xmlDocPtr sourceDoc,</span>
+					 <span class="s1">xmlNodePtr node,</span>
+					 <span class="s1">xmlNodePtr *clonedNode,</span>
+					 <span class="s1">xmlDocPtr destDoc,</span>
+					 <span class="s1">xmlNodePtr destParent,</span>
+					 <span class="s2">int </span><span class="s1">deep,</span>
+					 <span class="s2">int </span><span class="s1">options);</span>
+
+<span class="s2">#ifdef </span><span class="s1">LIBXML_TREE_ENABLED</span>
+<span class="s0">/* 
+ * 5 interfaces from DOM ElementTraversal, but different in entities 
+ * traversal. 
+ */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">unsigned long </span><span class="s1">XMLCALL</span>
+            <span class="s1">xmlChildElementCount        (xmlNodePtr parent);</span>
+<span class="s1">XMLPUBFUN xmlNodePtr XMLCALL</span>
+            <span class="s1">xmlNextElementSibling       (xmlNodePtr node);</span>
+<span class="s1">XMLPUBFUN xmlNodePtr XMLCALL</span>
+            <span class="s1">xmlFirstElementChild        (xmlNodePtr parent);</span>
+<span class="s1">XMLPUBFUN xmlNodePtr XMLCALL</span>
+            <span class="s1">xmlLastElementChild         (xmlNodePtr parent);</span>
+<span class="s1">XMLPUBFUN xmlNodePtr XMLCALL</span>
+            <span class="s1">xmlPreviousElementSibling   (xmlNodePtr node);</span>
+<span class="s2">#endif</span>
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s1">}</span>
+<span class="s2">#endif</span>
+<span class="s2">#ifndef </span><span class="s1">__XML_PARSER_H__</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/xmlmemory.h&gt;</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#endif </span><span class="s0">/* __XML_TREE_H__ */</span>
+
+</pre>
+</body>
+</html>

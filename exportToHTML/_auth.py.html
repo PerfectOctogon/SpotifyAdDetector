@@ -1,0 +1,94 @@
+<html>
+<head>
+<title>_auth.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #629755; font-style: italic;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #808080;}
+.s4 { color: #6a8759;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+_auth.py</font>
+</center></td></tr></table>
+<pre><span class="s0">&quot;&quot;&quot;HTTP Authentication and Proxy support. 
+ 
+ 
+Copyright 2006 John J. Lee &lt;jjl@pobox.com&gt; 
+ 
+This code is free software; you can redistribute it and/or modify it under 
+the terms of the BSD or ZPL 2.1 licenses (see the file LICENSE 
+included with the distribution). 
+ 
+&quot;&quot;&quot;</span>
+
+<span class="s2">from </span><span class="s1">__future__ </span><span class="s2">import </span><span class="s1">absolute_import</span>
+<span class="s2">from </span><span class="s1">._urllib2_fork </span><span class="s2">import </span><span class="s1">HTTPPasswordMgr</span>
+<span class="s2">from </span><span class="s1">.polyglot </span><span class="s2">import </span><span class="s1">is_string</span><span class="s2">, </span><span class="s1">iteritems</span>
+
+
+<span class="s3"># TODO: stop deriving from HTTPPasswordMgr</span>
+<span class="s2">class </span><span class="s1">HTTPProxyPasswordMgr(HTTPPasswordMgr):</span>
+    <span class="s3"># has default realm and host/port</span>
+
+    <span class="s2">def </span><span class="s1">add_password(self</span><span class="s2">, </span><span class="s1">realm</span><span class="s2">, </span><span class="s1">uri</span><span class="s2">, </span><span class="s1">user</span><span class="s2">, </span><span class="s1">passwd):</span>
+        <span class="s3"># uri could be a single URI or a sequence</span>
+        <span class="s2">if </span><span class="s1">uri </span><span class="s2">is None or </span><span class="s1">is_string(uri):</span>
+            <span class="s1">uris = [uri]</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s1">uris = uri</span>
+        <span class="s1">passwd_by_domain = self.passwd.setdefault(realm</span><span class="s2">, </span><span class="s1">{})</span>
+        <span class="s2">for </span><span class="s1">uri </span><span class="s2">in </span><span class="s1">uris:</span>
+            <span class="s2">for </span><span class="s1">default_port </span><span class="s2">in True, False</span><span class="s1">:</span>
+                <span class="s1">reduced_uri = self.reduce_uri(uri</span><span class="s2">, </span><span class="s1">default_port)</span>
+                <span class="s1">passwd_by_domain[reduced_uri] = (user</span><span class="s2">, </span><span class="s1">passwd)</span>
+
+    <span class="s2">def </span><span class="s1">find_user_password(self</span><span class="s2">, </span><span class="s1">realm</span><span class="s2">, </span><span class="s1">authuri):</span>
+        <span class="s1">attempts = [(realm</span><span class="s2">, </span><span class="s1">authuri)</span><span class="s2">, </span><span class="s1">(</span><span class="s2">None, </span><span class="s1">authuri)]</span>
+        <span class="s3"># bleh, want default realm to take precedence over default</span>
+        <span class="s3"># URI/authority, hence this outer loop</span>
+        <span class="s2">for </span><span class="s1">default_uri </span><span class="s2">in False, True</span><span class="s1">:</span>
+            <span class="s2">for </span><span class="s1">realm</span><span class="s2">, </span><span class="s1">authuri </span><span class="s2">in </span><span class="s1">attempts:</span>
+                <span class="s1">authinfo_by_domain = self.passwd.get(realm</span><span class="s2">, </span><span class="s1">{})</span>
+                <span class="s2">for </span><span class="s1">default_port </span><span class="s2">in True, False</span><span class="s1">:</span>
+                    <span class="s1">reduced_authuri = self.reduce_uri(authuri</span><span class="s2">, </span><span class="s1">default_port)</span>
+                    <span class="s2">for </span><span class="s1">uri</span><span class="s2">, </span><span class="s1">authinfo </span><span class="s2">in </span><span class="s1">iteritems(authinfo_by_domain):</span>
+                        <span class="s2">if </span><span class="s1">uri </span><span class="s2">is None and not </span><span class="s1">default_uri:</span>
+                            <span class="s2">continue</span>
+                        <span class="s2">if </span><span class="s1">self.is_suburi(uri</span><span class="s2">, </span><span class="s1">reduced_authuri):</span>
+                            <span class="s2">return </span><span class="s1">authinfo</span>
+                    <span class="s1">user</span><span class="s2">, </span><span class="s1">password = </span><span class="s2">None, None</span>
+
+                    <span class="s2">if </span><span class="s1">user </span><span class="s2">is not None</span><span class="s1">:</span>
+                        <span class="s2">break</span>
+        <span class="s2">return </span><span class="s1">user</span><span class="s2">, </span><span class="s1">password</span>
+
+    <span class="s2">def </span><span class="s1">reduce_uri(self</span><span class="s2">, </span><span class="s1">uri</span><span class="s2">, </span><span class="s1">default_port=</span><span class="s2">True</span><span class="s1">):</span>
+        <span class="s2">if </span><span class="s1">uri </span><span class="s2">is None</span><span class="s1">:</span>
+            <span class="s2">return None</span>
+        <span class="s2">return </span><span class="s1">HTTPPasswordMgr.reduce_uri(self</span><span class="s2">, </span><span class="s1">uri</span><span class="s2">, </span><span class="s1">default_port)</span>
+
+    <span class="s2">def </span><span class="s1">is_suburi(self</span><span class="s2">, </span><span class="s1">base</span><span class="s2">, </span><span class="s1">test):</span>
+        <span class="s2">if </span><span class="s1">base </span><span class="s2">is None</span><span class="s1">:</span>
+            <span class="s3"># default to the proxy's host/port</span>
+            <span class="s1">hostport</span><span class="s2">, </span><span class="s1">path = test</span>
+            <span class="s1">base = (hostport</span><span class="s2">, </span><span class="s4">&quot;/&quot;</span><span class="s1">)</span>
+        <span class="s2">return </span><span class="s1">HTTPPasswordMgr.is_suburi(self</span><span class="s2">, </span><span class="s1">base</span><span class="s2">, </span><span class="s1">test)</span>
+
+
+<span class="s2">class </span><span class="s1">HTTPSClientCertMgr(HTTPPasswordMgr):</span>
+    <span class="s3"># implementation inheritance: this is not a proper subclass</span>
+
+    <span class="s2">def </span><span class="s1">add_key_cert(self</span><span class="s2">, </span><span class="s1">uri</span><span class="s2">, </span><span class="s1">key_file</span><span class="s2">, </span><span class="s1">cert_file):</span>
+        <span class="s1">self.add_password(</span><span class="s2">None, </span><span class="s1">uri</span><span class="s2">, </span><span class="s1">key_file</span><span class="s2">, </span><span class="s1">cert_file)</span>
+
+    <span class="s2">def </span><span class="s1">find_key_cert(self</span><span class="s2">, </span><span class="s1">authuri):</span>
+        <span class="s2">return </span><span class="s1">HTTPPasswordMgr.find_user_password(self</span><span class="s2">, None, </span><span class="s1">authuri)</span>
+</pre>
+</body>
+</html>

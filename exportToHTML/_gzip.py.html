@@ -1,0 +1,231 @@
+<html>
+<head>
+<title>_gzip.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #cc7832;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #6897bb;}
+.s3 { color: #808080;}
+.s4 { color: #a5c261;}
+.s5 { color: #6a8759;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+_gzip.py</font>
+</center></td></tr></table>
+<pre><span class="s0">from </span><span class="s1">__future__ </span><span class="s0">import </span><span class="s1">absolute_import</span>
+
+<span class="s0">import </span><span class="s1">struct</span>
+<span class="s0">import </span><span class="s1">zlib</span>
+<span class="s0">from </span><span class="s1">io </span><span class="s0">import </span><span class="s1">DEFAULT_BUFFER_SIZE</span>
+
+<span class="s0">from </span><span class="s1">._urllib2_fork </span><span class="s0">import </span><span class="s1">BaseHandler</span>
+<span class="s0">from </span><span class="s1">.polyglot </span><span class="s0">import </span><span class="s1">is_py2</span>
+
+
+<span class="s1">CRC_MASK = </span><span class="s2">0xffffffff</span>
+<span class="s0">if </span><span class="s1">is_py2:</span>
+    <span class="s1">CRC_MASK = long(CRC_MASK)</span>
+
+
+<span class="s0">def </span><span class="s1">gzip_prefix():</span>
+    <span class="s3"># See http://www.gzip.org/zlib/rfc-gzip.html</span>
+    <span class="s0">return </span><span class="s4">b''</span><span class="s1">.join((</span>
+        <span class="s4">b'</span><span class="s0">\x1f\x8b</span><span class="s4">'</span><span class="s0">,  </span><span class="s3"># ID1 and ID2: gzip marker</span>
+        <span class="s4">b'</span><span class="s0">\x08</span><span class="s4">'</span><span class="s0">,  </span><span class="s3"># CM: compression method</span>
+        <span class="s4">b'</span><span class="s0">\x00</span><span class="s4">'</span><span class="s0">,  </span><span class="s3"># FLG: none set</span>
+        <span class="s3"># MTIME: 4 bytes, set to zero so as not to leak timezone information</span>
+        <span class="s4">b'</span><span class="s0">\0\0\0\0</span><span class="s4">'</span><span class="s0">,</span>
+        <span class="s4">b'</span><span class="s0">\x02</span><span class="s4">'</span><span class="s0">,  </span><span class="s3"># XFL: max compression, slowest algo</span>
+        <span class="s4">b'</span><span class="s0">\xff</span><span class="s4">'</span><span class="s0">,  </span><span class="s3"># OS: unknown</span>
+    <span class="s1">))</span>
+
+
+<span class="s0">def </span><span class="s1">compress_readable_output(src_file</span><span class="s0">, </span><span class="s1">compress_level=</span><span class="s2">6</span><span class="s1">):</span>
+    <span class="s1">crc = zlib.crc32(</span><span class="s4">b&quot;&quot;</span><span class="s1">)</span>
+    <span class="s1">size = </span><span class="s2">0</span>
+    <span class="s1">zobj = zlib.compressobj(compress_level</span><span class="s0">, </span><span class="s1">zlib.DEFLATED</span><span class="s0">, </span><span class="s1">-zlib.MAX_WBITS</span><span class="s0">,</span>
+                            <span class="s1">zlib.DEF_MEM_LEVEL</span><span class="s0">, </span><span class="s1">zlib.Z_DEFAULT_STRATEGY)</span>
+    <span class="s1">prefix_written = </span><span class="s0">False</span>
+    <span class="s0">while True</span><span class="s1">:</span>
+        <span class="s1">data = src_file.read(DEFAULT_BUFFER_SIZE)</span>
+        <span class="s0">if not </span><span class="s1">data:</span>
+            <span class="s0">break</span>
+        <span class="s1">size += len(data)</span>
+        <span class="s1">crc = zlib.crc32(data</span><span class="s0">, </span><span class="s1">crc)</span>
+        <span class="s1">data = zobj.compress(data)</span>
+        <span class="s0">if not </span><span class="s1">prefix_written:</span>
+            <span class="s1">prefix_written = </span><span class="s0">True</span>
+            <span class="s1">data = gzip_prefix() + data</span>
+        <span class="s0">yield </span><span class="s1">data</span>
+    <span class="s0">yield </span><span class="s1">zobj.flush() + struct.pack(</span><span class="s4">b&quot;&lt;LL&quot;</span><span class="s0">, </span><span class="s1">crc &amp; CRC_MASK</span><span class="s0">, </span><span class="s1">size)</span>
+
+
+<span class="s0">def </span><span class="s1">read_amt(f</span><span class="s0">, </span><span class="s1">amt):</span>
+    <span class="s1">ans = </span><span class="s4">b''</span>
+    <span class="s0">while </span><span class="s1">len(ans) &lt; amt:</span>
+        <span class="s1">extra = f.read(amt - len(ans))</span>
+        <span class="s0">if not </span><span class="s1">extra:</span>
+            <span class="s0">raise </span><span class="s1">EOFError(</span><span class="s5">'Unexpected end of compressed stream'</span><span class="s1">)</span>
+        <span class="s1">ans += extra</span>
+    <span class="s0">return </span><span class="s1">ans</span>
+
+
+<span class="s0">class </span><span class="s1">UnzipWrapper:</span>
+    <span class="s0">def </span><span class="s1">__init__(self</span><span class="s0">, </span><span class="s1">fp):</span>
+        <span class="s1">self.__decoder = zlib.decompressobj(-zlib.MAX_WBITS)</span>
+        <span class="s1">self.__data = </span><span class="s4">b''</span>
+        <span class="s1">self.__crc = zlib.crc32(self.__data) &amp; CRC_MASK</span>
+        <span class="s1">self.__fp = fp</span>
+        <span class="s1">self.__size = </span><span class="s2">0</span>
+        <span class="s1">self.__is_fully_read = </span><span class="s0">False</span>
+
+    <span class="s0">def </span><span class="s1">read(self</span><span class="s0">, </span><span class="s1">sz=-</span><span class="s2">1</span><span class="s1">):</span>
+        <span class="s1">amt_read = </span><span class="s2">0</span>
+        <span class="s1">ans = []</span>
+        <span class="s0">if </span><span class="s1">self.__data:</span>
+            <span class="s0">if </span><span class="s1">sz &lt; </span><span class="s2">0 </span><span class="s0">or </span><span class="s1">len(self.__data) &lt; sz:</span>
+                <span class="s1">ans.append(self.__data)</span>
+                <span class="s1">amt_read += len(self.__data)</span>
+                <span class="s1">self.__data = </span><span class="s4">b''</span>
+            <span class="s0">else</span><span class="s1">:</span>
+                <span class="s1">self.__data</span><span class="s0">, </span><span class="s1">ret = self.__data[sz:]</span><span class="s0">, </span><span class="s1">self.__data[:sz]</span>
+                <span class="s0">return </span><span class="s1">ret</span>
+
+        <span class="s0">if not </span><span class="s1">self.__is_fully_read:</span>
+            <span class="s0">while not </span><span class="s1">self.__decoder.unused_data </span><span class="s0">and </span><span class="s1">(sz &lt; </span><span class="s2">0 </span><span class="s0">or </span><span class="s1">amt_read &lt; sz):</span>
+                <span class="s1">chunk = self.__fp.read(</span><span class="s2">1024</span><span class="s1">)</span>
+                <span class="s0">if </span><span class="s1">chunk:</span>
+                    <span class="s0">if </span><span class="s1">self.__decoder.unconsumed_tail:</span>
+                        <span class="s1">chunk = self.__decoder.unconsumed_tail + chunk</span>
+                    <span class="s1">chunk = self.__decoder.decompress(chunk)</span>
+                    <span class="s1">ans.append(chunk)</span>
+                    <span class="s1">amt_read += len(chunk)</span>
+                    <span class="s1">self.__size += len(chunk)</span>
+                    <span class="s1">self.__crc = zlib.crc32(chunk</span><span class="s0">, </span><span class="s1">self.__crc)</span>
+                <span class="s0">else</span><span class="s1">:</span>
+                    <span class="s0">if not </span><span class="s1">self.__decoder.unused_data:</span>
+                        <span class="s0">raise </span><span class="s1">ValueError(</span>
+                            <span class="s5">'unexpected end of compressed gzip data,'</span>
+                            <span class="s5">' before reading trailer'</span><span class="s1">)</span>
+                    <span class="s0">break</span>
+
+            <span class="s0">if </span><span class="s1">self.__decoder.unused_data:</span>
+                <span class="s3"># End of compressed stream reached</span>
+                <span class="s1">tail = self.__decoder.unused_data</span>
+                <span class="s0">if </span><span class="s1">len(tail) &lt; </span><span class="s2">8</span><span class="s1">:</span>
+                    <span class="s1">tail += read_amt(self.__fp</span><span class="s0">, </span><span class="s2">8 </span><span class="s1">- len(tail))</span>
+                <span class="s3"># ignore any extra bytes after end of compressed stream</span>
+                <span class="s1">self.__fp.read()</span>
+                <span class="s3"># check CRC, ignore size mismatch</span>
+                <span class="s1">crc</span><span class="s0">, </span><span class="s1">size = struct.unpack(</span><span class="s4">b'&lt;LL'</span><span class="s0">, </span><span class="s1">tail)</span>
+                <span class="s0">if </span><span class="s1">(crc &amp; CRC_MASK) != (self.__crc &amp; CRC_MASK):</span>
+                    <span class="s0">raise </span><span class="s1">ValueError(</span>
+                        <span class="s5">'gzip stream is corrupted, CRC does not match'</span><span class="s1">)</span>
+                <span class="s1">self.__is_fully_read = </span><span class="s0">True</span>
+
+        <span class="s1">ans = </span><span class="s4">b''</span><span class="s1">.join(ans)</span>
+        <span class="s0">if </span><span class="s1">len(ans) &gt; sz </span><span class="s0">and </span><span class="s1">sz &gt; -</span><span class="s2">1</span><span class="s1">:</span>
+            <span class="s1">ans</span><span class="s0">, </span><span class="s1">self.__data = ans[:sz]</span><span class="s0">, </span><span class="s1">ans[sz:]</span>
+        <span class="s0">return </span><span class="s1">ans</span>
+
+    <span class="s0">def </span><span class="s1">readline(self</span><span class="s0">, </span><span class="s1">sz=-</span><span class="s2">1</span><span class="s1">):</span>
+        <span class="s3"># Dont care about making this efficient</span>
+        <span class="s1">data = self.read()</span>
+        <span class="s1">idx = data.find(</span><span class="s4">b'</span><span class="s0">\n</span><span class="s4">'</span><span class="s1">)</span>
+        <span class="s0">if </span><span class="s1">idx &gt; </span><span class="s2">0</span><span class="s1">:</span>
+            <span class="s0">if </span><span class="s1">sz &lt; </span><span class="s2">0 </span><span class="s0">or </span><span class="s1">idx &lt; sz:</span>
+                <span class="s1">line</span><span class="s0">, </span><span class="s1">self.__data = data[:idx + </span><span class="s2">1</span><span class="s1">]</span><span class="s0">, </span><span class="s1">data[idx + </span><span class="s2">1</span><span class="s1">:]</span>
+            <span class="s0">else</span><span class="s1">:</span>
+                <span class="s1">line</span><span class="s0">, </span><span class="s1">self.__data = data[:sz]</span><span class="s0">, </span><span class="s1">data[sz:]</span>
+        <span class="s0">else</span><span class="s1">:</span>
+            <span class="s0">if </span><span class="s1">sz &gt; -</span><span class="s2">1</span><span class="s1">:</span>
+                <span class="s1">line</span><span class="s0">, </span><span class="s1">self.__data = data[:sz]</span><span class="s0">, </span><span class="s1">data[sz:]</span>
+            <span class="s0">else</span><span class="s1">:</span>
+                <span class="s1">line = data</span>
+        <span class="s0">return </span><span class="s1">line</span>
+
+    <span class="s0">def </span><span class="s1">close(self):</span>
+        <span class="s1">self.__fp.close()</span>
+
+    <span class="s0">def </span><span class="s1">fileno(self):</span>
+        <span class="s0">return </span><span class="s1">self.__fp.fileno()</span>
+
+    <span class="s0">def </span><span class="s1">__iter__(self):</span>
+        <span class="s1">ans = self.readline()</span>
+        <span class="s0">if </span><span class="s1">ans:</span>
+            <span class="s0">yield </span><span class="s1">ans</span>
+
+    <span class="s0">def </span><span class="s1">next(self):</span>
+        <span class="s1">ans = self.readline()</span>
+        <span class="s0">if not </span><span class="s1">ans:</span>
+            <span class="s0">raise </span><span class="s1">StopIteration()</span>
+        <span class="s0">return </span><span class="s1">ans</span>
+
+
+<span class="s0">def </span><span class="s1">create_gzip_decompressor(zipped_file):</span>
+    <span class="s1">prefix = read_amt(zipped_file</span><span class="s0">, </span><span class="s2">10</span><span class="s1">)</span>
+    <span class="s0">if </span><span class="s1">prefix[:</span><span class="s2">2</span><span class="s1">] != </span><span class="s4">b'</span><span class="s0">\x1f\x8b</span><span class="s4">'</span><span class="s1">:</span>
+        <span class="s0">raise </span><span class="s1">ValueError(</span><span class="s5">'gzip stream has incorrect magic bytes: %r' </span><span class="s1">%</span>
+                         <span class="s1">prefix[:</span><span class="s2">2</span><span class="s1">])</span>
+    <span class="s0">if </span><span class="s1">prefix[</span><span class="s2">2</span><span class="s1">:</span><span class="s2">3</span><span class="s1">] != </span><span class="s4">b'</span><span class="s0">\x08</span><span class="s4">'</span><span class="s1">:</span>
+        <span class="s0">raise </span><span class="s1">ValueError(</span><span class="s5">'gzip stream has unknown compression method: %r' </span><span class="s1">%</span>
+                         <span class="s1">prefix[</span><span class="s2">2</span><span class="s1">])</span>
+    <span class="s1">flag = ord(prefix[</span><span class="s2">3</span><span class="s1">:</span><span class="s2">4</span><span class="s1">])</span>
+    <span class="s0">if </span><span class="s1">flag &amp; </span><span class="s2">4</span><span class="s1">:  </span><span class="s3"># extra</span>
+        <span class="s1">extra_amt = read_amt(zipped_file</span><span class="s0">, </span><span class="s2">2</span><span class="s1">)</span>
+        <span class="s1">extra_amt = ord(extra_amt[</span><span class="s2">0</span><span class="s1">]) + </span><span class="s2">256 </span><span class="s1">* ord(extra_amt[</span><span class="s2">1</span><span class="s1">])</span>
+        <span class="s0">if </span><span class="s1">extra_amt:</span>
+            <span class="s1">read_amt(zipped_file</span><span class="s0">, </span><span class="s1">extra_amt)</span>
+    <span class="s0">if </span><span class="s1">flag &amp; </span><span class="s2">8</span><span class="s1">:  </span><span class="s3"># filename</span>
+        <span class="s0">while </span><span class="s1">read_amt(zipped_file</span><span class="s0">, </span><span class="s2">1</span><span class="s1">) != </span><span class="s4">b'</span><span class="s0">\0</span><span class="s4">'</span><span class="s1">:</span>
+            <span class="s0">continue</span>
+    <span class="s0">if </span><span class="s1">flag &amp; </span><span class="s2">16</span><span class="s1">:  </span><span class="s3"># comment</span>
+        <span class="s0">while </span><span class="s1">read_amt(zipped_file</span><span class="s0">, </span><span class="s2">1</span><span class="s1">) != </span><span class="s4">b'</span><span class="s0">\0</span><span class="s4">'</span><span class="s1">:</span>
+            <span class="s0">continue</span>
+    <span class="s0">if </span><span class="s1">flag &amp; </span><span class="s2">2</span><span class="s1">:  </span><span class="s3"># crc</span>
+        <span class="s1">read_amt(zipped_file</span><span class="s0">, </span><span class="s2">2</span><span class="s1">)</span>
+    <span class="s0">return </span><span class="s1">UnzipWrapper(zipped_file)</span>
+
+
+<span class="s0">class </span><span class="s1">HTTPGzipProcessor(BaseHandler):</span>
+    <span class="s1">handler_order = </span><span class="s2">200  </span><span class="s3"># response processing before HTTPEquivProcessor</span>
+
+    <span class="s0">def </span><span class="s1">__init__(self</span><span class="s0">, </span><span class="s1">request_gzip=</span><span class="s0">False</span><span class="s1">):</span>
+        <span class="s1">self.request_gzip = request_gzip</span>
+
+    <span class="s0">def </span><span class="s1">__copy__(self):</span>
+        <span class="s0">return </span><span class="s1">self.__class__(self.request_gzip)</span>
+
+    <span class="s0">def </span><span class="s1">http_request(self</span><span class="s0">, </span><span class="s1">request):</span>
+        <span class="s0">if </span><span class="s1">self.request_gzip:</span>
+            <span class="s1">existing = [</span>
+                <span class="s1">x.strip()</span>
+                <span class="s0">for </span><span class="s1">x </span><span class="s0">in </span><span class="s1">request.get_header(</span><span class="s5">'Accept-Encoding'</span><span class="s0">, </span><span class="s5">''</span><span class="s1">).split(</span><span class="s5">','</span><span class="s1">)</span>
+            <span class="s1">]</span>
+            <span class="s0">if </span><span class="s1">sum(</span><span class="s5">'gzip' </span><span class="s0">in </span><span class="s1">x </span><span class="s0">for </span><span class="s1">x </span><span class="s0">in </span><span class="s1">existing) &lt; </span><span class="s2">1</span><span class="s1">:</span>
+                <span class="s1">existing.append(</span><span class="s5">'gzip'</span><span class="s1">)</span>
+                <span class="s1">request.add_header(</span><span class="s5">&quot;Accept-Encoding&quot;</span><span class="s0">,</span>
+                                   <span class="s5">', '</span><span class="s1">.join(filter(</span><span class="s0">None, </span><span class="s1">existing)))</span>
+        <span class="s0">return </span><span class="s1">request</span>
+
+    <span class="s0">def </span><span class="s1">http_response(self</span><span class="s0">, </span><span class="s1">request</span><span class="s0">, </span><span class="s1">response):</span>
+        <span class="s3"># post-process response</span>
+        <span class="s1">h = response.info()</span>
+        <span class="s1">enc_hdrs = h.getheaders(</span><span class="s5">&quot;Content-encoding&quot;</span><span class="s1">)</span>
+        <span class="s0">for </span><span class="s1">enc_hdr </span><span class="s0">in </span><span class="s1">enc_hdrs:</span>
+            <span class="s0">if </span><span class="s5">&quot;gzip&quot; </span><span class="s0">in </span><span class="s1">enc_hdr:</span>
+                <span class="s1">response._set_fp(create_gzip_decompressor(response.fp))</span>
+                <span class="s0">del </span><span class="s1">h[</span><span class="s5">'Content-encoding'</span><span class="s1">]</span>
+                <span class="s0">del </span><span class="s1">h[</span><span class="s5">'Content-length'</span><span class="s1">]</span>
+        <span class="s0">return </span><span class="s1">response</span>
+
+    <span class="s1">https_response = http_response</span>
+    <span class="s1">https_request = http_request</span>
+</pre>
+</body>
+</html>

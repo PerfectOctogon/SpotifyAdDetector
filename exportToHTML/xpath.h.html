@@ -1,0 +1,579 @@
+<html>
+<head>
+<title>xpath.h</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+.s4 { color: #6897bb;}
+.s5 { color: #0f9795;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+xpath.h</font>
+</center></td></tr></table>
+<pre><span class="s0">/* 
+ * Summary: XML Path Language implementation 
+ * Description: API for the XML Path Language implementation 
+ * 
+ * XML Path Language implementation 
+ * XPath is a language for addressing parts of an XML document, 
+ * designed to be used by both XSLT and XPointer 
+ *     http://www.w3.org/TR/xpath 
+ * 
+ * Implements 
+ * W3C Recommendation 16 November 1999 
+ *     http://www.w3.org/TR/1999/REC-xpath-19991116 
+ * 
+ * Copy: See Copyright for the status of this software. 
+ * 
+ * Author: Daniel Veillard 
+ */</span>
+
+<span class="s2">#ifndef </span><span class="s1">__XML_XPATH_H__</span>
+<span class="s2">#define </span><span class="s1">__XML_XPATH_H__</span>
+
+<span class="s2">#include </span><span class="s1">&lt;libxml/xmlversion.h&gt;</span>
+
+<span class="s2">#ifdef </span><span class="s1">LIBXML_XPATH_ENABLED</span>
+
+<span class="s2">#include </span><span class="s1">&lt;libxml/xmlerror.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/tree.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/hash.h&gt;</span>
+<span class="s2">#endif </span><span class="s0">/* LIBXML_XPATH_ENABLED */</span>
+
+<span class="s2">#if </span><span class="s1">defined(LIBXML_XPATH_ENABLED) || defined(LIBXML_SCHEMAS_ENABLED)</span>
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s2">extern </span><span class="s3">&quot;C&quot; </span><span class="s1">{</span>
+<span class="s2">#endif</span>
+<span class="s2">#endif </span><span class="s0">/* LIBXML_XPATH_ENABLED or LIBXML_SCHEMAS_ENABLED */</span>
+
+<span class="s2">#ifdef </span><span class="s1">LIBXML_XPATH_ENABLED</span>
+
+<span class="s2">typedef struct </span><span class="s1">_xmlXPathContext xmlXPathContext;</span>
+<span class="s2">typedef </span><span class="s1">xmlXPathContext *xmlXPathContextPtr;</span>
+<span class="s2">typedef struct </span><span class="s1">_xmlXPathParserContext xmlXPathParserContext;</span>
+<span class="s2">typedef </span><span class="s1">xmlXPathParserContext *xmlXPathParserContextPtr;</span>
+
+<span class="s0">/** 
+ * The set of XPath error codes. 
+ */</span>
+
+<span class="s2">typedef enum </span><span class="s1">{</span>
+    <span class="s1">XPATH_EXPRESSION_OK = </span><span class="s4">0</span><span class="s1">,</span>
+    <span class="s1">XPATH_NUMBER_ERROR,</span>
+    <span class="s1">XPATH_UNFINISHED_LITERAL_ERROR,</span>
+    <span class="s1">XPATH_START_LITERAL_ERROR,</span>
+    <span class="s1">XPATH_VARIABLE_REF_ERROR,</span>
+    <span class="s1">XPATH_UNDEF_VARIABLE_ERROR,</span>
+    <span class="s1">XPATH_INVALID_PREDICATE_ERROR,</span>
+    <span class="s1">XPATH_EXPR_ERROR,</span>
+    <span class="s1">XPATH_UNCLOSED_ERROR,</span>
+    <span class="s1">XPATH_UNKNOWN_FUNC_ERROR,</span>
+    <span class="s1">XPATH_INVALID_OPERAND,</span>
+    <span class="s1">XPATH_INVALID_TYPE,</span>
+    <span class="s1">XPATH_INVALID_ARITY,</span>
+    <span class="s1">XPATH_INVALID_CTXT_SIZE,</span>
+    <span class="s1">XPATH_INVALID_CTXT_POSITION,</span>
+    <span class="s1">XPATH_MEMORY_ERROR,</span>
+    <span class="s1">XPTR_SYNTAX_ERROR,</span>
+    <span class="s1">XPTR_RESOURCE_ERROR,</span>
+    <span class="s1">XPTR_SUB_RESOURCE_ERROR,</span>
+    <span class="s1">XPATH_UNDEF_PREFIX_ERROR,</span>
+    <span class="s1">XPATH_ENCODING_ERROR,</span>
+    <span class="s1">XPATH_INVALID_CHAR_ERROR,</span>
+    <span class="s1">XPATH_INVALID_CTXT,</span>
+    <span class="s1">XPATH_STACK_ERROR,</span>
+    <span class="s1">XPATH_FORBID_VARIABLE_ERROR</span>
+<span class="s1">} xmlXPathError;</span>
+
+<span class="s0">/* 
+ * A node-set (an unordered collection of nodes without duplicates). 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xmlNodeSet xmlNodeSet;</span>
+<span class="s2">typedef </span><span class="s1">xmlNodeSet *xmlNodeSetPtr;</span>
+<span class="s2">struct </span><span class="s1">_xmlNodeSet {</span>
+    <span class="s2">int </span><span class="s1">nodeNr;			</span><span class="s0">/* number of nodes in the set */</span>
+    <span class="s2">int </span><span class="s1">nodeMax;		</span><span class="s0">/* size of the array as allocated */</span>
+    <span class="s1">xmlNodePtr *nodeTab;	</span><span class="s0">/* array of nodes in no particular order */</span>
+    <span class="s0">/* @@ with_ns to check wether namespace nodes should be looked at @@ */</span>
+<span class="s1">};</span>
+
+<span class="s0">/* 
+ * An expression is evaluated to yield an object, which 
+ * has one of the following four basic types: 
+ *   - node-set 
+ *   - boolean 
+ *   - number 
+ *   - string 
+ * 
+ * @@ XPointer will add more types ! 
+ */</span>
+
+<span class="s2">typedef enum </span><span class="s1">{</span>
+    <span class="s1">XPATH_UNDEFINED = </span><span class="s4">0</span><span class="s1">,</span>
+    <span class="s1">XPATH_NODESET = </span><span class="s4">1</span><span class="s1">,</span>
+    <span class="s1">XPATH_BOOLEAN = </span><span class="s4">2</span><span class="s1">,</span>
+    <span class="s1">XPATH_NUMBER = </span><span class="s4">3</span><span class="s1">,</span>
+    <span class="s1">XPATH_STRING = </span><span class="s4">4</span><span class="s1">,</span>
+    <span class="s1">XPATH_POINT = </span><span class="s4">5</span><span class="s1">,</span>
+    <span class="s1">XPATH_RANGE = </span><span class="s4">6</span><span class="s1">,</span>
+    <span class="s1">XPATH_LOCATIONSET = </span><span class="s4">7</span><span class="s1">,</span>
+    <span class="s1">XPATH_USERS = </span><span class="s4">8</span><span class="s1">,</span>
+    <span class="s1">XPATH_XSLT_TREE = </span><span class="s4">9  </span><span class="s0">/* An XSLT value tree, non modifiable */</span>
+<span class="s1">} xmlXPathObjectType;</span>
+
+<span class="s2">typedef struct </span><span class="s1">_xmlXPathObject xmlXPathObject;</span>
+<span class="s2">typedef </span><span class="s1">xmlXPathObject *xmlXPathObjectPtr;</span>
+<span class="s2">struct </span><span class="s1">_xmlXPathObject {</span>
+    <span class="s1">xmlXPathObjectType type;</span>
+    <span class="s1">xmlNodeSetPtr nodesetval;</span>
+    <span class="s2">int </span><span class="s1">boolval;</span>
+    <span class="s2">double </span><span class="s1">floatval;</span>
+    <span class="s1">xmlChar *stringval;</span>
+    <span class="s2">void </span><span class="s1">*user;</span>
+    <span class="s2">int </span><span class="s1">index;</span>
+    <span class="s2">void </span><span class="s1">*user2;</span>
+    <span class="s2">int </span><span class="s1">index2;</span>
+<span class="s1">};</span>
+
+<span class="s0">/** 
+ * xmlXPathConvertFunc: 
+ * @obj:  an XPath object 
+ * @type:  the number of the target type 
+ * 
+ * A conversion function is associated to a type and used to cast 
+ * the new type to primitive values. 
+ * 
+ * Returns -1 in case of error, 0 otherwise 
+ */</span>
+<span class="s2">typedef int </span><span class="s1">(*xmlXPathConvertFunc) (xmlXPathObjectPtr obj, </span><span class="s2">int </span><span class="s1">type);</span>
+
+<span class="s0">/* 
+ * Extra type: a name and a conversion function. 
+ */</span>
+
+<span class="s2">typedef struct </span><span class="s1">_xmlXPathType xmlXPathType;</span>
+<span class="s2">typedef </span><span class="s1">xmlXPathType *xmlXPathTypePtr;</span>
+<span class="s2">struct </span><span class="s1">_xmlXPathType {</span>
+    <span class="s2">const </span><span class="s1">xmlChar         *name;		</span><span class="s0">/* the type name */</span>
+    <span class="s1">xmlXPathConvertFunc func;		</span><span class="s0">/* the conversion function */</span>
+<span class="s1">};</span>
+
+<span class="s0">/* 
+ * Extra variable: a name and a value. 
+ */</span>
+
+<span class="s2">typedef struct </span><span class="s1">_xmlXPathVariable xmlXPathVariable;</span>
+<span class="s2">typedef </span><span class="s1">xmlXPathVariable *xmlXPathVariablePtr;</span>
+<span class="s2">struct </span><span class="s1">_xmlXPathVariable {</span>
+    <span class="s2">const </span><span class="s1">xmlChar       *name;		</span><span class="s0">/* the variable name */</span>
+    <span class="s1">xmlXPathObjectPtr value;		</span><span class="s0">/* the value */</span>
+<span class="s1">};</span>
+
+<span class="s0">/** 
+ * xmlXPathEvalFunc: 
+ * @ctxt: an XPath parser context 
+ * @nargs: the number of arguments passed to the function 
+ * 
+ * An XPath evaluation function, the parameters are on the XPath context stack. 
+ */</span>
+
+<span class="s2">typedef void </span><span class="s1">(*xmlXPathEvalFunc)(xmlXPathParserContextPtr ctxt,</span>
+	                         <span class="s2">int </span><span class="s1">nargs);</span>
+
+<span class="s0">/* 
+ * Extra function: a name and a evaluation function. 
+ */</span>
+
+<span class="s2">typedef struct </span><span class="s1">_xmlXPathFunct xmlXPathFunct;</span>
+<span class="s2">typedef </span><span class="s1">xmlXPathFunct *xmlXPathFuncPtr;</span>
+<span class="s2">struct </span><span class="s1">_xmlXPathFunct {</span>
+    <span class="s2">const </span><span class="s1">xmlChar      *name;		</span><span class="s0">/* the function name */</span>
+    <span class="s1">xmlXPathEvalFunc func;		</span><span class="s0">/* the evaluation function */</span>
+<span class="s1">};</span>
+
+<span class="s0">/** 
+ * xmlXPathAxisFunc: 
+ * @ctxt:  the XPath interpreter context 
+ * @cur:  the previous node being explored on that axis 
+ * 
+ * An axis traversal function. To traverse an axis, the engine calls 
+ * the first time with cur == NULL and repeat until the function returns 
+ * NULL indicating the end of the axis traversal. 
+ * 
+ * Returns the next node in that axis or NULL if at the end of the axis. 
+ */</span>
+
+<span class="s2">typedef </span><span class="s1">xmlXPathObjectPtr (*xmlXPathAxisFunc) (xmlXPathParserContextPtr ctxt,</span>
+				 <span class="s1">xmlXPathObjectPtr cur);</span>
+
+<span class="s0">/* 
+ * Extra axis: a name and an axis function. 
+ */</span>
+
+<span class="s2">typedef struct </span><span class="s1">_xmlXPathAxis xmlXPathAxis;</span>
+<span class="s2">typedef </span><span class="s1">xmlXPathAxis *xmlXPathAxisPtr;</span>
+<span class="s2">struct </span><span class="s1">_xmlXPathAxis {</span>
+    <span class="s2">const </span><span class="s1">xmlChar      *name;		</span><span class="s0">/* the axis name */</span>
+    <span class="s1">xmlXPathAxisFunc func;		</span><span class="s0">/* the search function */</span>
+<span class="s1">};</span>
+
+<span class="s0">/** 
+ * xmlXPathFunction: 
+ * @ctxt:  the XPath interprestation context 
+ * @nargs:  the number of arguments 
+ * 
+ * An XPath function. 
+ * The arguments (if any) are popped out from the context stack 
+ * and the result is pushed on the stack. 
+ */</span>
+
+<span class="s2">typedef void </span><span class="s1">(*xmlXPathFunction) (xmlXPathParserContextPtr ctxt, </span><span class="s2">int </span><span class="s1">nargs);</span>
+
+<span class="s0">/* 
+ * Function and Variable Lookup. 
+ */</span>
+
+<span class="s0">/** 
+ * xmlXPathVariableLookupFunc: 
+ * @ctxt:  an XPath context 
+ * @name:  name of the variable 
+ * @ns_uri:  the namespace name hosting this variable 
+ * 
+ * Prototype for callbacks used to plug variable lookup in the XPath 
+ * engine. 
+ * 
+ * Returns the XPath object value or NULL if not found. 
+ */</span>
+<span class="s2">typedef </span><span class="s1">xmlXPathObjectPtr (*xmlXPathVariableLookupFunc) (</span><span class="s2">void </span><span class="s1">*ctxt,</span>
+                                         <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+                                         <span class="s2">const </span><span class="s1">xmlChar *ns_uri);</span>
+
+<span class="s0">/** 
+ * xmlXPathFuncLookupFunc: 
+ * @ctxt:  an XPath context 
+ * @name:  name of the function 
+ * @ns_uri:  the namespace name hosting this function 
+ * 
+ * Prototype for callbacks used to plug function lookup in the XPath 
+ * engine. 
+ * 
+ * Returns the XPath function or NULL if not found. 
+ */</span>
+<span class="s2">typedef </span><span class="s1">xmlXPathFunction (*xmlXPathFuncLookupFunc) (</span><span class="s2">void </span><span class="s1">*ctxt,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *ns_uri);</span>
+
+<span class="s0">/** 
+ * xmlXPathFlags: 
+ * Flags for XPath engine compilation and runtime 
+ */</span>
+<span class="s0">/** 
+ * XML_XPATH_CHECKNS: 
+ * 
+ * check namespaces at compilation 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_XPATH_CHECKNS (</span><span class="s4">1</span><span class="s1">&lt;&lt;</span><span class="s4">0</span><span class="s1">)</span>
+<span class="s0">/** 
+ * XML_XPATH_NOVAR: 
+ * 
+ * forbid variables in expression 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_XPATH_NOVAR	  (</span><span class="s4">1</span><span class="s1">&lt;&lt;</span><span class="s4">1</span><span class="s1">)</span>
+
+<span class="s0">/** 
+ * xmlXPathContext: 
+ * 
+ * Expression evaluation occurs with respect to a context. 
+ * he context consists of: 
+ *    - a node (the context node) 
+ *    - a node list (the context node list) 
+ *    - a set of variable bindings 
+ *    - a function library 
+ *    - the set of namespace declarations in scope for the expression 
+ * Following the switch to hash tables, this need to be trimmed up at 
+ * the next binary incompatible release. 
+ * The node may be modified when the context is passed to libxml2 
+ * for an XPath evaluation so you may need to initialize it again 
+ * before the next call. 
+ */</span>
+
+<span class="s2">struct </span><span class="s1">_xmlXPathContext {</span>
+    <span class="s1">xmlDocPtr doc;			</span><span class="s0">/* The current document */</span>
+    <span class="s1">xmlNodePtr node;			</span><span class="s0">/* The current node */</span>
+
+    <span class="s2">int </span><span class="s1">nb_variables_unused;		</span><span class="s0">/* unused (hash table) */</span>
+    <span class="s2">int </span><span class="s1">max_variables_unused;		</span><span class="s0">/* unused (hash table) */</span>
+    <span class="s1">xmlHashTablePtr varHash;		</span><span class="s0">/* Hash table of defined variables */</span>
+
+    <span class="s2">int </span><span class="s1">nb_types;			</span><span class="s0">/* number of defined types */</span>
+    <span class="s2">int </span><span class="s1">max_types;			</span><span class="s0">/* max number of types */</span>
+    <span class="s1">xmlXPathTypePtr types;		</span><span class="s0">/* Array of defined types */</span>
+
+    <span class="s2">int </span><span class="s1">nb_funcs_unused;		</span><span class="s0">/* unused (hash table) */</span>
+    <span class="s2">int </span><span class="s1">max_funcs_unused;		</span><span class="s0">/* unused (hash table) */</span>
+    <span class="s1">xmlHashTablePtr funcHash;		</span><span class="s0">/* Hash table of defined funcs */</span>
+
+    <span class="s2">int </span><span class="s1">nb_axis;			</span><span class="s0">/* number of defined axis */</span>
+    <span class="s2">int </span><span class="s1">max_axis;			</span><span class="s0">/* max number of axis */</span>
+    <span class="s1">xmlXPathAxisPtr axis;		</span><span class="s0">/* Array of defined axis */</span>
+
+    <span class="s0">/* the namespace nodes of the context node */</span>
+    <span class="s1">xmlNsPtr *namespaces;		</span><span class="s0">/* Array of namespaces */</span>
+    <span class="s2">int </span><span class="s1">nsNr;				</span><span class="s0">/* number of namespace in scope */</span>
+    <span class="s2">void </span><span class="s1">*user;				</span><span class="s0">/* function to free */</span>
+
+    <span class="s0">/* extra variables */</span>
+    <span class="s2">int </span><span class="s1">contextSize;			</span><span class="s0">/* the context size */</span>
+    <span class="s2">int </span><span class="s1">proximityPosition;		</span><span class="s0">/* the proximity position */</span>
+
+    <span class="s0">/* extra stuff for XPointer */</span>
+    <span class="s2">int </span><span class="s1">xptr;				</span><span class="s0">/* is this an XPointer context? */</span>
+    <span class="s1">xmlNodePtr here;			</span><span class="s0">/* for here() */</span>
+    <span class="s1">xmlNodePtr origin;			</span><span class="s0">/* for origin() */</span>
+
+    <span class="s0">/* the set of namespace declarations in scope for the expression */</span>
+    <span class="s1">xmlHashTablePtr nsHash;		</span><span class="s0">/* The namespaces hash table */</span>
+    <span class="s1">xmlXPathVariableLookupFunc varLookupFunc;</span><span class="s0">/* variable lookup func */</span>
+    <span class="s2">void </span><span class="s1">*varLookupData;		</span><span class="s0">/* variable lookup data */</span>
+
+    <span class="s0">/* Possibility to link in an extra item */</span>
+    <span class="s2">void </span><span class="s1">*extra;                        </span><span class="s0">/* needed for XSLT */</span>
+
+    <span class="s0">/* The function name and URI when calling a function */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *function;</span>
+    <span class="s2">const </span><span class="s1">xmlChar *functionURI;</span>
+
+    <span class="s0">/* function lookup function and data */</span>
+    <span class="s1">xmlXPathFuncLookupFunc funcLookupFunc;</span><span class="s0">/* function lookup func */</span>
+    <span class="s2">void </span><span class="s1">*funcLookupData;		</span><span class="s0">/* function lookup data */</span>
+
+    <span class="s0">/* temporary namespace lists kept for walking the namespace axis */</span>
+    <span class="s1">xmlNsPtr *tmpNsList;		</span><span class="s0">/* Array of namespaces */</span>
+    <span class="s2">int </span><span class="s1">tmpNsNr;			</span><span class="s0">/* number of namespaces in scope */</span>
+
+    <span class="s0">/* error reporting mechanism */</span>
+    <span class="s2">void </span><span class="s1">*userData;                     </span><span class="s0">/* user specific data block */</span>
+    <span class="s1">xmlStructuredErrorFunc error;       </span><span class="s0">/* the callback in case of errors */</span>
+    <span class="s1">xmlError lastError;			</span><span class="s0">/* the last error */</span>
+    <span class="s1">xmlNodePtr debugNode;		</span><span class="s0">/* the source node XSLT */</span>
+
+    <span class="s0">/* dictionary */</span>
+    <span class="s1">xmlDictPtr dict;			</span><span class="s0">/* dictionary if any */</span>
+
+    <span class="s2">int </span><span class="s1">flags;				</span><span class="s0">/* flags to control compilation */</span>
+
+    <span class="s0">/* Cache for reusal of XPath objects */</span>
+    <span class="s2">void </span><span class="s1">*cache;</span>
+<span class="s1">};</span>
+
+<span class="s0">/* 
+ * The structure of a compiled expression form is not public. 
+ */</span>
+
+<span class="s2">typedef struct </span><span class="s1">_xmlXPathCompExpr xmlXPathCompExpr;</span>
+<span class="s2">typedef </span><span class="s1">xmlXPathCompExpr *xmlXPathCompExprPtr;</span>
+
+<span class="s0">/** 
+ * xmlXPathParserContext: 
+ * 
+ * An XPath parser context. It contains pure parsing informations, 
+ * an xmlXPathContext, and the stack of objects. 
+ */</span>
+<span class="s2">struct </span><span class="s1">_xmlXPathParserContext {</span>
+    <span class="s2">const </span><span class="s1">xmlChar *cur;			</span><span class="s0">/* the current char being parsed */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *base;			</span><span class="s0">/* the full expression */</span>
+
+    <span class="s2">int </span><span class="s1">error;				</span><span class="s0">/* error code */</span>
+
+    <span class="s1">xmlXPathContextPtr  context;	</span><span class="s0">/* the evaluation context */</span>
+    <span class="s1">xmlXPathObjectPtr     value;	</span><span class="s0">/* the current value */</span>
+    <span class="s2">int                 </span><span class="s1">valueNr;	</span><span class="s0">/* number of values stacked */</span>
+    <span class="s2">int                </span><span class="s1">valueMax;	</span><span class="s0">/* max number of values stacked */</span>
+    <span class="s1">xmlXPathObjectPtr *valueTab;	</span><span class="s0">/* stack of values */</span>
+
+    <span class="s1">xmlXPathCompExprPtr comp;		</span><span class="s0">/* the precompiled expression */</span>
+    <span class="s2">int </span><span class="s1">xptr;				</span><span class="s0">/* it this an XPointer expression */</span>
+    <span class="s1">xmlNodePtr         ancestor;	</span><span class="s0">/* used for walking preceding axis */</span>
+
+    <span class="s2">int              </span><span class="s1">valueFrame;        </span><span class="s0">/* used to limit Pop on the stack */</span>
+<span class="s1">};</span>
+
+<span class="s0">/************************************************************************ 
+ *                                  * 
+ *          Public API                  * 
+ *                                  * 
+ ************************************************************************/</span>
+
+<span class="s0">/** 
+ * Objects and Nodesets handling 
+ */</span>
+
+<span class="s1">XMLPUBVAR </span><span class="s2">double </span><span class="s1">xmlXPathNAN;</span>
+<span class="s1">XMLPUBVAR </span><span class="s2">double </span><span class="s1">xmlXPathPINF;</span>
+<span class="s1">XMLPUBVAR </span><span class="s2">double </span><span class="s1">xmlXPathNINF;</span>
+
+<span class="s0">/* These macros may later turn into functions */</span>
+<span class="s0">/** 
+ * xmlXPathNodeSetGetLength: 
+ * @ns:  a node-set 
+ * 
+ * Implement a functionality similar to the DOM NodeList.length. 
+ * 
+ * Returns the number of nodes in the node-set. 
+ */</span>
+<span class="s2">#define </span><span class="s1">xmlXPathNodeSetGetLength(ns) ((ns) ? (ns)</span><span class="s5">-&gt;</span><span class="s1">nodeNr : </span><span class="s4">0</span><span class="s1">)</span>
+<span class="s0">/** 
+ * xmlXPathNodeSetItem: 
+ * @ns:  a node-set 
+ * @index:  index of a node in the set 
+ * 
+ * Implements a functionality similar to the DOM NodeList.item(). 
+ * 
+ * Returns the xmlNodePtr at the given @index in @ns or NULL if 
+ *         @index is out of range (0 to length-1) 
+ */</span>
+<span class="s2">#define </span><span class="s1">xmlXPathNodeSetItem(ns, index)				\</span>
+		<span class="s1">((((ns) != NULL) &amp;&amp;				\</span>
+		  <span class="s1">((index) &gt;= </span><span class="s4">0</span><span class="s1">) &amp;&amp; ((index) &lt; (ns)</span><span class="s5">-&gt;</span><span class="s1">nodeNr)) ?	\</span>
+		 <span class="s1">(ns)</span><span class="s5">-&gt;</span><span class="s1">nodeTab[(index)]				\</span>
+		 <span class="s1">: NULL)</span>
+<span class="s0">/** 
+ * xmlXPathNodeSetIsEmpty: 
+ * @ns: a node-set 
+ * 
+ * Checks whether @ns is empty or not. 
+ * 
+ * Returns %TRUE if @ns is an empty node-set. 
+ */</span>
+<span class="s2">#define </span><span class="s1">xmlXPathNodeSetIsEmpty(ns)                                      \</span>
+    <span class="s1">(((ns) == NULL) || ((ns)</span><span class="s5">-&gt;</span><span class="s1">nodeNr == </span><span class="s4">0</span><span class="s1">) || ((ns)</span><span class="s5">-&gt;</span><span class="s1">nodeTab == NULL))</span>
+
+
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		    <span class="s1">xmlXPathFreeObject		(xmlXPathObjectPtr obj);</span>
+<span class="s1">XMLPUBFUN xmlNodeSetPtr XMLCALL</span>
+		    <span class="s1">xmlXPathNodeSetCreate	(xmlNodePtr val);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		    <span class="s1">xmlXPathFreeNodeSetList	(xmlXPathObjectPtr obj);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		    <span class="s1">xmlXPathFreeNodeSet		(xmlNodeSetPtr obj);</span>
+<span class="s1">XMLPUBFUN xmlXPathObjectPtr XMLCALL</span>
+		    <span class="s1">xmlXPathObjectCopy		(xmlXPathObjectPtr val);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		    <span class="s1">xmlXPathCmpNodes		(xmlNodePtr node1,</span>
+						 <span class="s1">xmlNodePtr node2);</span>
+<span class="s0">/** 
+ * Conversion functions to basic types. 
+ */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		    <span class="s1">xmlXPathCastNumberToBoolean	(</span><span class="s2">double </span><span class="s1">val);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		    <span class="s1">xmlXPathCastStringToBoolean	(</span><span class="s2">const </span><span class="s1">xmlChar * val);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		    <span class="s1">xmlXPathCastNodeSetToBoolean(xmlNodeSetPtr ns);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		    <span class="s1">xmlXPathCastToBoolean	(xmlXPathObjectPtr val);</span>
+
+<span class="s1">XMLPUBFUN </span><span class="s2">double </span><span class="s1">XMLCALL</span>
+		    <span class="s1">xmlXPathCastBooleanToNumber	(</span><span class="s2">int </span><span class="s1">val);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">double </span><span class="s1">XMLCALL</span>
+		    <span class="s1">xmlXPathCastStringToNumber	(</span><span class="s2">const </span><span class="s1">xmlChar * val);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">double </span><span class="s1">XMLCALL</span>
+		    <span class="s1">xmlXPathCastNodeToNumber	(xmlNodePtr node);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">double </span><span class="s1">XMLCALL</span>
+		    <span class="s1">xmlXPathCastNodeSetToNumber	(xmlNodeSetPtr ns);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">double </span><span class="s1">XMLCALL</span>
+		    <span class="s1">xmlXPathCastToNumber	(xmlXPathObjectPtr val);</span>
+
+<span class="s1">XMLPUBFUN xmlChar * XMLCALL</span>
+		    <span class="s1">xmlXPathCastBooleanToString	(</span><span class="s2">int </span><span class="s1">val);</span>
+<span class="s1">XMLPUBFUN xmlChar * XMLCALL</span>
+		    <span class="s1">xmlXPathCastNumberToString	(</span><span class="s2">double </span><span class="s1">val);</span>
+<span class="s1">XMLPUBFUN xmlChar * XMLCALL</span>
+		    <span class="s1">xmlXPathCastNodeToString	(xmlNodePtr node);</span>
+<span class="s1">XMLPUBFUN xmlChar * XMLCALL</span>
+		    <span class="s1">xmlXPathCastNodeSetToString	(xmlNodeSetPtr ns);</span>
+<span class="s1">XMLPUBFUN xmlChar * XMLCALL</span>
+		    <span class="s1">xmlXPathCastToString	(xmlXPathObjectPtr val);</span>
+
+<span class="s1">XMLPUBFUN xmlXPathObjectPtr XMLCALL</span>
+		    <span class="s1">xmlXPathConvertBoolean	(xmlXPathObjectPtr val);</span>
+<span class="s1">XMLPUBFUN xmlXPathObjectPtr XMLCALL</span>
+		    <span class="s1">xmlXPathConvertNumber	(xmlXPathObjectPtr val);</span>
+<span class="s1">XMLPUBFUN xmlXPathObjectPtr XMLCALL</span>
+		    <span class="s1">xmlXPathConvertString	(xmlXPathObjectPtr val);</span>
+
+<span class="s0">/** 
+ * Context handling. 
+ */</span>
+<span class="s1">XMLPUBFUN xmlXPathContextPtr XMLCALL</span>
+		    <span class="s1">xmlXPathNewContext		(xmlDocPtr doc);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		    <span class="s1">xmlXPathFreeContext		(xmlXPathContextPtr ctxt);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		    <span class="s1">xmlXPathContextSetCache(xmlXPathContextPtr ctxt,</span>
+				            <span class="s2">int </span><span class="s1">active,</span>
+					    <span class="s2">int </span><span class="s1">value,</span>
+					    <span class="s2">int </span><span class="s1">options);</span>
+<span class="s0">/** 
+ * Evaluation functions. 
+ */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">long </span><span class="s1">XMLCALL</span>
+		    <span class="s1">xmlXPathOrderDocElems	(xmlDocPtr doc);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		    <span class="s1">xmlXPathSetContextNode	(xmlNodePtr node,</span>
+						 <span class="s1">xmlXPathContextPtr ctx);</span>
+<span class="s1">XMLPUBFUN xmlXPathObjectPtr XMLCALL</span>
+		    <span class="s1">xmlXPathNodeEval		(xmlNodePtr node,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *str,</span>
+						 <span class="s1">xmlXPathContextPtr ctx);</span>
+<span class="s1">XMLPUBFUN xmlXPathObjectPtr XMLCALL</span>
+		    <span class="s1">xmlXPathEval		(</span><span class="s2">const </span><span class="s1">xmlChar *str,</span>
+						 <span class="s1">xmlXPathContextPtr ctx);</span>
+<span class="s1">XMLPUBFUN xmlXPathObjectPtr XMLCALL</span>
+		    <span class="s1">xmlXPathEvalExpression	(</span><span class="s2">const </span><span class="s1">xmlChar *str,</span>
+						 <span class="s1">xmlXPathContextPtr ctxt);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		    <span class="s1">xmlXPathEvalPredicate	(xmlXPathContextPtr ctxt,</span>
+						 <span class="s1">xmlXPathObjectPtr res);</span>
+<span class="s0">/** 
+ * Separate compilation/evaluation entry points. 
+ */</span>
+<span class="s1">XMLPUBFUN xmlXPathCompExprPtr XMLCALL</span>
+		    <span class="s1">xmlXPathCompile		(</span><span class="s2">const </span><span class="s1">xmlChar *str);</span>
+<span class="s1">XMLPUBFUN xmlXPathCompExprPtr XMLCALL</span>
+		    <span class="s1">xmlXPathCtxtCompile		(xmlXPathContextPtr ctxt,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *str);</span>
+<span class="s1">XMLPUBFUN xmlXPathObjectPtr XMLCALL</span>
+		    <span class="s1">xmlXPathCompiledEval	(xmlXPathCompExprPtr comp,</span>
+						 <span class="s1">xmlXPathContextPtr ctx);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		    <span class="s1">xmlXPathCompiledEvalToBoolean(xmlXPathCompExprPtr comp,</span>
+						 <span class="s1">xmlXPathContextPtr ctxt);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		    <span class="s1">xmlXPathFreeCompExpr	(xmlXPathCompExprPtr comp);</span>
+<span class="s2">#endif </span><span class="s0">/* LIBXML_XPATH_ENABLED */</span>
+<span class="s2">#if </span><span class="s1">defined(LIBXML_XPATH_ENABLED) || defined(LIBXML_SCHEMAS_ENABLED)</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		    <span class="s1">xmlXPathInit		(</span><span class="s2">void</span><span class="s1">);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlXPathIsNaN	(</span><span class="s2">double </span><span class="s1">val);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlXPathIsInf	(</span><span class="s2">double </span><span class="s1">val);</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s1">}</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#endif </span><span class="s0">/* LIBXML_XPATH_ENABLED or LIBXML_SCHEMAS_ENABLED*/</span>
+<span class="s2">#endif </span><span class="s0">/* ! __XML_XPATH_H__ */</span>
+</pre>
+</body>
+</html>

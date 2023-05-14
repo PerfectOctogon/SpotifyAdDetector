@@ -1,0 +1,198 @@
+<html>
+<head>
+<title>SAX2.h</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+SAX2.h</font>
+</center></td></tr></table>
+<pre><span class="s0">/* 
+ * Summary: SAX2 parser interface used to build the DOM tree 
+ * Description: those are the default SAX2 interfaces used by 
+ *              the library when building DOM tree. 
+ * 
+ * Copy: See Copyright for the status of this software. 
+ * 
+ * Author: Daniel Veillard 
+ */</span>
+
+
+<span class="s2">#ifndef </span><span class="s1">__XML_SAX2_H__</span>
+<span class="s2">#define </span><span class="s1">__XML_SAX2_H__</span>
+
+<span class="s2">#include </span><span class="s1">&lt;stdio.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;stdlib.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/xmlversion.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/parser.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/xlink.h&gt;</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s2">extern </span><span class="s3">&quot;C&quot; </span><span class="s1">{</span>
+<span class="s2">#endif</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">const </span><span class="s1">xmlChar * XMLCALL</span>
+		<span class="s1">xmlSAX2GetPublicId		(</span><span class="s2">void </span><span class="s1">*ctx);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">const </span><span class="s1">xmlChar * XMLCALL</span>
+		<span class="s1">xmlSAX2GetSystemId		(</span><span class="s2">void </span><span class="s1">*ctx);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSAX2SetDocumentLocator	(</span><span class="s2">void </span><span class="s1">*ctx,</span>
+						 <span class="s1">xmlSAXLocatorPtr loc);</span>
+
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSAX2GetLineNumber		(</span><span class="s2">void </span><span class="s1">*ctx);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSAX2GetColumnNumber		(</span><span class="s2">void </span><span class="s1">*ctx);</span>
+
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSAX2IsStandalone		(</span><span class="s2">void </span><span class="s1">*ctx);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSAX2HasInternalSubset	(</span><span class="s2">void </span><span class="s1">*ctx);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSAX2HasExternalSubset	(</span><span class="s2">void </span><span class="s1">*ctx);</span>
+
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSAX2InternalSubset		(</span><span class="s2">void </span><span class="s1">*ctx,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *ExternalID,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *SystemID);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSAX2ExternalSubset		(</span><span class="s2">void </span><span class="s1">*ctx,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *ExternalID,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *SystemID);</span>
+<span class="s1">XMLPUBFUN xmlEntityPtr XMLCALL</span>
+		<span class="s1">xmlSAX2GetEntity		(</span><span class="s2">void </span><span class="s1">*ctx,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *name);</span>
+<span class="s1">XMLPUBFUN xmlEntityPtr XMLCALL</span>
+		<span class="s1">xmlSAX2GetParameterEntity	(</span><span class="s2">void </span><span class="s1">*ctx,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *name);</span>
+<span class="s1">XMLPUBFUN xmlParserInputPtr XMLCALL</span>
+		<span class="s1">xmlSAX2ResolveEntity		(</span><span class="s2">void </span><span class="s1">*ctx,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *publicId,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *systemId);</span>
+
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSAX2EntityDecl		(</span><span class="s2">void </span><span class="s1">*ctx,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+						 <span class="s2">int </span><span class="s1">type,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *publicId,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *systemId,</span>
+						 <span class="s1">xmlChar *content);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSAX2AttributeDecl		(</span><span class="s2">void </span><span class="s1">*ctx,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *elem,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *fullname,</span>
+						 <span class="s2">int </span><span class="s1">type,</span>
+						 <span class="s2">int </span><span class="s1">def,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *defaultValue,</span>
+						 <span class="s1">xmlEnumerationPtr tree);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSAX2ElementDecl		(</span><span class="s2">void </span><span class="s1">*ctx,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+						 <span class="s2">int </span><span class="s1">type,</span>
+						 <span class="s1">xmlElementContentPtr content);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSAX2NotationDecl		(</span><span class="s2">void </span><span class="s1">*ctx,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *publicId,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *systemId);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSAX2UnparsedEntityDecl	(</span><span class="s2">void </span><span class="s1">*ctx,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *publicId,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *systemId,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *notationName);</span>
+
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSAX2StartDocument		(</span><span class="s2">void </span><span class="s1">*ctx);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSAX2EndDocument		(</span><span class="s2">void </span><span class="s1">*ctx);</span>
+<span class="s2">#if </span><span class="s1">defined(LIBXML_SAX1_ENABLED) || defined(LIBXML_HTML_ENABLED) || \</span>
+    <span class="s1">defined(LIBXML_WRITER_ENABLED) || defined(LIBXML_DOCB_ENABLED) || \</span>
+    <span class="s1">defined(LIBXML_LEGACY_ENABLED)</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSAX2StartElement		(</span><span class="s2">void </span><span class="s1">*ctx,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *fullname,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar **atts);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSAX2EndElement		(</span><span class="s2">void </span><span class="s1">*ctx,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *name);</span>
+<span class="s2">#endif </span><span class="s0">/* LIBXML_SAX1_ENABLED or LIBXML_HTML_ENABLED or LIBXML_LEGACY_ENABLED */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSAX2StartElementNs		(</span><span class="s2">void </span><span class="s1">*ctx,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *localname,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *prefix,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *URI,</span>
+						 <span class="s2">int </span><span class="s1">nb_namespaces,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar **namespaces,</span>
+						 <span class="s2">int </span><span class="s1">nb_attributes,</span>
+						 <span class="s2">int </span><span class="s1">nb_defaulted,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar **attributes);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSAX2EndElementNs		(</span><span class="s2">void </span><span class="s1">*ctx,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *localname,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *prefix,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *URI);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSAX2Reference		(</span><span class="s2">void </span><span class="s1">*ctx,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *name);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSAX2Characters		(</span><span class="s2">void </span><span class="s1">*ctx,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *ch,</span>
+						 <span class="s2">int </span><span class="s1">len);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSAX2IgnorableWhitespace	(</span><span class="s2">void </span><span class="s1">*ctx,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *ch,</span>
+						 <span class="s2">int </span><span class="s1">len);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSAX2ProcessingInstruction	(</span><span class="s2">void </span><span class="s1">*ctx,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *target,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *data);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSAX2Comment			(</span><span class="s2">void </span><span class="s1">*ctx,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *value);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSAX2CDataBlock		(</span><span class="s2">void </span><span class="s1">*ctx,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *value,</span>
+						 <span class="s2">int </span><span class="s1">len);</span>
+
+<span class="s2">#ifdef </span><span class="s1">LIBXML_SAX1_ENABLED</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSAXDefaultVersion		(</span><span class="s2">int </span><span class="s1">version);</span>
+<span class="s2">#endif </span><span class="s0">/* LIBXML_SAX1_ENABLED */</span>
+
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSAXVersion			(xmlSAXHandler *hdlr,</span>
+						 <span class="s2">int </span><span class="s1">version);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSAX2InitDefaultSAXHandler    (xmlSAXHandler *hdlr,</span>
+						 <span class="s2">int </span><span class="s1">warning);</span>
+<span class="s2">#ifdef </span><span class="s1">LIBXML_HTML_ENABLED</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSAX2InitHtmlDefaultSAXHandler(xmlSAXHandler *hdlr);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">htmlDefaultSAXHandlerInit	(</span><span class="s2">void</span><span class="s1">);</span>
+<span class="s2">#endif</span>
+<span class="s2">#ifdef </span><span class="s1">LIBXML_DOCB_ENABLED</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSAX2InitDocbDefaultSAXHandler(xmlSAXHandler *hdlr);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">docbDefaultSAXHandlerInit	(</span><span class="s2">void</span><span class="s1">);</span>
+<span class="s2">#endif</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlDefaultSAXHandlerInit	(</span><span class="s2">void</span><span class="s1">);</span>
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s1">}</span>
+<span class="s2">#endif</span>
+<span class="s2">#endif </span><span class="s0">/* __XML_SAX2_H__ */</span>
+</pre>
+</body>
+</html>

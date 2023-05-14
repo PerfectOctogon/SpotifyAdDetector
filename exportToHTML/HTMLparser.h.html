@@ -1,0 +1,328 @@
+<html>
+<head>
+<title>HTMLparser.h</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+.s4 { color: #6897bb;}
+.s5 { color: #0f9795;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+HTMLparser.h</font>
+</center></td></tr></table>
+<pre><span class="s0">/* 
+ * Summary: interface for an HTML 4.0 non-verifying parser 
+ * Description: this module implements an HTML 4.0 non-verifying parser 
+ *              with API compatible with the XML parser ones. It should 
+ *              be able to parse &quot;real world&quot; HTML, even if severely 
+ *              broken from a specification point of view. 
+ * 
+ * Copy: See Copyright for the status of this software. 
+ * 
+ * Author: Daniel Veillard 
+ */</span>
+
+<span class="s2">#ifndef </span><span class="s1">__HTML_PARSER_H__</span>
+<span class="s2">#define </span><span class="s1">__HTML_PARSER_H__</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/xmlversion.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/parser.h&gt;</span>
+
+<span class="s2">#ifdef </span><span class="s1">LIBXML_HTML_ENABLED</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s2">extern </span><span class="s3">&quot;C&quot; </span><span class="s1">{</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/* 
+ * Most of the back-end structures from XML and HTML are shared. 
+ */</span>
+<span class="s2">typedef </span><span class="s1">xmlParserCtxt htmlParserCtxt;</span>
+<span class="s2">typedef </span><span class="s1">xmlParserCtxtPtr htmlParserCtxtPtr;</span>
+<span class="s2">typedef </span><span class="s1">xmlParserNodeInfo htmlParserNodeInfo;</span>
+<span class="s2">typedef </span><span class="s1">xmlSAXHandler htmlSAXHandler;</span>
+<span class="s2">typedef </span><span class="s1">xmlSAXHandlerPtr htmlSAXHandlerPtr;</span>
+<span class="s2">typedef </span><span class="s1">xmlParserInput htmlParserInput;</span>
+<span class="s2">typedef </span><span class="s1">xmlParserInputPtr htmlParserInputPtr;</span>
+<span class="s2">typedef </span><span class="s1">xmlDocPtr htmlDocPtr;</span>
+<span class="s2">typedef </span><span class="s1">xmlNodePtr htmlNodePtr;</span>
+
+<span class="s0">/* 
+ * Internal description of an HTML element, representing HTML 4.01 
+ * and XHTML 1.0 (which share the same structure). 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_htmlElemDesc htmlElemDesc;</span>
+<span class="s2">typedef </span><span class="s1">htmlElemDesc *htmlElemDescPtr;</span>
+<span class="s2">struct </span><span class="s1">_htmlElemDesc {</span>
+    <span class="s2">const char </span><span class="s1">*name;	</span><span class="s0">/* The tag name */</span>
+    <span class="s2">char </span><span class="s1">startTag;      </span><span class="s0">/* Whether the start tag can be implied */</span>
+    <span class="s2">char </span><span class="s1">endTag;        </span><span class="s0">/* Whether the end tag can be implied */</span>
+    <span class="s2">char </span><span class="s1">saveEndTag;    </span><span class="s0">/* Whether the end tag should be saved */</span>
+    <span class="s2">char </span><span class="s1">empty;         </span><span class="s0">/* Is this an empty element ? */</span>
+    <span class="s2">char </span><span class="s1">depr;          </span><span class="s0">/* Is this a deprecated element ? */</span>
+    <span class="s2">char </span><span class="s1">dtd;           </span><span class="s0">/* 1: only in Loose DTD, 2: only Frameset one */</span>
+    <span class="s2">char </span><span class="s1">isinline;      </span><span class="s0">/* is this a block 0 or inline 1 element */</span>
+    <span class="s2">const char </span><span class="s1">*desc;   </span><span class="s0">/* the description */</span>
+
+<span class="s0">/* NRK Jan.2003 
+ * New fields encapsulating HTML structure 
+ * 
+ * Bugs: 
+ *  This is a very limited representation.  It fails to tell us when 
+ *  an element *requires* subelements (we only have whether they're 
+ *  allowed or not), and it doesn't tell us where CDATA and PCDATA 
+ *  are allowed.  Some element relationships are not fully represented: 
+ *  these are flagged with the word MODIFIER 
+ */</span>
+    <span class="s2">const char</span><span class="s1">** subelts;		</span><span class="s0">/* allowed sub-elements of this element */</span>
+    <span class="s2">const char</span><span class="s1">* defaultsubelt;	</span><span class="s0">/* subelement for suggested auto-repair 
+                       if necessary or NULL */</span>
+    <span class="s2">const char</span><span class="s1">** attrs_opt;		</span><span class="s0">/* Optional Attributes */</span>
+    <span class="s2">const char</span><span class="s1">** attrs_depr;		</span><span class="s0">/* Additional deprecated attributes */</span>
+    <span class="s2">const char</span><span class="s1">** attrs_req;		</span><span class="s0">/* Required attributes */</span>
+<span class="s1">};</span>
+
+<span class="s0">/* 
+ * Internal description of an HTML entity. 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_htmlEntityDesc htmlEntityDesc;</span>
+<span class="s2">typedef </span><span class="s1">htmlEntityDesc *htmlEntityDescPtr;</span>
+<span class="s2">struct </span><span class="s1">_htmlEntityDesc {</span>
+    <span class="s2">unsigned int </span><span class="s1">value;	</span><span class="s0">/* the UNICODE value for the character */</span>
+    <span class="s2">const char </span><span class="s1">*name;	</span><span class="s0">/* The entity name */</span>
+    <span class="s2">const char </span><span class="s1">*desc;   </span><span class="s0">/* the description */</span>
+<span class="s1">};</span>
+
+<span class="s0">/* 
+ * There is only few public functions. 
+ */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">const </span><span class="s1">htmlElemDesc * XMLCALL</span>
+			<span class="s1">htmlTagLookup	(</span><span class="s2">const </span><span class="s1">xmlChar *tag);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">const </span><span class="s1">htmlEntityDesc * XMLCALL</span>
+			<span class="s1">htmlEntityLookup(</span><span class="s2">const </span><span class="s1">xmlChar *name);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">const </span><span class="s1">htmlEntityDesc * XMLCALL</span>
+			<span class="s1">htmlEntityValueLookup(</span><span class="s2">unsigned int </span><span class="s1">value);</span>
+
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+			<span class="s1">htmlIsAutoClosed(htmlDocPtr doc,</span>
+					 <span class="s1">htmlNodePtr elem);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+			<span class="s1">htmlAutoCloseTag(htmlDocPtr doc,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+					 <span class="s1">htmlNodePtr elem);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">const </span><span class="s1">htmlEntityDesc * XMLCALL</span>
+			<span class="s1">htmlParseEntityRef(htmlParserCtxtPtr ctxt,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar **str);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+			<span class="s1">htmlParseCharRef(htmlParserCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+			<span class="s1">htmlParseElement(htmlParserCtxtPtr ctxt);</span>
+
+<span class="s1">XMLPUBFUN htmlParserCtxtPtr XMLCALL</span>
+			<span class="s1">htmlNewParserCtxt(</span><span class="s2">void</span><span class="s1">);</span>
+
+<span class="s1">XMLPUBFUN htmlParserCtxtPtr XMLCALL</span>
+			<span class="s1">htmlCreateMemoryParserCtxt(</span><span class="s2">const char </span><span class="s1">*buffer,</span>
+						   <span class="s2">int </span><span class="s1">size);</span>
+
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+			<span class="s1">htmlParseDocument(htmlParserCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN htmlDocPtr XMLCALL</span>
+			<span class="s1">htmlSAXParseDoc	(</span><span class="s2">const </span><span class="s1">xmlChar *cur,</span>
+					 <span class="s2">const char </span><span class="s1">*encoding,</span>
+					 <span class="s1">htmlSAXHandlerPtr sax,</span>
+					 <span class="s2">void </span><span class="s1">*userData);</span>
+<span class="s1">XMLPUBFUN htmlDocPtr XMLCALL</span>
+			<span class="s1">htmlParseDoc	(</span><span class="s2">const </span><span class="s1">xmlChar *cur,</span>
+					 <span class="s2">const char </span><span class="s1">*encoding);</span>
+<span class="s1">XMLPUBFUN htmlDocPtr XMLCALL</span>
+			<span class="s1">htmlSAXParseFile(</span><span class="s2">const char </span><span class="s1">*filename,</span>
+					 <span class="s2">const char </span><span class="s1">*encoding,</span>
+					 <span class="s1">htmlSAXHandlerPtr sax,</span>
+					 <span class="s2">void </span><span class="s1">*userData);</span>
+<span class="s1">XMLPUBFUN htmlDocPtr XMLCALL</span>
+			<span class="s1">htmlParseFile	(</span><span class="s2">const char </span><span class="s1">*filename,</span>
+					 <span class="s2">const char </span><span class="s1">*encoding);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+			<span class="s1">UTF8ToHtml	(</span><span class="s2">unsigned char </span><span class="s1">*out,</span>
+					 <span class="s2">int </span><span class="s1">*outlen,</span>
+					 <span class="s2">const unsigned char </span><span class="s1">*in,</span>
+					 <span class="s2">int </span><span class="s1">*inlen);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+			<span class="s1">htmlEncodeEntities(</span><span class="s2">unsigned char </span><span class="s1">*out,</span>
+					 <span class="s2">int </span><span class="s1">*outlen,</span>
+					 <span class="s2">const unsigned char </span><span class="s1">*in,</span>
+					 <span class="s2">int </span><span class="s1">*inlen, </span><span class="s2">int </span><span class="s1">quoteChar);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+			<span class="s1">htmlIsScriptAttribute(</span><span class="s2">const </span><span class="s1">xmlChar *name);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+			<span class="s1">htmlHandleOmittedElem(</span><span class="s2">int </span><span class="s1">val);</span>
+
+<span class="s2">#ifdef </span><span class="s1">LIBXML_PUSH_ENABLED</span>
+<span class="s0">/** 
+ * Interfaces for the Push mode. 
+ */</span>
+<span class="s1">XMLPUBFUN htmlParserCtxtPtr XMLCALL</span>
+			<span class="s1">htmlCreatePushParserCtxt(htmlSAXHandlerPtr sax,</span>
+						 <span class="s2">void </span><span class="s1">*user_data,</span>
+						 <span class="s2">const char </span><span class="s1">*chunk,</span>
+						 <span class="s2">int </span><span class="s1">size,</span>
+						 <span class="s2">const char </span><span class="s1">*filename,</span>
+						 <span class="s1">xmlCharEncoding enc);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+			<span class="s1">htmlParseChunk		(htmlParserCtxtPtr ctxt,</span>
+						 <span class="s2">const char </span><span class="s1">*chunk,</span>
+						 <span class="s2">int </span><span class="s1">size,</span>
+						 <span class="s2">int </span><span class="s1">terminate);</span>
+<span class="s2">#endif </span><span class="s0">/* LIBXML_PUSH_ENABLED */</span>
+
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+			<span class="s1">htmlFreeParserCtxt	(htmlParserCtxtPtr ctxt);</span>
+
+<span class="s0">/* 
+ * New set of simpler/more flexible APIs 
+ */</span>
+<span class="s0">/** 
+ * xmlParserOption: 
+ * 
+ * This is the set of XML parser options that can be passed down 
+ * to the xmlReadDoc() and similar calls. 
+ */</span>
+<span class="s2">typedef enum </span><span class="s1">{</span>
+    <span class="s1">HTML_PARSE_RECOVER  = </span><span class="s4">1</span><span class="s1">&lt;&lt;</span><span class="s4">0</span><span class="s1">, </span><span class="s0">/* Relaxed parsing */</span>
+    <span class="s1">HTML_PARSE_NODEFDTD = </span><span class="s4">1</span><span class="s1">&lt;&lt;</span><span class="s4">2</span><span class="s1">, </span><span class="s0">/* do not default a doctype if not found */</span>
+    <span class="s1">HTML_PARSE_NOERROR	= </span><span class="s4">1</span><span class="s1">&lt;&lt;</span><span class="s4">5</span><span class="s1">,	</span><span class="s0">/* suppress error reports */</span>
+    <span class="s1">HTML_PARSE_NOWARNING= </span><span class="s4">1</span><span class="s1">&lt;&lt;</span><span class="s4">6</span><span class="s1">,	</span><span class="s0">/* suppress warning reports */</span>
+    <span class="s1">HTML_PARSE_PEDANTIC	= </span><span class="s4">1</span><span class="s1">&lt;&lt;</span><span class="s4">7</span><span class="s1">,	</span><span class="s0">/* pedantic error reporting */</span>
+    <span class="s1">HTML_PARSE_NOBLANKS	= </span><span class="s4">1</span><span class="s1">&lt;&lt;</span><span class="s4">8</span><span class="s1">,	</span><span class="s0">/* remove blank nodes */</span>
+    <span class="s1">HTML_PARSE_NONET	= </span><span class="s4">1</span><span class="s1">&lt;&lt;</span><span class="s4">11</span><span class="s1">,</span><span class="s0">/* Forbid network access */</span>
+    <span class="s1">HTML_PARSE_NOIMPLIED= </span><span class="s4">1</span><span class="s1">&lt;&lt;</span><span class="s4">13</span><span class="s1">,</span><span class="s0">/* Do not add implied html/body... elements */</span>
+    <span class="s1">HTML_PARSE_COMPACT  = </span><span class="s4">1</span><span class="s1">&lt;&lt;</span><span class="s4">16</span><span class="s1">,</span><span class="s0">/* compact small text nodes */</span>
+    <span class="s1">HTML_PARSE_IGNORE_ENC=</span><span class="s4">1</span><span class="s1">&lt;&lt;</span><span class="s4">21 </span><span class="s0">/* ignore internal document encoding hint */</span>
+<span class="s1">} htmlParserOption;</span>
+
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">htmlCtxtReset		(htmlParserCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">htmlCtxtUseOptions	(htmlParserCtxtPtr ctxt,</span>
+					 <span class="s2">int </span><span class="s1">options);</span>
+<span class="s1">XMLPUBFUN htmlDocPtr XMLCALL</span>
+		<span class="s1">htmlReadDoc		(</span><span class="s2">const </span><span class="s1">xmlChar *cur,</span>
+					 <span class="s2">const char </span><span class="s1">*URL,</span>
+					 <span class="s2">const char </span><span class="s1">*encoding,</span>
+					 <span class="s2">int </span><span class="s1">options);</span>
+<span class="s1">XMLPUBFUN htmlDocPtr XMLCALL</span>
+		<span class="s1">htmlReadFile		(</span><span class="s2">const char </span><span class="s1">*URL,</span>
+					 <span class="s2">const char </span><span class="s1">*encoding,</span>
+					 <span class="s2">int </span><span class="s1">options);</span>
+<span class="s1">XMLPUBFUN htmlDocPtr XMLCALL</span>
+		<span class="s1">htmlReadMemory		(</span><span class="s2">const char </span><span class="s1">*buffer,</span>
+					 <span class="s2">int </span><span class="s1">size,</span>
+					 <span class="s2">const char </span><span class="s1">*URL,</span>
+					 <span class="s2">const char </span><span class="s1">*encoding,</span>
+					 <span class="s2">int </span><span class="s1">options);</span>
+<span class="s1">XMLPUBFUN htmlDocPtr XMLCALL</span>
+		<span class="s1">htmlReadFd		(</span><span class="s2">int </span><span class="s1">fd,</span>
+					 <span class="s2">const char </span><span class="s1">*URL,</span>
+					 <span class="s2">const char </span><span class="s1">*encoding,</span>
+					 <span class="s2">int </span><span class="s1">options);</span>
+<span class="s1">XMLPUBFUN htmlDocPtr XMLCALL</span>
+		<span class="s1">htmlReadIO		(xmlInputReadCallback ioread,</span>
+					 <span class="s1">xmlInputCloseCallback ioclose,</span>
+					 <span class="s2">void </span><span class="s1">*ioctx,</span>
+					 <span class="s2">const char </span><span class="s1">*URL,</span>
+					 <span class="s2">const char </span><span class="s1">*encoding,</span>
+					 <span class="s2">int </span><span class="s1">options);</span>
+<span class="s1">XMLPUBFUN htmlDocPtr XMLCALL</span>
+		<span class="s1">htmlCtxtReadDoc		(xmlParserCtxtPtr ctxt,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *cur,</span>
+					 <span class="s2">const char </span><span class="s1">*URL,</span>
+					 <span class="s2">const char </span><span class="s1">*encoding,</span>
+					 <span class="s2">int </span><span class="s1">options);</span>
+<span class="s1">XMLPUBFUN htmlDocPtr XMLCALL</span>
+		<span class="s1">htmlCtxtReadFile		(xmlParserCtxtPtr ctxt,</span>
+					 <span class="s2">const char </span><span class="s1">*filename,</span>
+					 <span class="s2">const char </span><span class="s1">*encoding,</span>
+					 <span class="s2">int </span><span class="s1">options);</span>
+<span class="s1">XMLPUBFUN htmlDocPtr XMLCALL</span>
+		<span class="s1">htmlCtxtReadMemory		(xmlParserCtxtPtr ctxt,</span>
+					 <span class="s2">const char </span><span class="s1">*buffer,</span>
+					 <span class="s2">int </span><span class="s1">size,</span>
+					 <span class="s2">const char </span><span class="s1">*URL,</span>
+					 <span class="s2">const char </span><span class="s1">*encoding,</span>
+					 <span class="s2">int </span><span class="s1">options);</span>
+<span class="s1">XMLPUBFUN htmlDocPtr XMLCALL</span>
+		<span class="s1">htmlCtxtReadFd		(xmlParserCtxtPtr ctxt,</span>
+					 <span class="s2">int </span><span class="s1">fd,</span>
+					 <span class="s2">const char </span><span class="s1">*URL,</span>
+					 <span class="s2">const char </span><span class="s1">*encoding,</span>
+					 <span class="s2">int </span><span class="s1">options);</span>
+<span class="s1">XMLPUBFUN htmlDocPtr XMLCALL</span>
+		<span class="s1">htmlCtxtReadIO		(xmlParserCtxtPtr ctxt,</span>
+					 <span class="s1">xmlInputReadCallback ioread,</span>
+					 <span class="s1">xmlInputCloseCallback ioclose,</span>
+					 <span class="s2">void </span><span class="s1">*ioctx,</span>
+					 <span class="s2">const char </span><span class="s1">*URL,</span>
+					 <span class="s2">const char </span><span class="s1">*encoding,</span>
+					 <span class="s2">int </span><span class="s1">options);</span>
+
+<span class="s0">/* NRK/Jan2003: further knowledge of HTML structure 
+ */</span>
+<span class="s2">typedef enum </span><span class="s1">{</span>
+  <span class="s1">HTML_NA = </span><span class="s4">0 </span><span class="s1">,		</span><span class="s0">/* something we don't check at all */</span>
+  <span class="s1">HTML_INVALID = </span><span class="s4">0x1 </span><span class="s1">,</span>
+  <span class="s1">HTML_DEPRECATED = </span><span class="s4">0x2 </span><span class="s1">,</span>
+  <span class="s1">HTML_VALID = </span><span class="s4">0x4 </span><span class="s1">,</span>
+  <span class="s1">HTML_REQUIRED = </span><span class="s4">0xc </span><span class="s0">/* VALID bit set so ( &amp; HTML_VALID ) is TRUE */</span>
+<span class="s1">} htmlStatus ;</span>
+
+<span class="s0">/* Using htmlElemDesc rather than name here, to emphasise the fact 
+   that otherwise there's a lookup overhead 
+*/</span>
+<span class="s1">XMLPUBFUN htmlStatus XMLCALL htmlAttrAllowed(</span><span class="s2">const </span><span class="s1">htmlElemDesc*, </span><span class="s2">const </span><span class="s1">xmlChar*, </span><span class="s2">int</span><span class="s1">) ;</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL htmlElementAllowedHere(</span><span class="s2">const </span><span class="s1">htmlElemDesc*, </span><span class="s2">const </span><span class="s1">xmlChar*) ;</span>
+<span class="s1">XMLPUBFUN htmlStatus XMLCALL htmlElementStatusHere(</span><span class="s2">const </span><span class="s1">htmlElemDesc*, </span><span class="s2">const </span><span class="s1">htmlElemDesc*) ;</span>
+<span class="s1">XMLPUBFUN htmlStatus XMLCALL htmlNodeStatus(</span><span class="s2">const </span><span class="s1">htmlNodePtr, </span><span class="s2">int</span><span class="s1">) ;</span>
+<span class="s0">/** 
+ * htmlDefaultSubelement: 
+ * @elt: HTML element 
+ * 
+ * Returns the default subelement for this element 
+ */</span>
+<span class="s2">#define </span><span class="s1">htmlDefaultSubelement(elt) elt</span><span class="s5">-&gt;</span><span class="s1">defaultsubelt</span>
+<span class="s0">/** 
+ * htmlElementAllowedHereDesc: 
+ * @parent: HTML parent element 
+ * @elt: HTML element 
+ * 
+ * Checks whether an HTML element description may be a 
+ * direct child of the specified element. 
+ * 
+ * Returns 1 if allowed; 0 otherwise. 
+ */</span>
+<span class="s2">#define </span><span class="s1">htmlElementAllowedHereDesc(parent,elt) \</span>
+	<span class="s1">htmlElementAllowedHere((parent), (elt)</span><span class="s5">-&gt;</span><span class="s1">name)</span>
+<span class="s0">/** 
+ * htmlRequiredAttrs: 
+ * @elt: HTML element 
+ * 
+ * Returns the attributes required for the specified element. 
+ */</span>
+<span class="s2">#define </span><span class="s1">htmlRequiredAttrs(elt) (elt)</span><span class="s5">-&gt;</span><span class="s1">attrs_req</span>
+
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s1">}</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#endif </span><span class="s0">/* LIBXML_HTML_ENABLED */</span>
+<span class="s2">#endif </span><span class="s0">/* __HTML_PARSER_H__ */</span>
+</pre>
+</body>
+</html>

@@ -1,0 +1,93 @@
+<html>
+<head>
+<title>numbersInternals.h</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+numbersInternals.h</font>
+</center></td></tr></table>
+<pre><span class="s0">/* 
+ * Summary: Implementation of the XSLT number functions 
+ * Description: Implementation of the XSLT number functions 
+ * 
+ * Copy: See Copyright for the status of this software. 
+ * 
+ * Author: Bjorn Reese &lt;breese@users.sourceforge.net&gt; and Daniel Veillard 
+ */</span>
+
+<span class="s2">#ifndef </span><span class="s1">__XML_XSLT_NUMBERSINTERNALS_H__</span>
+<span class="s2">#define </span><span class="s1">__XML_XSLT_NUMBERSINTERNALS_H__</span>
+
+<span class="s2">#include </span><span class="s1">&lt;libxml/tree.h&gt;</span>
+<span class="s2">#include </span><span class="s3">&quot;xsltexports.h&quot;</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s2">extern </span><span class="s3">&quot;C&quot; </span><span class="s1">{</span>
+<span class="s2">#endif</span>
+
+<span class="s2">struct </span><span class="s1">_xsltCompMatch;</span>
+
+<span class="s0">/** 
+ * xsltNumberData: 
+ * 
+ * This data structure is just a wrapper to pass xsl:number data in. 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xsltNumberData xsltNumberData;</span>
+<span class="s2">typedef </span><span class="s1">xsltNumberData *xsltNumberDataPtr;</span>
+
+<span class="s2">struct </span><span class="s1">_xsltNumberData {</span>
+    <span class="s2">const </span><span class="s1">xmlChar *level;</span>
+    <span class="s2">const </span><span class="s1">xmlChar *count;</span>
+    <span class="s2">const </span><span class="s1">xmlChar *from;</span>
+    <span class="s2">const </span><span class="s1">xmlChar *value;</span>
+    <span class="s2">const </span><span class="s1">xmlChar *format;</span>
+    <span class="s2">int </span><span class="s1">has_format;</span>
+    <span class="s2">int </span><span class="s1">digitsPerGroup;</span>
+    <span class="s2">int </span><span class="s1">groupingCharacter;</span>
+    <span class="s2">int </span><span class="s1">groupingCharacterLen;</span>
+    <span class="s1">xmlDocPtr doc;</span>
+    <span class="s1">xmlNodePtr node;</span>
+    <span class="s2">struct </span><span class="s1">_xsltCompMatch *countPat;</span>
+    <span class="s2">struct </span><span class="s1">_xsltCompMatch *fromPat;</span>
+
+    <span class="s0">/* 
+     * accelerators 
+     */</span>
+<span class="s1">};</span>
+
+<span class="s0">/** 
+ * xsltFormatNumberInfo,: 
+ * 
+ * This data structure lists the various parameters needed to format numbers. 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xsltFormatNumberInfo xsltFormatNumberInfo;</span>
+<span class="s2">typedef </span><span class="s1">xsltFormatNumberInfo *xsltFormatNumberInfoPtr;</span>
+
+<span class="s2">struct </span><span class="s1">_xsltFormatNumberInfo {</span>
+    <span class="s2">int	    </span><span class="s1">integer_hash;	</span><span class="s0">/* Number of '#' in integer part */</span>
+    <span class="s2">int	    </span><span class="s1">integer_digits;	</span><span class="s0">/* Number of '0' in integer part */</span>
+    <span class="s2">int	    </span><span class="s1">frac_digits;	</span><span class="s0">/* Number of '0' in fractional part */</span>
+    <span class="s2">int	    </span><span class="s1">frac_hash;		</span><span class="s0">/* Number of '#' in fractional part */</span>
+    <span class="s2">int	    </span><span class="s1">group;		</span><span class="s0">/* Number of chars per display 'group' */</span>
+    <span class="s2">int     </span><span class="s1">multiplier;		</span><span class="s0">/* Scaling for percent or permille */</span>
+    <span class="s2">char    </span><span class="s1">add_decimal;	</span><span class="s0">/* Flag for whether decimal point appears in pattern */</span>
+    <span class="s2">char    </span><span class="s1">is_multiplier_set;	</span><span class="s0">/* Flag to catch multiple occurences of percent/permille */</span>
+    <span class="s2">char    </span><span class="s1">is_negative_pattern;</span><span class="s0">/* Flag for processing -ve prefix/suffix */</span>
+<span class="s1">};</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s1">}</span>
+<span class="s2">#endif</span>
+<span class="s2">#endif </span><span class="s0">/* __XML_XSLT_NUMBERSINTERNALS_H__ */</span>
+</pre>
+</body>
+</html>

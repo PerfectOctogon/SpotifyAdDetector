@@ -1,0 +1,104 @@
+<html>
+<head>
+<title>threads.h</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+threads.h</font>
+</center></td></tr></table>
+<pre><span class="s0">/** 
+ * Summary: interfaces for thread handling 
+ * Description: set of generic threading related routines 
+ *              should work with pthreads, Windows native or TLS threads 
+ * 
+ * Copy: See Copyright for the status of this software. 
+ * 
+ * Author: Daniel Veillard 
+ */</span>
+
+<span class="s2">#ifndef </span><span class="s1">__XML_THREADS_H__</span>
+<span class="s2">#define </span><span class="s1">__XML_THREADS_H__</span>
+
+<span class="s2">#include </span><span class="s1">&lt;libxml/xmlversion.h&gt;</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s2">extern </span><span class="s3">&quot;C&quot; </span><span class="s1">{</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/* 
+ * xmlMutex are a simple mutual exception locks. 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xmlMutex xmlMutex;</span>
+<span class="s2">typedef </span><span class="s1">xmlMutex *xmlMutexPtr;</span>
+
+<span class="s0">/* 
+ * xmlRMutex are reentrant mutual exception locks. 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xmlRMutex xmlRMutex;</span>
+<span class="s2">typedef </span><span class="s1">xmlRMutex *xmlRMutexPtr;</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s1">}</span>
+<span class="s2">#endif</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/globals.h&gt;</span>
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s2">extern </span><span class="s3">&quot;C&quot; </span><span class="s1">{</span>
+<span class="s2">#endif</span>
+<span class="s1">XMLPUBFUN xmlMutexPtr XMLCALL</span>
+			<span class="s1">xmlNewMutex	(</span><span class="s2">void</span><span class="s1">);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlMutexLock	(xmlMutexPtr tok);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlMutexUnlock	(xmlMutexPtr tok);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlFreeMutex	(xmlMutexPtr tok);</span>
+
+<span class="s1">XMLPUBFUN xmlRMutexPtr XMLCALL</span>
+			<span class="s1">xmlNewRMutex	(</span><span class="s2">void</span><span class="s1">);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlRMutexLock	(xmlRMutexPtr tok);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlRMutexUnlock	(xmlRMutexPtr tok);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlFreeRMutex	(xmlRMutexPtr tok);</span>
+
+<span class="s0">/* 
+ * Library wide APIs. 
+ */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlInitThreads	(</span><span class="s2">void</span><span class="s1">);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlLockLibrary	(</span><span class="s2">void</span><span class="s1">);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlUnlockLibrary(</span><span class="s2">void</span><span class="s1">);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlGetThreadId	(</span><span class="s2">void</span><span class="s1">);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlIsMainThread	(</span><span class="s2">void</span><span class="s1">);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlCleanupThreads(</span><span class="s2">void</span><span class="s1">);</span>
+<span class="s1">XMLPUBFUN xmlGlobalStatePtr XMLCALL</span>
+			<span class="s1">xmlGetGlobalState(</span><span class="s2">void</span><span class="s1">);</span>
+
+<span class="s2">#if </span><span class="s1">defined(HAVE_WIN32_THREADS) &amp;&amp; !defined(HAVE_COMPILER_TLS) &amp;&amp; defined(LIBXML_STATIC_FOR_DLL)</span>
+<span class="s2">int </span><span class="s1">XMLCALL xmlDllMain(</span><span class="s2">void </span><span class="s1">*hinstDLL, </span><span class="s2">unsigned long </span><span class="s1">fdwReason, </span><span class="s2">void </span><span class="s1">*lpvReserved);</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s1">}</span>
+<span class="s2">#endif</span>
+
+
+<span class="s2">#endif </span><span class="s0">/* __XML_THREADS_H__ */</span>
+</pre>
+</body>
+</html>

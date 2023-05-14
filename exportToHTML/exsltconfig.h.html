@@ -1,0 +1,94 @@
+<html>
+<head>
+<title>exsltconfig.h</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+.s4 { color: #6897bb;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+exsltconfig.h</font>
+</center></td></tr></table>
+<pre><span class="s0">/* 
+ * exsltconfig.h: compile-time version informations for the EXSLT library 
+ * 
+ * See Copyright for the status of this software. 
+ * 
+ * daniel@veillard.com 
+ */</span>
+
+<span class="s2">#ifndef </span><span class="s1">__XML_EXSLTCONFIG_H__</span>
+<span class="s2">#define </span><span class="s1">__XML_EXSLTCONFIG_H__</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s2">extern </span><span class="s3">&quot;C&quot; </span><span class="s1">{</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * LIBEXSLT_DOTTED_VERSION: 
+ * 
+ * the version string like &quot;1.2.3&quot; 
+ */</span>
+<span class="s2">#define </span><span class="s1">LIBEXSLT_DOTTED_VERSION </span><span class="s3">&quot;0.8.18&quot;</span>
+
+<span class="s0">/** 
+ * LIBEXSLT_VERSION: 
+ * 
+ * the version number: 1.2.3 value is 10203 
+ */</span>
+<span class="s2">#define </span><span class="s1">LIBEXSLT_VERSION </span><span class="s4">818</span>
+
+<span class="s0">/** 
+ * LIBEXSLT_VERSION_STRING: 
+ * 
+ * the version number string, 1.2.3 value is &quot;10203&quot; 
+ */</span>
+<span class="s2">#define </span><span class="s1">LIBEXSLT_VERSION_STRING </span><span class="s3">&quot;818&quot;</span>
+
+<span class="s0">/** 
+ * LIBEXSLT_VERSION_EXTRA: 
+ * 
+ * extra version information, used to show a CVS compilation 
+ */</span>
+<span class="s2">#define	</span><span class="s1">LIBEXSLT_VERSION_EXTRA </span><span class="s3">&quot;&quot;</span>
+
+<span class="s0">/** 
+ * WITH_CRYPTO: 
+ * 
+ * Whether crypto support is configured into exslt 
+ */</span>
+<span class="s2">#if </span><span class="s4">1</span>
+<span class="s2">#define </span><span class="s1">EXSLT_CRYPTO_ENABLED</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * ATTRIBUTE_UNUSED: 
+ * 
+ * This macro is used to flag unused function parameters to GCC 
+ */</span>
+<span class="s2">#ifdef </span><span class="s1">__GNUC__</span>
+<span class="s2">#ifdef </span><span class="s1">HAVE_ANSIDECL_H</span>
+<span class="s2">#include </span><span class="s1">&lt;ansidecl.h&gt;</span>
+<span class="s2">#endif</span>
+<span class="s2">#ifndef </span><span class="s1">ATTRIBUTE_UNUSED</span>
+<span class="s2">#define </span><span class="s1">ATTRIBUTE_UNUSED __attribute__((unused))</span>
+<span class="s2">#endif</span>
+<span class="s2">#else</span>
+<span class="s2">#define </span><span class="s1">ATTRIBUTE_UNUSED</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s1">}</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#endif </span><span class="s0">/* __XML_EXSLTCONFIG_H__ */</span>
+</pre>
+</body>
+</html>

@@ -1,0 +1,466 @@
+<html>
+<head>
+<title>_useragent.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #629755; font-style: italic;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #808080;}
+.s4 { color: #6a8759;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+_useragent.py</font>
+</center></td></tr></table>
+<pre><span class="s0">&quot;&quot;&quot;Convenient HTTP UserAgent class. 
+ 
+This is a subclass of urllib2.OpenerDirector. 
+ 
+ 
+Copyright 2003-2006 John J. Lee &lt;jjl@pobox.com&gt; 
+ 
+This code is free software; you can redistribute it and/or modify it under 
+the terms of the BSD or ZPL 2.1 licenses (see the file LICENSE 
+included with the distribution). 
+ 
+&quot;&quot;&quot;</span>
+
+<span class="s2">from </span><span class="s1">__future__ </span><span class="s2">import </span><span class="s1">absolute_import</span>
+
+<span class="s2">import </span><span class="s1">copy</span>
+
+<span class="s2">from </span><span class="s1">. </span><span class="s2">import </span><span class="s1">_auth</span><span class="s2">, </span><span class="s1">_gzip</span><span class="s2">, </span><span class="s1">_opener</span><span class="s2">, </span><span class="s1">_response</span><span class="s2">, </span><span class="s1">_sockettimeout</span><span class="s2">, </span><span class="s1">_urllib2</span>
+<span class="s2">from </span><span class="s1">.polyglot </span><span class="s2">import </span><span class="s1">iteritems</span><span class="s2">, </span><span class="s1">itervalues</span>
+
+
+<span class="s2">class </span><span class="s1">UserAgentBase(_opener.OpenerDirector):</span>
+    <span class="s0">&quot;&quot;&quot;Convenient user-agent class. 
+ 
+    Do not use .add_handler() to add a handler for something already dealt with 
+    by this code. 
+ 
+    The only reason at present for the distinction between UserAgent and 
+    UserAgentBase is so that classes that depend on .seek()able responses 
+    (e.g. mechanize.Browser) can inherit from UserAgentBase.  The subclass 
+    UserAgent exposes a .set_seekable_responses() method that allows switching 
+    off the adding of a .seek() method to responses. 
+ 
+    Public attributes: 
+ 
+    addheaders: list of (name, value) pairs specifying headers to send with 
+     every request, unless they are overridden in the Request instance. 
+ 
+     &gt;&gt;&gt; ua = UserAgentBase() 
+     &gt;&gt;&gt; ua.addheaders = [ 
+     ...  (&quot;User-agent&quot;, &quot;Mozilla/5.0 (compatible)&quot;), 
+     ...  (&quot;From&quot;, &quot;responsible.person@example.com&quot;)] 
+ 
+    &quot;&quot;&quot;</span>
+
+    <span class="s1">handler_classes = {</span>
+        <span class="s3"># scheme handlers</span>
+        <span class="s4">&quot;http&quot;</span><span class="s1">: _urllib2.HTTPHandler</span><span class="s2">,</span>
+        <span class="s3"># CacheFTPHandler is buggy, at least in 2.3, so we don't use it</span>
+        <span class="s4">&quot;ftp&quot;</span><span class="s1">: _urllib2.FTPHandler</span><span class="s2">,</span>
+        <span class="s4">&quot;file&quot;</span><span class="s1">: _urllib2.FileHandler</span><span class="s2">,</span>
+
+        <span class="s3"># other handlers</span>
+        <span class="s4">&quot;_unknown&quot;</span><span class="s1">: _urllib2.UnknownHandler</span><span class="s2">,</span>
+        <span class="s3"># HTTP{S,}Handler depend on HTTPErrorProcessor too</span>
+        <span class="s4">&quot;_http_error&quot;</span><span class="s1">: _urllib2.HTTPErrorProcessor</span><span class="s2">,</span>
+        <span class="s4">&quot;_http_default_error&quot;</span><span class="s1">: _urllib2.HTTPDefaultErrorHandler</span><span class="s2">,</span>
+
+        <span class="s3"># feature handlers</span>
+        <span class="s4">&quot;_basicauth&quot;</span><span class="s1">: _urllib2.HTTPBasicAuthHandler</span><span class="s2">,</span>
+        <span class="s4">&quot;_digestauth&quot;</span><span class="s1">: _urllib2.HTTPDigestAuthHandler</span><span class="s2">,</span>
+        <span class="s4">&quot;_redirect&quot;</span><span class="s1">: _urllib2.HTTPRedirectHandler</span><span class="s2">,</span>
+        <span class="s4">&quot;_cookies&quot;</span><span class="s1">: _urllib2.HTTPCookieProcessor</span><span class="s2">,</span>
+        <span class="s4">&quot;_refresh&quot;</span><span class="s1">: _urllib2.HTTPRefreshProcessor</span><span class="s2">,</span>
+        <span class="s4">&quot;_equiv&quot;</span><span class="s1">: _urllib2.HTTPEquivProcessor</span><span class="s2">,</span>
+        <span class="s4">&quot;_proxy&quot;</span><span class="s1">: _urllib2.ProxyHandler</span><span class="s2">,</span>
+        <span class="s4">&quot;_proxy_basicauth&quot;</span><span class="s1">: _urllib2.ProxyBasicAuthHandler</span><span class="s2">,</span>
+        <span class="s4">&quot;_proxy_digestauth&quot;</span><span class="s1">: _urllib2.ProxyDigestAuthHandler</span><span class="s2">,</span>
+        <span class="s4">&quot;_robots&quot;</span><span class="s1">: _urllib2.HTTPRobotRulesProcessor</span><span class="s2">,</span>
+        <span class="s4">&quot;_gzip&quot;</span><span class="s1">: _gzip.HTTPGzipProcessor</span><span class="s2">,</span>
+
+        <span class="s3"># debug handlers</span>
+        <span class="s4">&quot;_debug_redirect&quot;</span><span class="s1">: _urllib2.HTTPRedirectDebugProcessor</span><span class="s2">,</span>
+        <span class="s4">&quot;_debug_response_body&quot;</span><span class="s1">: _urllib2.HTTPResponseDebugProcessor</span><span class="s2">,</span>
+    <span class="s1">}</span>
+
+    <span class="s1">default_schemes = [</span><span class="s4">&quot;http&quot;</span><span class="s2">, </span><span class="s4">&quot;ftp&quot;</span><span class="s2">, </span><span class="s4">&quot;file&quot;</span><span class="s1">]</span>
+    <span class="s1">default_others = [</span><span class="s4">&quot;_unknown&quot;</span><span class="s2">, </span><span class="s4">&quot;_http_error&quot;</span><span class="s2">, </span><span class="s4">&quot;_http_default_error&quot;</span><span class="s1">]</span>
+    <span class="s1">default_features = [</span>
+        <span class="s4">&quot;_gzip&quot;</span><span class="s2">,</span>
+        <span class="s4">&quot;_redirect&quot;</span><span class="s2">,</span>
+        <span class="s4">&quot;_cookies&quot;</span><span class="s2">,</span>
+        <span class="s4">&quot;_refresh&quot;</span><span class="s2">,</span>
+        <span class="s4">&quot;_equiv&quot;</span><span class="s2">,</span>
+        <span class="s4">&quot;_basicauth&quot;</span><span class="s2">,</span>
+        <span class="s4">&quot;_digestauth&quot;</span><span class="s2">,</span>
+        <span class="s4">&quot;_proxy&quot;</span><span class="s2">,</span>
+        <span class="s4">&quot;_proxy_basicauth&quot;</span><span class="s2">,</span>
+        <span class="s4">&quot;_proxy_digestauth&quot;</span><span class="s2">,</span>
+        <span class="s4">&quot;_robots&quot;</span><span class="s2">,</span>
+    <span class="s1">]</span>
+    <span class="s2">if </span><span class="s1">hasattr(_urllib2</span><span class="s2">, </span><span class="s4">'HTTPSHandler'</span><span class="s1">):</span>
+        <span class="s1">handler_classes[</span><span class="s4">&quot;https&quot;</span><span class="s1">] = _urllib2.HTTPSHandler</span>
+        <span class="s1">default_schemes.append(</span><span class="s4">&quot;https&quot;</span><span class="s1">)</span>
+
+    <span class="s2">def </span><span class="s1">__init__(self):</span>
+        <span class="s1">_opener.OpenerDirector.__init__(self)</span>
+
+        <span class="s1">ua_handlers = self._ua_handlers = {}</span>
+        <span class="s2">for </span><span class="s1">scheme </span><span class="s2">in </span><span class="s1">(self.default_schemes + self.default_others +</span>
+                       <span class="s1">self.default_features):</span>
+            <span class="s1">klass = self.handler_classes[scheme]</span>
+            <span class="s1">ua_handlers[scheme] = klass()</span>
+        <span class="s2">for </span><span class="s1">handler </span><span class="s2">in </span><span class="s1">tuple(itervalues(ua_handlers)):</span>
+            <span class="s1">self.add_handler(handler)</span>
+
+        <span class="s3"># Yuck.</span>
+        <span class="s3"># Ensure correct default constructor args were passed to</span>
+        <span class="s3"># HTTPRefreshProcessor and HTTPEquivProcessor.</span>
+        <span class="s2">if </span><span class="s4">&quot;_refresh&quot; </span><span class="s2">in </span><span class="s1">ua_handlers:</span>
+            <span class="s1">self.set_handle_refresh(</span><span class="s2">True</span><span class="s1">)</span>
+        <span class="s2">if </span><span class="s4">&quot;_equiv&quot; </span><span class="s2">in </span><span class="s1">ua_handlers:</span>
+            <span class="s1">self.set_handle_equiv(</span><span class="s2">True</span><span class="s1">)</span>
+        <span class="s3"># Ensure default password managers are installed.</span>
+        <span class="s1">pm = ppm = </span><span class="s2">None</span>
+        <span class="s2">if </span><span class="s4">&quot;_basicauth&quot; </span><span class="s2">in </span><span class="s1">ua_handlers </span><span class="s2">or </span><span class="s4">&quot;_digestauth&quot; </span><span class="s2">in </span><span class="s1">ua_handlers:</span>
+            <span class="s1">pm = _urllib2.HTTPPasswordMgrWithDefaultRealm()</span>
+        <span class="s2">if </span><span class="s1">(</span><span class="s4">&quot;_proxy_basicauth&quot; </span><span class="s2">in </span><span class="s1">ua_handlers </span><span class="s2">or</span>
+                <span class="s4">&quot;_proxy_digestauth&quot; </span><span class="s2">in </span><span class="s1">ua_handlers):</span>
+            <span class="s1">ppm = _auth.HTTPProxyPasswordMgr()</span>
+        <span class="s1">self.set_password_manager(pm)</span>
+        <span class="s1">self.set_proxy_password_manager(ppm)</span>
+        <span class="s3"># set default certificate manager</span>
+        <span class="s2">if </span><span class="s4">&quot;https&quot; </span><span class="s2">in </span><span class="s1">ua_handlers:</span>
+            <span class="s1">cm = _urllib2.HTTPSClientCertMgr()</span>
+            <span class="s1">self.set_client_cert_manager(cm)</span>
+
+    <span class="s2">def </span><span class="s1">close(self):</span>
+        <span class="s1">_opener.OpenerDirector.close(self)</span>
+        <span class="s1">self._ua_handlers = </span><span class="s2">None</span>
+
+<span class="s3"># XXX</span>
+<span class="s3"># def set_timeout(self, timeout):</span>
+<span class="s3">#         self._timeout = timeout</span>
+<span class="s3"># def set_http_connection_cache(self, conn_cache):</span>
+<span class="s3">#         self._http_conn_cache = conn_cache</span>
+<span class="s3"># def set_ftp_connection_cache(self, conn_cache):</span>
+<span class="s3"># XXX ATM, FTP has cache as part of handler; should it be separate?</span>
+<span class="s3">#         self._ftp_conn_cache = conn_cache</span>
+
+    <span class="s2">def </span><span class="s1">set_handled_schemes(self</span><span class="s2">, </span><span class="s1">schemes):</span>
+        <span class="s0">&quot;&quot;&quot;Set sequence of URL scheme (protocol) strings. 
+ 
+        For example: ua.set_handled_schemes([&quot;http&quot;, &quot;ftp&quot;]) 
+ 
+        If this fails (with ValueError) because you've passed an unknown 
+        scheme, the set of handled schemes will not be changed. 
+ 
+        &quot;&quot;&quot;</span>
+        <span class="s1">want = {}</span>
+        <span class="s2">for </span><span class="s1">scheme </span><span class="s2">in </span><span class="s1">schemes:</span>
+            <span class="s2">if </span><span class="s1">scheme.startswith(</span><span class="s4">&quot;_&quot;</span><span class="s1">):</span>
+                <span class="s2">raise </span><span class="s1">ValueError(</span><span class="s4">&quot;not a scheme '%s'&quot; </span><span class="s1">% scheme)</span>
+            <span class="s2">if </span><span class="s1">scheme </span><span class="s2">not in </span><span class="s1">self.handler_classes:</span>
+                <span class="s2">raise </span><span class="s1">ValueError(</span><span class="s4">&quot;unknown scheme '%s'&quot;</span><span class="s1">)</span>
+            <span class="s1">want[scheme] = </span><span class="s2">None</span>
+
+        <span class="s3"># get rid of scheme handlers we don't want</span>
+        <span class="s2">for </span><span class="s1">scheme</span><span class="s2">, </span><span class="s1">oldhandler </span><span class="s2">in </span><span class="s1">tuple(iteritems(self._ua_handlers)):</span>
+            <span class="s2">if </span><span class="s1">scheme.startswith(</span><span class="s4">&quot;_&quot;</span><span class="s1">):</span>
+                <span class="s2">continue  </span><span class="s3"># not a scheme handler</span>
+            <span class="s2">if </span><span class="s1">scheme </span><span class="s2">not in </span><span class="s1">want:</span>
+                <span class="s1">self._replace_handler(scheme</span><span class="s2">, None</span><span class="s1">)</span>
+            <span class="s2">else</span><span class="s1">:</span>
+                <span class="s2">del </span><span class="s1">want[scheme]  </span><span class="s3"># already got it</span>
+        <span class="s3"># add the scheme handlers that are missing</span>
+        <span class="s2">for </span><span class="s1">scheme </span><span class="s2">in </span><span class="s1">want:</span>
+            <span class="s1">self._set_handler(scheme</span><span class="s2">, True</span><span class="s1">)</span>
+
+    <span class="s2">def </span><span class="s1">set_cookiejar(self</span><span class="s2">, </span><span class="s1">cookiejar):</span>
+        <span class="s0">&quot;&quot;&quot;Set a mechanize.CookieJar, or None.&quot;&quot;&quot;</span>
+        <span class="s1">self._set_handler(</span><span class="s4">&quot;_cookies&quot;</span><span class="s2">, </span><span class="s1">obj=cookiejar)</span>
+
+    <span class="s3"># XXX could use Greg Stein's httpx for some of this instead?</span>
+    <span class="s3"># or httplib2??</span>
+    <span class="s2">def </span><span class="s1">set_proxies(self</span><span class="s2">, </span><span class="s1">proxies=</span><span class="s2">None, </span><span class="s1">proxy_bypass=</span><span class="s2">None</span><span class="s1">):</span>
+        <span class="s0">&quot;&quot;&quot;Configure proxy settings. 
+ 
+        :arg proxies: dictionary mapping URL scheme to proxy specification. 
+          None means use the default system-specific settings. 
+        :arg proxy_bypass: function taking hostname, returning whether proxy 
+          should be used.  None means use the default system-specific settings. 
+ 
+        The default is to try to obtain proxy settings from the system (see the 
+        documentation for urllib.urlopen for information about the 
+        system-specific methods used -- note that's urllib, not urllib2). 
+ 
+        To avoid all use of proxies, pass an empty proxies dict. 
+ 
+        &gt;&gt;&gt; ua = UserAgentBase() 
+        &gt;&gt;&gt; def proxy_bypass(hostname): 
+        ...     return hostname == &quot;noproxy.com&quot; 
+        &gt;&gt;&gt; ua.set_proxies( 
+        ...     {&quot;http&quot;: &quot;joe:password@myproxy.example.com:3128&quot;, 
+        ...      &quot;ftp&quot;: &quot;proxy.example.com&quot;}, 
+        ...     proxy_bypass) 
+ 
+        &quot;&quot;&quot;</span>
+        <span class="s1">self._set_handler(</span>
+            <span class="s4">&quot;_proxy&quot;</span><span class="s2">,</span>
+            <span class="s2">True,</span>
+            <span class="s1">constructor_kwds=dict(proxies=proxies</span><span class="s2">, </span><span class="s1">proxy_bypass=proxy_bypass))</span>
+
+    <span class="s2">def </span><span class="s1">add_password(self</span><span class="s2">, </span><span class="s1">url</span><span class="s2">, </span><span class="s1">user</span><span class="s2">, </span><span class="s1">password</span><span class="s2">, </span><span class="s1">realm=</span><span class="s2">None</span><span class="s1">):</span>
+        <span class="s1">self._password_manager.add_password(realm</span><span class="s2">, </span><span class="s1">url</span><span class="s2">, </span><span class="s1">user</span><span class="s2">, </span><span class="s1">password)</span>
+
+    <span class="s2">def </span><span class="s1">add_proxy_password(self</span><span class="s2">, </span><span class="s1">user</span><span class="s2">, </span><span class="s1">password</span><span class="s2">, </span><span class="s1">hostport=</span><span class="s2">None, </span><span class="s1">realm=</span><span class="s2">None</span><span class="s1">):</span>
+        <span class="s1">self._proxy_password_manager.add_password(realm</span><span class="s2">, </span><span class="s1">hostport</span><span class="s2">, </span><span class="s1">user</span><span class="s2">,</span>
+                                                  <span class="s1">password)</span>
+
+    <span class="s2">def </span><span class="s1">add_client_certificate(self</span><span class="s2">, </span><span class="s1">url</span><span class="s2">, </span><span class="s1">key_file</span><span class="s2">, </span><span class="s1">cert_file):</span>
+        <span class="s0">&quot;&quot;&quot;Add an SSL client certificate, for HTTPS client auth. 
+ 
+        key_file and cert_file must be filenames of the key and certificate 
+        files, in PEM format.  You can use e.g. OpenSSL to convert a p12 (PKCS 
+        12) file to PEM format: 
+ 
+        openssl pkcs12 -clcerts -nokeys -in cert.p12 -out cert.pem 
+        openssl pkcs12 -nocerts -in cert.p12 -out key.pem 
+ 
+ 
+        Note that client certificate password input is very inflexible ATM.  At 
+        the moment this seems to be console only, which is presumably the 
+        default behaviour of libopenssl.  In future mechanize may support 
+        third-party libraries that (I assume) allow more options here. 
+ 
+        &quot;&quot;&quot;</span>
+        <span class="s1">self._client_cert_manager.add_key_cert(url</span><span class="s2">, </span><span class="s1">key_file</span><span class="s2">, </span><span class="s1">cert_file)</span>
+
+    <span class="s3"># the following are rarely useful -- use add_password / add_proxy_password</span>
+    <span class="s3"># instead</span>
+    <span class="s2">def </span><span class="s1">set_password_manager(self</span><span class="s2">, </span><span class="s1">password_manager):</span>
+        <span class="s0">&quot;&quot;&quot;Set a mechanize.HTTPPasswordMgrWithDefaultRealm, or None.&quot;&quot;&quot;</span>
+        <span class="s1">self._password_manager = password_manager</span>
+        <span class="s1">self._set_handler(</span><span class="s4">&quot;_basicauth&quot;</span><span class="s2">, </span><span class="s1">obj=password_manager)</span>
+        <span class="s1">self._set_handler(</span><span class="s4">&quot;_digestauth&quot;</span><span class="s2">, </span><span class="s1">obj=password_manager)</span>
+
+    <span class="s2">def </span><span class="s1">set_proxy_password_manager(self</span><span class="s2">, </span><span class="s1">password_manager):</span>
+        <span class="s0">&quot;&quot;&quot;Set a mechanize.HTTPProxyPasswordMgr, or None.&quot;&quot;&quot;</span>
+        <span class="s1">self._proxy_password_manager = password_manager</span>
+        <span class="s1">self._set_handler(</span><span class="s4">&quot;_proxy_basicauth&quot;</span><span class="s2">, </span><span class="s1">obj=password_manager)</span>
+        <span class="s1">self._set_handler(</span><span class="s4">&quot;_proxy_digestauth&quot;</span><span class="s2">, </span><span class="s1">obj=password_manager)</span>
+
+    <span class="s2">def </span><span class="s1">set_client_cert_manager(self</span><span class="s2">, </span><span class="s1">cert_manager):</span>
+        <span class="s0">&quot;&quot;&quot;Set a mechanize.HTTPClientCertMgr, or None.&quot;&quot;&quot;</span>
+        <span class="s1">handler = self._ua_handlers[</span><span class="s4">&quot;https&quot;</span><span class="s1">]</span>
+        <span class="s1">self._client_cert_manager = handler.client_cert_manager = cert_manager</span>
+
+    <span class="s2">def </span><span class="s1">set_ca_data(self</span><span class="s2">, </span><span class="s1">cafile=</span><span class="s2">None, </span><span class="s1">capath=</span><span class="s2">None, </span><span class="s1">cadata=</span><span class="s2">None, </span><span class="s1">context=</span><span class="s2">None</span><span class="s1">):</span>
+        <span class="s0">''' 
+        Set the SSL Context used for connecting to SSL servers. 
+ 
+        This method accepts the same arguments as the 
+        :py:meth:`ssl.SSLContext.load_verify_locations()` method from the 
+        python standard library. You can also pass a pre-built context via the 
+        `context` keyword argument. Note that to use this feature, you must be 
+        using python &gt;= 2.7.9. In addition you can directly pass in 
+        a pre-built :class:`ssl.SSLContext` as the `context` argument. 
+ 
+        '''</span>
+        <span class="s2">import </span><span class="s1">ssl</span>
+        <span class="s2">if </span><span class="s1">context </span><span class="s2">is None</span><span class="s1">:</span>
+            <span class="s2">try</span><span class="s1">:</span>
+                <span class="s1">context = ssl.create_default_context(</span>
+                    <span class="s1">cafile=cafile</span><span class="s2">, </span><span class="s1">capath=capath</span><span class="s2">, </span><span class="s1">cadata=cadata)</span>
+            <span class="s2">except </span><span class="s1">AttributeError:</span>
+                <span class="s2">raise </span><span class="s1">RuntimeError(</span><span class="s4">'python &gt;= 2.7.9 required'</span><span class="s1">)</span>
+        <span class="s1">handler = self._ua_handlers[</span><span class="s4">&quot;https&quot;</span><span class="s1">]</span>
+        <span class="s1">handler.ssl_context = context</span>
+
+    <span class="s3"># these methods all take a boolean parameter</span>
+    <span class="s2">def </span><span class="s1">set_handle_robots(self</span><span class="s2">, </span><span class="s1">handle):</span>
+        <span class="s0">&quot;&quot;&quot;Set whether to observe rules from robots.txt.&quot;&quot;&quot;</span>
+        <span class="s1">self._set_handler(</span><span class="s4">&quot;_robots&quot;</span><span class="s2">, </span><span class="s1">handle)</span>
+
+    <span class="s2">def </span><span class="s1">set_handle_redirect(self</span><span class="s2">, </span><span class="s1">handle):</span>
+        <span class="s0">&quot;&quot;&quot;Set whether to handle HTTP 30x redirections.&quot;&quot;&quot;</span>
+        <span class="s1">self._set_handler(</span><span class="s4">&quot;_redirect&quot;</span><span class="s2">, </span><span class="s1">handle)</span>
+
+    <span class="s2">def </span><span class="s1">set_handle_refresh(self</span><span class="s2">, </span><span class="s1">handle</span><span class="s2">, </span><span class="s1">max_time=</span><span class="s2">None, </span><span class="s1">honor_time=</span><span class="s2">True</span><span class="s1">):</span>
+        <span class="s0">&quot;&quot;&quot;Set whether to handle HTTP Refresh headers.&quot;&quot;&quot;</span>
+        <span class="s1">self._set_handler(</span>
+            <span class="s4">&quot;_refresh&quot;</span><span class="s2">,</span>
+            <span class="s1">handle</span><span class="s2">,</span>
+            <span class="s1">constructor_kwds={</span><span class="s4">&quot;max_time&quot;</span><span class="s1">: max_time</span><span class="s2">,</span>
+                              <span class="s4">&quot;honor_time&quot;</span><span class="s1">: honor_time})</span>
+
+    <span class="s2">def </span><span class="s1">set_handle_equiv(self</span><span class="s2">, </span><span class="s1">handle</span><span class="s2">, </span><span class="s1">head_parser_class=</span><span class="s2">None</span><span class="s1">):</span>
+        <span class="s0">&quot;&quot;&quot;Set whether to treat HTML http-equiv headers like HTTP headers. 
+ 
+        Response objects may be .seek()able if this is set (currently returned 
+        responses are, raised HTTPError exception responses are not). 
+ 
+        &quot;&quot;&quot;</span>
+        <span class="s2">if </span><span class="s1">head_parser_class </span><span class="s2">is not None</span><span class="s1">:</span>
+            <span class="s1">constructor_kwds = {</span><span class="s4">&quot;head_parser_class&quot;</span><span class="s1">: head_parser_class}</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s1">constructor_kwds = {}</span>
+        <span class="s1">self._set_handler(</span><span class="s4">&quot;_equiv&quot;</span><span class="s2">, </span><span class="s1">handle</span><span class="s2">, </span><span class="s1">constructor_kwds=constructor_kwds)</span>
+
+    <span class="s2">def </span><span class="s1">set_request_gzip(self</span><span class="s2">, </span><span class="s1">handle):</span>
+        <span class="s0">&quot;&quot;&quot;Add header indicating to server that we handle gzip 
+        content encoding. Note that if the server sends gzip'ed content, 
+        it is handled automatically in any case, regardless of this setting. 
+ 
+        &quot;&quot;&quot;</span>
+        <span class="s1">self._set_handler(</span>
+            <span class="s4">&quot;_gzip&quot;</span><span class="s2">, True, </span><span class="s1">constructor_kwds={</span><span class="s4">'request_gzip'</span><span class="s1">: bool(handle)})</span>
+    <span class="s1">set_handle_gzip = set_request_gzip  </span><span class="s3"># legacy</span>
+
+    <span class="s2">def </span><span class="s1">set_debug_redirects(self</span><span class="s2">, </span><span class="s1">handle):</span>
+        <span class="s0">&quot;&quot;&quot; 
+        Log information about HTTP redirects (including refreshes). 
+ 
+        Logging is performed using module logging.  The logger name is 
+        `&quot;mechanize.http_redirects&quot;`.  To actually print some debug output, 
+        eg: 
+ 
+        .. code-block:: python 
+ 
+            import sys, logging 
+            logger = logging.getLogger(&quot;mechanize.http_redirects&quot;) 
+            logger.addHandler(logging.StreamHandler(sys.stdout)) 
+            logger.setLevel(logging.INFO) 
+ 
+        Other logger names relevant to this module: 
+ 
+        * `mechanize.http_responses` 
+        * `mechanize.cookies` 
+ 
+        To turn on everything: 
+ 
+        .. code-block:: python 
+ 
+            import sys, logging 
+            logger = logging.getLogger(&quot;mechanize&quot;) 
+            logger.addHandler(logging.StreamHandler(sys.stdout)) 
+            logger.setLevel(logging.INFO) 
+ 
+        &quot;&quot;&quot;</span>
+        <span class="s1">self._set_handler(</span><span class="s4">&quot;_debug_redirect&quot;</span><span class="s2">, </span><span class="s1">handle)</span>
+
+    <span class="s2">def </span><span class="s1">set_debug_responses(self</span><span class="s2">, </span><span class="s1">handle):</span>
+        <span class="s0">&quot;&quot;&quot;Log HTTP response bodies. 
+ 
+        See :meth:`set_debug_redirects()` for details of logging. 
+ 
+        Response objects may be .seek()able if this is set (currently returned 
+        responses are, raised HTTPError exception responses are not). 
+ 
+        &quot;&quot;&quot;</span>
+        <span class="s1">self._set_handler(</span><span class="s4">&quot;_debug_response_body&quot;</span><span class="s2">, </span><span class="s1">handle)</span>
+
+    <span class="s2">def </span><span class="s1">set_debug_http(self</span><span class="s2">, </span><span class="s1">handle):</span>
+        <span class="s0">&quot;&quot;&quot;Print HTTP headers to sys.stdout.&quot;&quot;&quot;</span>
+        <span class="s1">level = int(bool(handle))</span>
+        <span class="s2">for </span><span class="s1">scheme </span><span class="s2">in </span><span class="s4">&quot;http&quot;</span><span class="s2">, </span><span class="s4">&quot;https&quot;</span><span class="s1">:</span>
+            <span class="s1">h = self._ua_handlers.get(scheme)</span>
+            <span class="s2">if </span><span class="s1">h </span><span class="s2">is not None</span><span class="s1">:</span>
+                <span class="s1">h.set_http_debuglevel(level)</span>
+
+    <span class="s2">def </span><span class="s1">_copy_state(self</span><span class="s2">, </span><span class="s1">other):</span>
+        <span class="s2">if </span><span class="s1">self._ua_handlers </span><span class="s2">is None</span><span class="s1">:</span>
+            <span class="s2">raise </span><span class="s1">ValueError(</span><span class="s4">'Cannot copy state from a closed UserAgentBase'</span><span class="s1">)</span>
+        <span class="s1">other.addheaders = self.addheaders[:]</span>
+        <span class="s1">rmap = {v: k </span><span class="s2">for </span><span class="s1">k</span><span class="s2">, </span><span class="s1">v </span><span class="s2">in </span><span class="s1">iteritems(self._ua_handlers)}</span>
+
+        <span class="s2">def </span><span class="s1">clone_handler(h):</span>
+            <span class="s1">ans = copy.copy(h)</span>
+            <span class="s1">ans.add_parent(other)</span>
+            <span class="s2">try</span><span class="s1">:</span>
+                <span class="s1">other._ua_handlers[rmap[h]] = ans</span>
+            <span class="s2">except </span><span class="s1">KeyError:</span>
+                <span class="s2">pass</span>
+            <span class="s2">return </span><span class="s1">ans</span>
+
+        <span class="s1">other._ua_handlers.clear()</span>
+        <span class="s1">other.handlers = [clone_handler(h) </span><span class="s2">for </span><span class="s1">h </span><span class="s2">in </span><span class="s1">self.handlers]</span>
+        <span class="s1">other._handler_index_valid = </span><span class="s2">False</span>
+
+    <span class="s2">def </span><span class="s1">handlers_by_class(self</span><span class="s2">, </span><span class="s1">cls):</span>
+        <span class="s2">for </span><span class="s1">h </span><span class="s2">in </span><span class="s1">self.handlers:</span>
+            <span class="s2">if </span><span class="s1">isinstance(h</span><span class="s2">, </span><span class="s1">cls):</span>
+                <span class="s2">yield </span><span class="s1">h</span>
+
+    <span class="s2">def </span><span class="s1">_set_handler(self</span><span class="s2">,</span>
+                     <span class="s1">name</span><span class="s2">,</span>
+                     <span class="s1">handle=</span><span class="s2">None,</span>
+                     <span class="s1">obj=</span><span class="s2">None,</span>
+                     <span class="s1">constructor_args=()</span><span class="s2">,</span>
+                     <span class="s1">constructor_kwds={}):</span>
+        <span class="s2">if </span><span class="s1">handle </span><span class="s2">is None</span><span class="s1">:</span>
+            <span class="s1">handle = obj </span><span class="s2">is not None</span>
+        <span class="s2">if </span><span class="s1">handle:</span>
+            <span class="s1">handler_class = self.handler_classes[name]</span>
+            <span class="s2">if </span><span class="s1">obj </span><span class="s2">is not None</span><span class="s1">:</span>
+                <span class="s1">newhandler = handler_class(obj)</span>
+            <span class="s2">else</span><span class="s1">:</span>
+                <span class="s1">newhandler = handler_class(*constructor_args</span><span class="s2">,</span>
+                                           <span class="s1">**constructor_kwds)</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s1">newhandler = </span><span class="s2">None</span>
+        <span class="s1">self._replace_handler(name</span><span class="s2">, </span><span class="s1">newhandler)</span>
+
+    <span class="s2">def </span><span class="s1">_replace_handler(self</span><span class="s2">, </span><span class="s1">name</span><span class="s2">, </span><span class="s1">newhandler=</span><span class="s2">None</span><span class="s1">):</span>
+        <span class="s3"># first, if handler was previously added, remove it</span>
+        <span class="s2">if </span><span class="s1">name </span><span class="s2">is not None</span><span class="s1">:</span>
+            <span class="s1">handler = self._ua_handlers.pop(name</span><span class="s2">, None</span><span class="s1">)</span>
+            <span class="s2">if </span><span class="s1">handler </span><span class="s2">is not None</span><span class="s1">:</span>
+                <span class="s2">try</span><span class="s1">:</span>
+                    <span class="s1">self.handlers.remove(handler)</span>
+                <span class="s2">except </span><span class="s1">ValueError:</span>
+                    <span class="s2">pass</span>
+        <span class="s3"># then add the replacement, if any</span>
+        <span class="s2">if </span><span class="s1">newhandler </span><span class="s2">is not None</span><span class="s1">:</span>
+            <span class="s1">self.add_handler(newhandler)</span>
+            <span class="s1">self._ua_handlers[name] = newhandler</span>
+
+
+<span class="s2">class </span><span class="s1">UserAgent(UserAgentBase):</span>
+    <span class="s2">def </span><span class="s1">__init__(self):</span>
+        <span class="s1">UserAgentBase.__init__(self)</span>
+        <span class="s1">self._seekable = </span><span class="s2">False</span>
+
+    <span class="s2">def </span><span class="s1">set_seekable_responses(self</span><span class="s2">, </span><span class="s1">handle):</span>
+        <span class="s0">&quot;&quot;&quot;Make response objects .seek()able.&quot;&quot;&quot;</span>
+        <span class="s1">self._seekable = bool(handle)</span>
+
+    <span class="s2">def </span><span class="s1">open(self</span><span class="s2">,</span>
+             <span class="s1">fullurl</span><span class="s2">,</span>
+             <span class="s1">data=</span><span class="s2">None,</span>
+             <span class="s1">timeout=_sockettimeout._GLOBAL_DEFAULT_TIMEOUT):</span>
+        <span class="s2">if </span><span class="s1">self._seekable:</span>
+
+            <span class="s2">def </span><span class="s1">bound_open(fullurl</span><span class="s2">,</span>
+                           <span class="s1">data=</span><span class="s2">None,</span>
+                           <span class="s1">timeout=_sockettimeout._GLOBAL_DEFAULT_TIMEOUT):</span>
+                <span class="s2">return </span><span class="s1">UserAgentBase.open(self</span><span class="s2">, </span><span class="s1">fullurl</span><span class="s2">, </span><span class="s1">data</span><span class="s2">, </span><span class="s1">timeout)</span>
+
+            <span class="s1">response = _opener.wrapped_open(bound_open</span><span class="s2">,</span>
+                                            <span class="s1">_response.seek_wrapped_response</span><span class="s2">,</span>
+                                            <span class="s1">fullurl</span><span class="s2">, </span><span class="s1">data</span><span class="s2">, </span><span class="s1">timeout)</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s1">response = UserAgentBase.open(self</span><span class="s2">, </span><span class="s1">fullurl</span><span class="s2">, </span><span class="s1">data)</span>
+        <span class="s2">return </span><span class="s1">response</span>
+</pre>
+</body>
+</html>

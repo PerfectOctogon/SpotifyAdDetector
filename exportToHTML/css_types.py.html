@@ -1,0 +1,366 @@
+<html>
+<head>
+<title>css_types.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #629755; font-style: italic;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+.s4 { color: #6897bb;}
+.s5 { color: #808080;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+css_types.py</font>
+</center></td></tr></table>
+<pre><span class="s0">&quot;&quot;&quot;CSS selector structure items.&quot;&quot;&quot;</span>
+<span class="s2">import </span><span class="s1">copyreg</span>
+<span class="s2">from </span><span class="s1">collections.abc </span><span class="s2">import </span><span class="s1">Hashable</span><span class="s2">, </span><span class="s1">Mapping</span>
+
+<span class="s1">__all__ = (</span>
+    <span class="s3">'Selector'</span><span class="s2">,</span>
+    <span class="s3">'SelectorNull'</span><span class="s2">,</span>
+    <span class="s3">'SelectorTag'</span><span class="s2">,</span>
+    <span class="s3">'SelectorAttribute'</span><span class="s2">,</span>
+    <span class="s3">'SelectorContains'</span><span class="s2">,</span>
+    <span class="s3">'SelectorNth'</span><span class="s2">,</span>
+    <span class="s3">'SelectorLang'</span><span class="s2">,</span>
+    <span class="s3">'SelectorList'</span><span class="s2">,</span>
+    <span class="s3">'Namespaces'</span><span class="s2">,</span>
+    <span class="s3">'CustomSelectors'</span>
+<span class="s1">)</span>
+
+
+<span class="s1">SEL_EMPTY = </span><span class="s4">0x1</span>
+<span class="s1">SEL_ROOT = </span><span class="s4">0x2</span>
+<span class="s1">SEL_DEFAULT = </span><span class="s4">0x4</span>
+<span class="s1">SEL_INDETERMINATE = </span><span class="s4">0x8</span>
+<span class="s1">SEL_SCOPE = </span><span class="s4">0x10</span>
+<span class="s1">SEL_DIR_LTR = </span><span class="s4">0x20</span>
+<span class="s1">SEL_DIR_RTL = </span><span class="s4">0x40</span>
+<span class="s1">SEL_IN_RANGE = </span><span class="s4">0x80</span>
+<span class="s1">SEL_OUT_OF_RANGE = </span><span class="s4">0x100</span>
+<span class="s1">SEL_DEFINED = </span><span class="s4">0x200</span>
+<span class="s1">SEL_PLACEHOLDER_SHOWN = </span><span class="s4">0x400</span>
+
+
+<span class="s2">class </span><span class="s1">Immutable(object):</span>
+    <span class="s0">&quot;&quot;&quot;Immutable.&quot;&quot;&quot;</span>
+
+    <span class="s1">__slots__ = (</span><span class="s3">'_hash'</span><span class="s2">,</span><span class="s1">)</span>
+
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">**kwargs):</span>
+        <span class="s0">&quot;&quot;&quot;Initialize.&quot;&quot;&quot;</span>
+
+        <span class="s1">temp = []</span>
+        <span class="s2">for </span><span class="s1">k</span><span class="s2">, </span><span class="s1">v </span><span class="s2">in </span><span class="s1">kwargs.items():</span>
+            <span class="s1">temp.append(type(v))</span>
+            <span class="s1">temp.append(v)</span>
+            <span class="s1">super(Immutable</span><span class="s2">, </span><span class="s1">self).__setattr__(k</span><span class="s2">, </span><span class="s1">v)</span>
+        <span class="s1">super(Immutable</span><span class="s2">, </span><span class="s1">self).__setattr__(</span><span class="s3">'_hash'</span><span class="s2">, </span><span class="s1">hash(tuple(temp)))</span>
+
+    <span class="s1">@classmethod</span>
+    <span class="s2">def </span><span class="s1">__base__(cls):</span>
+        <span class="s0">&quot;&quot;&quot;Get base class.&quot;&quot;&quot;</span>
+
+        <span class="s2">return </span><span class="s1">cls</span>
+
+    <span class="s2">def </span><span class="s1">__eq__(self</span><span class="s2">, </span><span class="s1">other):</span>
+        <span class="s0">&quot;&quot;&quot;Equal.&quot;&quot;&quot;</span>
+
+        <span class="s2">return </span><span class="s1">(</span>
+            <span class="s1">isinstance(other</span><span class="s2">, </span><span class="s1">self.__base__()) </span><span class="s2">and</span>
+            <span class="s1">all([getattr(other</span><span class="s2">, </span><span class="s1">key) == getattr(self</span><span class="s2">, </span><span class="s1">key) </span><span class="s2">for </span><span class="s1">key </span><span class="s2">in </span><span class="s1">self.__slots__ </span><span class="s2">if </span><span class="s1">key != </span><span class="s3">'_hash'</span><span class="s1">])</span>
+        <span class="s1">)</span>
+
+    <span class="s2">def </span><span class="s1">__ne__(self</span><span class="s2">, </span><span class="s1">other):</span>
+        <span class="s0">&quot;&quot;&quot;Equal.&quot;&quot;&quot;</span>
+
+        <span class="s2">return </span><span class="s1">(</span>
+            <span class="s2">not </span><span class="s1">isinstance(other</span><span class="s2">, </span><span class="s1">self.__base__()) </span><span class="s2">or</span>
+            <span class="s1">any([getattr(other</span><span class="s2">, </span><span class="s1">key) != getattr(self</span><span class="s2">, </span><span class="s1">key) </span><span class="s2">for </span><span class="s1">key </span><span class="s2">in </span><span class="s1">self.__slots__ </span><span class="s2">if </span><span class="s1">key != </span><span class="s3">'_hash'</span><span class="s1">])</span>
+        <span class="s1">)</span>
+
+    <span class="s2">def </span><span class="s1">__hash__(self):</span>
+        <span class="s0">&quot;&quot;&quot;Hash.&quot;&quot;&quot;</span>
+
+        <span class="s2">return </span><span class="s1">self._hash</span>
+
+    <span class="s2">def </span><span class="s1">__setattr__(self</span><span class="s2">, </span><span class="s1">name</span><span class="s2">, </span><span class="s1">value):</span>
+        <span class="s0">&quot;&quot;&quot;Prevent mutability.&quot;&quot;&quot;</span>
+
+        <span class="s2">raise </span><span class="s1">AttributeError(</span><span class="s3">&quot;'{}' is immutable&quot;</span><span class="s1">.format(self.__class__.__name__))</span>
+
+    <span class="s2">def </span><span class="s1">__repr__(self):  </span><span class="s5"># pragma: no cover</span>
+        <span class="s0">&quot;&quot;&quot;Representation.&quot;&quot;&quot;</span>
+
+        <span class="s2">return </span><span class="s3">&quot;{}({})&quot;</span><span class="s1">.format(</span>
+            <span class="s1">self.__base__()</span><span class="s2">, </span><span class="s3">', '</span><span class="s1">.join([</span><span class="s3">&quot;{}={!r}&quot;</span><span class="s1">.format(k</span><span class="s2">, </span><span class="s1">getattr(self</span><span class="s2">, </span><span class="s1">k)) </span><span class="s2">for </span><span class="s1">k </span><span class="s2">in </span><span class="s1">self.__slots__[:-</span><span class="s4">1</span><span class="s1">]])</span>
+        <span class="s1">)</span>
+
+    <span class="s1">__str__ = __repr__</span>
+
+
+<span class="s2">class </span><span class="s1">ImmutableDict(Mapping):</span>
+    <span class="s0">&quot;&quot;&quot;Hashable, immutable dictionary.&quot;&quot;&quot;</span>
+
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">arg):</span>
+        <span class="s0">&quot;&quot;&quot;Initialize.&quot;&quot;&quot;</span>
+
+        <span class="s1">arg</span>
+        <span class="s1">is_dict = isinstance(arg</span><span class="s2">, </span><span class="s1">dict)</span>
+        <span class="s2">if </span><span class="s1">(</span>
+            <span class="s1">is_dict </span><span class="s2">and not </span><span class="s1">all([isinstance(v</span><span class="s2">, </span><span class="s1">Hashable) </span><span class="s2">for </span><span class="s1">v </span><span class="s2">in </span><span class="s1">arg.values()]) </span><span class="s2">or</span>
+            <span class="s2">not </span><span class="s1">is_dict </span><span class="s2">and not </span><span class="s1">all([isinstance(k</span><span class="s2">, </span><span class="s1">Hashable) </span><span class="s2">and </span><span class="s1">isinstance(v</span><span class="s2">, </span><span class="s1">Hashable) </span><span class="s2">for </span><span class="s1">k</span><span class="s2">, </span><span class="s1">v </span><span class="s2">in </span><span class="s1">arg])</span>
+        <span class="s1">):</span>
+            <span class="s2">raise </span><span class="s1">TypeError(</span><span class="s3">'All values must be hashable'</span><span class="s1">)</span>
+
+        <span class="s1">self._d = dict(arg)</span>
+        <span class="s1">self._hash = hash(tuple([(type(x)</span><span class="s2">, </span><span class="s1">x</span><span class="s2">, </span><span class="s1">type(y)</span><span class="s2">, </span><span class="s1">y) </span><span class="s2">for </span><span class="s1">x</span><span class="s2">, </span><span class="s1">y </span><span class="s2">in </span><span class="s1">sorted(self._d.items())]))</span>
+
+    <span class="s2">def </span><span class="s1">__iter__(self):</span>
+        <span class="s0">&quot;&quot;&quot;Iterator.&quot;&quot;&quot;</span>
+
+        <span class="s2">return </span><span class="s1">iter(self._d)</span>
+
+    <span class="s2">def </span><span class="s1">__len__(self):</span>
+        <span class="s0">&quot;&quot;&quot;Length.&quot;&quot;&quot;</span>
+
+        <span class="s2">return </span><span class="s1">len(self._d)</span>
+
+    <span class="s2">def </span><span class="s1">__getitem__(self</span><span class="s2">, </span><span class="s1">key):</span>
+        <span class="s0">&quot;&quot;&quot;Get item: `namespace['key']`.&quot;&quot;&quot;</span>
+        <span class="s2">return </span><span class="s1">self._d[key]</span>
+
+    <span class="s2">def </span><span class="s1">__hash__(self):</span>
+        <span class="s0">&quot;&quot;&quot;Hash.&quot;&quot;&quot;</span>
+
+        <span class="s2">return </span><span class="s1">self._hash</span>
+
+    <span class="s2">def </span><span class="s1">__repr__(self):  </span><span class="s5"># pragma: no cover</span>
+        <span class="s0">&quot;&quot;&quot;Representation.&quot;&quot;&quot;</span>
+
+        <span class="s2">return </span><span class="s3">&quot;{!r}&quot;</span><span class="s1">.format(self._d)</span>
+
+    <span class="s1">__str__ = __repr__</span>
+
+
+<span class="s2">class </span><span class="s1">Namespaces(ImmutableDict):</span>
+    <span class="s0">&quot;&quot;&quot;Namespaces.&quot;&quot;&quot;</span>
+
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">arg):</span>
+        <span class="s0">&quot;&quot;&quot;Initialize.&quot;&quot;&quot;</span>
+
+        <span class="s5"># If there are arguments, check the first index.</span>
+        <span class="s5"># `super` should fail if the user gave multiple arguments,</span>
+        <span class="s5"># so don't bother checking that.</span>
+        <span class="s1">is_dict = isinstance(arg</span><span class="s2">, </span><span class="s1">dict)</span>
+        <span class="s2">if </span><span class="s1">is_dict </span><span class="s2">and not </span><span class="s1">all([isinstance(k</span><span class="s2">, </span><span class="s1">str) </span><span class="s2">and </span><span class="s1">isinstance(v</span><span class="s2">, </span><span class="s1">str) </span><span class="s2">for </span><span class="s1">k</span><span class="s2">, </span><span class="s1">v </span><span class="s2">in </span><span class="s1">arg.items()]):</span>
+            <span class="s2">raise </span><span class="s1">TypeError(</span><span class="s3">'Namespace keys and values must be Unicode strings'</span><span class="s1">)</span>
+        <span class="s2">elif not </span><span class="s1">is_dict </span><span class="s2">and not </span><span class="s1">all([isinstance(k</span><span class="s2">, </span><span class="s1">str) </span><span class="s2">and </span><span class="s1">isinstance(v</span><span class="s2">, </span><span class="s1">str) </span><span class="s2">for </span><span class="s1">k</span><span class="s2">, </span><span class="s1">v </span><span class="s2">in </span><span class="s1">arg]):</span>
+            <span class="s2">raise </span><span class="s1">TypeError(</span><span class="s3">'Namespace keys and values must be Unicode strings'</span><span class="s1">)</span>
+
+        <span class="s1">super(Namespaces</span><span class="s2">, </span><span class="s1">self).__init__(arg)</span>
+
+
+<span class="s2">class </span><span class="s1">CustomSelectors(ImmutableDict):</span>
+    <span class="s0">&quot;&quot;&quot;Custom selectors.&quot;&quot;&quot;</span>
+
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">arg):</span>
+        <span class="s0">&quot;&quot;&quot;Initialize.&quot;&quot;&quot;</span>
+
+        <span class="s5"># If there are arguments, check the first index.</span>
+        <span class="s5"># `super` should fail if the user gave multiple arguments,</span>
+        <span class="s5"># so don't bother checking that.</span>
+        <span class="s1">is_dict = isinstance(arg</span><span class="s2">, </span><span class="s1">dict)</span>
+        <span class="s2">if </span><span class="s1">is_dict </span><span class="s2">and not </span><span class="s1">all([isinstance(k</span><span class="s2">, </span><span class="s1">str) </span><span class="s2">and </span><span class="s1">isinstance(v</span><span class="s2">, </span><span class="s1">str) </span><span class="s2">for </span><span class="s1">k</span><span class="s2">, </span><span class="s1">v </span><span class="s2">in </span><span class="s1">arg.items()]):</span>
+            <span class="s2">raise </span><span class="s1">TypeError(</span><span class="s3">'CustomSelectors keys and values must be Unicode strings'</span><span class="s1">)</span>
+        <span class="s2">elif not </span><span class="s1">is_dict </span><span class="s2">and not </span><span class="s1">all([isinstance(k</span><span class="s2">, </span><span class="s1">str) </span><span class="s2">and </span><span class="s1">isinstance(v</span><span class="s2">, </span><span class="s1">str) </span><span class="s2">for </span><span class="s1">k</span><span class="s2">, </span><span class="s1">v </span><span class="s2">in </span><span class="s1">arg]):</span>
+            <span class="s2">raise </span><span class="s1">TypeError(</span><span class="s3">'CustomSelectors keys and values must be Unicode strings'</span><span class="s1">)</span>
+
+        <span class="s1">super(CustomSelectors</span><span class="s2">, </span><span class="s1">self).__init__(arg)</span>
+
+
+<span class="s2">class </span><span class="s1">Selector(Immutable):</span>
+    <span class="s0">&quot;&quot;&quot;Selector.&quot;&quot;&quot;</span>
+
+    <span class="s1">__slots__ = (</span>
+        <span class="s3">'tag'</span><span class="s2">, </span><span class="s3">'ids'</span><span class="s2">, </span><span class="s3">'classes'</span><span class="s2">, </span><span class="s3">'attributes'</span><span class="s2">, </span><span class="s3">'nth'</span><span class="s2">, </span><span class="s3">'selectors'</span><span class="s2">,</span>
+        <span class="s3">'relation'</span><span class="s2">, </span><span class="s3">'rel_type'</span><span class="s2">, </span><span class="s3">'contains'</span><span class="s2">, </span><span class="s3">'lang'</span><span class="s2">, </span><span class="s3">'flags'</span><span class="s2">, </span><span class="s3">'_hash'</span>
+    <span class="s1">)</span>
+
+    <span class="s2">def </span><span class="s1">__init__(</span>
+        <span class="s1">self</span><span class="s2">, </span><span class="s1">tag</span><span class="s2">, </span><span class="s1">ids</span><span class="s2">, </span><span class="s1">classes</span><span class="s2">, </span><span class="s1">attributes</span><span class="s2">, </span><span class="s1">nth</span><span class="s2">, </span><span class="s1">selectors</span><span class="s2">,</span>
+        <span class="s1">relation</span><span class="s2">, </span><span class="s1">rel_type</span><span class="s2">, </span><span class="s1">contains</span><span class="s2">, </span><span class="s1">lang</span><span class="s2">, </span><span class="s1">flags</span>
+    <span class="s1">):</span>
+        <span class="s0">&quot;&quot;&quot;Initialize.&quot;&quot;&quot;</span>
+
+        <span class="s1">super(Selector</span><span class="s2">, </span><span class="s1">self).__init__(</span>
+            <span class="s1">tag=tag</span><span class="s2">,</span>
+            <span class="s1">ids=ids</span><span class="s2">,</span>
+            <span class="s1">classes=classes</span><span class="s2">,</span>
+            <span class="s1">attributes=attributes</span><span class="s2">,</span>
+            <span class="s1">nth=nth</span><span class="s2">,</span>
+            <span class="s1">selectors=selectors</span><span class="s2">,</span>
+            <span class="s1">relation=relation</span><span class="s2">,</span>
+            <span class="s1">rel_type=rel_type</span><span class="s2">,</span>
+            <span class="s1">contains=contains</span><span class="s2">,</span>
+            <span class="s1">lang=lang</span><span class="s2">,</span>
+            <span class="s1">flags=flags</span>
+        <span class="s1">)</span>
+
+
+<span class="s2">class </span><span class="s1">SelectorNull(Immutable):</span>
+    <span class="s0">&quot;&quot;&quot;Null Selector.&quot;&quot;&quot;</span>
+
+    <span class="s2">def </span><span class="s1">__init__(self):</span>
+        <span class="s0">&quot;&quot;&quot;Initialize.&quot;&quot;&quot;</span>
+
+        <span class="s1">super(SelectorNull</span><span class="s2">, </span><span class="s1">self).__init__()</span>
+
+
+<span class="s2">class </span><span class="s1">SelectorTag(Immutable):</span>
+    <span class="s0">&quot;&quot;&quot;Selector tag.&quot;&quot;&quot;</span>
+
+    <span class="s1">__slots__ = (</span><span class="s3">&quot;name&quot;</span><span class="s2">, </span><span class="s3">&quot;prefix&quot;</span><span class="s2">, </span><span class="s3">&quot;_hash&quot;</span><span class="s1">)</span>
+
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">name</span><span class="s2">, </span><span class="s1">prefix):</span>
+        <span class="s0">&quot;&quot;&quot;Initialize.&quot;&quot;&quot;</span>
+
+        <span class="s1">super(SelectorTag</span><span class="s2">, </span><span class="s1">self).__init__(</span>
+            <span class="s1">name=name</span><span class="s2">,</span>
+            <span class="s1">prefix=prefix</span>
+        <span class="s1">)</span>
+
+
+<span class="s2">class </span><span class="s1">SelectorAttribute(Immutable):</span>
+    <span class="s0">&quot;&quot;&quot;Selector attribute rule.&quot;&quot;&quot;</span>
+
+    <span class="s1">__slots__ = (</span><span class="s3">&quot;attribute&quot;</span><span class="s2">, </span><span class="s3">&quot;prefix&quot;</span><span class="s2">, </span><span class="s3">&quot;pattern&quot;</span><span class="s2">, </span><span class="s3">&quot;xml_type_pattern&quot;</span><span class="s2">, </span><span class="s3">&quot;_hash&quot;</span><span class="s1">)</span>
+
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">attribute</span><span class="s2">, </span><span class="s1">prefix</span><span class="s2">, </span><span class="s1">pattern</span><span class="s2">, </span><span class="s1">xml_type_pattern):</span>
+        <span class="s0">&quot;&quot;&quot;Initialize.&quot;&quot;&quot;</span>
+
+        <span class="s1">super(SelectorAttribute</span><span class="s2">, </span><span class="s1">self).__init__(</span>
+            <span class="s1">attribute=attribute</span><span class="s2">,</span>
+            <span class="s1">prefix=prefix</span><span class="s2">,</span>
+            <span class="s1">pattern=pattern</span><span class="s2">,</span>
+            <span class="s1">xml_type_pattern=xml_type_pattern</span>
+        <span class="s1">)</span>
+
+
+<span class="s2">class </span><span class="s1">SelectorContains(Immutable):</span>
+    <span class="s0">&quot;&quot;&quot;Selector contains rule.&quot;&quot;&quot;</span>
+
+    <span class="s1">__slots__ = (</span><span class="s3">&quot;text&quot;</span><span class="s2">, </span><span class="s3">&quot;own&quot;</span><span class="s2">, </span><span class="s3">&quot;_hash&quot;</span><span class="s1">)</span>
+
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">text</span><span class="s2">, </span><span class="s1">own):</span>
+        <span class="s0">&quot;&quot;&quot;Initialize.&quot;&quot;&quot;</span>
+
+        <span class="s1">super(SelectorContains</span><span class="s2">, </span><span class="s1">self).__init__(</span>
+            <span class="s1">text=text</span><span class="s2">,</span>
+            <span class="s1">own=own</span>
+        <span class="s1">)</span>
+
+
+<span class="s2">class </span><span class="s1">SelectorNth(Immutable):</span>
+    <span class="s0">&quot;&quot;&quot;Selector nth type.&quot;&quot;&quot;</span>
+
+    <span class="s1">__slots__ = (</span><span class="s3">&quot;a&quot;</span><span class="s2">, </span><span class="s3">&quot;n&quot;</span><span class="s2">, </span><span class="s3">&quot;b&quot;</span><span class="s2">, </span><span class="s3">&quot;of_type&quot;</span><span class="s2">, </span><span class="s3">&quot;last&quot;</span><span class="s2">, </span><span class="s3">&quot;selectors&quot;</span><span class="s2">, </span><span class="s3">&quot;_hash&quot;</span><span class="s1">)</span>
+
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">a</span><span class="s2">, </span><span class="s1">n</span><span class="s2">, </span><span class="s1">b</span><span class="s2">, </span><span class="s1">of_type</span><span class="s2">, </span><span class="s1">last</span><span class="s2">, </span><span class="s1">selectors):</span>
+        <span class="s0">&quot;&quot;&quot;Initialize.&quot;&quot;&quot;</span>
+
+        <span class="s1">super(SelectorNth</span><span class="s2">, </span><span class="s1">self).__init__(</span>
+            <span class="s1">a=a</span><span class="s2">,</span>
+            <span class="s1">n=n</span><span class="s2">,</span>
+            <span class="s1">b=b</span><span class="s2">,</span>
+            <span class="s1">of_type=of_type</span><span class="s2">,</span>
+            <span class="s1">last=last</span><span class="s2">,</span>
+            <span class="s1">selectors=selectors</span>
+        <span class="s1">)</span>
+
+
+<span class="s2">class </span><span class="s1">SelectorLang(Immutable):</span>
+    <span class="s0">&quot;&quot;&quot;Selector language rules.&quot;&quot;&quot;</span>
+
+    <span class="s1">__slots__ = (</span><span class="s3">&quot;languages&quot;</span><span class="s2">, </span><span class="s3">&quot;_hash&quot;</span><span class="s2">,</span><span class="s1">)</span>
+
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">languages):</span>
+        <span class="s0">&quot;&quot;&quot;Initialize.&quot;&quot;&quot;</span>
+
+        <span class="s1">super(SelectorLang</span><span class="s2">, </span><span class="s1">self).__init__(</span>
+            <span class="s1">languages=tuple(languages)</span>
+        <span class="s1">)</span>
+
+    <span class="s2">def </span><span class="s1">__iter__(self):</span>
+        <span class="s0">&quot;&quot;&quot;Iterator.&quot;&quot;&quot;</span>
+
+        <span class="s2">return </span><span class="s1">iter(self.languages)</span>
+
+    <span class="s2">def </span><span class="s1">__len__(self):  </span><span class="s5"># pragma: no cover</span>
+        <span class="s0">&quot;&quot;&quot;Length.&quot;&quot;&quot;</span>
+
+        <span class="s2">return </span><span class="s1">len(self.languages)</span>
+
+    <span class="s2">def </span><span class="s1">__getitem__(self</span><span class="s2">, </span><span class="s1">index):  </span><span class="s5"># pragma: no cover</span>
+        <span class="s0">&quot;&quot;&quot;Get item.&quot;&quot;&quot;</span>
+
+        <span class="s2">return </span><span class="s1">self.languages[index]</span>
+
+
+<span class="s2">class </span><span class="s1">SelectorList(Immutable):</span>
+    <span class="s0">&quot;&quot;&quot;Selector list.&quot;&quot;&quot;</span>
+
+    <span class="s1">__slots__ = (</span><span class="s3">&quot;selectors&quot;</span><span class="s2">, </span><span class="s3">&quot;is_not&quot;</span><span class="s2">, </span><span class="s3">&quot;is_html&quot;</span><span class="s2">, </span><span class="s3">&quot;_hash&quot;</span><span class="s1">)</span>
+
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">selectors=tuple()</span><span class="s2">, </span><span class="s1">is_not=</span><span class="s2">False, </span><span class="s1">is_html=</span><span class="s2">False</span><span class="s1">):</span>
+        <span class="s0">&quot;&quot;&quot;Initialize.&quot;&quot;&quot;</span>
+
+        <span class="s1">super(SelectorList</span><span class="s2">, </span><span class="s1">self).__init__(</span>
+            <span class="s1">selectors=tuple(selectors)</span><span class="s2">,</span>
+            <span class="s1">is_not=is_not</span><span class="s2">,</span>
+            <span class="s1">is_html=is_html</span>
+        <span class="s1">)</span>
+
+    <span class="s2">def </span><span class="s1">__iter__(self):</span>
+        <span class="s0">&quot;&quot;&quot;Iterator.&quot;&quot;&quot;</span>
+
+        <span class="s2">return </span><span class="s1">iter(self.selectors)</span>
+
+    <span class="s2">def </span><span class="s1">__len__(self):</span>
+        <span class="s0">&quot;&quot;&quot;Length.&quot;&quot;&quot;</span>
+
+        <span class="s2">return </span><span class="s1">len(self.selectors)</span>
+
+    <span class="s2">def </span><span class="s1">__getitem__(self</span><span class="s2">, </span><span class="s1">index):</span>
+        <span class="s0">&quot;&quot;&quot;Get item.&quot;&quot;&quot;</span>
+
+        <span class="s2">return </span><span class="s1">self.selectors[index]</span>
+
+
+<span class="s2">def </span><span class="s1">_pickle(p):</span>
+    <span class="s2">return </span><span class="s1">p.__base__()</span><span class="s2">, </span><span class="s1">tuple([getattr(p</span><span class="s2">, </span><span class="s1">s) </span><span class="s2">for </span><span class="s1">s </span><span class="s2">in </span><span class="s1">p.__slots__[:-</span><span class="s4">1</span><span class="s1">]])</span>
+
+
+<span class="s2">def </span><span class="s1">pickle_register(obj):</span>
+    <span class="s0">&quot;&quot;&quot;Allow object to be pickled.&quot;&quot;&quot;</span>
+
+    <span class="s1">copyreg.pickle(obj</span><span class="s2">, </span><span class="s1">_pickle)</span>
+
+
+<span class="s1">pickle_register(Selector)</span>
+<span class="s1">pickle_register(SelectorNull)</span>
+<span class="s1">pickle_register(SelectorTag)</span>
+<span class="s1">pickle_register(SelectorAttribute)</span>
+<span class="s1">pickle_register(SelectorContains)</span>
+<span class="s1">pickle_register(SelectorNth)</span>
+<span class="s1">pickle_register(SelectorLang)</span>
+<span class="s1">pickle_register(SelectorList)</span>
+</pre>
+</body>
+</html>

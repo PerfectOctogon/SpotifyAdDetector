@@ -1,0 +1,43 @@
+<html>
+<head>
+<title>c14n.pxd</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #a9b7c6;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+c14n.pxd</font>
+</center></td></tr></table>
+<pre><span class="s0">from lxml.includes.tree cimport xmlDoc, xmlOutputBuffer, xmlChar</span>
+<span class="s0">from lxml.includes.xpath cimport xmlNodeSet</span>
+
+<span class="s0">cdef extern from &quot;libxml/c14n.h&quot;:</span>
+    <span class="s0">cdef int xmlC14NDocDumpMemory(xmlDoc* doc,</span>
+                                  <span class="s0">xmlNodeSet* nodes,</span>
+                                  <span class="s0">int exclusive,</span>
+                                  <span class="s0">xmlChar** inclusive_ns_prefixes,</span>
+                                  <span class="s0">int with_comments,</span>
+                                  <span class="s0">xmlChar** doc_txt_ptr) nogil</span>
+
+    <span class="s0">cdef int xmlC14NDocSave(xmlDoc* doc,</span>
+                            <span class="s0">xmlNodeSet* nodes,</span>
+                            <span class="s0">int exclusive,</span>
+                            <span class="s0">xmlChar** inclusive_ns_prefixes,</span>
+                            <span class="s0">int with_comments,</span>
+                            <span class="s0">char* filename,</span>
+                            <span class="s0">int compression) nogil</span>
+
+    <span class="s0">cdef int xmlC14NDocSaveTo(xmlDoc* doc,</span>
+                              <span class="s0">xmlNodeSet* nodes,</span>
+                              <span class="s0">int exclusive,</span>
+                              <span class="s0">xmlChar** inclusive_ns_prefixes,</span>
+                              <span class="s0">int with_comments,</span>
+                              <span class="s0">xmlOutputBuffer* buffer) nogil</span>
+
+</pre>
+</body>
+</html>

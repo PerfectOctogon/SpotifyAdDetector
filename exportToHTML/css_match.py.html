@@ -1,0 +1,1556 @@
+<html>
+<head>
+<title>css_match.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #629755; font-style: italic;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #808080;}
+.s4 { color: #6a8759;}
+.s5 { color: #6897bb;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+css_match.py</font>
+</center></td></tr></table>
+<pre><span class="s0">&quot;&quot;&quot;CSS matcher.&quot;&quot;&quot;</span>
+<span class="s2">from </span><span class="s1">datetime </span><span class="s2">import </span><span class="s1">datetime</span>
+<span class="s2">from </span><span class="s1">. </span><span class="s2">import </span><span class="s1">util</span>
+<span class="s2">import </span><span class="s1">re</span>
+<span class="s2">from </span><span class="s1">.</span><span class="s2">import </span><span class="s1">css_types </span><span class="s2">as </span><span class="s1">ct</span>
+<span class="s2">import </span><span class="s1">unicodedata</span>
+<span class="s2">from </span><span class="s1">collections.abc </span><span class="s2">import </span><span class="s1">Sequence</span>
+
+<span class="s2">import </span><span class="s1">bs4</span>
+
+<span class="s3"># Empty tag pattern (whitespace okay)</span>
+<span class="s1">RE_NOT_EMPTY = re.compile(</span><span class="s4">'[^ </span><span class="s2">\t\r\n\f</span><span class="s4">]'</span><span class="s1">)</span>
+
+<span class="s1">RE_NOT_WS = re.compile(</span><span class="s4">'[^ </span><span class="s2">\t\r\n\f</span><span class="s4">]+'</span><span class="s1">)</span>
+
+<span class="s3"># Relationships</span>
+<span class="s1">REL_PARENT = </span><span class="s4">' '</span>
+<span class="s1">REL_CLOSE_PARENT = </span><span class="s4">'&gt;'</span>
+<span class="s1">REL_SIBLING = </span><span class="s4">'~'</span>
+<span class="s1">REL_CLOSE_SIBLING = </span><span class="s4">'+'</span>
+
+<span class="s3"># Relationships for :has() (forward looking)</span>
+<span class="s1">REL_HAS_PARENT = </span><span class="s4">': '</span>
+<span class="s1">REL_HAS_CLOSE_PARENT = </span><span class="s4">':&gt;'</span>
+<span class="s1">REL_HAS_SIBLING = </span><span class="s4">':~'</span>
+<span class="s1">REL_HAS_CLOSE_SIBLING = </span><span class="s4">':+'</span>
+
+<span class="s1">NS_XHTML = </span><span class="s4">'http://www.w3.org/1999/xhtml'</span>
+<span class="s1">NS_XML = </span><span class="s4">'http://www.w3.org/XML/1998/namespace'</span>
+
+<span class="s1">DIR_FLAGS = ct.SEL_DIR_LTR | ct.SEL_DIR_RTL</span>
+<span class="s1">RANGES = ct.SEL_IN_RANGE | ct.SEL_OUT_OF_RANGE</span>
+
+<span class="s1">DIR_MAP = {</span>
+    <span class="s4">'ltr'</span><span class="s1">: ct.SEL_DIR_LTR</span><span class="s2">,</span>
+    <span class="s4">'rtl'</span><span class="s1">: ct.SEL_DIR_RTL</span><span class="s2">,</span>
+    <span class="s4">'auto'</span><span class="s1">: </span><span class="s5">0</span>
+<span class="s1">}</span>
+
+<span class="s1">RE_NUM = re.compile(</span><span class="s4">r&quot;^(?P&lt;value&gt;-?(?:[0-9]{1,}(\.[0-9]+)?|\.[0-9]+))$&quot;</span><span class="s1">)</span>
+<span class="s1">RE_TIME = re.compile(</span><span class="s4">r'^(?P&lt;hour&gt;[0-9]{2}):(?P&lt;minutes&gt;[0-9]{2})$'</span><span class="s1">)</span>
+<span class="s1">RE_MONTH = re.compile(</span><span class="s4">r'^(?P&lt;year&gt;[0-9]{4,})-(?P&lt;month&gt;[0-9]{2})$'</span><span class="s1">)</span>
+<span class="s1">RE_WEEK = re.compile(</span><span class="s4">r'^(?P&lt;year&gt;[0-9]{4,})-W(?P&lt;week&gt;[0-9]{2})$'</span><span class="s1">)</span>
+<span class="s1">RE_DATE = re.compile(</span><span class="s4">r'^(?P&lt;year&gt;[0-9]{4,})-(?P&lt;month&gt;[0-9]{2})-(?P&lt;day&gt;[0-9]{2})$'</span><span class="s1">)</span>
+<span class="s1">RE_DATETIME = re.compile(</span>
+    <span class="s4">r'^(?P&lt;year&gt;[0-9]{4,})-(?P&lt;month&gt;[0-9]{2})-(?P&lt;day&gt;[0-9]{2})T(?P&lt;hour&gt;[0-9]{2}):(?P&lt;minutes&gt;[0-9]{2})$'</span>
+<span class="s1">)</span>
+<span class="s1">RE_WILD_STRIP = re.compile(</span><span class="s4">r'(?:(?:-\*-)(?:\*(?:-|$))*|-\*$)'</span><span class="s1">)</span>
+
+<span class="s1">MONTHS_30 = (</span><span class="s5">4</span><span class="s2">, </span><span class="s5">6</span><span class="s2">, </span><span class="s5">9</span><span class="s2">, </span><span class="s5">11</span><span class="s1">)  </span><span class="s3"># April, June, September, and November</span>
+<span class="s1">FEB = </span><span class="s5">2</span>
+<span class="s1">SHORT_MONTH = </span><span class="s5">30</span>
+<span class="s1">LONG_MONTH = </span><span class="s5">31</span>
+<span class="s1">FEB_MONTH = </span><span class="s5">28</span>
+<span class="s1">FEB_LEAP_MONTH = </span><span class="s5">29</span>
+<span class="s1">DAYS_IN_WEEK = </span><span class="s5">7</span>
+
+
+<span class="s2">class </span><span class="s1">_FakeParent(object):</span>
+    <span class="s0">&quot;&quot;&quot; 
+    Fake parent class. 
+ 
+    When we have a fragment with no `BeautifulSoup` document object, 
+    we can't evaluate `nth` selectors properly.  Create a temporary 
+    fake parent so we can traverse the root element as a child. 
+    &quot;&quot;&quot;</span>
+
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">element):</span>
+        <span class="s0">&quot;&quot;&quot;Initialize.&quot;&quot;&quot;</span>
+
+        <span class="s1">self.contents = [element]</span>
+
+    <span class="s2">def </span><span class="s1">__len__(self):</span>
+        <span class="s0">&quot;&quot;&quot;Length.&quot;&quot;&quot;</span>
+
+        <span class="s2">return </span><span class="s1">len(self.contents)</span>
+
+
+<span class="s2">class </span><span class="s1">_DocumentNav(object):</span>
+    <span class="s0">&quot;&quot;&quot;Navigate a Beautiful Soup document.&quot;&quot;&quot;</span>
+
+    <span class="s1">@classmethod</span>
+    <span class="s2">def </span><span class="s1">assert_valid_input(cls</span><span class="s2">, </span><span class="s1">tag):</span>
+        <span class="s0">&quot;&quot;&quot;Check if valid input tag or document.&quot;&quot;&quot;</span>
+
+        <span class="s3"># Fail on unexpected types.</span>
+        <span class="s2">if not </span><span class="s1">cls.is_tag(tag):</span>
+            <span class="s2">raise </span><span class="s1">TypeError(</span><span class="s4">&quot;Expected a BeautifulSoup 'Tag', but instead recieved type {}&quot;</span><span class="s1">.format(type(tag)))</span>
+
+    <span class="s1">@staticmethod</span>
+    <span class="s2">def </span><span class="s1">is_doc(obj):</span>
+        <span class="s0">&quot;&quot;&quot;Is `BeautifulSoup` object.&quot;&quot;&quot;</span>
+        <span class="s2">return </span><span class="s1">isinstance(obj</span><span class="s2">, </span><span class="s1">bs4.BeautifulSoup)</span>
+
+    <span class="s1">@staticmethod</span>
+    <span class="s2">def </span><span class="s1">is_tag(obj):</span>
+        <span class="s0">&quot;&quot;&quot;Is tag.&quot;&quot;&quot;</span>
+        <span class="s2">return </span><span class="s1">isinstance(obj</span><span class="s2">, </span><span class="s1">bs4.Tag)</span>
+
+    <span class="s1">@staticmethod</span>
+    <span class="s2">def </span><span class="s1">is_declaration(obj):  </span><span class="s3"># pragma: no cover</span>
+        <span class="s0">&quot;&quot;&quot;Is declaration.&quot;&quot;&quot;</span>
+        <span class="s2">return </span><span class="s1">isinstance(obj</span><span class="s2">, </span><span class="s1">bs4.Declaration)</span>
+
+    <span class="s1">@staticmethod</span>
+    <span class="s2">def </span><span class="s1">is_cdata(obj):</span>
+        <span class="s0">&quot;&quot;&quot;Is CDATA.&quot;&quot;&quot;</span>
+        <span class="s2">return </span><span class="s1">isinstance(obj</span><span class="s2">, </span><span class="s1">bs4.CData)</span>
+
+    <span class="s1">@staticmethod</span>
+    <span class="s2">def </span><span class="s1">is_processing_instruction(obj):  </span><span class="s3"># pragma: no cover</span>
+        <span class="s0">&quot;&quot;&quot;Is processing instruction.&quot;&quot;&quot;</span>
+        <span class="s2">return </span><span class="s1">isinstance(obj</span><span class="s2">, </span><span class="s1">bs4.ProcessingInstruction)</span>
+
+    <span class="s1">@staticmethod</span>
+    <span class="s2">def </span><span class="s1">is_navigable_string(obj):</span>
+        <span class="s0">&quot;&quot;&quot;Is navigable string.&quot;&quot;&quot;</span>
+        <span class="s2">return </span><span class="s1">isinstance(obj</span><span class="s2">, </span><span class="s1">bs4.NavigableString)</span>
+
+    <span class="s1">@staticmethod</span>
+    <span class="s2">def </span><span class="s1">is_special_string(obj):</span>
+        <span class="s0">&quot;&quot;&quot;Is special string.&quot;&quot;&quot;</span>
+        <span class="s2">return </span><span class="s1">isinstance(obj</span><span class="s2">, </span><span class="s1">(bs4.Comment</span><span class="s2">, </span><span class="s1">bs4.Declaration</span><span class="s2">, </span><span class="s1">bs4.CData</span><span class="s2">, </span><span class="s1">bs4.ProcessingInstruction</span><span class="s2">, </span><span class="s1">bs4.Doctype))</span>
+
+    <span class="s1">@classmethod</span>
+    <span class="s2">def </span><span class="s1">is_content_string(cls</span><span class="s2">, </span><span class="s1">obj):</span>
+        <span class="s0">&quot;&quot;&quot;Check if node is content string.&quot;&quot;&quot;</span>
+
+        <span class="s2">return </span><span class="s1">cls.is_navigable_string(obj) </span><span class="s2">and not </span><span class="s1">cls.is_special_string(obj)</span>
+
+    <span class="s1">@staticmethod</span>
+    <span class="s2">def </span><span class="s1">create_fake_parent(el):</span>
+        <span class="s0">&quot;&quot;&quot;Create fake parent for a given element.&quot;&quot;&quot;</span>
+
+        <span class="s2">return </span><span class="s1">_FakeParent(el)</span>
+
+    <span class="s1">@staticmethod</span>
+    <span class="s2">def </span><span class="s1">is_xml_tree(el):</span>
+        <span class="s0">&quot;&quot;&quot;Check if element (or document) is from a XML tree.&quot;&quot;&quot;</span>
+
+        <span class="s2">return </span><span class="s1">el._is_xml</span>
+
+    <span class="s2">def </span><span class="s1">is_iframe(self</span><span class="s2">, </span><span class="s1">el):</span>
+        <span class="s0">&quot;&quot;&quot;Check if element is an `iframe`.&quot;&quot;&quot;</span>
+
+        <span class="s2">return </span><span class="s1">((el.name </span><span class="s2">if </span><span class="s1">self.is_xml_tree(el) </span><span class="s2">else </span><span class="s1">util.lower(el.name)) == </span><span class="s4">'iframe'</span><span class="s1">) </span><span class="s2">and </span><span class="s1">self.is_html_tag(el)</span>
+
+    <span class="s2">def </span><span class="s1">is_root(self</span><span class="s2">, </span><span class="s1">el):</span>
+        <span class="s0">&quot;&quot;&quot; 
+        Return whether element is a root element. 
+ 
+        We check that the element is the root of the tree (which we have already pre-calculated), 
+        and we check if it is the root element under an `iframe`. 
+        &quot;&quot;&quot;</span>
+
+        <span class="s1">root = self.root </span><span class="s2">and </span><span class="s1">self.root </span><span class="s2">is </span><span class="s1">el</span>
+        <span class="s2">if not </span><span class="s1">root:</span>
+            <span class="s1">parent = self.get_parent(el)</span>
+            <span class="s1">root = parent </span><span class="s2">is not None and </span><span class="s1">self.is_html </span><span class="s2">and </span><span class="s1">self.is_iframe(parent)</span>
+        <span class="s2">return </span><span class="s1">root</span>
+
+    <span class="s2">def </span><span class="s1">get_contents(self</span><span class="s2">, </span><span class="s1">el</span><span class="s2">, </span><span class="s1">no_iframe=</span><span class="s2">False</span><span class="s1">):</span>
+        <span class="s0">&quot;&quot;&quot;Get contents or contents in reverse.&quot;&quot;&quot;</span>
+        <span class="s2">if not </span><span class="s1">no_iframe </span><span class="s2">or not </span><span class="s1">self.is_iframe(el):</span>
+            <span class="s2">for </span><span class="s1">content </span><span class="s2">in </span><span class="s1">el.contents:</span>
+                <span class="s2">yield </span><span class="s1">content</span>
+
+    <span class="s2">def </span><span class="s1">get_children(self</span><span class="s2">, </span><span class="s1">el</span><span class="s2">, </span><span class="s1">start=</span><span class="s2">None, </span><span class="s1">reverse=</span><span class="s2">False, </span><span class="s1">tags=</span><span class="s2">True, </span><span class="s1">no_iframe=</span><span class="s2">False</span><span class="s1">):</span>
+        <span class="s0">&quot;&quot;&quot;Get children.&quot;&quot;&quot;</span>
+
+        <span class="s2">if not </span><span class="s1">no_iframe </span><span class="s2">or not </span><span class="s1">self.is_iframe(el):</span>
+            <span class="s1">last = len(el.contents) - </span><span class="s5">1</span>
+            <span class="s2">if </span><span class="s1">start </span><span class="s2">is None</span><span class="s1">:</span>
+                <span class="s1">index = last </span><span class="s2">if </span><span class="s1">reverse </span><span class="s2">else </span><span class="s5">0</span>
+            <span class="s2">else</span><span class="s1">:</span>
+                <span class="s1">index = start</span>
+            <span class="s1">end = -</span><span class="s5">1 </span><span class="s2">if </span><span class="s1">reverse </span><span class="s2">else </span><span class="s1">last + </span><span class="s5">1</span>
+            <span class="s1">incr = -</span><span class="s5">1 </span><span class="s2">if </span><span class="s1">reverse </span><span class="s2">else </span><span class="s5">1</span>
+
+            <span class="s2">if </span><span class="s5">0 </span><span class="s1">&lt;= index &lt;= last:</span>
+                <span class="s2">while </span><span class="s1">index != end:</span>
+                    <span class="s1">node = el.contents[index]</span>
+                    <span class="s1">index += incr</span>
+                    <span class="s2">if not </span><span class="s1">tags </span><span class="s2">or </span><span class="s1">self.is_tag(node):</span>
+                        <span class="s2">yield </span><span class="s1">node</span>
+
+    <span class="s2">def </span><span class="s1">get_descendants(self</span><span class="s2">, </span><span class="s1">el</span><span class="s2">, </span><span class="s1">tags=</span><span class="s2">True, </span><span class="s1">no_iframe=</span><span class="s2">False</span><span class="s1">):</span>
+        <span class="s0">&quot;&quot;&quot;Get descendants.&quot;&quot;&quot;</span>
+
+        <span class="s2">if not </span><span class="s1">no_iframe </span><span class="s2">or not </span><span class="s1">self.is_iframe(el):</span>
+            <span class="s1">next_good = </span><span class="s2">None</span>
+            <span class="s2">for </span><span class="s1">child </span><span class="s2">in </span><span class="s1">el.descendants:</span>
+
+                <span class="s2">if </span><span class="s1">next_good </span><span class="s2">is not None</span><span class="s1">:</span>
+                    <span class="s2">if </span><span class="s1">child </span><span class="s2">is not </span><span class="s1">next_good:</span>
+                        <span class="s2">continue</span>
+                    <span class="s1">next_good = </span><span class="s2">None</span>
+
+                <span class="s1">is_tag = self.is_tag(child)</span>
+
+                <span class="s2">if </span><span class="s1">no_iframe </span><span class="s2">and </span><span class="s1">is_tag </span><span class="s2">and </span><span class="s1">self.is_iframe(child):</span>
+                    <span class="s2">if </span><span class="s1">child.next_sibling </span><span class="s2">is not None</span><span class="s1">:</span>
+                        <span class="s1">next_good = child.next_sibling</span>
+                    <span class="s2">else</span><span class="s1">:</span>
+                        <span class="s1">last_child = child</span>
+                        <span class="s2">while </span><span class="s1">self.is_tag(last_child) </span><span class="s2">and </span><span class="s1">last_child.contents:</span>
+                            <span class="s1">last_child = last_child.contents[-</span><span class="s5">1</span><span class="s1">]</span>
+                        <span class="s1">next_good = last_child.next_element</span>
+                    <span class="s2">yield </span><span class="s1">child</span>
+                    <span class="s2">if </span><span class="s1">next_good </span><span class="s2">is None</span><span class="s1">:</span>
+                        <span class="s2">break</span>
+                    <span class="s3"># Coverage isn't seeing this even though it's executed</span>
+                    <span class="s2">continue  </span><span class="s3"># pragma: no cover</span>
+
+                <span class="s2">if not </span><span class="s1">tags </span><span class="s2">or </span><span class="s1">is_tag:</span>
+                    <span class="s2">yield </span><span class="s1">child</span>
+
+    <span class="s2">def </span><span class="s1">get_parent(self</span><span class="s2">, </span><span class="s1">el</span><span class="s2">, </span><span class="s1">no_iframe=</span><span class="s2">False</span><span class="s1">):</span>
+        <span class="s0">&quot;&quot;&quot;Get parent.&quot;&quot;&quot;</span>
+
+        <span class="s1">parent = el.parent</span>
+        <span class="s2">if </span><span class="s1">no_iframe </span><span class="s2">and </span><span class="s1">parent </span><span class="s2">is not None and </span><span class="s1">self.is_iframe(parent):</span>
+            <span class="s1">parent = </span><span class="s2">None</span>
+        <span class="s2">return </span><span class="s1">parent</span>
+
+    <span class="s1">@staticmethod</span>
+    <span class="s2">def </span><span class="s1">get_tag_name(el):</span>
+        <span class="s0">&quot;&quot;&quot;Get tag.&quot;&quot;&quot;</span>
+
+        <span class="s2">return </span><span class="s1">el.name</span>
+
+    <span class="s1">@staticmethod</span>
+    <span class="s2">def </span><span class="s1">get_prefix_name(el):</span>
+        <span class="s0">&quot;&quot;&quot;Get prefix.&quot;&quot;&quot;</span>
+
+        <span class="s2">return </span><span class="s1">el.prefix</span>
+
+    <span class="s1">@staticmethod</span>
+    <span class="s2">def </span><span class="s1">get_uri(el):</span>
+        <span class="s0">&quot;&quot;&quot;Get namespace `URI`.&quot;&quot;&quot;</span>
+
+        <span class="s2">return </span><span class="s1">el.namespace</span>
+
+    <span class="s1">@classmethod</span>
+    <span class="s2">def </span><span class="s1">get_next(cls</span><span class="s2">, </span><span class="s1">el</span><span class="s2">, </span><span class="s1">tags=</span><span class="s2">True</span><span class="s1">):</span>
+        <span class="s0">&quot;&quot;&quot;Get next sibling tag.&quot;&quot;&quot;</span>
+
+        <span class="s1">sibling = el.next_sibling</span>
+        <span class="s2">while </span><span class="s1">tags </span><span class="s2">and not </span><span class="s1">cls.is_tag(sibling) </span><span class="s2">and </span><span class="s1">sibling </span><span class="s2">is not None</span><span class="s1">:</span>
+            <span class="s1">sibling = sibling.next_sibling</span>
+        <span class="s2">return </span><span class="s1">sibling</span>
+
+    <span class="s1">@classmethod</span>
+    <span class="s2">def </span><span class="s1">get_previous(cls</span><span class="s2">, </span><span class="s1">el</span><span class="s2">, </span><span class="s1">tags=</span><span class="s2">True</span><span class="s1">):</span>
+        <span class="s0">&quot;&quot;&quot;Get previous sibling tag.&quot;&quot;&quot;</span>
+
+        <span class="s1">sibling = el.previous_sibling</span>
+        <span class="s2">while </span><span class="s1">tags </span><span class="s2">and not </span><span class="s1">cls.is_tag(sibling) </span><span class="s2">and </span><span class="s1">sibling </span><span class="s2">is not None</span><span class="s1">:</span>
+            <span class="s1">sibling = sibling.previous_sibling</span>
+        <span class="s2">return </span><span class="s1">sibling</span>
+
+    <span class="s1">@staticmethod</span>
+    <span class="s2">def </span><span class="s1">has_html_ns(el):</span>
+        <span class="s0">&quot;&quot;&quot; 
+        Check if element has an HTML namespace. 
+ 
+        This is a bit different than whether a element is treated as having an HTML namespace, 
+        like we do in the case of `is_html_tag`. 
+        &quot;&quot;&quot;</span>
+
+        <span class="s1">ns = getattr(el</span><span class="s2">, </span><span class="s4">'namespace'</span><span class="s1">) </span><span class="s2">if </span><span class="s1">el </span><span class="s2">else None</span>
+        <span class="s2">return </span><span class="s1">ns </span><span class="s2">and </span><span class="s1">ns == NS_XHTML</span>
+
+    <span class="s1">@staticmethod</span>
+    <span class="s2">def </span><span class="s1">split_namespace(el</span><span class="s2">, </span><span class="s1">attr_name):</span>
+        <span class="s0">&quot;&quot;&quot;Return namespace and attribute name without the prefix.&quot;&quot;&quot;</span>
+
+        <span class="s2">return </span><span class="s1">getattr(attr_name</span><span class="s2">, </span><span class="s4">'namespace'</span><span class="s2">, None</span><span class="s1">)</span><span class="s2">, </span><span class="s1">getattr(attr_name</span><span class="s2">, </span><span class="s4">'name'</span><span class="s2">, None</span><span class="s1">)</span>
+
+    <span class="s1">@classmethod</span>
+    <span class="s2">def </span><span class="s1">normalize_value(cls</span><span class="s2">, </span><span class="s1">value):</span>
+        <span class="s0">&quot;&quot;&quot;Normalize the value to be a string or list of strings.&quot;&quot;&quot;</span>
+
+        <span class="s3"># Treat `None` as empty string.</span>
+        <span class="s2">if </span><span class="s1">value </span><span class="s2">is None</span><span class="s1">:</span>
+            <span class="s2">return </span><span class="s4">''</span>
+
+        <span class="s3"># Pass through strings</span>
+        <span class="s2">if </span><span class="s1">(isinstance(value</span><span class="s2">, </span><span class="s1">str)):</span>
+            <span class="s2">return </span><span class="s1">value</span>
+
+        <span class="s3"># If it's a byte string, convert it to Unicode, treating it as UTF-8.</span>
+        <span class="s2">if </span><span class="s1">isinstance(value</span><span class="s2">, </span><span class="s1">bytes):</span>
+            <span class="s2">return </span><span class="s1">value.decode(</span><span class="s4">&quot;utf8&quot;</span><span class="s1">)</span>
+
+        <span class="s3"># BeautifulSoup supports sequences of attribute values, so make sure the children are strings.</span>
+        <span class="s2">if </span><span class="s1">isinstance(value</span><span class="s2">, </span><span class="s1">Sequence):</span>
+            <span class="s1">new_value = []</span>
+            <span class="s2">for </span><span class="s1">v </span><span class="s2">in </span><span class="s1">value:</span>
+                <span class="s2">if </span><span class="s1">isinstance(v</span><span class="s2">, </span><span class="s1">Sequence):</span>
+                    <span class="s3"># This is most certainly a user error and will crash and burn later,</span>
+                    <span class="s3"># but to avoid excessive recursion, kick out now.</span>
+                    <span class="s1">new_value.append(v)</span>
+                <span class="s2">else</span><span class="s1">:</span>
+                    <span class="s3"># Convert the child to a string</span>
+                    <span class="s1">new_value.append(cls.normalize_value(v))</span>
+            <span class="s2">return </span><span class="s1">new_value</span>
+
+        <span class="s3"># Try and make anything else a string</span>
+        <span class="s2">return </span><span class="s1">str(value)</span>
+
+    <span class="s1">@classmethod</span>
+    <span class="s2">def </span><span class="s1">get_attribute_by_name(cls</span><span class="s2">, </span><span class="s1">el</span><span class="s2">, </span><span class="s1">name</span><span class="s2">, </span><span class="s1">default=</span><span class="s2">None</span><span class="s1">):</span>
+        <span class="s0">&quot;&quot;&quot;Get attribute by name.&quot;&quot;&quot;</span>
+
+        <span class="s1">value = default</span>
+        <span class="s2">if </span><span class="s1">el._is_xml:</span>
+            <span class="s2">try</span><span class="s1">:</span>
+                <span class="s1">value = cls.normalize_value(el.attrs[name])</span>
+            <span class="s2">except </span><span class="s1">KeyError:</span>
+                <span class="s2">pass</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s2">for </span><span class="s1">k</span><span class="s2">, </span><span class="s1">v </span><span class="s2">in </span><span class="s1">el.attrs.items():</span>
+                <span class="s2">if </span><span class="s1">util.lower(k) == name:</span>
+                    <span class="s1">value = cls.normalize_value(v)</span>
+                    <span class="s2">break</span>
+        <span class="s2">return </span><span class="s1">value</span>
+
+    <span class="s1">@classmethod</span>
+    <span class="s2">def </span><span class="s1">iter_attributes(cls</span><span class="s2">, </span><span class="s1">el):</span>
+        <span class="s0">&quot;&quot;&quot;Iterate attributes.&quot;&quot;&quot;</span>
+
+        <span class="s2">for </span><span class="s1">k</span><span class="s2">, </span><span class="s1">v </span><span class="s2">in </span><span class="s1">el.attrs.items():</span>
+            <span class="s2">yield </span><span class="s1">k</span><span class="s2">, </span><span class="s1">cls.normalize_value(v)</span>
+
+    <span class="s1">@classmethod</span>
+    <span class="s2">def </span><span class="s1">get_classes(cls</span><span class="s2">, </span><span class="s1">el):</span>
+        <span class="s0">&quot;&quot;&quot;Get classes.&quot;&quot;&quot;</span>
+
+        <span class="s1">classes = cls.get_attribute_by_name(el</span><span class="s2">, </span><span class="s4">'class'</span><span class="s2">, </span><span class="s1">[])</span>
+        <span class="s2">if </span><span class="s1">isinstance(classes</span><span class="s2">, </span><span class="s1">str):</span>
+            <span class="s1">classes = RE_NOT_WS.findall(classes)</span>
+        <span class="s2">return </span><span class="s1">classes</span>
+
+    <span class="s2">def </span><span class="s1">get_text(self</span><span class="s2">, </span><span class="s1">el</span><span class="s2">, </span><span class="s1">no_iframe=</span><span class="s2">False</span><span class="s1">):</span>
+        <span class="s0">&quot;&quot;&quot;Get text.&quot;&quot;&quot;</span>
+
+        <span class="s2">return </span><span class="s4">''</span><span class="s1">.join(</span>
+            <span class="s1">[node </span><span class="s2">for </span><span class="s1">node </span><span class="s2">in </span><span class="s1">self.get_descendants(el</span><span class="s2">, </span><span class="s1">tags=</span><span class="s2">False, </span><span class="s1">no_iframe=no_iframe) </span><span class="s2">if </span><span class="s1">self.is_content_string(node)]</span>
+        <span class="s1">)</span>
+
+    <span class="s2">def </span><span class="s1">get_own_text(self</span><span class="s2">, </span><span class="s1">el</span><span class="s2">, </span><span class="s1">no_iframe=</span><span class="s2">False</span><span class="s1">):</span>
+        <span class="s0">&quot;&quot;&quot;Get Own Text.&quot;&quot;&quot;</span>
+
+        <span class="s2">return </span><span class="s1">[node </span><span class="s2">for </span><span class="s1">node </span><span class="s2">in </span><span class="s1">self.get_contents(el</span><span class="s2">, </span><span class="s1">no_iframe=no_iframe) </span><span class="s2">if </span><span class="s1">self.is_content_string(node)]</span>
+
+
+<span class="s2">class </span><span class="s1">Inputs(object):</span>
+    <span class="s0">&quot;&quot;&quot;Class for parsing and validating input items.&quot;&quot;&quot;</span>
+
+    <span class="s1">@staticmethod</span>
+    <span class="s2">def </span><span class="s1">validate_day(year</span><span class="s2">, </span><span class="s1">month</span><span class="s2">, </span><span class="s1">day):</span>
+        <span class="s0">&quot;&quot;&quot;Validate day.&quot;&quot;&quot;</span>
+
+        <span class="s1">max_days = LONG_MONTH</span>
+        <span class="s2">if </span><span class="s1">month == FEB:</span>
+            <span class="s1">max_days = FEB_LEAP_MONTH </span><span class="s2">if </span><span class="s1">((year % </span><span class="s5">4 </span><span class="s1">== </span><span class="s5">0</span><span class="s1">) </span><span class="s2">and </span><span class="s1">(year % </span><span class="s5">100 </span><span class="s1">!= </span><span class="s5">0</span><span class="s1">)) </span><span class="s2">or </span><span class="s1">(year % </span><span class="s5">400 </span><span class="s1">== </span><span class="s5">0</span><span class="s1">) </span><span class="s2">else </span><span class="s1">FEB_MONTH</span>
+        <span class="s2">elif </span><span class="s1">month </span><span class="s2">in </span><span class="s1">MONTHS_30:</span>
+            <span class="s1">max_days = SHORT_MONTH</span>
+        <span class="s2">return </span><span class="s5">1 </span><span class="s1">&lt;= day &lt;= max_days</span>
+
+    <span class="s1">@staticmethod</span>
+    <span class="s2">def </span><span class="s1">validate_week(year</span><span class="s2">, </span><span class="s1">week):</span>
+        <span class="s0">&quot;&quot;&quot;Validate week.&quot;&quot;&quot;</span>
+
+        <span class="s1">max_week = datetime.strptime(</span><span class="s4">&quot;{}-{}-{}&quot;</span><span class="s1">.format(</span><span class="s5">12</span><span class="s2">, </span><span class="s5">31</span><span class="s2">, </span><span class="s1">year)</span><span class="s2">, </span><span class="s4">&quot;%m-%d-%Y&quot;</span><span class="s1">).isocalendar()[</span><span class="s5">1</span><span class="s1">]</span>
+        <span class="s2">if </span><span class="s1">max_week == </span><span class="s5">1</span><span class="s1">:</span>
+            <span class="s1">max_week = </span><span class="s5">53</span>
+        <span class="s2">return </span><span class="s5">1 </span><span class="s1">&lt;= week &lt;= max_week</span>
+
+    <span class="s1">@staticmethod</span>
+    <span class="s2">def </span><span class="s1">validate_month(month):</span>
+        <span class="s0">&quot;&quot;&quot;Validate month.&quot;&quot;&quot;</span>
+
+        <span class="s2">return </span><span class="s5">1 </span><span class="s1">&lt;= month &lt;= </span><span class="s5">12</span>
+
+    <span class="s1">@staticmethod</span>
+    <span class="s2">def </span><span class="s1">validate_year(year):</span>
+        <span class="s0">&quot;&quot;&quot;Validate year.&quot;&quot;&quot;</span>
+
+        <span class="s2">return </span><span class="s5">1 </span><span class="s1">&lt;= year</span>
+
+    <span class="s1">@staticmethod</span>
+    <span class="s2">def </span><span class="s1">validate_hour(hour):</span>
+        <span class="s0">&quot;&quot;&quot;Validate hour.&quot;&quot;&quot;</span>
+
+        <span class="s2">return </span><span class="s5">0 </span><span class="s1">&lt;= hour &lt;= </span><span class="s5">23</span>
+
+    <span class="s1">@staticmethod</span>
+    <span class="s2">def </span><span class="s1">validate_minutes(minutes):</span>
+        <span class="s0">&quot;&quot;&quot;Validate minutes.&quot;&quot;&quot;</span>
+
+        <span class="s2">return </span><span class="s5">0 </span><span class="s1">&lt;= minutes &lt;= </span><span class="s5">59</span>
+
+    <span class="s1">@classmethod</span>
+    <span class="s2">def </span><span class="s1">parse_value(cls</span><span class="s2">, </span><span class="s1">itype</span><span class="s2">, </span><span class="s1">value):</span>
+        <span class="s0">&quot;&quot;&quot;Parse the input value.&quot;&quot;&quot;</span>
+
+        <span class="s1">parsed = </span><span class="s2">None</span>
+        <span class="s2">if </span><span class="s1">itype == </span><span class="s4">&quot;date&quot;</span><span class="s1">:</span>
+            <span class="s1">m = RE_DATE.match(value)</span>
+            <span class="s2">if </span><span class="s1">m:</span>
+                <span class="s1">year = int(m.group(</span><span class="s4">'year'</span><span class="s1">)</span><span class="s2">, </span><span class="s5">10</span><span class="s1">)</span>
+                <span class="s1">month = int(m.group(</span><span class="s4">'month'</span><span class="s1">)</span><span class="s2">, </span><span class="s5">10</span><span class="s1">)</span>
+                <span class="s1">day = int(m.group(</span><span class="s4">'day'</span><span class="s1">)</span><span class="s2">, </span><span class="s5">10</span><span class="s1">)</span>
+                <span class="s2">if </span><span class="s1">cls.validate_year(year) </span><span class="s2">and </span><span class="s1">cls.validate_month(month) </span><span class="s2">and </span><span class="s1">cls.validate_day(year</span><span class="s2">, </span><span class="s1">month</span><span class="s2">, </span><span class="s1">day):</span>
+                    <span class="s1">parsed = (year</span><span class="s2">, </span><span class="s1">month</span><span class="s2">, </span><span class="s1">day)</span>
+        <span class="s2">elif </span><span class="s1">itype == </span><span class="s4">&quot;month&quot;</span><span class="s1">:</span>
+            <span class="s1">m = RE_MONTH.match(value)</span>
+            <span class="s2">if </span><span class="s1">m:</span>
+                <span class="s1">year = int(m.group(</span><span class="s4">'year'</span><span class="s1">)</span><span class="s2">, </span><span class="s5">10</span><span class="s1">)</span>
+                <span class="s1">month = int(m.group(</span><span class="s4">'month'</span><span class="s1">)</span><span class="s2">, </span><span class="s5">10</span><span class="s1">)</span>
+                <span class="s2">if </span><span class="s1">cls.validate_year(year) </span><span class="s2">and </span><span class="s1">cls.validate_month(month):</span>
+                    <span class="s1">parsed = (year</span><span class="s2">, </span><span class="s1">month)</span>
+        <span class="s2">elif </span><span class="s1">itype == </span><span class="s4">&quot;week&quot;</span><span class="s1">:</span>
+            <span class="s1">m = RE_WEEK.match(value)</span>
+            <span class="s2">if </span><span class="s1">m:</span>
+                <span class="s1">year = int(m.group(</span><span class="s4">'year'</span><span class="s1">)</span><span class="s2">, </span><span class="s5">10</span><span class="s1">)</span>
+                <span class="s1">week = int(m.group(</span><span class="s4">'week'</span><span class="s1">)</span><span class="s2">, </span><span class="s5">10</span><span class="s1">)</span>
+                <span class="s2">if </span><span class="s1">cls.validate_year(year) </span><span class="s2">and </span><span class="s1">cls.validate_week(year</span><span class="s2">, </span><span class="s1">week):</span>
+                    <span class="s1">parsed = (year</span><span class="s2">, </span><span class="s1">week)</span>
+        <span class="s2">elif </span><span class="s1">itype == </span><span class="s4">&quot;time&quot;</span><span class="s1">:</span>
+            <span class="s1">m = RE_TIME.match(value)</span>
+            <span class="s2">if </span><span class="s1">m:</span>
+                <span class="s1">hour = int(m.group(</span><span class="s4">'hour'</span><span class="s1">)</span><span class="s2">, </span><span class="s5">10</span><span class="s1">)</span>
+                <span class="s1">minutes = int(m.group(</span><span class="s4">'minutes'</span><span class="s1">)</span><span class="s2">, </span><span class="s5">10</span><span class="s1">)</span>
+                <span class="s2">if </span><span class="s1">cls.validate_hour(hour) </span><span class="s2">and </span><span class="s1">cls.validate_minutes(minutes):</span>
+                    <span class="s1">parsed = (hour</span><span class="s2">, </span><span class="s1">minutes)</span>
+        <span class="s2">elif </span><span class="s1">itype == </span><span class="s4">&quot;datetime-local&quot;</span><span class="s1">:</span>
+            <span class="s1">m = RE_DATETIME.match(value)</span>
+            <span class="s2">if </span><span class="s1">m:</span>
+                <span class="s1">year = int(m.group(</span><span class="s4">'year'</span><span class="s1">)</span><span class="s2">, </span><span class="s5">10</span><span class="s1">)</span>
+                <span class="s1">month = int(m.group(</span><span class="s4">'month'</span><span class="s1">)</span><span class="s2">, </span><span class="s5">10</span><span class="s1">)</span>
+                <span class="s1">day = int(m.group(</span><span class="s4">'day'</span><span class="s1">)</span><span class="s2">, </span><span class="s5">10</span><span class="s1">)</span>
+                <span class="s1">hour = int(m.group(</span><span class="s4">'hour'</span><span class="s1">)</span><span class="s2">, </span><span class="s5">10</span><span class="s1">)</span>
+                <span class="s1">minutes = int(m.group(</span><span class="s4">'minutes'</span><span class="s1">)</span><span class="s2">, </span><span class="s5">10</span><span class="s1">)</span>
+                <span class="s2">if </span><span class="s1">(</span>
+                    <span class="s1">cls.validate_year(year) </span><span class="s2">and </span><span class="s1">cls.validate_month(month) </span><span class="s2">and </span><span class="s1">cls.validate_day(year</span><span class="s2">, </span><span class="s1">month</span><span class="s2">, </span><span class="s1">day) </span><span class="s2">and</span>
+                    <span class="s1">cls.validate_hour(hour) </span><span class="s2">and </span><span class="s1">cls.validate_minutes(minutes)</span>
+                <span class="s1">):</span>
+                    <span class="s1">parsed = (year</span><span class="s2">, </span><span class="s1">month</span><span class="s2">, </span><span class="s1">day</span><span class="s2">, </span><span class="s1">hour</span><span class="s2">, </span><span class="s1">minutes)</span>
+        <span class="s2">elif </span><span class="s1">itype </span><span class="s2">in </span><span class="s1">(</span><span class="s4">&quot;number&quot;</span><span class="s2">, </span><span class="s4">&quot;range&quot;</span><span class="s1">):</span>
+            <span class="s1">m = RE_NUM.match(value)</span>
+            <span class="s2">if </span><span class="s1">m:</span>
+                <span class="s1">parsed = float(m.group(</span><span class="s4">'value'</span><span class="s1">))</span>
+        <span class="s2">return </span><span class="s1">parsed</span>
+
+
+<span class="s2">class </span><span class="s1">_Match(object):</span>
+    <span class="s0">&quot;&quot;&quot;Perform CSS matching.&quot;&quot;&quot;</span>
+
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">selectors</span><span class="s2">, </span><span class="s1">scope</span><span class="s2">, </span><span class="s1">namespaces</span><span class="s2">, </span><span class="s1">flags):</span>
+        <span class="s0">&quot;&quot;&quot;Initialize.&quot;&quot;&quot;</span>
+
+        <span class="s1">self.assert_valid_input(scope)</span>
+        <span class="s1">self.tag = scope</span>
+        <span class="s1">self.cached_meta_lang = []</span>
+        <span class="s1">self.cached_default_forms = []</span>
+        <span class="s1">self.cached_indeterminate_forms = []</span>
+        <span class="s1">self.selectors = selectors</span>
+        <span class="s1">self.namespaces = {} </span><span class="s2">if </span><span class="s1">namespaces </span><span class="s2">is None else </span><span class="s1">namespaces</span>
+        <span class="s1">self.flags = flags</span>
+        <span class="s1">self.iframe_restrict = </span><span class="s2">False</span>
+
+        <span class="s3"># Find the root element for the whole tree</span>
+        <span class="s1">doc = scope</span>
+        <span class="s1">parent = self.get_parent(doc)</span>
+        <span class="s2">while </span><span class="s1">parent:</span>
+            <span class="s1">doc = parent</span>
+            <span class="s1">parent = self.get_parent(doc)</span>
+        <span class="s1">root = </span><span class="s2">None</span>
+        <span class="s2">if not </span><span class="s1">self.is_doc(doc):</span>
+            <span class="s1">root = doc</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s2">for </span><span class="s1">child </span><span class="s2">in </span><span class="s1">self.get_children(doc):</span>
+                <span class="s1">root = child</span>
+                <span class="s2">break</span>
+
+        <span class="s1">self.root = root</span>
+        <span class="s1">self.scope = scope </span><span class="s2">if </span><span class="s1">scope </span><span class="s2">is not </span><span class="s1">doc </span><span class="s2">else </span><span class="s1">root</span>
+        <span class="s1">self.has_html_namespace = self.has_html_ns(root)</span>
+
+        <span class="s3"># A document can be both XML and HTML (XHTML)</span>
+        <span class="s1">self.is_xml = self.is_xml_tree(doc)</span>
+        <span class="s1">self.is_html = </span><span class="s2">not </span><span class="s1">self.is_xml </span><span class="s2">or </span><span class="s1">self.has_html_namespace</span>
+
+    <span class="s2">def </span><span class="s1">supports_namespaces(self):</span>
+        <span class="s0">&quot;&quot;&quot;Check if namespaces are supported in the HTML type.&quot;&quot;&quot;</span>
+
+        <span class="s2">return </span><span class="s1">self.is_xml </span><span class="s2">or </span><span class="s1">self.has_html_namespace</span>
+
+    <span class="s2">def </span><span class="s1">get_tag_ns(self</span><span class="s2">, </span><span class="s1">el):</span>
+        <span class="s0">&quot;&quot;&quot;Get tag namespace.&quot;&quot;&quot;</span>
+
+        <span class="s2">if </span><span class="s1">self.supports_namespaces():</span>
+            <span class="s1">namespace = </span><span class="s4">''</span>
+            <span class="s1">ns = self.get_uri(el)</span>
+            <span class="s2">if </span><span class="s1">ns:</span>
+                <span class="s1">namespace = ns</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s1">namespace = NS_XHTML</span>
+        <span class="s2">return </span><span class="s1">namespace</span>
+
+    <span class="s2">def </span><span class="s1">is_html_tag(self</span><span class="s2">, </span><span class="s1">el):</span>
+        <span class="s0">&quot;&quot;&quot;Check if tag is in HTML namespace.&quot;&quot;&quot;</span>
+
+        <span class="s2">return </span><span class="s1">self.get_tag_ns(el) == NS_XHTML</span>
+
+    <span class="s2">def </span><span class="s1">get_tag(self</span><span class="s2">, </span><span class="s1">el):</span>
+        <span class="s0">&quot;&quot;&quot;Get tag.&quot;&quot;&quot;</span>
+
+        <span class="s1">name = self.get_tag_name(el)</span>
+        <span class="s2">return </span><span class="s1">util.lower(name) </span><span class="s2">if </span><span class="s1">name </span><span class="s2">is not None and not </span><span class="s1">self.is_xml </span><span class="s2">else </span><span class="s1">name</span>
+
+    <span class="s2">def </span><span class="s1">get_prefix(self</span><span class="s2">, </span><span class="s1">el):</span>
+        <span class="s0">&quot;&quot;&quot;Get prefix.&quot;&quot;&quot;</span>
+
+        <span class="s1">prefix = self.get_prefix_name(el)</span>
+        <span class="s2">return </span><span class="s1">util.lower(prefix) </span><span class="s2">if </span><span class="s1">prefix </span><span class="s2">is not None and not </span><span class="s1">self.is_xml </span><span class="s2">else </span><span class="s1">prefix</span>
+
+    <span class="s2">def </span><span class="s1">find_bidi(self</span><span class="s2">, </span><span class="s1">el):</span>
+        <span class="s0">&quot;&quot;&quot;Get directionality from element text.&quot;&quot;&quot;</span>
+
+        <span class="s2">for </span><span class="s1">node </span><span class="s2">in </span><span class="s1">self.get_children(el</span><span class="s2">, </span><span class="s1">tags=</span><span class="s2">False</span><span class="s1">):</span>
+
+            <span class="s3"># Analyze child text nodes</span>
+            <span class="s2">if </span><span class="s1">self.is_tag(node):</span>
+
+                <span class="s3"># Avoid analyzing certain elements specified in the specification.</span>
+                <span class="s1">direction = DIR_MAP.get(util.lower(self.get_attribute_by_name(node</span><span class="s2">, </span><span class="s4">'dir'</span><span class="s2">, </span><span class="s4">''</span><span class="s1">))</span><span class="s2">, None</span><span class="s1">)</span>
+                <span class="s2">if </span><span class="s1">(</span>
+                    <span class="s1">self.get_tag(node) </span><span class="s2">in </span><span class="s1">(</span><span class="s4">'bdi'</span><span class="s2">, </span><span class="s4">'script'</span><span class="s2">, </span><span class="s4">'style'</span><span class="s2">, </span><span class="s4">'textarea'</span><span class="s2">, </span><span class="s4">'iframe'</span><span class="s1">) </span><span class="s2">or</span>
+                    <span class="s2">not </span><span class="s1">self.is_html_tag(node) </span><span class="s2">or</span>
+                    <span class="s1">direction </span><span class="s2">is not None</span>
+                <span class="s1">):</span>
+                    <span class="s2">continue  </span><span class="s3"># pragma: no cover</span>
+
+                <span class="s3"># Check directionality of this node's text</span>
+                <span class="s1">value = self.find_bidi(node)</span>
+                <span class="s2">if </span><span class="s1">value </span><span class="s2">is not None</span><span class="s1">:</span>
+                    <span class="s2">return </span><span class="s1">value</span>
+
+                <span class="s3"># Direction could not be determined</span>
+                <span class="s2">continue  </span><span class="s3"># pragma: no cover</span>
+
+            <span class="s3"># Skip `doctype` comments, etc.</span>
+            <span class="s2">if </span><span class="s1">self.is_special_string(node):</span>
+                <span class="s2">continue</span>
+
+            <span class="s3"># Analyze text nodes for directionality.</span>
+            <span class="s2">for </span><span class="s1">c </span><span class="s2">in </span><span class="s1">node:</span>
+                <span class="s1">bidi = unicodedata.bidirectional(c)</span>
+                <span class="s2">if </span><span class="s1">bidi </span><span class="s2">in </span><span class="s1">(</span><span class="s4">'AL'</span><span class="s2">, </span><span class="s4">'R'</span><span class="s2">, </span><span class="s4">'L'</span><span class="s1">):</span>
+                    <span class="s2">return </span><span class="s1">ct.SEL_DIR_LTR </span><span class="s2">if </span><span class="s1">bidi == </span><span class="s4">'L' </span><span class="s2">else </span><span class="s1">ct.SEL_DIR_RTL</span>
+        <span class="s2">return None</span>
+
+    <span class="s2">def </span><span class="s1">extended_language_filter(self</span><span class="s2">, </span><span class="s1">lang_range</span><span class="s2">, </span><span class="s1">lang_tag):</span>
+        <span class="s0">&quot;&quot;&quot;Filter the language tags.&quot;&quot;&quot;</span>
+
+        <span class="s1">match = </span><span class="s2">True</span>
+        <span class="s1">lang_range = RE_WILD_STRIP.sub(</span><span class="s4">'-'</span><span class="s2">, </span><span class="s1">lang_range).lower()</span>
+        <span class="s1">ranges = lang_range.split(</span><span class="s4">'-'</span><span class="s1">)</span>
+        <span class="s1">subtags = lang_tag.lower().split(</span><span class="s4">'-'</span><span class="s1">)</span>
+        <span class="s1">length = len(ranges)</span>
+        <span class="s1">rindex = </span><span class="s5">0</span>
+        <span class="s1">sindex = </span><span class="s5">0</span>
+        <span class="s1">r = ranges[rindex]</span>
+        <span class="s1">s = subtags[sindex]</span>
+
+        <span class="s3"># Primary tag needs to match</span>
+        <span class="s2">if </span><span class="s1">r != </span><span class="s4">'*' </span><span class="s2">and </span><span class="s1">r != s:</span>
+            <span class="s1">match = </span><span class="s2">False</span>
+
+        <span class="s1">rindex += </span><span class="s5">1</span>
+        <span class="s1">sindex += </span><span class="s5">1</span>
+
+        <span class="s3"># Match until we run out of ranges</span>
+        <span class="s2">while </span><span class="s1">match </span><span class="s2">and </span><span class="s1">rindex &lt; length:</span>
+            <span class="s1">r = ranges[rindex]</span>
+            <span class="s2">try</span><span class="s1">:</span>
+                <span class="s1">s = subtags[sindex]</span>
+            <span class="s2">except </span><span class="s1">IndexError:</span>
+                <span class="s3"># Ran out of subtags,</span>
+                <span class="s3"># but we still have ranges</span>
+                <span class="s1">match = </span><span class="s2">False</span>
+                <span class="s2">continue</span>
+
+            <span class="s3"># Empty range</span>
+            <span class="s2">if not </span><span class="s1">r:</span>
+                <span class="s1">match = </span><span class="s2">False</span>
+                <span class="s2">continue</span>
+
+            <span class="s3"># Matched range</span>
+            <span class="s2">elif </span><span class="s1">s == r:</span>
+                <span class="s1">rindex += </span><span class="s5">1</span>
+
+            <span class="s3"># Implicit wildcard cannot match</span>
+            <span class="s3"># singletons</span>
+            <span class="s2">elif </span><span class="s1">len(s) == </span><span class="s5">1</span><span class="s1">:</span>
+                <span class="s1">match = </span><span class="s2">False</span>
+                <span class="s2">continue</span>
+
+            <span class="s3"># Implicitly matched, so grab next subtag</span>
+            <span class="s1">sindex += </span><span class="s5">1</span>
+
+        <span class="s2">return </span><span class="s1">match</span>
+
+    <span class="s2">def </span><span class="s1">match_attribute_name(self</span><span class="s2">, </span><span class="s1">el</span><span class="s2">, </span><span class="s1">attr</span><span class="s2">, </span><span class="s1">prefix):</span>
+        <span class="s0">&quot;&quot;&quot;Match attribute name and return value if it exists.&quot;&quot;&quot;</span>
+
+        <span class="s1">value = </span><span class="s2">None</span>
+        <span class="s2">if </span><span class="s1">self.supports_namespaces():</span>
+            <span class="s1">value = </span><span class="s2">None</span>
+            <span class="s3"># If we have not defined namespaces, we can't very well find them, so don't bother trying.</span>
+            <span class="s2">if </span><span class="s1">prefix:</span>
+                <span class="s1">ns = self.namespaces.get(prefix)</span>
+                <span class="s2">if </span><span class="s1">ns </span><span class="s2">is None and </span><span class="s1">prefix != </span><span class="s4">'*'</span><span class="s1">:</span>
+                    <span class="s2">return None</span>
+            <span class="s2">else</span><span class="s1">:</span>
+                <span class="s1">ns = </span><span class="s2">None</span>
+
+            <span class="s2">for </span><span class="s1">k</span><span class="s2">, </span><span class="s1">v </span><span class="s2">in </span><span class="s1">self.iter_attributes(el):</span>
+
+                <span class="s3"># Get attribute parts</span>
+                <span class="s1">namespace</span><span class="s2">, </span><span class="s1">name = self.split_namespace(el</span><span class="s2">, </span><span class="s1">k)</span>
+
+                <span class="s3"># Can't match a prefix attribute as we haven't specified one to match</span>
+                <span class="s3"># Try to match it normally as a whole `p:a` as selector may be trying `p\:a`.</span>
+                <span class="s2">if </span><span class="s1">ns </span><span class="s2">is None</span><span class="s1">:</span>
+                    <span class="s2">if </span><span class="s1">(self.is_xml </span><span class="s2">and </span><span class="s1">attr == k) </span><span class="s2">or </span><span class="s1">(</span><span class="s2">not </span><span class="s1">self.is_xml </span><span class="s2">and </span><span class="s1">util.lower(attr) == util.lower(k)):</span>
+                        <span class="s1">value = v</span>
+                        <span class="s2">break</span>
+                    <span class="s3"># Coverage is not finding this even though it is executed.</span>
+                    <span class="s3"># Adding a print statement before this (and erasing coverage) causes coverage to find the line.</span>
+                    <span class="s3"># Ignore the false positive message.</span>
+                    <span class="s2">continue  </span><span class="s3"># pragma: no cover</span>
+
+                <span class="s3"># We can't match our desired prefix attribute as the attribute doesn't have a prefix</span>
+                <span class="s2">if </span><span class="s1">namespace </span><span class="s2">is None or </span><span class="s1">ns != namespace </span><span class="s2">and </span><span class="s1">prefix != </span><span class="s4">'*'</span><span class="s1">:</span>
+                    <span class="s2">continue</span>
+
+                <span class="s3"># The attribute doesn't match.</span>
+                <span class="s2">if </span><span class="s1">(util.lower(attr) != util.lower(name)) </span><span class="s2">if not </span><span class="s1">self.is_xml </span><span class="s2">else </span><span class="s1">(attr != name):</span>
+                    <span class="s2">continue</span>
+
+                <span class="s1">value = v</span>
+                <span class="s2">break</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s2">for </span><span class="s1">k</span><span class="s2">, </span><span class="s1">v </span><span class="s2">in </span><span class="s1">self.iter_attributes(el):</span>
+                <span class="s2">if </span><span class="s1">util.lower(attr) != util.lower(k):</span>
+                    <span class="s2">continue</span>
+                <span class="s1">value = v</span>
+                <span class="s2">break</span>
+        <span class="s2">return </span><span class="s1">value</span>
+
+    <span class="s2">def </span><span class="s1">match_namespace(self</span><span class="s2">, </span><span class="s1">el</span><span class="s2">, </span><span class="s1">tag):</span>
+        <span class="s0">&quot;&quot;&quot;Match the namespace of the element.&quot;&quot;&quot;</span>
+
+        <span class="s1">match = </span><span class="s2">True</span>
+        <span class="s1">namespace = self.get_tag_ns(el)</span>
+        <span class="s1">default_namespace = self.namespaces.get(</span><span class="s4">''</span><span class="s1">)</span>
+        <span class="s1">tag_ns = </span><span class="s4">'' </span><span class="s2">if </span><span class="s1">tag.prefix </span><span class="s2">is None else </span><span class="s1">self.namespaces.get(tag.prefix</span><span class="s2">, None</span><span class="s1">)</span>
+        <span class="s3"># We must match the default namespace if one is not provided</span>
+        <span class="s2">if </span><span class="s1">tag.prefix </span><span class="s2">is None and </span><span class="s1">(default_namespace </span><span class="s2">is not None and </span><span class="s1">namespace != default_namespace):</span>
+            <span class="s1">match = </span><span class="s2">False</span>
+        <span class="s3"># If we specified `|tag`, we must not have a namespace.</span>
+        <span class="s2">elif </span><span class="s1">(tag.prefix </span><span class="s2">is not None and </span><span class="s1">tag.prefix == </span><span class="s4">'' </span><span class="s2">and </span><span class="s1">namespace):</span>
+            <span class="s1">match = </span><span class="s2">False</span>
+        <span class="s3"># Verify prefix matches</span>
+        <span class="s2">elif </span><span class="s1">(</span>
+            <span class="s1">tag.prefix </span><span class="s2">and</span>
+            <span class="s1">tag.prefix != </span><span class="s4">'*' </span><span class="s2">and </span><span class="s1">(tag_ns </span><span class="s2">is None or </span><span class="s1">namespace != tag_ns)</span>
+        <span class="s1">):</span>
+            <span class="s1">match = </span><span class="s2">False</span>
+        <span class="s2">return </span><span class="s1">match</span>
+
+    <span class="s2">def </span><span class="s1">match_attributes(self</span><span class="s2">, </span><span class="s1">el</span><span class="s2">, </span><span class="s1">attributes):</span>
+        <span class="s0">&quot;&quot;&quot;Match attributes.&quot;&quot;&quot;</span>
+
+        <span class="s1">match = </span><span class="s2">True</span>
+        <span class="s2">if </span><span class="s1">attributes:</span>
+            <span class="s2">for </span><span class="s1">a </span><span class="s2">in </span><span class="s1">attributes:</span>
+                <span class="s1">value = self.match_attribute_name(el</span><span class="s2">, </span><span class="s1">a.attribute</span><span class="s2">, </span><span class="s1">a.prefix)</span>
+                <span class="s1">pattern = a.xml_type_pattern </span><span class="s2">if </span><span class="s1">self.is_xml </span><span class="s2">and </span><span class="s1">a.xml_type_pattern </span><span class="s2">else </span><span class="s1">a.pattern</span>
+                <span class="s2">if </span><span class="s1">isinstance(value</span><span class="s2">, </span><span class="s1">list):</span>
+                    <span class="s1">value = </span><span class="s4">' '</span><span class="s1">.join(value)</span>
+                <span class="s2">if </span><span class="s1">value </span><span class="s2">is None</span><span class="s1">:</span>
+                    <span class="s1">match = </span><span class="s2">False</span>
+                    <span class="s2">break</span>
+                <span class="s2">elif </span><span class="s1">pattern </span><span class="s2">is None</span><span class="s1">:</span>
+                    <span class="s2">continue</span>
+                <span class="s2">elif </span><span class="s1">pattern.match(value) </span><span class="s2">is None</span><span class="s1">:</span>
+                    <span class="s1">match = </span><span class="s2">False</span>
+                    <span class="s2">break</span>
+        <span class="s2">return </span><span class="s1">match</span>
+
+    <span class="s2">def </span><span class="s1">match_tagname(self</span><span class="s2">, </span><span class="s1">el</span><span class="s2">, </span><span class="s1">tag):</span>
+        <span class="s0">&quot;&quot;&quot;Match tag name.&quot;&quot;&quot;</span>
+
+        <span class="s1">name = (util.lower(tag.name) </span><span class="s2">if not </span><span class="s1">self.is_xml </span><span class="s2">and </span><span class="s1">tag.name </span><span class="s2">is not None else </span><span class="s1">tag.name)</span>
+        <span class="s2">return not </span><span class="s1">(</span>
+            <span class="s1">name </span><span class="s2">is not None and</span>
+            <span class="s1">name </span><span class="s2">not in </span><span class="s1">(self.get_tag(el)</span><span class="s2">, </span><span class="s4">'*'</span><span class="s1">)</span>
+        <span class="s1">)</span>
+
+    <span class="s2">def </span><span class="s1">match_tag(self</span><span class="s2">, </span><span class="s1">el</span><span class="s2">, </span><span class="s1">tag):</span>
+        <span class="s0">&quot;&quot;&quot;Match the tag.&quot;&quot;&quot;</span>
+
+        <span class="s1">match = </span><span class="s2">True</span>
+        <span class="s2">if </span><span class="s1">tag </span><span class="s2">is not None</span><span class="s1">:</span>
+            <span class="s3"># Verify namespace</span>
+            <span class="s2">if not </span><span class="s1">self.match_namespace(el</span><span class="s2">, </span><span class="s1">tag):</span>
+                <span class="s1">match = </span><span class="s2">False</span>
+            <span class="s2">if not </span><span class="s1">self.match_tagname(el</span><span class="s2">, </span><span class="s1">tag):</span>
+                <span class="s1">match = </span><span class="s2">False</span>
+        <span class="s2">return </span><span class="s1">match</span>
+
+    <span class="s2">def </span><span class="s1">match_past_relations(self</span><span class="s2">, </span><span class="s1">el</span><span class="s2">, </span><span class="s1">relation):</span>
+        <span class="s0">&quot;&quot;&quot;Match past relationship.&quot;&quot;&quot;</span>
+
+        <span class="s1">found = </span><span class="s2">False</span>
+        <span class="s2">if </span><span class="s1">relation[</span><span class="s5">0</span><span class="s1">].rel_type == REL_PARENT:</span>
+            <span class="s1">parent = self.get_parent(el</span><span class="s2">, </span><span class="s1">no_iframe=self.iframe_restrict)</span>
+            <span class="s2">while not </span><span class="s1">found </span><span class="s2">and </span><span class="s1">parent:</span>
+                <span class="s1">found = self.match_selectors(parent</span><span class="s2">, </span><span class="s1">relation)</span>
+                <span class="s1">parent = self.get_parent(parent</span><span class="s2">, </span><span class="s1">no_iframe=self.iframe_restrict)</span>
+        <span class="s2">elif </span><span class="s1">relation[</span><span class="s5">0</span><span class="s1">].rel_type == REL_CLOSE_PARENT:</span>
+            <span class="s1">parent = self.get_parent(el</span><span class="s2">, </span><span class="s1">no_iframe=self.iframe_restrict)</span>
+            <span class="s2">if </span><span class="s1">parent:</span>
+                <span class="s1">found = self.match_selectors(parent</span><span class="s2">, </span><span class="s1">relation)</span>
+        <span class="s2">elif </span><span class="s1">relation[</span><span class="s5">0</span><span class="s1">].rel_type == REL_SIBLING:</span>
+            <span class="s1">sibling = self.get_previous(el)</span>
+            <span class="s2">while not </span><span class="s1">found </span><span class="s2">and </span><span class="s1">sibling:</span>
+                <span class="s1">found = self.match_selectors(sibling</span><span class="s2">, </span><span class="s1">relation)</span>
+                <span class="s1">sibling = self.get_previous(sibling)</span>
+        <span class="s2">elif </span><span class="s1">relation[</span><span class="s5">0</span><span class="s1">].rel_type == REL_CLOSE_SIBLING:</span>
+            <span class="s1">sibling = self.get_previous(el)</span>
+            <span class="s2">if </span><span class="s1">sibling </span><span class="s2">and </span><span class="s1">self.is_tag(sibling):</span>
+                <span class="s1">found = self.match_selectors(sibling</span><span class="s2">, </span><span class="s1">relation)</span>
+        <span class="s2">return </span><span class="s1">found</span>
+
+    <span class="s2">def </span><span class="s1">match_future_child(self</span><span class="s2">, </span><span class="s1">parent</span><span class="s2">, </span><span class="s1">relation</span><span class="s2">, </span><span class="s1">recursive=</span><span class="s2">False</span><span class="s1">):</span>
+        <span class="s0">&quot;&quot;&quot;Match future child.&quot;&quot;&quot;</span>
+
+        <span class="s1">match = </span><span class="s2">False</span>
+        <span class="s1">children = self.get_descendants </span><span class="s2">if </span><span class="s1">recursive </span><span class="s2">else </span><span class="s1">self.get_children</span>
+        <span class="s2">for </span><span class="s1">child </span><span class="s2">in </span><span class="s1">children(parent</span><span class="s2">, </span><span class="s1">no_iframe=self.iframe_restrict):</span>
+            <span class="s1">match = self.match_selectors(child</span><span class="s2">, </span><span class="s1">relation)</span>
+            <span class="s2">if </span><span class="s1">match:</span>
+                <span class="s2">break</span>
+        <span class="s2">return </span><span class="s1">match</span>
+
+    <span class="s2">def </span><span class="s1">match_future_relations(self</span><span class="s2">, </span><span class="s1">el</span><span class="s2">, </span><span class="s1">relation):</span>
+        <span class="s0">&quot;&quot;&quot;Match future relationship.&quot;&quot;&quot;</span>
+
+        <span class="s1">found = </span><span class="s2">False</span>
+        <span class="s2">if </span><span class="s1">relation[</span><span class="s5">0</span><span class="s1">].rel_type == REL_HAS_PARENT:</span>
+            <span class="s1">found = self.match_future_child(el</span><span class="s2">, </span><span class="s1">relation</span><span class="s2">, True</span><span class="s1">)</span>
+        <span class="s2">elif </span><span class="s1">relation[</span><span class="s5">0</span><span class="s1">].rel_type == REL_HAS_CLOSE_PARENT:</span>
+            <span class="s1">found = self.match_future_child(el</span><span class="s2">, </span><span class="s1">relation)</span>
+        <span class="s2">elif </span><span class="s1">relation[</span><span class="s5">0</span><span class="s1">].rel_type == REL_HAS_SIBLING:</span>
+            <span class="s1">sibling = self.get_next(el)</span>
+            <span class="s2">while not </span><span class="s1">found </span><span class="s2">and </span><span class="s1">sibling:</span>
+                <span class="s1">found = self.match_selectors(sibling</span><span class="s2">, </span><span class="s1">relation)</span>
+                <span class="s1">sibling = self.get_next(sibling)</span>
+        <span class="s2">elif </span><span class="s1">relation[</span><span class="s5">0</span><span class="s1">].rel_type == REL_HAS_CLOSE_SIBLING:</span>
+            <span class="s1">sibling = self.get_next(el)</span>
+            <span class="s2">if </span><span class="s1">sibling </span><span class="s2">and </span><span class="s1">self.is_tag(sibling):</span>
+                <span class="s1">found = self.match_selectors(sibling</span><span class="s2">, </span><span class="s1">relation)</span>
+        <span class="s2">return </span><span class="s1">found</span>
+
+    <span class="s2">def </span><span class="s1">match_relations(self</span><span class="s2">, </span><span class="s1">el</span><span class="s2">, </span><span class="s1">relation):</span>
+        <span class="s0">&quot;&quot;&quot;Match relationship to other elements.&quot;&quot;&quot;</span>
+
+        <span class="s1">found = </span><span class="s2">False</span>
+
+        <span class="s2">if </span><span class="s1">relation[</span><span class="s5">0</span><span class="s1">].rel_type.startswith(</span><span class="s4">':'</span><span class="s1">):</span>
+            <span class="s1">found = self.match_future_relations(el</span><span class="s2">, </span><span class="s1">relation)</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s1">found = self.match_past_relations(el</span><span class="s2">, </span><span class="s1">relation)</span>
+
+        <span class="s2">return </span><span class="s1">found</span>
+
+    <span class="s2">def </span><span class="s1">match_id(self</span><span class="s2">, </span><span class="s1">el</span><span class="s2">, </span><span class="s1">ids):</span>
+        <span class="s0">&quot;&quot;&quot;Match element's ID.&quot;&quot;&quot;</span>
+
+        <span class="s1">found = </span><span class="s2">True</span>
+        <span class="s2">for </span><span class="s1">i </span><span class="s2">in </span><span class="s1">ids:</span>
+            <span class="s2">if </span><span class="s1">i != self.get_attribute_by_name(el</span><span class="s2">, </span><span class="s4">'id'</span><span class="s2">, </span><span class="s4">''</span><span class="s1">):</span>
+                <span class="s1">found = </span><span class="s2">False</span>
+                <span class="s2">break</span>
+        <span class="s2">return </span><span class="s1">found</span>
+
+    <span class="s2">def </span><span class="s1">match_classes(self</span><span class="s2">, </span><span class="s1">el</span><span class="s2">, </span><span class="s1">classes):</span>
+        <span class="s0">&quot;&quot;&quot;Match element's classes.&quot;&quot;&quot;</span>
+
+        <span class="s1">current_classes = self.get_classes(el)</span>
+        <span class="s1">found = </span><span class="s2">True</span>
+        <span class="s2">for </span><span class="s1">c </span><span class="s2">in </span><span class="s1">classes:</span>
+            <span class="s2">if </span><span class="s1">c </span><span class="s2">not in </span><span class="s1">current_classes:</span>
+                <span class="s1">found = </span><span class="s2">False</span>
+                <span class="s2">break</span>
+        <span class="s2">return </span><span class="s1">found</span>
+
+    <span class="s2">def </span><span class="s1">match_root(self</span><span class="s2">, </span><span class="s1">el):</span>
+        <span class="s0">&quot;&quot;&quot;Match element as root.&quot;&quot;&quot;</span>
+
+        <span class="s1">is_root = self.is_root(el)</span>
+        <span class="s2">if </span><span class="s1">is_root:</span>
+            <span class="s1">sibling = self.get_previous(el</span><span class="s2">, </span><span class="s1">tags=</span><span class="s2">False</span><span class="s1">)</span>
+            <span class="s2">while </span><span class="s1">is_root </span><span class="s2">and </span><span class="s1">sibling </span><span class="s2">is not None</span><span class="s1">:</span>
+                <span class="s2">if </span><span class="s1">(</span>
+                    <span class="s1">self.is_tag(sibling) </span><span class="s2">or </span><span class="s1">(self.is_content_string(sibling) </span><span class="s2">and </span><span class="s1">sibling.strip()) </span><span class="s2">or</span>
+                    <span class="s1">self.is_cdata(sibling)</span>
+                <span class="s1">):</span>
+                    <span class="s1">is_root = </span><span class="s2">False</span>
+                <span class="s2">else</span><span class="s1">:</span>
+                    <span class="s1">sibling = self.get_previous(sibling</span><span class="s2">, </span><span class="s1">tags=</span><span class="s2">False</span><span class="s1">)</span>
+        <span class="s2">if </span><span class="s1">is_root:</span>
+            <span class="s1">sibling = self.get_next(el</span><span class="s2">, </span><span class="s1">tags=</span><span class="s2">False</span><span class="s1">)</span>
+            <span class="s2">while </span><span class="s1">is_root </span><span class="s2">and </span><span class="s1">sibling </span><span class="s2">is not None</span><span class="s1">:</span>
+                <span class="s2">if </span><span class="s1">(</span>
+                    <span class="s1">self.is_tag(sibling) </span><span class="s2">or </span><span class="s1">(self.is_content_string(sibling) </span><span class="s2">and </span><span class="s1">sibling.strip()) </span><span class="s2">or</span>
+                    <span class="s1">self.is_cdata(sibling)</span>
+                <span class="s1">):</span>
+                    <span class="s1">is_root = </span><span class="s2">False</span>
+                <span class="s2">else</span><span class="s1">:</span>
+                    <span class="s1">sibling = self.get_next(sibling</span><span class="s2">, </span><span class="s1">tags=</span><span class="s2">False</span><span class="s1">)</span>
+        <span class="s2">return </span><span class="s1">is_root</span>
+
+    <span class="s2">def </span><span class="s1">match_scope(self</span><span class="s2">, </span><span class="s1">el):</span>
+        <span class="s0">&quot;&quot;&quot;Match element as scope.&quot;&quot;&quot;</span>
+
+        <span class="s2">return </span><span class="s1">self.scope </span><span class="s2">is </span><span class="s1">el</span>
+
+    <span class="s2">def </span><span class="s1">match_nth_tag_type(self</span><span class="s2">, </span><span class="s1">el</span><span class="s2">, </span><span class="s1">child):</span>
+        <span class="s0">&quot;&quot;&quot;Match tag type for `nth` matches.&quot;&quot;&quot;</span>
+
+        <span class="s2">return</span><span class="s1">(</span>
+            <span class="s1">(self.get_tag(child) == self.get_tag(el)) </span><span class="s2">and</span>
+            <span class="s1">(self.get_tag_ns(child) == self.get_tag_ns(el))</span>
+        <span class="s1">)</span>
+
+    <span class="s2">def </span><span class="s1">match_nth(self</span><span class="s2">, </span><span class="s1">el</span><span class="s2">, </span><span class="s1">nth):</span>
+        <span class="s0">&quot;&quot;&quot;Match `nth` elements.&quot;&quot;&quot;</span>
+
+        <span class="s1">matched = </span><span class="s2">True</span>
+
+        <span class="s2">for </span><span class="s1">n </span><span class="s2">in </span><span class="s1">nth:</span>
+            <span class="s1">matched = </span><span class="s2">False</span>
+            <span class="s2">if </span><span class="s1">n.selectors </span><span class="s2">and not </span><span class="s1">self.match_selectors(el</span><span class="s2">, </span><span class="s1">n.selectors):</span>
+                <span class="s2">break</span>
+            <span class="s1">parent = self.get_parent(el)</span>
+            <span class="s2">if </span><span class="s1">parent </span><span class="s2">is None</span><span class="s1">:</span>
+                <span class="s1">parent = self.create_fake_parent(el)</span>
+            <span class="s1">last = n.last</span>
+            <span class="s1">last_index = len(parent) - </span><span class="s5">1</span>
+            <span class="s1">index = last_index </span><span class="s2">if </span><span class="s1">last </span><span class="s2">else </span><span class="s5">0</span>
+            <span class="s1">relative_index = </span><span class="s5">0</span>
+            <span class="s1">a = n.a</span>
+            <span class="s1">b = n.b</span>
+            <span class="s1">var = n.n</span>
+            <span class="s1">count = </span><span class="s5">0</span>
+            <span class="s1">count_incr = </span><span class="s5">1</span>
+            <span class="s1">factor = -</span><span class="s5">1 </span><span class="s2">if </span><span class="s1">last </span><span class="s2">else </span><span class="s5">1</span>
+            <span class="s1">idx = last_idx = a * count + b </span><span class="s2">if </span><span class="s1">var </span><span class="s2">else </span><span class="s1">a</span>
+
+            <span class="s3"># We can only adjust bounds within a variable index</span>
+            <span class="s2">if </span><span class="s1">var:</span>
+                <span class="s3"># Abort if our nth index is out of bounds and only getting further out of bounds as we increment.</span>
+                <span class="s3"># Otherwise, increment to try to get in bounds.</span>
+                <span class="s1">adjust = </span><span class="s2">None</span>
+                <span class="s2">while </span><span class="s1">idx &lt; </span><span class="s5">1 </span><span class="s2">or </span><span class="s1">idx &gt; last_index:</span>
+                    <span class="s2">if </span><span class="s1">idx &lt; </span><span class="s5">0</span><span class="s1">:</span>
+                        <span class="s1">diff_low = </span><span class="s5">0 </span><span class="s1">- idx</span>
+                        <span class="s2">if </span><span class="s1">adjust </span><span class="s2">is not None and </span><span class="s1">adjust == </span><span class="s5">1</span><span class="s1">:</span>
+                            <span class="s2">break</span>
+                        <span class="s1">adjust = -</span><span class="s5">1</span>
+                        <span class="s1">count += count_incr</span>
+                        <span class="s1">idx = last_idx = a * count + b </span><span class="s2">if </span><span class="s1">var </span><span class="s2">else </span><span class="s1">a</span>
+                        <span class="s1">diff = </span><span class="s5">0 </span><span class="s1">- idx</span>
+                        <span class="s2">if </span><span class="s1">diff &gt;= diff_low:</span>
+                            <span class="s2">break</span>
+                    <span class="s2">else</span><span class="s1">:</span>
+                        <span class="s1">diff_high = idx - last_index</span>
+                        <span class="s2">if </span><span class="s1">adjust </span><span class="s2">is not None and </span><span class="s1">adjust == -</span><span class="s5">1</span><span class="s1">:</span>
+                            <span class="s2">break</span>
+                        <span class="s1">adjust = </span><span class="s5">1</span>
+                        <span class="s1">count += count_incr</span>
+                        <span class="s1">idx = last_idx = a * count + b </span><span class="s2">if </span><span class="s1">var </span><span class="s2">else </span><span class="s1">a</span>
+                        <span class="s1">diff = idx - last_index</span>
+                        <span class="s2">if </span><span class="s1">diff &gt;= diff_high:</span>
+                            <span class="s2">break</span>
+                        <span class="s1">diff_high = diff</span>
+
+                <span class="s3"># If a &lt; 0, our count is working backwards, so floor the index by increasing the count.</span>
+                <span class="s3"># Find the count that yields the lowest, in bound value and use that.</span>
+                <span class="s3"># Lastly reverse count increment so that we'll increase our index.</span>
+                <span class="s1">lowest = count</span>
+                <span class="s2">if </span><span class="s1">a &lt; </span><span class="s5">0</span><span class="s1">:</span>
+                    <span class="s2">while </span><span class="s1">idx &gt;= </span><span class="s5">1</span><span class="s1">:</span>
+                        <span class="s1">lowest = count</span>
+                        <span class="s1">count += count_incr</span>
+                        <span class="s1">idx = last_idx = a * count + b </span><span class="s2">if </span><span class="s1">var </span><span class="s2">else </span><span class="s1">a</span>
+                    <span class="s1">count_incr = -</span><span class="s5">1</span>
+                <span class="s1">count = lowest</span>
+                <span class="s1">idx = last_idx = a * count + b </span><span class="s2">if </span><span class="s1">var </span><span class="s2">else </span><span class="s1">a</span>
+
+            <span class="s3"># Evaluate elements while our calculated nth index is still in range</span>
+            <span class="s2">while </span><span class="s5">1 </span><span class="s1">&lt;= idx &lt;= last_index + </span><span class="s5">1</span><span class="s1">:</span>
+                <span class="s1">child = </span><span class="s2">None</span>
+                <span class="s3"># Evaluate while our child index is still in range.</span>
+                <span class="s2">for </span><span class="s1">child </span><span class="s2">in </span><span class="s1">self.get_children(parent</span><span class="s2">, </span><span class="s1">start=index</span><span class="s2">, </span><span class="s1">reverse=factor &lt; </span><span class="s5">0</span><span class="s2">, </span><span class="s1">tags=</span><span class="s2">False</span><span class="s1">):</span>
+                    <span class="s1">index += factor</span>
+                    <span class="s2">if not </span><span class="s1">self.is_tag(child):</span>
+                        <span class="s2">continue</span>
+                    <span class="s3"># Handle `of S` in `nth-child`</span>
+                    <span class="s2">if </span><span class="s1">n.selectors </span><span class="s2">and not </span><span class="s1">self.match_selectors(child</span><span class="s2">, </span><span class="s1">n.selectors):</span>
+                        <span class="s2">continue</span>
+                    <span class="s3"># Handle `of-type`</span>
+                    <span class="s2">if </span><span class="s1">n.of_type </span><span class="s2">and not </span><span class="s1">self.match_nth_tag_type(el</span><span class="s2">, </span><span class="s1">child):</span>
+                        <span class="s2">continue</span>
+                    <span class="s1">relative_index += </span><span class="s5">1</span>
+                    <span class="s2">if </span><span class="s1">relative_index == idx:</span>
+                        <span class="s2">if </span><span class="s1">child </span><span class="s2">is </span><span class="s1">el:</span>
+                            <span class="s1">matched = </span><span class="s2">True</span>
+                        <span class="s2">else</span><span class="s1">:</span>
+                            <span class="s2">break</span>
+                    <span class="s2">if </span><span class="s1">child </span><span class="s2">is </span><span class="s1">el:</span>
+                        <span class="s2">break</span>
+                <span class="s2">if </span><span class="s1">child </span><span class="s2">is </span><span class="s1">el:</span>
+                    <span class="s2">break</span>
+                <span class="s1">last_idx = idx</span>
+                <span class="s1">count += count_incr</span>
+                <span class="s2">if </span><span class="s1">count &lt; </span><span class="s5">0</span><span class="s1">:</span>
+                    <span class="s3"># Count is counting down and has now ventured into invalid territory.</span>
+                    <span class="s2">break</span>
+                <span class="s1">idx = a * count + b </span><span class="s2">if </span><span class="s1">var </span><span class="s2">else </span><span class="s1">a</span>
+                <span class="s2">if </span><span class="s1">last_idx == idx:</span>
+                    <span class="s2">break</span>
+            <span class="s2">if not </span><span class="s1">matched:</span>
+                <span class="s2">break</span>
+        <span class="s2">return </span><span class="s1">matched</span>
+
+    <span class="s2">def </span><span class="s1">match_empty(self</span><span class="s2">, </span><span class="s1">el):</span>
+        <span class="s0">&quot;&quot;&quot;Check if element is empty (if requested).&quot;&quot;&quot;</span>
+
+        <span class="s1">is_empty = </span><span class="s2">True</span>
+        <span class="s2">for </span><span class="s1">child </span><span class="s2">in </span><span class="s1">self.get_children(el</span><span class="s2">, </span><span class="s1">tags=</span><span class="s2">False</span><span class="s1">):</span>
+            <span class="s2">if </span><span class="s1">self.is_tag(child):</span>
+                <span class="s1">is_empty = </span><span class="s2">False</span>
+                <span class="s2">break</span>
+            <span class="s2">elif </span><span class="s1">self.is_content_string(child) </span><span class="s2">and </span><span class="s1">RE_NOT_EMPTY.search(child):</span>
+                <span class="s1">is_empty = </span><span class="s2">False</span>
+                <span class="s2">break</span>
+        <span class="s2">return </span><span class="s1">is_empty</span>
+
+    <span class="s2">def </span><span class="s1">match_subselectors(self</span><span class="s2">, </span><span class="s1">el</span><span class="s2">, </span><span class="s1">selectors):</span>
+        <span class="s0">&quot;&quot;&quot;Match selectors.&quot;&quot;&quot;</span>
+
+        <span class="s1">match = </span><span class="s2">True</span>
+        <span class="s2">for </span><span class="s1">sel </span><span class="s2">in </span><span class="s1">selectors:</span>
+            <span class="s2">if not </span><span class="s1">self.match_selectors(el</span><span class="s2">, </span><span class="s1">sel):</span>
+                <span class="s1">match = </span><span class="s2">False</span>
+        <span class="s2">return </span><span class="s1">match</span>
+
+    <span class="s2">def </span><span class="s1">match_contains(self</span><span class="s2">, </span><span class="s1">el</span><span class="s2">, </span><span class="s1">contains):</span>
+        <span class="s0">&quot;&quot;&quot;Match element if it contains text.&quot;&quot;&quot;</span>
+
+        <span class="s1">match = </span><span class="s2">True</span>
+        <span class="s1">content = </span><span class="s2">None</span>
+        <span class="s2">for </span><span class="s1">contain_list </span><span class="s2">in </span><span class="s1">contains:</span>
+            <span class="s2">if </span><span class="s1">content </span><span class="s2">is None</span><span class="s1">:</span>
+                <span class="s2">if </span><span class="s1">contain_list.own:</span>
+                    <span class="s1">content = self.get_own_text(el</span><span class="s2">, </span><span class="s1">no_iframe=self.is_html)</span>
+                <span class="s2">else</span><span class="s1">:</span>
+                    <span class="s1">content = self.get_text(el</span><span class="s2">, </span><span class="s1">no_iframe=self.is_html)</span>
+            <span class="s1">found = </span><span class="s2">False</span>
+            <span class="s2">for </span><span class="s1">text </span><span class="s2">in </span><span class="s1">contain_list.text:</span>
+                <span class="s2">if </span><span class="s1">contain_list.own:</span>
+                    <span class="s2">for </span><span class="s1">c </span><span class="s2">in </span><span class="s1">content:</span>
+                        <span class="s2">if </span><span class="s1">text </span><span class="s2">in </span><span class="s1">c:</span>
+                            <span class="s1">found = </span><span class="s2">True</span>
+                            <span class="s2">break</span>
+                    <span class="s2">if </span><span class="s1">found:</span>
+                        <span class="s2">break</span>
+                <span class="s2">else</span><span class="s1">:</span>
+                    <span class="s2">if </span><span class="s1">text </span><span class="s2">in </span><span class="s1">content:</span>
+                        <span class="s1">found = </span><span class="s2">True</span>
+                        <span class="s2">break</span>
+            <span class="s2">if not </span><span class="s1">found:</span>
+                <span class="s1">match = </span><span class="s2">False</span>
+        <span class="s2">return </span><span class="s1">match</span>
+
+    <span class="s2">def </span><span class="s1">match_default(self</span><span class="s2">, </span><span class="s1">el):</span>
+        <span class="s0">&quot;&quot;&quot;Match default.&quot;&quot;&quot;</span>
+
+        <span class="s1">match = </span><span class="s2">False</span>
+
+        <span class="s3"># Find this input's form</span>
+        <span class="s1">form = </span><span class="s2">None</span>
+        <span class="s1">parent = self.get_parent(el</span><span class="s2">, </span><span class="s1">no_iframe=</span><span class="s2">True</span><span class="s1">)</span>
+        <span class="s2">while </span><span class="s1">parent </span><span class="s2">and </span><span class="s1">form </span><span class="s2">is None</span><span class="s1">:</span>
+            <span class="s2">if </span><span class="s1">self.get_tag(parent) == </span><span class="s4">'form' </span><span class="s2">and </span><span class="s1">self.is_html_tag(parent):</span>
+                <span class="s1">form = parent</span>
+            <span class="s2">else</span><span class="s1">:</span>
+                <span class="s1">parent = self.get_parent(parent</span><span class="s2">, </span><span class="s1">no_iframe=</span><span class="s2">True</span><span class="s1">)</span>
+
+        <span class="s3"># Look in form cache to see if we've already located its default button</span>
+        <span class="s1">found_form = </span><span class="s2">False</span>
+        <span class="s2">for </span><span class="s1">f</span><span class="s2">, </span><span class="s1">t </span><span class="s2">in </span><span class="s1">self.cached_default_forms:</span>
+            <span class="s2">if </span><span class="s1">f </span><span class="s2">is </span><span class="s1">form:</span>
+                <span class="s1">found_form = </span><span class="s2">True</span>
+                <span class="s2">if </span><span class="s1">t </span><span class="s2">is </span><span class="s1">el:</span>
+                    <span class="s1">match = </span><span class="s2">True</span>
+                <span class="s2">break</span>
+
+        <span class="s3"># We didn't have the form cached, so look for its default button</span>
+        <span class="s2">if not </span><span class="s1">found_form:</span>
+            <span class="s2">for </span><span class="s1">child </span><span class="s2">in </span><span class="s1">self.get_descendants(form</span><span class="s2">, </span><span class="s1">no_iframe=</span><span class="s2">True</span><span class="s1">):</span>
+                <span class="s1">name = self.get_tag(child)</span>
+                <span class="s3"># Can't do nested forms (haven't figured out why we never hit this)</span>
+                <span class="s2">if </span><span class="s1">name == </span><span class="s4">'form'</span><span class="s1">:  </span><span class="s3"># pragma: no cover</span>
+                    <span class="s2">break</span>
+                <span class="s2">if </span><span class="s1">name </span><span class="s2">in </span><span class="s1">(</span><span class="s4">'input'</span><span class="s2">, </span><span class="s4">'button'</span><span class="s1">):</span>
+                    <span class="s1">v = self.get_attribute_by_name(child</span><span class="s2">, </span><span class="s4">'type'</span><span class="s2">, </span><span class="s4">''</span><span class="s1">)</span>
+                    <span class="s2">if </span><span class="s1">v </span><span class="s2">and </span><span class="s1">util.lower(v) == </span><span class="s4">'submit'</span><span class="s1">:</span>
+                        <span class="s1">self.cached_default_forms.append([form</span><span class="s2">, </span><span class="s1">child])</span>
+                        <span class="s2">if </span><span class="s1">el </span><span class="s2">is </span><span class="s1">child:</span>
+                            <span class="s1">match = </span><span class="s2">True</span>
+                        <span class="s2">break</span>
+        <span class="s2">return </span><span class="s1">match</span>
+
+    <span class="s2">def </span><span class="s1">match_indeterminate(self</span><span class="s2">, </span><span class="s1">el):</span>
+        <span class="s0">&quot;&quot;&quot;Match default.&quot;&quot;&quot;</span>
+
+        <span class="s1">match = </span><span class="s2">False</span>
+        <span class="s1">name = self.get_attribute_by_name(el</span><span class="s2">, </span><span class="s4">'name'</span><span class="s1">)</span>
+
+        <span class="s2">def </span><span class="s1">get_parent_form(el):</span>
+            <span class="s0">&quot;&quot;&quot;Find this input's form.&quot;&quot;&quot;</span>
+            <span class="s1">form = </span><span class="s2">None</span>
+            <span class="s1">parent = self.get_parent(el</span><span class="s2">, </span><span class="s1">no_iframe=</span><span class="s2">True</span><span class="s1">)</span>
+            <span class="s2">while </span><span class="s1">form </span><span class="s2">is None</span><span class="s1">:</span>
+                <span class="s2">if </span><span class="s1">self.get_tag(parent) == </span><span class="s4">'form' </span><span class="s2">and </span><span class="s1">self.is_html_tag(parent):</span>
+                    <span class="s1">form = parent</span>
+                    <span class="s2">break</span>
+                <span class="s1">last_parent = parent</span>
+                <span class="s1">parent = self.get_parent(parent</span><span class="s2">, </span><span class="s1">no_iframe=</span><span class="s2">True</span><span class="s1">)</span>
+                <span class="s2">if </span><span class="s1">parent </span><span class="s2">is None</span><span class="s1">:</span>
+                    <span class="s1">form = last_parent</span>
+                    <span class="s2">break</span>
+            <span class="s2">return </span><span class="s1">form</span>
+
+        <span class="s1">form = get_parent_form(el)</span>
+
+        <span class="s3"># Look in form cache to see if we've already evaluated that its fellow radio buttons are indeterminate</span>
+        <span class="s1">found_form = </span><span class="s2">False</span>
+        <span class="s2">for </span><span class="s1">f</span><span class="s2">, </span><span class="s1">n</span><span class="s2">, </span><span class="s1">i </span><span class="s2">in </span><span class="s1">self.cached_indeterminate_forms:</span>
+            <span class="s2">if </span><span class="s1">f </span><span class="s2">is </span><span class="s1">form </span><span class="s2">and </span><span class="s1">n == name:</span>
+                <span class="s1">found_form = </span><span class="s2">True</span>
+                <span class="s2">if </span><span class="s1">i </span><span class="s2">is True</span><span class="s1">:</span>
+                    <span class="s1">match = </span><span class="s2">True</span>
+                <span class="s2">break</span>
+
+        <span class="s3"># We didn't have the form cached, so validate that the radio button is indeterminate</span>
+        <span class="s2">if not </span><span class="s1">found_form:</span>
+            <span class="s1">checked = </span><span class="s2">False</span>
+            <span class="s2">for </span><span class="s1">child </span><span class="s2">in </span><span class="s1">self.get_descendants(form</span><span class="s2">, </span><span class="s1">no_iframe=</span><span class="s2">True</span><span class="s1">):</span>
+                <span class="s2">if </span><span class="s1">child </span><span class="s2">is </span><span class="s1">el:</span>
+                    <span class="s2">continue</span>
+                <span class="s1">tag_name = self.get_tag(child)</span>
+                <span class="s2">if </span><span class="s1">tag_name == </span><span class="s4">'input'</span><span class="s1">:</span>
+                    <span class="s1">is_radio = </span><span class="s2">False</span>
+                    <span class="s1">check = </span><span class="s2">False</span>
+                    <span class="s1">has_name = </span><span class="s2">False</span>
+                    <span class="s2">for </span><span class="s1">k</span><span class="s2">, </span><span class="s1">v </span><span class="s2">in </span><span class="s1">self.iter_attributes(child):</span>
+                        <span class="s2">if </span><span class="s1">util.lower(k) == </span><span class="s4">'type' </span><span class="s2">and </span><span class="s1">util.lower(v) == </span><span class="s4">'radio'</span><span class="s1">:</span>
+                            <span class="s1">is_radio = </span><span class="s2">True</span>
+                        <span class="s2">elif </span><span class="s1">util.lower(k) == </span><span class="s4">'name' </span><span class="s2">and </span><span class="s1">v == name:</span>
+                            <span class="s1">has_name = </span><span class="s2">True</span>
+                        <span class="s2">elif </span><span class="s1">util.lower(k) == </span><span class="s4">'checked'</span><span class="s1">:</span>
+                            <span class="s1">check = </span><span class="s2">True</span>
+                        <span class="s2">if </span><span class="s1">is_radio </span><span class="s2">and </span><span class="s1">check </span><span class="s2">and </span><span class="s1">has_name </span><span class="s2">and </span><span class="s1">get_parent_form(child) </span><span class="s2">is </span><span class="s1">form:</span>
+                            <span class="s1">checked = </span><span class="s2">True</span>
+                            <span class="s2">break</span>
+                <span class="s2">if </span><span class="s1">checked:</span>
+                    <span class="s2">break</span>
+            <span class="s2">if not </span><span class="s1">checked:</span>
+                <span class="s1">match = </span><span class="s2">True</span>
+            <span class="s1">self.cached_indeterminate_forms.append([form</span><span class="s2">, </span><span class="s1">name</span><span class="s2">, </span><span class="s1">match])</span>
+
+        <span class="s2">return </span><span class="s1">match</span>
+
+    <span class="s2">def </span><span class="s1">match_lang(self</span><span class="s2">, </span><span class="s1">el</span><span class="s2">, </span><span class="s1">langs):</span>
+        <span class="s0">&quot;&quot;&quot;Match languages.&quot;&quot;&quot;</span>
+
+        <span class="s1">match = </span><span class="s2">False</span>
+        <span class="s1">has_ns = self.supports_namespaces()</span>
+        <span class="s1">root = self.root</span>
+        <span class="s1">has_html_namespace = self.has_html_namespace</span>
+
+        <span class="s3"># Walk parents looking for `lang` (HTML) or `xml:lang` XML property.</span>
+        <span class="s1">parent = el</span>
+        <span class="s1">found_lang = </span><span class="s2">None</span>
+        <span class="s1">last = </span><span class="s2">None</span>
+        <span class="s2">while not </span><span class="s1">found_lang:</span>
+            <span class="s1">has_html_ns = self.has_html_ns(parent)</span>
+            <span class="s2">for </span><span class="s1">k</span><span class="s2">, </span><span class="s1">v </span><span class="s2">in </span><span class="s1">self.iter_attributes(parent):</span>
+                <span class="s1">attr_ns</span><span class="s2">, </span><span class="s1">attr = self.split_namespace(parent</span><span class="s2">, </span><span class="s1">k)</span>
+                <span class="s2">if </span><span class="s1">(</span>
+                    <span class="s1">((</span><span class="s2">not </span><span class="s1">has_ns </span><span class="s2">or </span><span class="s1">has_html_ns) </span><span class="s2">and </span><span class="s1">(util.lower(k) </span><span class="s2">if not </span><span class="s1">self.is_xml </span><span class="s2">else </span><span class="s1">k) == </span><span class="s4">'lang'</span><span class="s1">) </span><span class="s2">or</span>
+                    <span class="s1">(</span>
+                        <span class="s1">has_ns </span><span class="s2">and not </span><span class="s1">has_html_ns </span><span class="s2">and </span><span class="s1">attr_ns == NS_XML </span><span class="s2">and</span>
+                        <span class="s1">(util.lower(attr) </span><span class="s2">if not </span><span class="s1">self.is_xml </span><span class="s2">and </span><span class="s1">attr </span><span class="s2">is not None else </span><span class="s1">attr) == </span><span class="s4">'lang'</span>
+                    <span class="s1">)</span>
+                <span class="s1">):</span>
+                    <span class="s1">found_lang = v</span>
+                    <span class="s2">break</span>
+            <span class="s1">last = parent</span>
+            <span class="s1">parent = self.get_parent(parent</span><span class="s2">, </span><span class="s1">no_iframe=self.is_html)</span>
+
+            <span class="s2">if </span><span class="s1">parent </span><span class="s2">is None</span><span class="s1">:</span>
+                <span class="s1">root = last</span>
+                <span class="s1">has_html_namespace = self.has_html_ns(root)</span>
+                <span class="s1">parent = last</span>
+                <span class="s2">break</span>
+
+        <span class="s3"># Use cached meta language.</span>
+        <span class="s2">if not </span><span class="s1">found_lang </span><span class="s2">and </span><span class="s1">self.cached_meta_lang:</span>
+            <span class="s2">for </span><span class="s1">cache </span><span class="s2">in </span><span class="s1">self.cached_meta_lang:</span>
+                <span class="s2">if </span><span class="s1">root </span><span class="s2">is </span><span class="s1">cache[</span><span class="s5">0</span><span class="s1">]:</span>
+                    <span class="s1">found_lang = cache[</span><span class="s5">1</span><span class="s1">]</span>
+
+        <span class="s3"># If we couldn't find a language, and the document is HTML, look to meta to determine language.</span>
+        <span class="s2">if </span><span class="s1">found_lang </span><span class="s2">is None and </span><span class="s1">(</span><span class="s2">not </span><span class="s1">self.is_xml </span><span class="s2">or </span><span class="s1">(has_html_namespace </span><span class="s2">and </span><span class="s1">root.name == </span><span class="s4">'html'</span><span class="s1">)):</span>
+            <span class="s3"># Find head</span>
+            <span class="s1">found = </span><span class="s2">False</span>
+            <span class="s2">for </span><span class="s1">tag </span><span class="s2">in </span><span class="s1">(</span><span class="s4">'html'</span><span class="s2">, </span><span class="s4">'head'</span><span class="s1">):</span>
+                <span class="s1">found = </span><span class="s2">False</span>
+                <span class="s2">for </span><span class="s1">child </span><span class="s2">in </span><span class="s1">self.get_children(parent</span><span class="s2">, </span><span class="s1">no_iframe=self.is_html):</span>
+                    <span class="s2">if </span><span class="s1">self.get_tag(child) == tag </span><span class="s2">and </span><span class="s1">self.is_html_tag(child):</span>
+                        <span class="s1">found = </span><span class="s2">True</span>
+                        <span class="s1">parent = child</span>
+                        <span class="s2">break</span>
+                <span class="s2">if not </span><span class="s1">found:  </span><span class="s3"># pragma: no cover</span>
+                    <span class="s2">break</span>
+
+            <span class="s3"># Search meta tags</span>
+            <span class="s2">if </span><span class="s1">found:</span>
+                <span class="s2">for </span><span class="s1">child </span><span class="s2">in </span><span class="s1">parent:</span>
+                    <span class="s2">if </span><span class="s1">self.is_tag(child) </span><span class="s2">and </span><span class="s1">self.get_tag(child) == </span><span class="s4">'meta' </span><span class="s2">and </span><span class="s1">self.is_html_tag(parent):</span>
+                        <span class="s1">c_lang = </span><span class="s2">False</span>
+                        <span class="s1">content = </span><span class="s2">None</span>
+                        <span class="s2">for </span><span class="s1">k</span><span class="s2">, </span><span class="s1">v </span><span class="s2">in </span><span class="s1">self.iter_attributes(child):</span>
+                            <span class="s2">if </span><span class="s1">util.lower(k) == </span><span class="s4">'http-equiv' </span><span class="s2">and </span><span class="s1">util.lower(v) == </span><span class="s4">'content-language'</span><span class="s1">:</span>
+                                <span class="s1">c_lang = </span><span class="s2">True</span>
+                            <span class="s2">if </span><span class="s1">util.lower(k) == </span><span class="s4">'content'</span><span class="s1">:</span>
+                                <span class="s1">content = v</span>
+                            <span class="s2">if </span><span class="s1">c_lang </span><span class="s2">and </span><span class="s1">content:</span>
+                                <span class="s1">found_lang = content</span>
+                                <span class="s1">self.cached_meta_lang.append((root</span><span class="s2">, </span><span class="s1">found_lang))</span>
+                                <span class="s2">break</span>
+                    <span class="s2">if </span><span class="s1">found_lang:</span>
+                        <span class="s2">break</span>
+                <span class="s2">if not </span><span class="s1">found_lang:</span>
+                    <span class="s1">self.cached_meta_lang.append((root</span><span class="s2">, False</span><span class="s1">))</span>
+
+        <span class="s3"># If we determined a language, compare.</span>
+        <span class="s2">if </span><span class="s1">found_lang:</span>
+            <span class="s2">for </span><span class="s1">patterns </span><span class="s2">in </span><span class="s1">langs:</span>
+                <span class="s1">match = </span><span class="s2">False</span>
+                <span class="s2">for </span><span class="s1">pattern </span><span class="s2">in </span><span class="s1">patterns:</span>
+                    <span class="s2">if </span><span class="s1">self.extended_language_filter(pattern</span><span class="s2">, </span><span class="s1">found_lang):</span>
+                        <span class="s1">match = </span><span class="s2">True</span>
+                <span class="s2">if not </span><span class="s1">match:</span>
+                    <span class="s2">break</span>
+
+        <span class="s2">return </span><span class="s1">match</span>
+
+    <span class="s2">def </span><span class="s1">match_dir(self</span><span class="s2">, </span><span class="s1">el</span><span class="s2">, </span><span class="s1">directionality):</span>
+        <span class="s0">&quot;&quot;&quot;Check directionality.&quot;&quot;&quot;</span>
+
+        <span class="s3"># If we have to match both left and right, we can't match either.</span>
+        <span class="s2">if </span><span class="s1">directionality &amp; ct.SEL_DIR_LTR </span><span class="s2">and </span><span class="s1">directionality &amp; ct.SEL_DIR_RTL:</span>
+            <span class="s2">return False</span>
+
+        <span class="s2">if </span><span class="s1">el </span><span class="s2">is None or not </span><span class="s1">self.is_html_tag(el):</span>
+            <span class="s2">return False</span>
+
+        <span class="s3"># Element has defined direction of left to right or right to left</span>
+        <span class="s1">direction = DIR_MAP.get(util.lower(self.get_attribute_by_name(el</span><span class="s2">, </span><span class="s4">'dir'</span><span class="s2">, </span><span class="s4">''</span><span class="s1">))</span><span class="s2">, None</span><span class="s1">)</span>
+        <span class="s2">if </span><span class="s1">direction </span><span class="s2">not in </span><span class="s1">(</span><span class="s2">None, </span><span class="s5">0</span><span class="s1">):</span>
+            <span class="s2">return </span><span class="s1">direction == directionality</span>
+
+        <span class="s3"># Element is the document element (the root) and no direction assigned, assume left to right.</span>
+        <span class="s1">is_root = self.is_root(el)</span>
+        <span class="s2">if </span><span class="s1">is_root </span><span class="s2">and </span><span class="s1">direction </span><span class="s2">is None</span><span class="s1">:</span>
+            <span class="s2">return </span><span class="s1">ct.SEL_DIR_LTR == directionality</span>
+
+        <span class="s3"># If `input[type=telephone]` and no direction is assigned, assume left to right.</span>
+        <span class="s1">name = self.get_tag(el)</span>
+        <span class="s1">is_input = name == </span><span class="s4">'input'</span>
+        <span class="s1">is_textarea = name == </span><span class="s4">'textarea'</span>
+        <span class="s1">is_bdi = name == </span><span class="s4">'bdi'</span>
+        <span class="s1">itype = util.lower(self.get_attribute_by_name(el</span><span class="s2">, </span><span class="s4">'type'</span><span class="s2">, </span><span class="s4">''</span><span class="s1">)) </span><span class="s2">if </span><span class="s1">is_input </span><span class="s2">else </span><span class="s4">''</span>
+        <span class="s2">if </span><span class="s1">is_input </span><span class="s2">and </span><span class="s1">itype == </span><span class="s4">'tel' </span><span class="s2">and </span><span class="s1">direction </span><span class="s2">is None</span><span class="s1">:</span>
+            <span class="s2">return </span><span class="s1">ct.SEL_DIR_LTR == directionality</span>
+
+        <span class="s3"># Auto handling for text inputs</span>
+        <span class="s2">if </span><span class="s1">((is_input </span><span class="s2">and </span><span class="s1">itype </span><span class="s2">in </span><span class="s1">(</span><span class="s4">'text'</span><span class="s2">, </span><span class="s4">'search'</span><span class="s2">, </span><span class="s4">'tel'</span><span class="s2">, </span><span class="s4">'url'</span><span class="s2">, </span><span class="s4">'email'</span><span class="s1">)) </span><span class="s2">or </span><span class="s1">is_textarea) </span><span class="s2">and </span><span class="s1">direction == </span><span class="s5">0</span><span class="s1">:</span>
+            <span class="s2">if </span><span class="s1">is_textarea:</span>
+                <span class="s1">value = []</span>
+                <span class="s2">for </span><span class="s1">node </span><span class="s2">in </span><span class="s1">self.get_contents(el</span><span class="s2">, </span><span class="s1">no_iframe=</span><span class="s2">True</span><span class="s1">):</span>
+                    <span class="s2">if </span><span class="s1">self.is_content_string(node):</span>
+                        <span class="s1">value.append(node)</span>
+                <span class="s1">value = </span><span class="s4">''</span><span class="s1">.join(value)</span>
+            <span class="s2">else</span><span class="s1">:</span>
+                <span class="s1">value = self.get_attribute_by_name(el</span><span class="s2">, </span><span class="s4">'value'</span><span class="s2">, </span><span class="s4">''</span><span class="s1">)</span>
+            <span class="s2">if </span><span class="s1">value:</span>
+                <span class="s2">for </span><span class="s1">c </span><span class="s2">in </span><span class="s1">value:</span>
+                    <span class="s1">bidi = unicodedata.bidirectional(c)</span>
+                    <span class="s2">if </span><span class="s1">bidi </span><span class="s2">in </span><span class="s1">(</span><span class="s4">'AL'</span><span class="s2">, </span><span class="s4">'R'</span><span class="s2">, </span><span class="s4">'L'</span><span class="s1">):</span>
+                        <span class="s1">direction = ct.SEL_DIR_LTR </span><span class="s2">if </span><span class="s1">bidi == </span><span class="s4">'L' </span><span class="s2">else </span><span class="s1">ct.SEL_DIR_RTL</span>
+                        <span class="s2">return </span><span class="s1">direction == directionality</span>
+                <span class="s3"># Assume left to right</span>
+                <span class="s2">return </span><span class="s1">ct.SEL_DIR_LTR == directionality</span>
+            <span class="s2">elif </span><span class="s1">is_root:</span>
+                <span class="s2">return </span><span class="s1">ct.SEL_DIR_LTR == directionality</span>
+            <span class="s2">return </span><span class="s1">self.match_dir(self.get_parent(el</span><span class="s2">, </span><span class="s1">no_iframe=</span><span class="s2">True</span><span class="s1">)</span><span class="s2">, </span><span class="s1">directionality)</span>
+
+        <span class="s3"># Auto handling for `bdi` and other non text inputs.</span>
+        <span class="s2">if </span><span class="s1">(is_bdi </span><span class="s2">and </span><span class="s1">direction </span><span class="s2">is None</span><span class="s1">) </span><span class="s2">or </span><span class="s1">direction == </span><span class="s5">0</span><span class="s1">:</span>
+            <span class="s1">direction = self.find_bidi(el)</span>
+            <span class="s2">if </span><span class="s1">direction </span><span class="s2">is not None</span><span class="s1">:</span>
+                <span class="s2">return </span><span class="s1">direction == directionality</span>
+            <span class="s2">elif </span><span class="s1">is_root:</span>
+                <span class="s2">return </span><span class="s1">ct.SEL_DIR_LTR == directionality</span>
+            <span class="s2">return </span><span class="s1">self.match_dir(self.get_parent(el</span><span class="s2">, </span><span class="s1">no_iframe=</span><span class="s2">True</span><span class="s1">)</span><span class="s2">, </span><span class="s1">directionality)</span>
+
+        <span class="s3"># Match parents direction</span>
+        <span class="s2">return </span><span class="s1">self.match_dir(self.get_parent(el</span><span class="s2">, </span><span class="s1">no_iframe=</span><span class="s2">True</span><span class="s1">)</span><span class="s2">, </span><span class="s1">directionality)</span>
+
+    <span class="s2">def </span><span class="s1">match_range(self</span><span class="s2">, </span><span class="s1">el</span><span class="s2">, </span><span class="s1">condition):</span>
+        <span class="s0">&quot;&quot;&quot; 
+        Match range. 
+ 
+        Behavior is modeled after what we see in browsers. Browsers seem to evaluate 
+        if the value is out of range, and if not, it is in range. So a missing value 
+        will not evaluate out of range; therefore, value is in range. Personally, I 
+        feel like this should evaluate as neither in or out of range. 
+        &quot;&quot;&quot;</span>
+
+        <span class="s1">out_of_range = </span><span class="s2">False</span>
+
+        <span class="s1">itype = util.lower(self.get_attribute_by_name(el</span><span class="s2">, </span><span class="s4">'type'</span><span class="s1">))</span>
+        <span class="s1">mn = self.get_attribute_by_name(el</span><span class="s2">, </span><span class="s4">'min'</span><span class="s2">, None</span><span class="s1">)</span>
+        <span class="s2">if </span><span class="s1">mn </span><span class="s2">is not None</span><span class="s1">:</span>
+            <span class="s1">mn = Inputs.parse_value(itype</span><span class="s2">, </span><span class="s1">mn)</span>
+        <span class="s1">mx = self.get_attribute_by_name(el</span><span class="s2">, </span><span class="s4">'max'</span><span class="s2">, None</span><span class="s1">)</span>
+        <span class="s2">if </span><span class="s1">mx </span><span class="s2">is not None</span><span class="s1">:</span>
+            <span class="s1">mx = Inputs.parse_value(itype</span><span class="s2">, </span><span class="s1">mx)</span>
+
+        <span class="s3"># There is no valid min or max, so we cannot evaluate a range</span>
+        <span class="s2">if </span><span class="s1">mn </span><span class="s2">is None and </span><span class="s1">mx </span><span class="s2">is None</span><span class="s1">:</span>
+            <span class="s2">return False</span>
+
+        <span class="s1">value = self.get_attribute_by_name(el</span><span class="s2">, </span><span class="s4">'value'</span><span class="s2">, None</span><span class="s1">)</span>
+        <span class="s2">if </span><span class="s1">value </span><span class="s2">is not None</span><span class="s1">:</span>
+            <span class="s1">value = Inputs.parse_value(itype</span><span class="s2">, </span><span class="s1">value)</span>
+        <span class="s2">if </span><span class="s1">value </span><span class="s2">is not None</span><span class="s1">:</span>
+            <span class="s2">if </span><span class="s1">itype </span><span class="s2">in </span><span class="s1">(</span><span class="s4">&quot;date&quot;</span><span class="s2">, </span><span class="s4">&quot;datetime-local&quot;</span><span class="s2">, </span><span class="s4">&quot;month&quot;</span><span class="s2">, </span><span class="s4">&quot;week&quot;</span><span class="s2">, </span><span class="s4">&quot;number&quot;</span><span class="s2">, </span><span class="s4">&quot;range&quot;</span><span class="s1">):</span>
+                <span class="s2">if </span><span class="s1">mn </span><span class="s2">is not None and </span><span class="s1">value &lt; mn:</span>
+                    <span class="s1">out_of_range = </span><span class="s2">True</span>
+                <span class="s2">if not </span><span class="s1">out_of_range </span><span class="s2">and </span><span class="s1">mx </span><span class="s2">is not None and </span><span class="s1">value &gt; mx:</span>
+                    <span class="s1">out_of_range = </span><span class="s2">True</span>
+            <span class="s2">elif </span><span class="s1">itype == </span><span class="s4">&quot;time&quot;</span><span class="s1">:</span>
+                <span class="s2">if </span><span class="s1">mn </span><span class="s2">is not None and </span><span class="s1">mx </span><span class="s2">is not None and </span><span class="s1">mn &gt; mx:</span>
+                    <span class="s3"># Time is periodic, so this is a reversed/discontinuous range</span>
+                    <span class="s2">if </span><span class="s1">value &lt; mn </span><span class="s2">and </span><span class="s1">value &gt; mx:</span>
+                        <span class="s1">out_of_range = </span><span class="s2">True</span>
+                <span class="s2">else</span><span class="s1">:</span>
+                    <span class="s2">if </span><span class="s1">mn </span><span class="s2">is not None and </span><span class="s1">value &lt; mn:</span>
+                        <span class="s1">out_of_range = </span><span class="s2">True</span>
+                    <span class="s2">if not </span><span class="s1">out_of_range </span><span class="s2">and </span><span class="s1">mx </span><span class="s2">is not None and </span><span class="s1">value &gt; mx:</span>
+                        <span class="s1">out_of_range = </span><span class="s2">True</span>
+
+        <span class="s2">return not </span><span class="s1">out_of_range </span><span class="s2">if </span><span class="s1">condition &amp; ct.SEL_IN_RANGE </span><span class="s2">else </span><span class="s1">out_of_range</span>
+
+    <span class="s2">def </span><span class="s1">match_defined(self</span><span class="s2">, </span><span class="s1">el):</span>
+        <span class="s0">&quot;&quot;&quot; 
+        Match defined. 
+ 
+        `:defined` is related to custom elements in a browser. 
+ 
+        - If the document is XML (not XHTML), all tags will match. 
+        - Tags that are not custom (don't have a hyphen) are marked defined. 
+        - If the tag has a prefix (without or without a namespace), it will not match. 
+ 
+        This is of course requires the parser to provide us with the proper prefix and namespace info, 
+        if it doesn't, there is nothing we can do. 
+        &quot;&quot;&quot;</span>
+
+        <span class="s1">name = self.get_tag(el)</span>
+        <span class="s2">return </span><span class="s1">(</span>
+            <span class="s1">name.find(</span><span class="s4">'-'</span><span class="s1">) == -</span><span class="s5">1 </span><span class="s2">or</span>
+            <span class="s1">name.find(</span><span class="s4">':'</span><span class="s1">) != -</span><span class="s5">1 </span><span class="s2">or</span>
+            <span class="s1">self.get_prefix(el) </span><span class="s2">is not None</span>
+        <span class="s1">)</span>
+
+    <span class="s2">def </span><span class="s1">match_placeholder_shown(self</span><span class="s2">, </span><span class="s1">el):</span>
+        <span class="s0">&quot;&quot;&quot; 
+        Match placeholder shown according to HTML spec. 
+ 
+        - text area should be checked if they have content. A single newline does not count as content. 
+ 
+        &quot;&quot;&quot;</span>
+
+        <span class="s1">match = </span><span class="s2">False</span>
+        <span class="s1">content = self.get_text(el)</span>
+        <span class="s2">if </span><span class="s1">content </span><span class="s2">in </span><span class="s1">(</span><span class="s4">''</span><span class="s2">, </span><span class="s4">'</span><span class="s2">\n</span><span class="s4">'</span><span class="s1">):</span>
+            <span class="s1">match = </span><span class="s2">True</span>
+
+        <span class="s2">return </span><span class="s1">match</span>
+
+    <span class="s2">def </span><span class="s1">match_selectors(self</span><span class="s2">, </span><span class="s1">el</span><span class="s2">, </span><span class="s1">selectors):</span>
+        <span class="s0">&quot;&quot;&quot;Check if element matches one of the selectors.&quot;&quot;&quot;</span>
+
+        <span class="s1">match = </span><span class="s2">False</span>
+        <span class="s1">is_not = selectors.is_not</span>
+        <span class="s1">is_html = selectors.is_html</span>
+
+        <span class="s3"># Internal selector lists that use the HTML flag, will automatically get the `html` namespace.</span>
+        <span class="s2">if </span><span class="s1">is_html:</span>
+            <span class="s1">namespaces = self.namespaces</span>
+            <span class="s1">iframe_restrict = self.iframe_restrict</span>
+            <span class="s1">self.namespaces = {</span><span class="s4">'html'</span><span class="s1">: NS_XHTML}</span>
+            <span class="s1">self.iframe_restrict = </span><span class="s2">True</span>
+
+        <span class="s2">if not </span><span class="s1">is_html </span><span class="s2">or </span><span class="s1">self.is_html:</span>
+            <span class="s2">for </span><span class="s1">selector </span><span class="s2">in </span><span class="s1">selectors:</span>
+                <span class="s1">match = is_not</span>
+                <span class="s3"># We have a un-matchable situation (like `:focus` as you can focus an element in this environment)</span>
+                <span class="s2">if </span><span class="s1">isinstance(selector</span><span class="s2">, </span><span class="s1">ct.SelectorNull):</span>
+                    <span class="s2">continue</span>
+                <span class="s3"># Verify tag matches</span>
+                <span class="s2">if not </span><span class="s1">self.match_tag(el</span><span class="s2">, </span><span class="s1">selector.tag):</span>
+                    <span class="s2">continue</span>
+                <span class="s3"># Verify tag is defined</span>
+                <span class="s2">if </span><span class="s1">selector.flags &amp; ct.SEL_DEFINED </span><span class="s2">and not </span><span class="s1">self.match_defined(el):</span>
+                    <span class="s2">continue</span>
+                <span class="s3"># Verify element is root</span>
+                <span class="s2">if </span><span class="s1">selector.flags &amp; ct.SEL_ROOT </span><span class="s2">and not </span><span class="s1">self.match_root(el):</span>
+                    <span class="s2">continue</span>
+                <span class="s3"># Verify element is scope</span>
+                <span class="s2">if </span><span class="s1">selector.flags &amp; ct.SEL_SCOPE </span><span class="s2">and not </span><span class="s1">self.match_scope(el):</span>
+                    <span class="s2">continue</span>
+                <span class="s3"># Verify element has placeholder shown</span>
+                <span class="s2">if </span><span class="s1">selector.flags &amp; ct.SEL_PLACEHOLDER_SHOWN </span><span class="s2">and not </span><span class="s1">self.match_placeholder_shown(el):</span>
+                    <span class="s2">continue</span>
+                <span class="s3"># Verify `nth` matches</span>
+                <span class="s2">if not </span><span class="s1">self.match_nth(el</span><span class="s2">, </span><span class="s1">selector.nth):</span>
+                    <span class="s2">continue</span>
+                <span class="s2">if </span><span class="s1">selector.flags &amp; ct.SEL_EMPTY </span><span class="s2">and not </span><span class="s1">self.match_empty(el):</span>
+                    <span class="s2">continue</span>
+                <span class="s3"># Verify id matches</span>
+                <span class="s2">if </span><span class="s1">selector.ids </span><span class="s2">and not </span><span class="s1">self.match_id(el</span><span class="s2">, </span><span class="s1">selector.ids):</span>
+                    <span class="s2">continue</span>
+                <span class="s3"># Verify classes match</span>
+                <span class="s2">if </span><span class="s1">selector.classes </span><span class="s2">and not </span><span class="s1">self.match_classes(el</span><span class="s2">, </span><span class="s1">selector.classes):</span>
+                    <span class="s2">continue</span>
+                <span class="s3"># Verify attribute(s) match</span>
+                <span class="s2">if not </span><span class="s1">self.match_attributes(el</span><span class="s2">, </span><span class="s1">selector.attributes):</span>
+                    <span class="s2">continue</span>
+                <span class="s3"># Verify ranges</span>
+                <span class="s2">if </span><span class="s1">selector.flags &amp; RANGES </span><span class="s2">and not </span><span class="s1">self.match_range(el</span><span class="s2">, </span><span class="s1">selector.flags &amp; RANGES):</span>
+                    <span class="s2">continue</span>
+                <span class="s3"># Verify language patterns</span>
+                <span class="s2">if </span><span class="s1">selector.lang </span><span class="s2">and not </span><span class="s1">self.match_lang(el</span><span class="s2">, </span><span class="s1">selector.lang):</span>
+                    <span class="s2">continue</span>
+                <span class="s3"># Verify pseudo selector patterns</span>
+                <span class="s2">if </span><span class="s1">selector.selectors </span><span class="s2">and not </span><span class="s1">self.match_subselectors(el</span><span class="s2">, </span><span class="s1">selector.selectors):</span>
+                    <span class="s2">continue</span>
+                <span class="s3"># Verify relationship selectors</span>
+                <span class="s2">if </span><span class="s1">selector.relation </span><span class="s2">and not </span><span class="s1">self.match_relations(el</span><span class="s2">, </span><span class="s1">selector.relation):</span>
+                    <span class="s2">continue</span>
+                <span class="s3"># Validate that the current default selector match corresponds to the first submit button in the form</span>
+                <span class="s2">if </span><span class="s1">selector.flags &amp; ct.SEL_DEFAULT </span><span class="s2">and not </span><span class="s1">self.match_default(el):</span>
+                    <span class="s2">continue</span>
+                <span class="s3"># Validate that the unset radio button is among radio buttons with the same name in a form that are</span>
+                <span class="s3"># also not set.</span>
+                <span class="s2">if </span><span class="s1">selector.flags &amp; ct.SEL_INDETERMINATE </span><span class="s2">and not </span><span class="s1">self.match_indeterminate(el):</span>
+                    <span class="s2">continue</span>
+                <span class="s3"># Validate element directionality</span>
+                <span class="s2">if </span><span class="s1">selector.flags &amp; DIR_FLAGS </span><span class="s2">and not </span><span class="s1">self.match_dir(el</span><span class="s2">, </span><span class="s1">selector.flags &amp; DIR_FLAGS):</span>
+                    <span class="s2">continue</span>
+                <span class="s3"># Validate that the tag contains the specified text.</span>
+                <span class="s2">if not </span><span class="s1">self.match_contains(el</span><span class="s2">, </span><span class="s1">selector.contains):</span>
+                    <span class="s2">continue</span>
+                <span class="s1">match = </span><span class="s2">not </span><span class="s1">is_not</span>
+                <span class="s2">break</span>
+
+        <span class="s3"># Restore actual namespaces being used for external selector lists</span>
+        <span class="s2">if </span><span class="s1">is_html:</span>
+            <span class="s1">self.namespaces = namespaces</span>
+            <span class="s1">self.iframe_restrict = iframe_restrict</span>
+
+        <span class="s2">return </span><span class="s1">match</span>
+
+    <span class="s2">def </span><span class="s1">select(self</span><span class="s2">, </span><span class="s1">limit=</span><span class="s5">0</span><span class="s1">):</span>
+        <span class="s0">&quot;&quot;&quot;Match all tags under the targeted tag.&quot;&quot;&quot;</span>
+
+        <span class="s2">if </span><span class="s1">limit &lt; </span><span class="s5">1</span><span class="s1">:</span>
+            <span class="s1">limit = </span><span class="s2">None</span>
+
+        <span class="s2">for </span><span class="s1">child </span><span class="s2">in </span><span class="s1">self.get_descendants(self.tag):</span>
+            <span class="s2">if </span><span class="s1">self.match(child):</span>
+                <span class="s2">yield </span><span class="s1">child</span>
+                <span class="s2">if </span><span class="s1">limit </span><span class="s2">is not None</span><span class="s1">:</span>
+                    <span class="s1">limit -= </span><span class="s5">1</span>
+                    <span class="s2">if </span><span class="s1">limit &lt; </span><span class="s5">1</span><span class="s1">:</span>
+                        <span class="s2">break</span>
+
+    <span class="s2">def </span><span class="s1">closest(self):</span>
+        <span class="s0">&quot;&quot;&quot;Match closest ancestor.&quot;&quot;&quot;</span>
+
+        <span class="s1">current = self.tag</span>
+        <span class="s1">closest = </span><span class="s2">None</span>
+        <span class="s2">while </span><span class="s1">closest </span><span class="s2">is None and </span><span class="s1">current </span><span class="s2">is not None</span><span class="s1">:</span>
+            <span class="s2">if </span><span class="s1">self.match(current):</span>
+                <span class="s1">closest = current</span>
+            <span class="s2">else</span><span class="s1">:</span>
+                <span class="s1">current = self.get_parent(current)</span>
+        <span class="s2">return </span><span class="s1">closest</span>
+
+    <span class="s2">def </span><span class="s1">filter(self):  </span><span class="s3"># noqa A001</span>
+        <span class="s0">&quot;&quot;&quot;Filter tag's children.&quot;&quot;&quot;</span>
+
+        <span class="s2">return </span><span class="s1">[tag </span><span class="s2">for </span><span class="s1">tag </span><span class="s2">in </span><span class="s1">self.get_contents(self.tag) </span><span class="s2">if not </span><span class="s1">self.is_navigable_string(tag) </span><span class="s2">and </span><span class="s1">self.match(tag)]</span>
+
+    <span class="s2">def </span><span class="s1">match(self</span><span class="s2">, </span><span class="s1">el):</span>
+        <span class="s0">&quot;&quot;&quot;Match.&quot;&quot;&quot;</span>
+
+        <span class="s2">return not </span><span class="s1">self.is_doc(el) </span><span class="s2">and </span><span class="s1">self.is_tag(el) </span><span class="s2">and </span><span class="s1">self.match_selectors(el</span><span class="s2">, </span><span class="s1">self.selectors)</span>
+
+
+<span class="s2">class </span><span class="s1">CSSMatch(_DocumentNav</span><span class="s2">, </span><span class="s1">_Match):</span>
+    <span class="s0">&quot;&quot;&quot;The Beautiful Soup CSS match class.&quot;&quot;&quot;</span>
+
+
+<span class="s2">class </span><span class="s1">SoupSieve(ct.Immutable):</span>
+    <span class="s0">&quot;&quot;&quot;Compiled Soup Sieve selector matching object.&quot;&quot;&quot;</span>
+
+    <span class="s1">__slots__ = (</span><span class="s4">&quot;pattern&quot;</span><span class="s2">, </span><span class="s4">&quot;selectors&quot;</span><span class="s2">, </span><span class="s4">&quot;namespaces&quot;</span><span class="s2">, </span><span class="s4">&quot;custom&quot;</span><span class="s2">, </span><span class="s4">&quot;flags&quot;</span><span class="s2">, </span><span class="s4">&quot;_hash&quot;</span><span class="s1">)</span>
+
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">pattern</span><span class="s2">, </span><span class="s1">selectors</span><span class="s2">, </span><span class="s1">namespaces</span><span class="s2">, </span><span class="s1">custom</span><span class="s2">, </span><span class="s1">flags):</span>
+        <span class="s0">&quot;&quot;&quot;Initialize.&quot;&quot;&quot;</span>
+
+        <span class="s1">super(SoupSieve</span><span class="s2">, </span><span class="s1">self).__init__(</span>
+            <span class="s1">pattern=pattern</span><span class="s2">,</span>
+            <span class="s1">selectors=selectors</span><span class="s2">,</span>
+            <span class="s1">namespaces=namespaces</span><span class="s2">,</span>
+            <span class="s1">custom=custom</span><span class="s2">,</span>
+            <span class="s1">flags=flags</span>
+        <span class="s1">)</span>
+
+    <span class="s2">def </span><span class="s1">match(self</span><span class="s2">, </span><span class="s1">tag):</span>
+        <span class="s0">&quot;&quot;&quot;Match.&quot;&quot;&quot;</span>
+
+        <span class="s2">return </span><span class="s1">CSSMatch(self.selectors</span><span class="s2">, </span><span class="s1">tag</span><span class="s2">, </span><span class="s1">self.namespaces</span><span class="s2">, </span><span class="s1">self.flags).match(tag)</span>
+
+    <span class="s2">def </span><span class="s1">closest(self</span><span class="s2">, </span><span class="s1">tag):</span>
+        <span class="s0">&quot;&quot;&quot;Match closest ancestor.&quot;&quot;&quot;</span>
+
+        <span class="s2">return </span><span class="s1">CSSMatch(self.selectors</span><span class="s2">, </span><span class="s1">tag</span><span class="s2">, </span><span class="s1">self.namespaces</span><span class="s2">, </span><span class="s1">self.flags).closest()</span>
+
+    <span class="s2">def </span><span class="s1">filter(self</span><span class="s2">, </span><span class="s1">iterable):  </span><span class="s3"># noqa A001</span>
+        <span class="s0">&quot;&quot;&quot; 
+        Filter. 
+ 
+        `CSSMatch` can cache certain searches for tags of the same document, 
+        so if we are given a tag, all tags are from the same document, 
+        and we can take advantage of the optimization. 
+ 
+        Any other kind of iterable could have tags from different documents or detached tags, 
+        so for those, we use a new `CSSMatch` for each item in the iterable. 
+        &quot;&quot;&quot;</span>
+
+        <span class="s2">if </span><span class="s1">CSSMatch.is_tag(iterable):</span>
+            <span class="s2">return </span><span class="s1">CSSMatch(self.selectors</span><span class="s2">, </span><span class="s1">iterable</span><span class="s2">, </span><span class="s1">self.namespaces</span><span class="s2">, </span><span class="s1">self.flags).filter()</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s2">return </span><span class="s1">[node </span><span class="s2">for </span><span class="s1">node </span><span class="s2">in </span><span class="s1">iterable </span><span class="s2">if not </span><span class="s1">CSSMatch.is_navigable_string(node) </span><span class="s2">and </span><span class="s1">self.match(node)]</span>
+
+    <span class="s2">def </span><span class="s1">select_one(self</span><span class="s2">, </span><span class="s1">tag):</span>
+        <span class="s0">&quot;&quot;&quot;Select a single tag.&quot;&quot;&quot;</span>
+
+        <span class="s1">tags = self.select(tag</span><span class="s2">, </span><span class="s1">limit=</span><span class="s5">1</span><span class="s1">)</span>
+        <span class="s2">return </span><span class="s1">tags[</span><span class="s5">0</span><span class="s1">] </span><span class="s2">if </span><span class="s1">tags </span><span class="s2">else None</span>
+
+    <span class="s2">def </span><span class="s1">select(self</span><span class="s2">, </span><span class="s1">tag</span><span class="s2">, </span><span class="s1">limit=</span><span class="s5">0</span><span class="s1">):</span>
+        <span class="s0">&quot;&quot;&quot;Select the specified tags.&quot;&quot;&quot;</span>
+
+        <span class="s2">return </span><span class="s1">list(self.iselect(tag</span><span class="s2">, </span><span class="s1">limit))</span>
+
+    <span class="s2">def </span><span class="s1">iselect(self</span><span class="s2">, </span><span class="s1">tag</span><span class="s2">, </span><span class="s1">limit=</span><span class="s5">0</span><span class="s1">):</span>
+        <span class="s0">&quot;&quot;&quot;Iterate the specified tags.&quot;&quot;&quot;</span>
+
+        <span class="s2">for </span><span class="s1">el </span><span class="s2">in </span><span class="s1">CSSMatch(self.selectors</span><span class="s2">, </span><span class="s1">tag</span><span class="s2">, </span><span class="s1">self.namespaces</span><span class="s2">, </span><span class="s1">self.flags).select(limit):</span>
+            <span class="s2">yield </span><span class="s1">el</span>
+
+    <span class="s2">def </span><span class="s1">__repr__(self):  </span><span class="s3"># pragma: no cover</span>
+        <span class="s0">&quot;&quot;&quot;Representation.&quot;&quot;&quot;</span>
+
+        <span class="s2">return </span><span class="s4">&quot;SoupSieve(pattern={!r}, namespaces={!r}, custom={!r}, flags={!r})&quot;</span><span class="s1">.format(</span>
+            <span class="s1">self.pattern</span><span class="s2">,</span>
+            <span class="s1">self.namespaces</span><span class="s2">,</span>
+            <span class="s1">self.custom</span><span class="s2">,</span>
+            <span class="s1">self.flags</span>
+        <span class="s1">)</span>
+
+    <span class="s1">__str__ = __repr__</span>
+
+
+<span class="s1">ct.pickle_register(SoupSieve)</span>
+</pre>
+</body>
+</html>

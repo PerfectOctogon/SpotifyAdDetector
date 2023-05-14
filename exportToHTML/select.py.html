@@ -1,0 +1,263 @@
+<html>
+<head>
+<title>select.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #629755; font-style: italic;}
+.s4 { color: #6a8759;}
+.s5 { color: #6897bb;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+select.py</font>
+</center></td></tr></table>
+<pre><span class="s0"># Licensed to the Software Freedom Conservancy (SFC) under one</span>
+<span class="s0"># or more contributor license agreements.  See the NOTICE file</span>
+<span class="s0"># distributed with this work for additional information</span>
+<span class="s0"># regarding copyright ownership.  The SFC licenses this file</span>
+<span class="s0"># to you under the Apache License, Version 2.0 (the</span>
+<span class="s0"># &quot;License&quot;); you may not use this file except in compliance</span>
+<span class="s0"># with the License.  You may obtain a copy of the License at</span>
+<span class="s0">#</span>
+<span class="s0">#   http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="s0">#</span>
+<span class="s0"># Unless required by applicable law or agreed to in writing,</span>
+<span class="s0"># software distributed under the License is distributed on an</span>
+<span class="s0"># &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY</span>
+<span class="s0"># KIND, either express or implied.  See the License for the</span>
+<span class="s0"># specific language governing permissions and limitations</span>
+<span class="s0"># under the License.</span>
+
+<span class="s2">from </span><span class="s1">selenium.webdriver.common.by </span><span class="s2">import </span><span class="s1">By</span>
+<span class="s2">from </span><span class="s1">selenium.common.exceptions </span><span class="s2">import </span><span class="s1">NoSuchElementException</span><span class="s2">, </span><span class="s1">UnexpectedTagNameException</span>
+
+
+<span class="s2">class </span><span class="s1">Select(object):</span>
+
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">webelement):</span>
+        <span class="s3">&quot;&quot;&quot; 
+        Constructor. A check is made that the given element is, indeed, a SELECT tag. If it is not, 
+        then an UnexpectedTagNameException is thrown. 
+ 
+        :Args: 
+         - webelement - element SELECT element to wrap 
+ 
+        Example: 
+            from selenium.webdriver.support.ui import Select \n 
+            Select(driver.find_element_by_tag_name(&quot;select&quot;)).select_by_index(2) 
+        &quot;&quot;&quot;</span>
+        <span class="s2">if </span><span class="s1">webelement.tag_name.lower() != </span><span class="s4">&quot;select&quot;</span><span class="s1">:</span>
+            <span class="s2">raise </span><span class="s1">UnexpectedTagNameException(</span>
+                <span class="s4">&quot;Select only works on &lt;select&gt; elements, not on &lt;%s&gt;&quot; </span><span class="s1">%</span>
+                <span class="s1">webelement.tag_name)</span>
+        <span class="s1">self._el = webelement</span>
+        <span class="s1">multi = self._el.get_attribute(</span><span class="s4">&quot;multiple&quot;</span><span class="s1">)</span>
+        <span class="s1">self.is_multiple = multi </span><span class="s2">and </span><span class="s1">multi != </span><span class="s4">&quot;false&quot;</span>
+
+    <span class="s1">@property</span>
+    <span class="s2">def </span><span class="s1">options(self):</span>
+        <span class="s3">&quot;&quot;&quot;Returns a list of all options belonging to this select tag&quot;&quot;&quot;</span>
+        <span class="s2">return </span><span class="s1">self._el.find_elements(By.TAG_NAME</span><span class="s2">, </span><span class="s4">'option'</span><span class="s1">)</span>
+
+    <span class="s1">@property</span>
+    <span class="s2">def </span><span class="s1">all_selected_options(self):</span>
+        <span class="s3">&quot;&quot;&quot;Returns a list of all selected options belonging to this select tag&quot;&quot;&quot;</span>
+        <span class="s1">ret = []</span>
+        <span class="s2">for </span><span class="s1">opt </span><span class="s2">in </span><span class="s1">self.options:</span>
+            <span class="s2">if </span><span class="s1">opt.is_selected():</span>
+                <span class="s1">ret.append(opt)</span>
+        <span class="s2">return </span><span class="s1">ret</span>
+
+    <span class="s1">@property</span>
+    <span class="s2">def </span><span class="s1">first_selected_option(self):</span>
+        <span class="s3">&quot;&quot;&quot;The first selected option in this select tag (or the currently selected option in a 
+        normal select)&quot;&quot;&quot;</span>
+        <span class="s2">for </span><span class="s1">opt </span><span class="s2">in </span><span class="s1">self.options:</span>
+            <span class="s2">if </span><span class="s1">opt.is_selected():</span>
+                <span class="s2">return </span><span class="s1">opt</span>
+        <span class="s2">raise </span><span class="s1">NoSuchElementException(</span><span class="s4">&quot;No options are selected&quot;</span><span class="s1">)</span>
+
+    <span class="s2">def </span><span class="s1">select_by_value(self</span><span class="s2">, </span><span class="s1">value):</span>
+        <span class="s3">&quot;&quot;&quot;Select all options that have a value matching the argument. That is, when given &quot;foo&quot; this 
+           would select an option like: 
+ 
+           &lt;option value=&quot;foo&quot;&gt;Bar&lt;/option&gt; 
+ 
+           :Args: 
+            - value - The value to match against 
+ 
+           throws NoSuchElementException If there is no option with specisied value in SELECT 
+           &quot;&quot;&quot;</span>
+        <span class="s1">css = </span><span class="s4">&quot;option[value =%s]&quot; </span><span class="s1">% self._escapeString(value)</span>
+        <span class="s1">opts = self._el.find_elements(By.CSS_SELECTOR</span><span class="s2">, </span><span class="s1">css)</span>
+        <span class="s1">matched = </span><span class="s2">False</span>
+        <span class="s2">for </span><span class="s1">opt </span><span class="s2">in </span><span class="s1">opts:</span>
+            <span class="s1">self._setSelected(opt)</span>
+            <span class="s2">if not </span><span class="s1">self.is_multiple:</span>
+                <span class="s2">return</span>
+            <span class="s1">matched = </span><span class="s2">True</span>
+        <span class="s2">if not </span><span class="s1">matched:</span>
+            <span class="s2">raise </span><span class="s1">NoSuchElementException(</span><span class="s4">&quot;Cannot locate option with value: %s&quot; </span><span class="s1">% value)</span>
+
+    <span class="s2">def </span><span class="s1">select_by_index(self</span><span class="s2">, </span><span class="s1">index):</span>
+        <span class="s3">&quot;&quot;&quot;Select the option at the given index. This is done by examing the &quot;index&quot; attribute of an 
+           element, and not merely by counting. 
+ 
+           :Args: 
+            - index - The option at this index will be selected 
+ 
+           throws NoSuchElementException If there is no option with specisied index in SELECT 
+           &quot;&quot;&quot;</span>
+        <span class="s1">match = str(index)</span>
+        <span class="s2">for </span><span class="s1">opt </span><span class="s2">in </span><span class="s1">self.options:</span>
+            <span class="s2">if </span><span class="s1">opt.get_attribute(</span><span class="s4">&quot;index&quot;</span><span class="s1">) == match:</span>
+                <span class="s1">self._setSelected(opt)</span>
+                <span class="s2">return</span>
+        <span class="s2">raise </span><span class="s1">NoSuchElementException(</span><span class="s4">&quot;Could not locate element with index %d&quot; </span><span class="s1">% index)</span>
+
+    <span class="s2">def </span><span class="s1">select_by_visible_text(self</span><span class="s2">, </span><span class="s1">text):</span>
+        <span class="s3">&quot;&quot;&quot;Select all options that display text matching the argument. That is, when given &quot;Bar&quot; this 
+           would select an option like: 
+ 
+            &lt;option value=&quot;foo&quot;&gt;Bar&lt;/option&gt; 
+ 
+           :Args: 
+            - text - The visible text to match against 
+ 
+            throws NoSuchElementException If there is no option with specisied text in SELECT 
+           &quot;&quot;&quot;</span>
+        <span class="s1">xpath = </span><span class="s4">&quot;.//option[normalize-space(.) = %s]&quot; </span><span class="s1">% self._escapeString(text)</span>
+        <span class="s1">opts = self._el.find_elements(By.XPATH</span><span class="s2">, </span><span class="s1">xpath)</span>
+        <span class="s1">matched = </span><span class="s2">False</span>
+        <span class="s2">for </span><span class="s1">opt </span><span class="s2">in </span><span class="s1">opts:</span>
+            <span class="s1">self._setSelected(opt)</span>
+            <span class="s2">if not </span><span class="s1">self.is_multiple:</span>
+                <span class="s2">return</span>
+            <span class="s1">matched = </span><span class="s2">True</span>
+
+        <span class="s2">if </span><span class="s1">len(opts) == </span><span class="s5">0 </span><span class="s2">and </span><span class="s4">&quot; &quot; </span><span class="s2">in </span><span class="s1">text:</span>
+            <span class="s1">subStringWithoutSpace = self._get_longest_token(text)</span>
+            <span class="s2">if </span><span class="s1">subStringWithoutSpace == </span><span class="s4">&quot;&quot;</span><span class="s1">:</span>
+                <span class="s1">candidates = self.options</span>
+            <span class="s2">else</span><span class="s1">:</span>
+                <span class="s1">xpath = </span><span class="s4">&quot;.//option[contains(.,%s)]&quot; </span><span class="s1">% self._escapeString(subStringWithoutSpace)</span>
+                <span class="s1">candidates = self._el.find_elements(By.XPATH</span><span class="s2">, </span><span class="s1">xpath)</span>
+            <span class="s2">for </span><span class="s1">candidate </span><span class="s2">in </span><span class="s1">candidates:</span>
+                <span class="s2">if </span><span class="s1">text == candidate.text:</span>
+                    <span class="s1">self._setSelected(candidate)</span>
+                    <span class="s2">if not </span><span class="s1">self.is_multiple:</span>
+                        <span class="s2">return</span>
+                    <span class="s1">matched = </span><span class="s2">True</span>
+
+        <span class="s2">if not </span><span class="s1">matched:</span>
+            <span class="s2">raise </span><span class="s1">NoSuchElementException(</span><span class="s4">&quot;Could not locate element with visible text: %s&quot; </span><span class="s1">% text)</span>
+
+    <span class="s2">def </span><span class="s1">deselect_all(self):</span>
+        <span class="s3">&quot;&quot;&quot;Clear all selected entries. This is only valid when the SELECT supports multiple selections. 
+           throws NotImplementedError If the SELECT does not support multiple selections 
+        &quot;&quot;&quot;</span>
+        <span class="s2">if not </span><span class="s1">self.is_multiple:</span>
+            <span class="s2">raise </span><span class="s1">NotImplementedError(</span><span class="s4">&quot;You may only deselect all options of a multi-select&quot;</span><span class="s1">)</span>
+        <span class="s2">for </span><span class="s1">opt </span><span class="s2">in </span><span class="s1">self.options:</span>
+            <span class="s1">self._unsetSelected(opt)</span>
+
+    <span class="s2">def </span><span class="s1">deselect_by_value(self</span><span class="s2">, </span><span class="s1">value):</span>
+        <span class="s3">&quot;&quot;&quot;Deselect all options that have a value matching the argument. That is, when given &quot;foo&quot; this 
+           would deselect an option like: 
+ 
+            &lt;option value=&quot;foo&quot;&gt;Bar&lt;/option&gt; 
+ 
+           :Args: 
+            - value - The value to match against 
+ 
+            throws NoSuchElementException If there is no option with specisied value in SELECT 
+        &quot;&quot;&quot;</span>
+        <span class="s2">if not </span><span class="s1">self.is_multiple:</span>
+            <span class="s2">raise </span><span class="s1">NotImplementedError(</span><span class="s4">&quot;You may only deselect options of a multi-select&quot;</span><span class="s1">)</span>
+        <span class="s1">matched = </span><span class="s2">False</span>
+        <span class="s1">css = </span><span class="s4">&quot;option[value = %s]&quot; </span><span class="s1">% self._escapeString(value)</span>
+        <span class="s1">opts = self._el.find_elements(By.CSS_SELECTOR</span><span class="s2">, </span><span class="s1">css)</span>
+        <span class="s2">for </span><span class="s1">opt </span><span class="s2">in </span><span class="s1">opts:</span>
+            <span class="s1">self._unsetSelected(opt)</span>
+            <span class="s1">matched = </span><span class="s2">True</span>
+        <span class="s2">if not </span><span class="s1">matched:</span>
+            <span class="s2">raise </span><span class="s1">NoSuchElementException(</span><span class="s4">&quot;Could not locate element with value: %s&quot; </span><span class="s1">% value)</span>
+
+    <span class="s2">def </span><span class="s1">deselect_by_index(self</span><span class="s2">, </span><span class="s1">index):</span>
+        <span class="s3">&quot;&quot;&quot;Deselect the option at the given index. This is done by examing the &quot;index&quot; attribute of an 
+           element, and not merely by counting. 
+ 
+           :Args: 
+            - index - The option at this index will be deselected 
+ 
+            throws NoSuchElementException If there is no option with specisied index in SELECT 
+        &quot;&quot;&quot;</span>
+        <span class="s2">if not </span><span class="s1">self.is_multiple:</span>
+            <span class="s2">raise </span><span class="s1">NotImplementedError(</span><span class="s4">&quot;You may only deselect options of a multi-select&quot;</span><span class="s1">)</span>
+        <span class="s2">for </span><span class="s1">opt </span><span class="s2">in </span><span class="s1">self.options:</span>
+            <span class="s2">if </span><span class="s1">opt.get_attribute(</span><span class="s4">&quot;index&quot;</span><span class="s1">) == str(index):</span>
+                <span class="s1">self._unsetSelected(opt)</span>
+                <span class="s2">return</span>
+        <span class="s2">raise </span><span class="s1">NoSuchElementException(</span><span class="s4">&quot;Could not locate element with index %d&quot; </span><span class="s1">% index)</span>
+
+    <span class="s2">def </span><span class="s1">deselect_by_visible_text(self</span><span class="s2">, </span><span class="s1">text):</span>
+        <span class="s3">&quot;&quot;&quot;Deselect all options that display text matching the argument. That is, when given &quot;Bar&quot; this 
+           would deselect an option like: 
+ 
+           &lt;option value=&quot;foo&quot;&gt;Bar&lt;/option&gt; 
+ 
+           :Args: 
+            - text - The visible text to match against 
+        &quot;&quot;&quot;</span>
+        <span class="s2">if not </span><span class="s1">self.is_multiple:</span>
+            <span class="s2">raise </span><span class="s1">NotImplementedError(</span><span class="s4">&quot;You may only deselect options of a multi-select&quot;</span><span class="s1">)</span>
+        <span class="s1">matched = </span><span class="s2">False</span>
+        <span class="s1">xpath = </span><span class="s4">&quot;.//option[normalize-space(.) = %s]&quot; </span><span class="s1">% self._escapeString(text)</span>
+        <span class="s1">opts = self._el.find_elements(By.XPATH</span><span class="s2">, </span><span class="s1">xpath)</span>
+        <span class="s2">for </span><span class="s1">opt </span><span class="s2">in </span><span class="s1">opts:</span>
+            <span class="s1">self._unsetSelected(opt)</span>
+            <span class="s1">matched = </span><span class="s2">True</span>
+        <span class="s2">if not </span><span class="s1">matched:</span>
+            <span class="s2">raise </span><span class="s1">NoSuchElementException(</span><span class="s4">&quot;Could not locate element with visible text: %s&quot; </span><span class="s1">% text)</span>
+
+    <span class="s2">def </span><span class="s1">_setSelected(self</span><span class="s2">, </span><span class="s1">option):</span>
+        <span class="s2">if not </span><span class="s1">option.is_selected():</span>
+            <span class="s1">option.click()</span>
+
+    <span class="s2">def </span><span class="s1">_unsetSelected(self</span><span class="s2">, </span><span class="s1">option):</span>
+        <span class="s2">if </span><span class="s1">option.is_selected():</span>
+            <span class="s1">option.click()</span>
+
+    <span class="s2">def </span><span class="s1">_escapeString(self</span><span class="s2">, </span><span class="s1">value):</span>
+        <span class="s2">if </span><span class="s4">'&quot;' </span><span class="s2">in </span><span class="s1">value </span><span class="s2">and </span><span class="s4">&quot;'&quot; </span><span class="s2">in </span><span class="s1">value:</span>
+            <span class="s1">substrings = value.split(</span><span class="s4">&quot;</span><span class="s2">\&quot;</span><span class="s4">&quot;</span><span class="s1">)</span>
+            <span class="s1">result = [</span><span class="s4">&quot;concat(&quot;</span><span class="s1">]</span>
+            <span class="s2">for </span><span class="s1">substring </span><span class="s2">in </span><span class="s1">substrings:</span>
+                <span class="s1">result.append(</span><span class="s4">&quot;</span><span class="s2">\&quot;</span><span class="s4">%s</span><span class="s2">\&quot;</span><span class="s4">&quot; </span><span class="s1">% substring)</span>
+                <span class="s1">result.append(</span><span class="s4">&quot;, '</span><span class="s2">\&quot;</span><span class="s4">', &quot;</span><span class="s1">)</span>
+            <span class="s1">result = result[</span><span class="s5">0</span><span class="s1">:-</span><span class="s5">1</span><span class="s1">]</span>
+            <span class="s2">if </span><span class="s1">value.endswith(</span><span class="s4">'&quot;'</span><span class="s1">):</span>
+                <span class="s1">result.append(</span><span class="s4">&quot;, '</span><span class="s2">\&quot;</span><span class="s4">'&quot;</span><span class="s1">)</span>
+            <span class="s2">return </span><span class="s4">&quot;&quot;</span><span class="s1">.join(result) + </span><span class="s4">&quot;)&quot;</span>
+
+        <span class="s2">if </span><span class="s4">'&quot;' </span><span class="s2">in </span><span class="s1">value:</span>
+            <span class="s2">return </span><span class="s4">&quot;'%s'&quot; </span><span class="s1">% value</span>
+
+        <span class="s2">return </span><span class="s4">&quot;</span><span class="s2">\&quot;</span><span class="s4">%s</span><span class="s2">\&quot;</span><span class="s4">&quot; </span><span class="s1">% value</span>
+
+    <span class="s2">def </span><span class="s1">_get_longest_token(self</span><span class="s2">, </span><span class="s1">value):</span>
+        <span class="s1">items = value.split(</span><span class="s4">&quot; &quot;</span><span class="s1">)</span>
+        <span class="s1">longest = </span><span class="s4">&quot;&quot;</span>
+        <span class="s2">for </span><span class="s1">item </span><span class="s2">in </span><span class="s1">items:</span>
+            <span class="s2">if </span><span class="s1">len(item) &gt; len(longest):</span>
+                <span class="s1">longest = item</span>
+        <span class="s2">return </span><span class="s1">longest</span>
+</pre>
+</body>
+</html>

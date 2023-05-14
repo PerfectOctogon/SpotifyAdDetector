@@ -1,0 +1,361 @@
+<html>
+<head>
+<title>_html.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #cc7832;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #6a8759;}
+.s3 { color: #808080;}
+.s4 { color: #6897bb;}
+.s5 { color: #629755; font-style: italic;}
+.s6 { color: #a5c261;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+_html.py</font>
+</center></td></tr></table>
+<pre><span class="s0">from </span><span class="s1">__future__ </span><span class="s0">import </span><span class="s1">absolute_import</span>
+
+<span class="s0">import </span><span class="s1">codecs</span>
+<span class="s0">import </span><span class="s1">copy</span>
+<span class="s0">import </span><span class="s1">re</span>
+
+<span class="s0">from </span><span class="s1">._form </span><span class="s0">import </span><span class="s1">parse_forms</span>
+<span class="s0">from </span><span class="s1">._headersutil </span><span class="s0">import </span><span class="s1">is_html </span><span class="s0">as </span><span class="s1">_is_html</span>
+<span class="s0">from </span><span class="s1">._headersutil </span><span class="s0">import </span><span class="s1">split_header_words</span>
+<span class="s0">from </span><span class="s1">._rfc3986 </span><span class="s0">import </span><span class="s1">clean_url</span><span class="s0">, </span><span class="s1">urljoin</span>
+<span class="s0">from </span><span class="s1">.polyglot </span><span class="s0">import </span><span class="s1">is_string</span>
+
+<span class="s1">DEFAULT_ENCODING = </span><span class="s2">&quot;utf-8&quot;</span>
+<span class="s1">_encoding_pats = (</span>
+    <span class="s3"># XML declaration</span>
+    <span class="s2">r'&lt;\?[^&lt;&gt;]+encoding\s*=\s*[\'&quot;](.*?)[\'&quot;][^&lt;&gt;]*&gt;'</span><span class="s0">,</span>
+    <span class="s3"># HTML 5 charset</span>
+    <span class="s2">r'''&lt;meta\s+charset=['&quot;]([-_a-z0-9]+)['&quot;][^&lt;&gt;]*&gt;(?:\s*&lt;/meta&gt;){0,1}'''</span><span class="s0">,</span>
+    <span class="s3"># HTML 4 Pragma directive</span>
+    <span class="s2">r'''&lt;meta\s+?[^&lt;&gt;]*?content\s*=\s*['&quot;][^'&quot;]*?charset=([-_a-z0-9]+)[^'&quot;]*?['&quot;][^&lt;&gt;]*&gt;(?:\s*&lt;/meta&gt;){0,1}'''</span><span class="s0">,</span>
+<span class="s1">)</span>
+
+
+<span class="s0">def </span><span class="s1">compile_pats(binary):</span>
+    <span class="s0">for </span><span class="s1">raw </span><span class="s0">in </span><span class="s1">_encoding_pats:</span>
+        <span class="s0">if </span><span class="s1">binary:</span>
+            <span class="s1">raw = raw.encode(</span><span class="s2">'ascii'</span><span class="s1">)</span>
+        <span class="s0">yield </span><span class="s1">re.compile(raw</span><span class="s0">, </span><span class="s1">flags=re.IGNORECASE)</span>
+
+
+<span class="s0">class </span><span class="s1">LazyEncodingPats(object):</span>
+
+    <span class="s0">def </span><span class="s1">__call__(self</span><span class="s0">, </span><span class="s1">binary=</span><span class="s0">False</span><span class="s1">):</span>
+        <span class="s1">attr = </span><span class="s2">'binary_pats' </span><span class="s0">if </span><span class="s1">binary </span><span class="s0">else </span><span class="s2">'unicode_pats'</span>
+        <span class="s1">pats = getattr(self</span><span class="s0">, </span><span class="s1">attr</span><span class="s0">, None</span><span class="s1">)</span>
+        <span class="s0">if </span><span class="s1">pats </span><span class="s0">is None</span><span class="s1">:</span>
+            <span class="s1">pats = tuple(compile_pats(binary))</span>
+            <span class="s1">setattr(self</span><span class="s0">, </span><span class="s1">attr</span><span class="s0">, </span><span class="s1">pats)</span>
+        <span class="s0">for </span><span class="s1">pat </span><span class="s0">in </span><span class="s1">pats:</span>
+            <span class="s0">yield </span><span class="s1">pat</span>
+
+
+<span class="s1">lazy_encoding_pats = LazyEncodingPats()</span>
+
+
+<span class="s0">def </span><span class="s1">find_declared_encoding(raw</span><span class="s0">, </span><span class="s1">limit=</span><span class="s4">50</span><span class="s1">*</span><span class="s4">1024</span><span class="s1">):</span>
+    <span class="s1">prefix = raw[:limit]</span>
+    <span class="s1">is_binary = isinstance(raw</span><span class="s0">, </span><span class="s1">bytes)</span>
+    <span class="s0">for </span><span class="s1">pat </span><span class="s0">in </span><span class="s1">lazy_encoding_pats(is_binary):</span>
+        <span class="s1">m = pat.search(prefix)</span>
+        <span class="s0">if </span><span class="s1">m </span><span class="s0">is not None</span><span class="s1">:</span>
+            <span class="s1">ans = m.group(</span><span class="s4">1</span><span class="s1">)</span>
+            <span class="s0">if </span><span class="s1">is_binary:</span>
+                <span class="s1">ans = ans.decode(</span><span class="s2">'ascii'</span><span class="s0">, </span><span class="s2">'replace'</span><span class="s1">)</span>
+                <span class="s0">return </span><span class="s1">ans</span>
+
+
+<span class="s0">def </span><span class="s1">elem_text(elem):</span>
+    <span class="s0">if </span><span class="s1">elem.text:</span>
+        <span class="s0">yield </span><span class="s1">elem.text</span>
+    <span class="s0">for </span><span class="s1">child </span><span class="s0">in </span><span class="s1">elem:</span>
+        <span class="s0">for </span><span class="s1">text </span><span class="s0">in </span><span class="s1">elem_text(child):</span>
+            <span class="s0">yield </span><span class="s1">text</span>
+        <span class="s0">if </span><span class="s1">child.tail:</span>
+            <span class="s0">yield </span><span class="s1">child.tail</span>
+
+
+<span class="s0">def </span><span class="s1">iterlinks(root</span><span class="s0">, </span><span class="s1">base_url):</span>
+    <span class="s1">link_tags = {</span><span class="s2">&quot;a&quot;</span><span class="s1">: </span><span class="s2">&quot;href&quot;</span><span class="s0">, </span><span class="s2">&quot;area&quot;</span><span class="s1">: </span><span class="s2">&quot;href&quot;</span><span class="s0">, </span><span class="s2">&quot;iframe&quot;</span><span class="s1">: </span><span class="s2">&quot;src&quot;</span><span class="s1">}</span>
+    <span class="s0">for </span><span class="s1">tag </span><span class="s0">in </span><span class="s1">root.iter(</span><span class="s2">'*'</span><span class="s1">):</span>
+        <span class="s0">if not </span><span class="s1">is_string(tag.tag):</span>
+            <span class="s0">continue</span>
+        <span class="s1">q = tag.tag.lower()</span>
+        <span class="s1">attr = link_tags.get(q)</span>
+        <span class="s0">if </span><span class="s1">attr </span><span class="s0">is not None</span><span class="s1">:</span>
+            <span class="s1">val = tag.get(attr)</span>
+            <span class="s0">if </span><span class="s1">val:</span>
+                <span class="s1">url = clean_url(val)</span>
+                <span class="s0">yield </span><span class="s1">Link(base_url</span><span class="s0">, </span><span class="s1">url</span><span class="s0">,</span>
+                           <span class="s1">compress_whitespace(</span><span class="s2">u''</span><span class="s1">.join(elem_text(tag)))</span><span class="s0">, </span><span class="s1">q</span><span class="s0">,</span>
+                           <span class="s1">tag.items())</span>
+        <span class="s0">elif </span><span class="s1">q == </span><span class="s2">'base'</span><span class="s1">:</span>
+            <span class="s1">href = tag.get(</span><span class="s2">'href'</span><span class="s1">)</span>
+            <span class="s0">if </span><span class="s1">href:</span>
+                <span class="s1">base_url = href</span>
+
+
+<span class="s0">def </span><span class="s1">compress_whitespace(text):</span>
+    <span class="s0">return </span><span class="s1">re.sub(</span><span class="s2">r'\s+'</span><span class="s0">, </span><span class="s2">' '</span><span class="s0">, </span><span class="s1">text </span><span class="s0">or </span><span class="s2">''</span><span class="s1">).strip()</span>
+
+
+<span class="s0">def </span><span class="s1">get_encoding_from_response(response</span><span class="s0">, </span><span class="s1">verify=</span><span class="s0">True</span><span class="s1">):</span>
+    <span class="s3"># HTTPEquivProcessor may be in use, so both HTTP and HTTP-EQUIV</span>
+    <span class="s3"># headers may be in the response.  HTTP-EQUIV headers come last,</span>
+    <span class="s3"># so try in order from first to last.</span>
+    <span class="s0">if </span><span class="s1">response:</span>
+        <span class="s0">for </span><span class="s1">ct </span><span class="s0">in </span><span class="s1">response.info().getheaders(</span><span class="s2">&quot;content-type&quot;</span><span class="s1">):</span>
+            <span class="s0">for </span><span class="s1">k</span><span class="s0">, </span><span class="s1">v </span><span class="s0">in </span><span class="s1">split_header_words([ct])[</span><span class="s4">0</span><span class="s1">]:</span>
+                <span class="s0">if </span><span class="s1">k == </span><span class="s2">&quot;charset&quot;</span><span class="s1">:</span>
+                    <span class="s0">if not </span><span class="s1">verify:</span>
+                        <span class="s0">return </span><span class="s1">v</span>
+                    <span class="s0">try</span><span class="s1">:</span>
+                        <span class="s1">codecs.lookup(v)</span>
+                        <span class="s0">return </span><span class="s1">v</span>
+                    <span class="s0">except </span><span class="s1">LookupError:</span>
+                        <span class="s0">continue</span>
+
+
+<span class="s0">class </span><span class="s1">EncodingFinder:</span>
+    <span class="s0">def </span><span class="s1">__init__(self</span><span class="s0">, </span><span class="s1">default_encoding):</span>
+        <span class="s1">self._default_encoding = default_encoding</span>
+
+    <span class="s0">def </span><span class="s1">encoding(self</span><span class="s0">, </span><span class="s1">response):</span>
+        <span class="s0">return </span><span class="s1">get_encoding_from_response(response) </span><span class="s0">or </span><span class="s1">self._default_encoding</span>
+
+
+<span class="s0">class </span><span class="s1">ResponseTypeFinder:</span>
+    <span class="s0">def </span><span class="s1">__init__(self</span><span class="s0">, </span><span class="s1">allow_xhtml):</span>
+        <span class="s1">self._allow_xhtml = allow_xhtml</span>
+
+    <span class="s0">def </span><span class="s1">is_html(self</span><span class="s0">, </span><span class="s1">response</span><span class="s0">, </span><span class="s1">encoding):</span>
+        <span class="s1">ct_hdrs = response.info().getheaders(</span><span class="s2">&quot;content-type&quot;</span><span class="s1">)</span>
+        <span class="s1">url = response.geturl()</span>
+        <span class="s3"># XXX encoding</span>
+        <span class="s0">return </span><span class="s1">_is_html(ct_hdrs</span><span class="s0">, </span><span class="s1">url</span><span class="s0">, </span><span class="s1">self._allow_xhtml)</span>
+
+
+<span class="s0">class </span><span class="s1">Link:</span>
+    <span class="s5">''' 
+    A link in a HTML document 
+ 
+    :ivar absolute_url: The absolutized link URL 
+    :ivar url: The link URL 
+    :ivar base_url: The base URL against which this link is resolved 
+    :ivar text: The link text 
+    :ivar tag: The link tag name 
+    :ivar attrs: The tag attributes 
+ 
+    '''</span>
+    <span class="s0">def </span><span class="s1">__init__(self</span><span class="s0">, </span><span class="s1">base_url</span><span class="s0">, </span><span class="s1">url</span><span class="s0">, </span><span class="s1">text</span><span class="s0">, </span><span class="s1">tag</span><span class="s0">, </span><span class="s1">attrs):</span>
+        <span class="s0">assert None not in </span><span class="s1">[url</span><span class="s0">, </span><span class="s1">tag</span><span class="s0">, </span><span class="s1">attrs]</span>
+        <span class="s1">self.base_url = base_url</span>
+        <span class="s1">self.absolute_url = urljoin(base_url</span><span class="s0">, </span><span class="s1">url)</span>
+        <span class="s1">self.url</span><span class="s0">, </span><span class="s1">self.text</span><span class="s0">, </span><span class="s1">self.tag</span><span class="s0">, </span><span class="s1">self.attrs = url</span><span class="s0">, </span><span class="s1">text</span><span class="s0">, </span><span class="s1">tag</span><span class="s0">, </span><span class="s1">attrs</span>
+        <span class="s1">self.text = self.text</span>
+
+    <span class="s0">def </span><span class="s1">__eq__(self</span><span class="s0">, </span><span class="s1">other):</span>
+        <span class="s0">try</span><span class="s1">:</span>
+            <span class="s0">for </span><span class="s1">name </span><span class="s0">in </span><span class="s2">&quot;url&quot;</span><span class="s0">, </span><span class="s2">&quot;text&quot;</span><span class="s0">, </span><span class="s2">&quot;tag&quot;</span><span class="s1">:</span>
+                <span class="s0">if </span><span class="s1">getattr(self</span><span class="s0">, </span><span class="s1">name) != getattr(other</span><span class="s0">, </span><span class="s1">name):</span>
+                    <span class="s0">return False</span>
+            <span class="s0">if </span><span class="s1">dict(self.attrs) != dict(other.attrs):</span>
+                <span class="s0">return False</span>
+        <span class="s0">except </span><span class="s1">AttributeError:</span>
+            <span class="s0">return False</span>
+        <span class="s0">return True</span>
+
+    <span class="s0">def </span><span class="s1">__ne__(self</span><span class="s0">, </span><span class="s1">other):</span>
+        <span class="s0">return not </span><span class="s1">self.__eq__(other)</span>
+
+    <span class="s0">def </span><span class="s1">__repr__(self):</span>
+        <span class="s0">return </span><span class="s2">&quot;Link(base_url=%r, url=%r, text=%r, tag=%r, attrs=%r)&quot; </span><span class="s1">% (</span>
+            <span class="s1">self.base_url</span><span class="s0">, </span><span class="s1">self.url</span><span class="s0">, </span><span class="s1">self.text</span><span class="s0">, </span><span class="s1">self.tag</span><span class="s0">, </span><span class="s1">self.attrs)</span>
+
+
+<span class="s0">def </span><span class="s1">content_parser(data</span><span class="s0">,</span>
+                   <span class="s1">url=</span><span class="s0">None,</span>
+                   <span class="s1">response_info=</span><span class="s0">None,</span>
+                   <span class="s1">transport_encoding=</span><span class="s0">None,</span>
+                   <span class="s1">default_encoding=DEFAULT_ENCODING</span><span class="s0">,</span>
+                   <span class="s1">is_html=</span><span class="s0">True</span><span class="s1">):</span>
+    <span class="s5">''' 
+    Parse data (a bytes object) into an etree representation such as 
+    :py:mod:`xml.etree.ElementTree` or `lxml.etree` 
+ 
+    :param bytes data: The data to parse 
+    :param url: The URL of the document being parsed or None 
+    :param response_info: Information about the document 
+        (contains all HTTP headers as :class:`HTTPMessage`) 
+    :param transport_encoding: The character encoding for the document being 
+        parsed as specified in the HTTP headers or None. 
+    :param default_encoding: The character encoding to use if no encoding 
+        could be detected and no transport_encoding is specified 
+    :param is_html: If the document is to be parsed as HTML. 
+    '''</span>
+    <span class="s0">if not </span><span class="s1">is_html:</span>
+        <span class="s0">return</span>
+    <span class="s0">try</span><span class="s1">:</span>
+        <span class="s0">from </span><span class="s1">html5_parser </span><span class="s0">import </span><span class="s1">parse</span>
+    <span class="s0">except </span><span class="s1">Exception:</span>
+        <span class="s0">from </span><span class="s1">html5lib </span><span class="s0">import </span><span class="s1">parse</span>
+        <span class="s1">kw = {</span><span class="s2">'namespaceHTMLElements'</span><span class="s1">: </span><span class="s0">False</span><span class="s1">}</span>
+        <span class="s0">if </span><span class="s1">transport_encoding </span><span class="s0">and </span><span class="s1">isinstance(data</span><span class="s0">, </span><span class="s1">bytes):</span>
+            <span class="s1">kw[</span><span class="s2">'transport_encoding'</span><span class="s1">] = transport_encoding</span>
+        <span class="s0">return </span><span class="s1">parse(data</span><span class="s0">, </span><span class="s1">**kw)</span>
+    <span class="s0">else</span><span class="s1">:</span>
+        <span class="s0">return </span><span class="s1">parse(data</span><span class="s0">, </span><span class="s1">transport_encoding=transport_encoding)</span>
+
+
+<span class="s0">def </span><span class="s1">get_title(root):</span>
+    <span class="s0">for </span><span class="s1">title </span><span class="s0">in </span><span class="s1">root.iter(</span><span class="s2">'title'</span><span class="s1">):</span>
+        <span class="s1">text = compress_whitespace(title.text)</span>
+        <span class="s0">if </span><span class="s1">text:</span>
+            <span class="s0">return </span><span class="s1">text</span>
+
+
+<span class="s1">lazy = object()</span>
+
+
+<span class="s0">class </span><span class="s1">Factory:</span>
+    <span class="s5">&quot;&quot;&quot;Factory for forms, links, etc. 
+ 
+    This interface may expand in future. 
+ 
+    Public methods: 
+ 
+    set_request_class(request_class) 
+    set_response(response) 
+    forms() 
+    links() 
+ 
+    Public attributes: 
+ 
+    Note that accessing these attributes may raise ParseError. 
+ 
+    encoding: string specifying the encoding of response if it contains a text 
+     document (this value is left unspecified for documents that do not have 
+     an encoding, e.g. an image file) 
+    is_html: true if response contains an HTML document (XHTML may be 
+     regarded as HTML too) 
+    title: page title, or None if no title or not HTML 
+    global_form: form object containing all controls that are not descendants 
+     of any FORM element, or None if the forms_factory does not support 
+     supplying a global form 
+ 
+    &quot;&quot;&quot;</span>
+
+    <span class="s0">def </span><span class="s1">__init__(</span>
+            <span class="s1">self</span><span class="s0">,</span>
+            <span class="s1">default_encoding=DEFAULT_ENCODING</span><span class="s0">,</span>
+            <span class="s1">allow_xhtml=</span><span class="s0">False, </span><span class="s1">):</span>
+        <span class="s5">&quot;&quot;&quot; 
+ 
+        Pass keyword arguments only. 
+ 
+        &quot;&quot;&quot;</span>
+        <span class="s1">self._encoding_finder = EncodingFinder(default_encoding)</span>
+        <span class="s1">self.form_encoding = default_encoding</span>
+        <span class="s1">self._response_type_finder = ResponseTypeFinder(</span>
+            <span class="s1">allow_xhtml=allow_xhtml)</span>
+        <span class="s1">self._content_parser = content_parser</span>
+        <span class="s1">self._current_forms = self._current_links = self._current_title = lazy</span>
+        <span class="s1">self._current_global_form = self._root = lazy</span>
+        <span class="s1">self._raw_data = </span><span class="s6">b''</span>
+        <span class="s1">self.is_html</span><span class="s0">, </span><span class="s1">self.encoding = </span><span class="s0">False, </span><span class="s1">DEFAULT_ENCODING</span>
+
+        <span class="s1">self.set_response(</span><span class="s0">None</span><span class="s1">)</span>
+
+    <span class="s0">def </span><span class="s1">set_content_parser(self</span><span class="s0">, </span><span class="s1">val):</span>
+        <span class="s1">self._content_parser = val</span>
+
+    <span class="s0">def </span><span class="s1">set_request_class(self</span><span class="s0">, </span><span class="s1">request_class):</span>
+        <span class="s5">&quot;&quot;&quot;Set request class (mechanize.Request by default). 
+ 
+        HTMLForm instances returned by .forms() will return instances of this 
+        class when .click()ed. 
+ 
+        &quot;&quot;&quot;</span>
+        <span class="s1">self._request_class = request_class</span>
+
+    <span class="s0">def </span><span class="s1">set_response(self</span><span class="s0">, </span><span class="s1">response):</span>
+        <span class="s5">&quot;&quot;&quot;Set response. 
+ 
+        The response must either be None or implement the same interface as 
+        objects returned by mechanize.urlopen(). 
+ 
+        &quot;&quot;&quot;</span>
+        <span class="s1">self._response = copy.copy(response)</span>
+        <span class="s1">self._current_forms = self._current_links = self._current_title = lazy</span>
+        <span class="s1">self._current_global_form = self._root = lazy</span>
+        <span class="s1">self.encoding = self._encoding_finder.encoding(self._response)</span>
+        <span class="s1">self.is_html = self._response_type_finder.is_html(</span>
+            <span class="s1">self._response</span><span class="s0">, </span><span class="s1">self.encoding) </span><span class="s0">if </span><span class="s1">self._response </span><span class="s0">else False</span>
+
+    <span class="s1">@property</span>
+    <span class="s0">def </span><span class="s1">root(self):</span>
+        <span class="s0">if </span><span class="s1">self._root </span><span class="s0">is </span><span class="s1">lazy:</span>
+            <span class="s1">response = self._response</span>
+            <span class="s1">raw = self._response.read() </span><span class="s0">if </span><span class="s1">self._response </span><span class="s0">else </span><span class="s6">b''</span>
+            <span class="s1">default_encoding = self._encoding_finder._default_encoding</span>
+            <span class="s1">transport_encoding = get_encoding_from_response(response</span><span class="s0">, </span><span class="s1">verify=</span><span class="s0">False</span><span class="s1">)</span>
+            <span class="s1">declared_encoding = find_declared_encoding(raw)</span>
+            <span class="s1">self.form_encoding = declared_encoding </span><span class="s0">or </span><span class="s1">transport_encoding </span><span class="s0">or </span><span class="s1">default_encoding</span>
+            <span class="s1">self._root = self._content_parser(</span>
+                <span class="s1">raw</span><span class="s0">,</span>
+                <span class="s1">url=response.geturl() </span><span class="s0">if </span><span class="s1">response </span><span class="s0">else None,</span>
+                <span class="s1">response_info=response.info() </span><span class="s0">if </span><span class="s1">response </span><span class="s0">else None,</span>
+                <span class="s1">default_encoding=default_encoding</span><span class="s0">,</span>
+                <span class="s1">is_html=self.is_html</span><span class="s0">,</span>
+                <span class="s1">transport_encoding=transport_encoding)</span>
+        <span class="s0">return </span><span class="s1">self._root</span>
+
+    <span class="s1">@property</span>
+    <span class="s0">def </span><span class="s1">title(self):</span>
+        <span class="s0">if </span><span class="s1">self._current_title </span><span class="s0">is </span><span class="s1">lazy:</span>
+            <span class="s1">self._current_title = get_title(</span>
+                <span class="s1">self.root) </span><span class="s0">if </span><span class="s1">self.root </span><span class="s0">is not None else None</span>
+        <span class="s0">return </span><span class="s1">self._current_title </span><span class="s0">or </span><span class="s2">u''</span>
+
+    <span class="s1">@property</span>
+    <span class="s0">def </span><span class="s1">global_form(self):</span>
+        <span class="s0">if </span><span class="s1">self._current_global_form </span><span class="s0">is </span><span class="s1">lazy:</span>
+            <span class="s1">self.forms()</span>
+        <span class="s0">return </span><span class="s1">self._current_global_form</span>
+
+    <span class="s0">def </span><span class="s1">forms(self):</span>
+        <span class="s5">&quot;&quot;&quot; Return tuple of HTMLForm-like objects. &quot;&quot;&quot;</span>
+        <span class="s3"># this implementation sets .global_form as a side-effect</span>
+        <span class="s0">if </span><span class="s1">self._current_forms </span><span class="s0">is </span><span class="s1">lazy:</span>
+            <span class="s1">self._current_forms</span><span class="s0">, </span><span class="s1">self._current_global_form = self._get_forms()</span>
+        <span class="s0">return </span><span class="s1">self._current_forms</span>
+
+    <span class="s0">def </span><span class="s1">links(self):</span>
+        <span class="s5">&quot;&quot;&quot;Return tuple of mechanize.Link-like objects.  &quot;&quot;&quot;</span>
+        <span class="s0">if </span><span class="s1">self._current_links </span><span class="s0">is </span><span class="s1">lazy:</span>
+            <span class="s1">self._current_links = self._get_links()</span>
+        <span class="s0">return </span><span class="s1">self._get_links()</span>
+
+    <span class="s0">def </span><span class="s1">_get_links(self):</span>
+        <span class="s0">if </span><span class="s1">self.root </span><span class="s0">is None</span><span class="s1">:</span>
+            <span class="s0">return </span><span class="s1">()</span>
+        <span class="s0">return </span><span class="s1">tuple(iterlinks(self.root</span><span class="s0">, </span><span class="s1">self._response.geturl()))</span>
+
+    <span class="s0">def </span><span class="s1">_get_forms(self):</span>
+        <span class="s0">if </span><span class="s1">self.root </span><span class="s0">is None</span><span class="s1">:</span>
+            <span class="s0">return </span><span class="s1">()</span><span class="s0">, None</span>
+        <span class="s0">return </span><span class="s1">parse_forms(self.root</span><span class="s0">,</span>
+                           <span class="s1">self._response.geturl()</span><span class="s0">, </span><span class="s1">self._request_class</span><span class="s0">, </span><span class="s1">encoding=self.form_encoding)</span>
+</pre>
+</body>
+</html>

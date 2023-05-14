@@ -1,0 +1,281 @@
+<html>
+<head>
+<title>_rfc3986.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #629755; font-style: italic;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #808080;}
+.s3 { color: #cc7832;}
+.s4 { color: #6a8759;}
+.s5 { color: #6897bb;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+_rfc3986.py</font>
+</center></td></tr></table>
+<pre><span class="s0">&quot;&quot;&quot;RFC 3986 URI parsing and relative reference resolution / absolutization. 
+ 
+(aka splitting and joining) 
+ 
+Copyright 2006 John J. Lee &lt;jjl@pobox.com&gt; 
+ 
+This code is free software; you can redistribute it and/or modify it under 
+the terms of the BSD or ZPL 2.1 licenses (see the file LICENSE 
+included with the distribution). 
+ 
+&quot;&quot;&quot;</span>
+
+<span class="s2"># XXX Wow, this is ugly.  Overly-direct translation of the RFC ATM.</span>
+
+<span class="s3">from </span><span class="s1">__future__ </span><span class="s3">import </span><span class="s1">absolute_import</span>
+<span class="s3">import </span><span class="s1">re</span>
+
+<span class="s3">from </span><span class="s1">.polyglot </span><span class="s3">import </span><span class="s1">quote</span>
+<span class="s2"># def chr_range(a, b):</span>
+<span class="s2"># return &quot;&quot;.join(map(chr, range(ord(a), ord(b)+1)))</span>
+
+<span class="s2"># UNRESERVED_URI_CHARS = (&quot;ABCDEFGHIJKLMNOPQRSTUVWXYZ&quot;</span>
+<span class="s2"># &quot;abcdefghijklmnopqrstuvwxyz&quot;</span>
+<span class="s2"># &quot;0123456789&quot;</span>
+<span class="s2"># &quot;-_.~&quot;)</span>
+<span class="s2"># RESERVED_URI_CHARS = &quot;!*'();:@&amp;=+$,/?#[]&quot;</span>
+<span class="s2"># URI_CHARS = RESERVED_URI_CHARS+UNRESERVED_URI_CHARS+'%'</span>
+<span class="s2"># this re matches any character that's not in URI_CHARS</span>
+<span class="s1">BAD_URI_CHARS_RE = re.compile(</span><span class="s4">r&quot;[^A-Za-z0-9\-_.~!*'();:@&amp;=+$,/?%#[\]]&quot;</span><span class="s1">)</span>
+
+
+<span class="s3">def </span><span class="s1">clean_url(url</span><span class="s3">, </span><span class="s1">encoding=</span><span class="s4">'utf-8'</span><span class="s1">):</span>
+    <span class="s2"># percent-encode illegal URI characters</span>
+    <span class="s2"># Trying to come up with test cases for this gave me a headache, revisit</span>
+    <span class="s2"># when do switch to unicode.</span>
+    <span class="s2"># Somebody else's comments (lost the attribution):</span>
+    <span class="s2"># - IE will return you the url in the encoding you send it</span>
+    <span class="s2"># - Mozilla/Firefox will send you latin-1 if there's no non latin-1</span>
+    <span class="s2"># characters in your link. It will send you utf-8 however if there are...</span>
+    <span class="s1">is_unicode = </span><span class="s3">not </span><span class="s1">isinstance(url</span><span class="s3">, </span><span class="s1">bytes)</span>
+    <span class="s3">if not </span><span class="s1">is_unicode:</span>
+        <span class="s1">url = url.decode(encoding</span><span class="s3">, </span><span class="s4">&quot;replace&quot;</span><span class="s1">)</span>
+    <span class="s1">url = url.strip()</span>
+    <span class="s2"># for second param to urllib.quote(), we want URI_CHARS, minus the</span>
+    <span class="s2"># 'always_safe' characters that urllib.quote() never percent-encodes</span>
+    <span class="s1">ans = quote(url.encode(encoding)</span><span class="s3">, </span><span class="s4">&quot;!*'();:@&amp;=+$,/?%#[]~&quot;</span><span class="s1">)</span>
+    <span class="s3">if </span><span class="s1">is_unicode </span><span class="s3">and </span><span class="s1">isinstance(ans</span><span class="s3">, </span><span class="s1">bytes):</span>
+        <span class="s1">ans = ans.decode(encoding)</span>
+    <span class="s3">return </span><span class="s1">ans</span>
+
+
+<span class="s3">def </span><span class="s1">is_clean_uri(uri):</span>
+    <span class="s0">&quot;&quot;&quot; 
+    &gt;&gt;&gt; is_clean_uri(&quot;ABC!&quot;) 
+    True 
+    &gt;&gt;&gt; is_clean_uri(u&quot;ABC!&quot;) 
+    True 
+    &gt;&gt;&gt; is_clean_uri(&quot;ABC|&quot;) 
+    False 
+    &gt;&gt;&gt; is_clean_uri(u&quot;ABC|&quot;) 
+    False 
+    &gt;&gt;&gt; is_clean_uri(&quot;http://example.com/0&quot;) 
+    True 
+    &gt;&gt;&gt; is_clean_uri(u&quot;http://example.com/0&quot;) 
+    True 
+    &quot;&quot;&quot;</span>
+    <span class="s2"># note module re treats bytestrings as through they were decoded as latin-1</span>
+    <span class="s2"># so this function accepts both unicode and bytestrings</span>
+    <span class="s3">return not </span><span class="s1">bool(BAD_URI_CHARS_RE.search(uri))</span>
+
+
+<span class="s1">SPLIT_MATCH = re.compile(</span>
+    <span class="s4">r&quot;^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?&quot;</span><span class="s1">).match</span>
+
+
+<span class="s3">def </span><span class="s1">urlsplit(absolute_uri):</span>
+    <span class="s0">&quot;&quot;&quot;Return scheme, authority, path, query, fragment.&quot;&quot;&quot;</span>
+    <span class="s1">match = SPLIT_MATCH(absolute_uri)</span>
+    <span class="s3">if </span><span class="s1">match:</span>
+        <span class="s1">g = match.groups()</span>
+        <span class="s3">return </span><span class="s1">g[</span><span class="s5">1</span><span class="s1">]</span><span class="s3">, </span><span class="s1">g[</span><span class="s5">3</span><span class="s1">]</span><span class="s3">, </span><span class="s1">g[</span><span class="s5">4</span><span class="s1">]</span><span class="s3">, </span><span class="s1">g[</span><span class="s5">6</span><span class="s1">]</span><span class="s3">, </span><span class="s1">g[</span><span class="s5">8</span><span class="s1">]</span>
+
+
+<span class="s3">def </span><span class="s1">urlunsplit(parts):</span>
+    <span class="s1">scheme</span><span class="s3">, </span><span class="s1">authority</span><span class="s3">, </span><span class="s1">path</span><span class="s3">, </span><span class="s1">query</span><span class="s3">, </span><span class="s1">fragment = parts</span>
+    <span class="s1">r = []</span>
+    <span class="s1">append = r.append</span>
+    <span class="s3">if </span><span class="s1">scheme </span><span class="s3">is not None</span><span class="s1">:</span>
+        <span class="s1">append(scheme)</span>
+        <span class="s1">append(</span><span class="s4">&quot;:&quot;</span><span class="s1">)</span>
+    <span class="s3">if </span><span class="s1">authority </span><span class="s3">is not None</span><span class="s1">:</span>
+        <span class="s1">append(</span><span class="s4">&quot;//&quot;</span><span class="s1">)</span>
+        <span class="s1">append(authority)</span>
+    <span class="s1">append(path)</span>
+    <span class="s3">if </span><span class="s1">query </span><span class="s3">is not None</span><span class="s1">:</span>
+        <span class="s1">append(</span><span class="s4">&quot;?&quot;</span><span class="s1">)</span>
+        <span class="s1">append(query)</span>
+    <span class="s3">if </span><span class="s1">fragment </span><span class="s3">is not None</span><span class="s1">:</span>
+        <span class="s1">append(</span><span class="s4">&quot;#&quot;</span><span class="s1">)</span>
+        <span class="s1">append(fragment)</span>
+    <span class="s3">return </span><span class="s4">&quot;&quot;</span><span class="s1">.join(r)</span>
+
+
+<span class="s3">def </span><span class="s1">urljoin(base_uri</span><span class="s3">, </span><span class="s1">uri_reference):</span>
+    <span class="s0">&quot;&quot;&quot;Join a base URI with a URI reference and return the resulting URI. 
+ 
+    See RFC 3986. 
+    &quot;&quot;&quot;</span>
+    <span class="s3">return </span><span class="s1">urlunsplit(urljoin_parts(urlsplit(base_uri)</span><span class="s3">,</span>
+                                    <span class="s1">urlsplit(uri_reference)))</span>
+
+<span class="s2"># oops, this doesn't do the same thing as the literal translation</span>
+<span class="s2"># from the RFC below</span>
+<span class="s2"># import posixpath</span>
+<span class="s2"># def urljoin_parts(base_parts, reference_parts):</span>
+<span class="s2">#     scheme, authority, path, query, fragment = base_parts</span>
+<span class="s2">#     rscheme, rauthority, rpath, rquery, rfragment = reference_parts</span>
+
+<span class="s2"># compute target URI path</span>
+<span class="s2"># if rpath == &quot;&quot;:</span>
+<span class="s2">#         tpath = path</span>
+<span class="s2"># else:</span>
+<span class="s2">#         tpath = rpath</span>
+<span class="s2"># if not tpath.startswith(&quot;/&quot;):</span>
+<span class="s2">#             tpath = merge(authority, path, tpath)</span>
+<span class="s2">#         tpath = posixpath.normpath(tpath)</span>
+
+<span class="s2"># if rscheme is not None:</span>
+<span class="s2"># return (rscheme, rauthority, tpath, rquery, rfragment)</span>
+<span class="s2"># elif rauthority is not None:</span>
+<span class="s2"># return (scheme, rauthority, tpath, rquery, rfragment)</span>
+<span class="s2"># elif rpath == &quot;&quot;:</span>
+<span class="s2"># if rquery is not None:</span>
+<span class="s2">#             tquery = rquery</span>
+<span class="s2"># else:</span>
+<span class="s2">#             tquery = query</span>
+<span class="s2"># return (scheme, authority, tpath, tquery, rfragment)</span>
+<span class="s2"># else:</span>
+<span class="s2"># return (scheme, authority, tpath, rquery, rfragment)</span>
+
+
+<span class="s3">def </span><span class="s1">urljoin_parts(base_parts</span><span class="s3">, </span><span class="s1">reference_parts):</span>
+    <span class="s1">scheme</span><span class="s3">, </span><span class="s1">authority</span><span class="s3">, </span><span class="s1">path</span><span class="s3">, </span><span class="s1">query</span><span class="s3">, </span><span class="s1">fragment = base_parts</span>
+    <span class="s1">rscheme</span><span class="s3">, </span><span class="s1">rauthority</span><span class="s3">, </span><span class="s1">rpath</span><span class="s3">, </span><span class="s1">rquery</span><span class="s3">, </span><span class="s1">rfragment = reference_parts</span>
+
+    <span class="s3">if </span><span class="s1">rscheme == scheme:</span>
+        <span class="s1">rscheme = </span><span class="s3">None</span>
+
+    <span class="s3">if </span><span class="s1">rscheme </span><span class="s3">is not None</span><span class="s1">:</span>
+        <span class="s1">tscheme</span><span class="s3">, </span><span class="s1">tauthority</span><span class="s3">, </span><span class="s1">tpath</span><span class="s3">, </span><span class="s1">tquery = (</span>
+            <span class="s1">rscheme</span><span class="s3">, </span><span class="s1">rauthority</span><span class="s3">, </span><span class="s1">remove_dot_segments(rpath)</span><span class="s3">, </span><span class="s1">rquery)</span>
+    <span class="s3">else</span><span class="s1">:</span>
+        <span class="s3">if </span><span class="s1">rauthority </span><span class="s3">is not None</span><span class="s1">:</span>
+            <span class="s1">tauthority</span><span class="s3">, </span><span class="s1">tpath</span><span class="s3">, </span><span class="s1">tquery = (</span>
+                <span class="s1">rauthority</span><span class="s3">, </span><span class="s1">remove_dot_segments(rpath)</span><span class="s3">, </span><span class="s1">rquery)</span>
+        <span class="s3">else</span><span class="s1">:</span>
+            <span class="s3">if </span><span class="s1">rpath == </span><span class="s4">&quot;&quot;</span><span class="s1">:</span>
+                <span class="s1">tpath = path</span>
+                <span class="s3">if </span><span class="s1">rquery </span><span class="s3">is not None</span><span class="s1">:</span>
+                    <span class="s1">tquery = rquery</span>
+                <span class="s3">else</span><span class="s1">:</span>
+                    <span class="s1">tquery = query</span>
+            <span class="s3">else</span><span class="s1">:</span>
+                <span class="s3">if </span><span class="s1">rpath.startswith(</span><span class="s4">&quot;/&quot;</span><span class="s1">):</span>
+                    <span class="s1">tpath = remove_dot_segments(rpath)</span>
+                <span class="s3">else</span><span class="s1">:</span>
+                    <span class="s1">tpath = merge(authority</span><span class="s3">, </span><span class="s1">path</span><span class="s3">, </span><span class="s1">rpath)</span>
+                    <span class="s1">tpath = remove_dot_segments(tpath)</span>
+                <span class="s1">tquery = rquery</span>
+            <span class="s1">tauthority = authority</span>
+        <span class="s1">tscheme = scheme</span>
+    <span class="s1">tfragment = rfragment</span>
+    <span class="s3">return </span><span class="s1">(tscheme</span><span class="s3">, </span><span class="s1">tauthority</span><span class="s3">, </span><span class="s1">tpath</span><span class="s3">, </span><span class="s1">tquery</span><span class="s3">, </span><span class="s1">tfragment)</span>
+
+<span class="s2"># um, something *vaguely* like this is what I want, but I have to generate</span>
+<span class="s2"># lots of test cases first, if only to understand what it is that</span>
+<span class="s2"># remove_dot_segments really does...</span>
+<span class="s2"># def remove_dot_segments(path):</span>
+<span class="s2"># if path == '':</span>
+<span class="s2"># return ''</span>
+<span class="s2">#     comps = path.split('/')</span>
+<span class="s2">#     new_comps = []</span>
+<span class="s2"># for comp in comps:</span>
+<span class="s2"># if comp in ['.', '']:</span>
+<span class="s2"># if not new_comps or new_comps[-1]:</span>
+<span class="s2"># new_comps.append('')</span>
+<span class="s2"># continue</span>
+<span class="s2"># if comp != '..':</span>
+<span class="s2"># new_comps.append(comp)</span>
+<span class="s2"># elif new_comps:</span>
+<span class="s2"># new_comps.pop()</span>
+<span class="s2"># return '/'.join(new_comps)</span>
+
+
+<span class="s3">def </span><span class="s1">remove_dot_segments(path):</span>
+    <span class="s1">r = []</span>
+    <span class="s3">while </span><span class="s1">path:</span>
+        <span class="s2"># A</span>
+        <span class="s3">if </span><span class="s1">path.startswith(</span><span class="s4">&quot;../&quot;</span><span class="s1">):</span>
+            <span class="s1">path = path[</span><span class="s5">3</span><span class="s1">:]</span>
+            <span class="s3">continue</span>
+        <span class="s3">if </span><span class="s1">path.startswith(</span><span class="s4">&quot;./&quot;</span><span class="s1">):</span>
+            <span class="s1">path = path[</span><span class="s5">2</span><span class="s1">:]</span>
+            <span class="s3">continue</span>
+        <span class="s2"># B</span>
+        <span class="s3">if </span><span class="s1">path.startswith(</span><span class="s4">&quot;/./&quot;</span><span class="s1">):</span>
+            <span class="s1">path = path[</span><span class="s5">2</span><span class="s1">:]</span>
+            <span class="s3">continue</span>
+        <span class="s3">if </span><span class="s1">path == </span><span class="s4">&quot;/.&quot;</span><span class="s1">:</span>
+            <span class="s1">path = </span><span class="s4">&quot;/&quot;</span>
+            <span class="s3">continue</span>
+        <span class="s2"># C</span>
+        <span class="s3">if </span><span class="s1">path.startswith(</span><span class="s4">&quot;/../&quot;</span><span class="s1">):</span>
+            <span class="s1">path = path[</span><span class="s5">3</span><span class="s1">:]</span>
+            <span class="s3">if </span><span class="s1">r:</span>
+                <span class="s1">r.pop()</span>
+            <span class="s3">continue</span>
+        <span class="s3">if </span><span class="s1">path == </span><span class="s4">&quot;/..&quot;</span><span class="s1">:</span>
+            <span class="s1">path = </span><span class="s4">&quot;/&quot;</span>
+            <span class="s3">if </span><span class="s1">r:</span>
+                <span class="s1">r.pop()</span>
+            <span class="s3">continue</span>
+        <span class="s2"># D</span>
+        <span class="s3">if </span><span class="s1">path == </span><span class="s4">&quot;.&quot;</span><span class="s1">:</span>
+            <span class="s1">path = path[</span><span class="s5">1</span><span class="s1">:]</span>
+            <span class="s3">continue</span>
+        <span class="s3">if </span><span class="s1">path == </span><span class="s4">&quot;..&quot;</span><span class="s1">:</span>
+            <span class="s1">path = path[</span><span class="s5">2</span><span class="s1">:]</span>
+            <span class="s3">continue</span>
+        <span class="s2"># E</span>
+        <span class="s1">start = </span><span class="s5">0</span>
+        <span class="s3">if </span><span class="s1">path.startswith(</span><span class="s4">&quot;/&quot;</span><span class="s1">):</span>
+            <span class="s1">start = </span><span class="s5">1</span>
+        <span class="s1">ii = path.find(</span><span class="s4">&quot;/&quot;</span><span class="s3">, </span><span class="s1">start)</span>
+        <span class="s3">if </span><span class="s1">ii &lt; </span><span class="s5">0</span><span class="s1">:</span>
+            <span class="s1">ii = </span><span class="s3">None</span>
+        <span class="s1">r.append(path[:ii])</span>
+        <span class="s3">if </span><span class="s1">ii </span><span class="s3">is None</span><span class="s1">:</span>
+            <span class="s3">break</span>
+        <span class="s1">path = path[ii:]</span>
+    <span class="s3">return </span><span class="s4">&quot;&quot;</span><span class="s1">.join(r)</span>
+
+
+<span class="s3">def </span><span class="s1">merge(base_authority</span><span class="s3">, </span><span class="s1">base_path</span><span class="s3">, </span><span class="s1">ref_path):</span>
+    <span class="s2"># XXXX Oddly, the sample Perl implementation of this by Roy Fielding</span>
+    <span class="s2"># doesn't even take base_authority as a parameter, despite the wording in</span>
+    <span class="s2"># the RFC suggesting otherwise.  Perhaps I'm missing some obvious identity.</span>
+    <span class="s2"># if base_authority is not None and base_path == &quot;&quot;:</span>
+    <span class="s3">if </span><span class="s1">base_path == </span><span class="s4">&quot;&quot;</span><span class="s1">:</span>
+        <span class="s3">return </span><span class="s4">&quot;/&quot; </span><span class="s1">+ ref_path</span>
+    <span class="s1">ii = base_path.rfind(</span><span class="s4">&quot;/&quot;</span><span class="s1">)</span>
+    <span class="s3">if </span><span class="s1">ii &gt;= </span><span class="s5">0</span><span class="s1">:</span>
+        <span class="s3">return </span><span class="s1">base_path[:ii + </span><span class="s5">1</span><span class="s1">] + ref_path</span>
+    <span class="s3">return </span><span class="s1">ref_path</span>
+
+
+<span class="s3">if </span><span class="s1">__name__ == </span><span class="s4">&quot;__main__&quot;</span><span class="s1">:</span>
+    <span class="s3">import </span><span class="s1">doctest</span>
+    <span class="s1">doctest.testmod()</span>
+</pre>
+</body>
+</html>

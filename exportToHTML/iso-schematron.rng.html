@@ -1,0 +1,730 @@
+<html>
+<head>
+<title>iso-schematron.rng</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #e8bf6a;}
+.s1 { color: #bababa;}
+.s2 { color: #6a8759;}
+.s3 { color: #a9b7c6;}
+.s4 { color: #808080;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+iso-schematron.rng</font>
+</center></td></tr></table>
+<pre><span class="s0">&lt;?</span><span class="s1">xml version</span><span class="s2">=&quot;1.0&quot; </span><span class="s1">encoding</span><span class="s2">=&quot;UTF-8&quot;</span><span class="s0">?&gt;</span>
+<span class="s4">&lt;!-- Copyright © ISO/IEC 2015 --&gt;</span>
+<span class="s4">&lt;!--</span>
+  <span class="s4">The following permission notice and disclaimer shall be included in all 
+  copies of this XML schema (&quot;the Schema&quot;), and derivations of the Schema: 
+   
+  Permission is hereby granted, free of charge in perpetuity, to any 
+  person obtaining a copy of the Schema, to use, copy, modify, merge and 
+  distribute free of charge, copies of the Schema for the purposes of 
+  developing, implementing, installing and using software based on the 
+  Schema, and to permit persons to whom the Schema is furnished to do so, 
+  subject to the following conditions: 
+   
+  THE SCHEMA IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
+  THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR 
+  OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, 
+  ARISING FROM, OUT OF OR IN CONNECTION WITH THE SCHEMA OR THE USE OR 
+  OTHER DEALINGS IN THE SCHEMA. 
+   
+  In addition, any modified copy of the Schema shall include the following 
+  notice: 
+   
+  &quot;THIS SCHEMA HAS BEEN MODIFIED FROM THE SCHEMA DEFINED IN ISO/IEC 19757-3, 
+  AND SHOULD NOT BE INTERPRETED AS COMPLYING WITH THAT STANDARD&quot;. 
+--&gt;</span>
+<span class="s0">&lt;grammar </span><span class="s1">ns</span><span class="s2">=&quot;http://purl.oclc.org/dsdl/schematron&quot; </span><span class="s1">xmlns</span><span class="s2">=&quot;http://relaxng.org/ns/structure/1.0&quot; </span><span class="s1">datatypeLibrary</span><span class="s2">=&quot;http://www.w3.org/2001/XMLSchema-datatypes&quot;</span><span class="s0">&gt;</span>
+  <span class="s0">&lt;start&gt;</span>
+    <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;schema&quot;</span><span class="s0">/&gt;</span>
+  <span class="s0">&lt;/start&gt;</span>
+  <span class="s4">&lt;!-- Element declarations --&gt;</span>
+  <span class="s0">&lt;define </span><span class="s1">name</span><span class="s2">=&quot;schema&quot;</span><span class="s0">&gt;</span>
+    <span class="s0">&lt;element </span><span class="s1">name</span><span class="s2">=&quot;schema&quot;</span><span class="s0">&gt;</span>
+      <span class="s0">&lt;optional&gt;</span>
+        <span class="s0">&lt;attribute </span><span class="s1">name</span><span class="s2">=&quot;id&quot;</span><span class="s0">&gt;</span>
+          <span class="s0">&lt;data </span><span class="s1">type</span><span class="s2">=&quot;ID&quot;</span><span class="s0">/&gt;</span>
+        <span class="s0">&lt;/attribute&gt;</span>
+      <span class="s0">&lt;/optional&gt;</span>
+      <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;rich&quot;</span><span class="s0">/&gt;</span>
+      <span class="s0">&lt;optional&gt;</span>
+        <span class="s0">&lt;attribute </span><span class="s1">name</span><span class="s2">=&quot;schemaVersion&quot;</span><span class="s0">&gt;</span>
+          <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;non-empty-string&quot;</span><span class="s0">/&gt;</span>
+        <span class="s0">&lt;/attribute&gt;</span>
+      <span class="s0">&lt;/optional&gt;</span>
+      <span class="s0">&lt;optional&gt;</span>
+        <span class="s0">&lt;attribute </span><span class="s1">name</span><span class="s2">=&quot;defaultPhase&quot;</span><span class="s0">&gt;</span>
+          <span class="s0">&lt;data </span><span class="s1">type</span><span class="s2">=&quot;IDREF&quot;</span><span class="s0">/&gt;</span>
+        <span class="s0">&lt;/attribute&gt;</span>
+      <span class="s0">&lt;/optional&gt;</span>
+      <span class="s0">&lt;optional&gt;</span>
+        <span class="s0">&lt;attribute </span><span class="s1">name</span><span class="s2">=&quot;queryBinding&quot;</span><span class="s0">&gt;</span>
+          <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;non-empty-string&quot;</span><span class="s0">/&gt;</span>
+        <span class="s0">&lt;/attribute&gt;</span>
+      <span class="s0">&lt;/optional&gt;</span>
+      <span class="s0">&lt;interleave&gt;</span>
+        <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;foreign&quot;</span><span class="s0">/&gt;</span>
+        <span class="s0">&lt;zeroOrMore&gt;</span>
+          <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;inclusion&quot;</span><span class="s0">/&gt;</span>
+        <span class="s0">&lt;/zeroOrMore&gt;</span>
+        <span class="s0">&lt;group&gt;</span>
+          <span class="s0">&lt;optional&gt;</span>
+            <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;title&quot;</span><span class="s0">/&gt;</span>
+          <span class="s0">&lt;/optional&gt;</span>
+          <span class="s0">&lt;zeroOrMore&gt;</span>
+            <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;ns&quot;</span><span class="s0">/&gt;</span>
+          <span class="s0">&lt;/zeroOrMore&gt;</span>
+          <span class="s0">&lt;zeroOrMore&gt;</span>
+            <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;p&quot;</span><span class="s0">/&gt;</span>
+          <span class="s0">&lt;/zeroOrMore&gt;</span>
+          <span class="s0">&lt;zeroOrMore&gt;</span>
+            <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;let&quot;</span><span class="s0">/&gt;</span>
+          <span class="s0">&lt;/zeroOrMore&gt;</span>
+          <span class="s0">&lt;zeroOrMore&gt;</span>
+            <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;phase&quot;</span><span class="s0">/&gt;</span>
+          <span class="s0">&lt;/zeroOrMore&gt;</span>
+          <span class="s0">&lt;oneOrMore&gt;</span>
+            <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;pattern&quot;</span><span class="s0">/&gt;</span>
+          <span class="s0">&lt;/oneOrMore&gt;</span>
+          <span class="s0">&lt;zeroOrMore&gt;</span>
+            <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;p&quot;</span><span class="s0">/&gt;</span>
+          <span class="s0">&lt;/zeroOrMore&gt;</span>
+          <span class="s0">&lt;optional&gt;</span>
+            <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;diagnostics&quot;</span><span class="s0">/&gt;</span>
+          <span class="s0">&lt;/optional&gt;</span>
+          <span class="s0">&lt;optional&gt;</span>
+            <span class="s4">&lt;!-- edited (lxml): required in standard, optional here (since it can be empty anyway) --&gt;</span>
+            <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;properties&quot;</span><span class="s0">/&gt;</span>
+          <span class="s0">&lt;/optional&gt;</span>
+        <span class="s0">&lt;/group&gt;</span>
+      <span class="s0">&lt;/interleave&gt;</span>
+    <span class="s0">&lt;/element&gt;</span>
+  <span class="s0">&lt;/define&gt;</span>
+  <span class="s0">&lt;define </span><span class="s1">name</span><span class="s2">=&quot;active&quot;</span><span class="s0">&gt;</span>
+    <span class="s0">&lt;element </span><span class="s1">name</span><span class="s2">=&quot;active&quot;</span><span class="s0">&gt;</span>
+      <span class="s0">&lt;attribute </span><span class="s1">name</span><span class="s2">=&quot;pattern&quot;</span><span class="s0">&gt;</span>
+        <span class="s0">&lt;data </span><span class="s1">type</span><span class="s2">=&quot;IDREF&quot;</span><span class="s0">/&gt;</span>
+      <span class="s0">&lt;/attribute&gt;</span>
+      <span class="s0">&lt;interleave&gt;</span>
+        <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;foreign&quot;</span><span class="s0">/&gt;</span>
+        <span class="s0">&lt;zeroOrMore&gt;</span>
+          <span class="s0">&lt;choice&gt;</span>
+            <span class="s0">&lt;text/&gt;</span>
+            <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;dir&quot;</span><span class="s0">/&gt;</span>
+            <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;emph&quot;</span><span class="s0">/&gt;</span>
+            <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;span&quot;</span><span class="s0">/&gt;</span>
+          <span class="s0">&lt;/choice&gt;</span>
+        <span class="s0">&lt;/zeroOrMore&gt;</span>
+      <span class="s0">&lt;/interleave&gt;</span>
+    <span class="s0">&lt;/element&gt;</span>
+  <span class="s0">&lt;/define&gt;</span>
+  <span class="s0">&lt;define </span><span class="s1">name</span><span class="s2">=&quot;assert&quot;</span><span class="s0">&gt;</span>
+    <span class="s0">&lt;element </span><span class="s1">name</span><span class="s2">=&quot;assert&quot;</span><span class="s0">&gt;</span>
+      <span class="s0">&lt;attribute </span><span class="s1">name</span><span class="s2">=&quot;test&quot;</span><span class="s0">&gt;</span>
+        <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;exprValue&quot;</span><span class="s0">/&gt;</span>
+      <span class="s0">&lt;/attribute&gt;</span>
+      <span class="s0">&lt;optional&gt;</span>
+        <span class="s0">&lt;attribute </span><span class="s1">name</span><span class="s2">=&quot;flag&quot;</span><span class="s0">&gt;</span>
+          <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;flagValue&quot;</span><span class="s0">/&gt;</span>
+        <span class="s0">&lt;/attribute&gt;</span>
+      <span class="s0">&lt;/optional&gt;</span>
+      <span class="s0">&lt;optional&gt;</span>
+        <span class="s0">&lt;attribute </span><span class="s1">name</span><span class="s2">=&quot;id&quot;</span><span class="s0">&gt;</span>
+          <span class="s0">&lt;data </span><span class="s1">type</span><span class="s2">=&quot;ID&quot;</span><span class="s0">/&gt;</span>
+        <span class="s0">&lt;/attribute&gt;</span>
+      <span class="s0">&lt;/optional&gt;</span>
+      <span class="s0">&lt;optional&gt;</span>
+        <span class="s0">&lt;attribute </span><span class="s1">name</span><span class="s2">=&quot;diagnostics&quot;</span><span class="s0">&gt;</span>
+          <span class="s0">&lt;data </span><span class="s1">type</span><span class="s2">=&quot;IDREFS&quot;</span><span class="s0">/&gt;</span>
+        <span class="s0">&lt;/attribute&gt;</span>
+      <span class="s0">&lt;/optional&gt;</span>
+      <span class="s0">&lt;optional&gt;</span>
+        <span class="s0">&lt;attribute </span><span class="s1">name</span><span class="s2">=&quot;properties&quot;</span><span class="s0">&gt;</span>
+          <span class="s0">&lt;data </span><span class="s1">type</span><span class="s2">=&quot;IDREFS&quot;</span><span class="s0">/&gt;</span>
+        <span class="s0">&lt;/attribute&gt;</span>
+      <span class="s0">&lt;/optional&gt;</span>
+      <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;rich&quot;</span><span class="s0">/&gt;</span>
+      <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;linkable&quot;</span><span class="s0">/&gt;</span>
+      <span class="s0">&lt;interleave&gt;</span>
+        <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;foreign&quot;</span><span class="s0">/&gt;</span>
+        <span class="s0">&lt;zeroOrMore&gt;</span>
+          <span class="s0">&lt;choice&gt;</span>
+            <span class="s0">&lt;text/&gt;</span>
+            <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;name&quot;</span><span class="s0">/&gt;</span>
+            <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;value-of&quot;</span><span class="s0">/&gt;</span>
+            <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;emph&quot;</span><span class="s0">/&gt;</span>
+            <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;dir&quot;</span><span class="s0">/&gt;</span>
+            <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;span&quot;</span><span class="s0">/&gt;</span>
+          <span class="s0">&lt;/choice&gt;</span>
+        <span class="s0">&lt;/zeroOrMore&gt;</span>
+      <span class="s0">&lt;/interleave&gt;</span>
+    <span class="s0">&lt;/element&gt;</span>
+  <span class="s0">&lt;/define&gt;</span>
+  <span class="s0">&lt;define </span><span class="s1">name</span><span class="s2">=&quot;diagnostic&quot;</span><span class="s0">&gt;</span>
+    <span class="s0">&lt;element </span><span class="s1">name</span><span class="s2">=&quot;diagnostic&quot;</span><span class="s0">&gt;</span>
+      <span class="s0">&lt;attribute </span><span class="s1">name</span><span class="s2">=&quot;id&quot;</span><span class="s0">&gt;</span>
+        <span class="s0">&lt;data </span><span class="s1">type</span><span class="s2">=&quot;ID&quot;</span><span class="s0">/&gt;</span>
+      <span class="s0">&lt;/attribute&gt;</span>
+      <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;rich&quot;</span><span class="s0">/&gt;</span>
+      <span class="s0">&lt;interleave&gt;</span>
+        <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;foreign&quot;</span><span class="s0">/&gt;</span>
+        <span class="s0">&lt;zeroOrMore&gt;</span>
+          <span class="s0">&lt;choice&gt;</span>
+            <span class="s0">&lt;text/&gt;</span>
+            <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;value-of&quot;</span><span class="s0">/&gt;</span>
+            <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;emph&quot;</span><span class="s0">/&gt;</span>
+            <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;dir&quot;</span><span class="s0">/&gt;</span>
+            <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;span&quot;</span><span class="s0">/&gt;</span>
+          <span class="s0">&lt;/choice&gt;</span>
+        <span class="s0">&lt;/zeroOrMore&gt;</span>
+      <span class="s0">&lt;/interleave&gt;</span>
+    <span class="s0">&lt;/element&gt;</span>
+  <span class="s0">&lt;/define&gt;</span>
+  <span class="s0">&lt;define </span><span class="s1">name</span><span class="s2">=&quot;diagnostics&quot;</span><span class="s0">&gt;</span>
+    <span class="s0">&lt;element </span><span class="s1">name</span><span class="s2">=&quot;diagnostics&quot;</span><span class="s0">&gt;</span>
+      <span class="s0">&lt;interleave&gt;</span>
+        <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;foreign&quot;</span><span class="s0">/&gt;</span>
+        <span class="s0">&lt;zeroOrMore&gt;</span>
+          <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;inclusion&quot;</span><span class="s0">/&gt;</span>
+        <span class="s0">&lt;/zeroOrMore&gt;</span>
+        <span class="s0">&lt;zeroOrMore&gt;</span>
+          <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;diagnostic&quot;</span><span class="s0">/&gt;</span>
+        <span class="s0">&lt;/zeroOrMore&gt;</span>
+      <span class="s0">&lt;/interleave&gt;</span>
+    <span class="s0">&lt;/element&gt;</span>
+  <span class="s0">&lt;/define&gt;</span>
+  <span class="s0">&lt;define </span><span class="s1">name</span><span class="s2">=&quot;dir&quot;</span><span class="s0">&gt;</span>
+    <span class="s0">&lt;element </span><span class="s1">name</span><span class="s2">=&quot;dir&quot;</span><span class="s0">&gt;</span>
+      <span class="s0">&lt;optional&gt;</span>
+        <span class="s0">&lt;attribute </span><span class="s1">name</span><span class="s2">=&quot;value&quot;</span><span class="s0">&gt;</span>
+          <span class="s0">&lt;choice&gt;</span>
+            <span class="s0">&lt;value&gt;</span><span class="s3">ltr</span><span class="s0">&lt;/value&gt;</span>
+            <span class="s0">&lt;value&gt;</span><span class="s3">rtl</span><span class="s0">&lt;/value&gt;</span>
+          <span class="s0">&lt;/choice&gt;</span>
+        <span class="s0">&lt;/attribute&gt;</span>
+      <span class="s0">&lt;/optional&gt;</span>
+      <span class="s0">&lt;interleave&gt;</span>
+        <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;foreign&quot;</span><span class="s0">/&gt;</span>
+        <span class="s0">&lt;text/&gt;</span>
+      <span class="s0">&lt;/interleave&gt;</span>
+    <span class="s0">&lt;/element&gt;</span>
+  <span class="s0">&lt;/define&gt;</span>
+  <span class="s0">&lt;define </span><span class="s1">name</span><span class="s2">=&quot;emph&quot;</span><span class="s0">&gt;</span>
+    <span class="s0">&lt;element </span><span class="s1">name</span><span class="s2">=&quot;emph&quot;</span><span class="s0">&gt;</span>
+      <span class="s0">&lt;text/&gt;</span>
+    <span class="s0">&lt;/element&gt;</span>
+  <span class="s0">&lt;/define&gt;</span>
+  <span class="s0">&lt;define </span><span class="s1">name</span><span class="s2">=&quot;extends&quot;</span><span class="s0">&gt;</span>
+    <span class="s0">&lt;element </span><span class="s1">name</span><span class="s2">=&quot;extends&quot;</span><span class="s0">&gt;</span>
+      <span class="s0">&lt;choice&gt;</span>
+        <span class="s0">&lt;attribute </span><span class="s1">name</span><span class="s2">=&quot;rule&quot;</span><span class="s0">&gt;</span>
+          <span class="s0">&lt;data </span><span class="s1">type</span><span class="s2">=&quot;IDREF&quot;</span><span class="s0">/&gt;</span>
+        <span class="s0">&lt;/attribute&gt;</span>
+        <span class="s0">&lt;attribute </span><span class="s1">name</span><span class="s2">=&quot;href&quot;</span><span class="s0">&gt;</span>
+          <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;uriValue&quot;</span><span class="s0">/&gt;</span>
+        <span class="s0">&lt;/attribute&gt;</span>
+      <span class="s0">&lt;/choice&gt;</span>
+      <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;foreign-empty&quot;</span><span class="s0">/&gt;</span>
+    <span class="s0">&lt;/element&gt;</span>
+  <span class="s0">&lt;/define&gt;</span>
+  <span class="s0">&lt;define </span><span class="s1">name</span><span class="s2">=&quot;let&quot;</span><span class="s0">&gt;</span>
+    <span class="s0">&lt;element </span><span class="s1">name</span><span class="s2">=&quot;let&quot;</span><span class="s0">&gt;</span>
+      <span class="s0">&lt;attribute </span><span class="s1">name</span><span class="s2">=&quot;name&quot;</span><span class="s0">&gt;</span>
+        <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;nameValue&quot;</span><span class="s0">/&gt;</span>
+      <span class="s0">&lt;/attribute&gt;</span>
+      <span class="s0">&lt;choice&gt;</span>
+        <span class="s0">&lt;attribute </span><span class="s1">name</span><span class="s2">=&quot;value&quot;</span><span class="s0">&gt;</span>
+          <span class="s0">&lt;data </span><span class="s1">type</span><span class="s2">=&quot;string&quot; </span><span class="s1">datatypeLibrary</span><span class="s2">=&quot;&quot;</span><span class="s0">/&gt;</span>
+        <span class="s0">&lt;/attribute&gt;</span>
+        <span class="s0">&lt;oneOrMore&gt;</span>
+          <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;foreign-element&quot;</span><span class="s0">/&gt;</span>
+        <span class="s0">&lt;/oneOrMore&gt;</span>
+      <span class="s0">&lt;/choice&gt;</span>
+    <span class="s0">&lt;/element&gt;</span>
+  <span class="s0">&lt;/define&gt;</span>
+  <span class="s0">&lt;define </span><span class="s1">name</span><span class="s2">=&quot;name&quot;</span><span class="s0">&gt;</span>
+    <span class="s0">&lt;element </span><span class="s1">name</span><span class="s2">=&quot;name&quot;</span><span class="s0">&gt;</span>
+      <span class="s0">&lt;optional&gt;</span>
+        <span class="s0">&lt;attribute </span><span class="s1">name</span><span class="s2">=&quot;path&quot;</span><span class="s0">&gt;</span>
+          <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;pathValue&quot;</span><span class="s0">/&gt;</span>
+        <span class="s0">&lt;/attribute&gt;</span>
+      <span class="s0">&lt;/optional&gt;</span>
+      <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;foreign-empty&quot;</span><span class="s0">/&gt;</span>
+    <span class="s0">&lt;/element&gt;</span>
+  <span class="s0">&lt;/define&gt;</span>
+  <span class="s0">&lt;define </span><span class="s1">name</span><span class="s2">=&quot;ns&quot;</span><span class="s0">&gt;</span>
+    <span class="s0">&lt;element </span><span class="s1">name</span><span class="s2">=&quot;ns&quot;</span><span class="s0">&gt;</span>
+      <span class="s0">&lt;attribute </span><span class="s1">name</span><span class="s2">=&quot;uri&quot;</span><span class="s0">&gt;</span>
+        <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;uriValue&quot;</span><span class="s0">/&gt;</span>
+      <span class="s0">&lt;/attribute&gt;</span>
+      <span class="s0">&lt;attribute </span><span class="s1">name</span><span class="s2">=&quot;prefix&quot;</span><span class="s0">&gt;</span>
+        <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;nameValue&quot;</span><span class="s0">/&gt;</span>
+      <span class="s0">&lt;/attribute&gt;</span>
+      <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;foreign-empty&quot;</span><span class="s0">/&gt;</span>
+    <span class="s0">&lt;/element&gt;</span>
+  <span class="s0">&lt;/define&gt;</span>
+  <span class="s0">&lt;define </span><span class="s1">name</span><span class="s2">=&quot;p&quot;</span><span class="s0">&gt;</span>
+    <span class="s0">&lt;element </span><span class="s1">name</span><span class="s2">=&quot;p&quot;</span><span class="s0">&gt;</span>
+      <span class="s0">&lt;optional&gt;</span>
+        <span class="s0">&lt;attribute </span><span class="s1">name</span><span class="s2">=&quot;id&quot;</span><span class="s0">&gt;</span>
+          <span class="s0">&lt;data </span><span class="s1">type</span><span class="s2">=&quot;ID&quot;</span><span class="s0">/&gt;</span>
+        <span class="s0">&lt;/attribute&gt;</span>
+      <span class="s0">&lt;/optional&gt;</span>
+      <span class="s0">&lt;optional&gt;</span>
+        <span class="s0">&lt;attribute </span><span class="s1">name</span><span class="s2">=&quot;class&quot;</span><span class="s0">&gt;</span>
+          <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;classValue&quot;</span><span class="s0">/&gt;</span>
+        <span class="s0">&lt;/attribute&gt;</span>
+      <span class="s0">&lt;/optional&gt;</span>
+      <span class="s0">&lt;optional&gt;</span>
+        <span class="s0">&lt;attribute </span><span class="s1">name</span><span class="s2">=&quot;icon&quot;</span><span class="s0">&gt;</span>
+          <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;uriValue&quot;</span><span class="s0">/&gt;</span>
+        <span class="s0">&lt;/attribute&gt;</span>
+      <span class="s0">&lt;/optional&gt;</span>
+      <span class="s0">&lt;interleave&gt;</span>
+        <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;foreign&quot;</span><span class="s0">/&gt;</span>
+        <span class="s0">&lt;zeroOrMore&gt;</span>
+          <span class="s0">&lt;choice&gt;</span>
+            <span class="s0">&lt;text/&gt;</span>
+            <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;dir&quot;</span><span class="s0">/&gt;</span>
+            <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;emph&quot;</span><span class="s0">/&gt;</span>
+            <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;span&quot;</span><span class="s0">/&gt;</span>
+          <span class="s0">&lt;/choice&gt;</span>
+        <span class="s0">&lt;/zeroOrMore&gt;</span>
+      <span class="s0">&lt;/interleave&gt;</span>
+    <span class="s0">&lt;/element&gt;</span>
+  <span class="s0">&lt;/define&gt;</span>
+  <span class="s0">&lt;define </span><span class="s1">name</span><span class="s2">=&quot;param&quot;</span><span class="s0">&gt;</span>
+    <span class="s0">&lt;element </span><span class="s1">name</span><span class="s2">=&quot;param&quot;</span><span class="s0">&gt;</span>
+      <span class="s0">&lt;attribute </span><span class="s1">name</span><span class="s2">=&quot;name&quot;</span><span class="s0">&gt;</span>
+        <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;nameValue&quot;</span><span class="s0">/&gt;</span>
+      <span class="s0">&lt;/attribute&gt;</span>
+      <span class="s0">&lt;attribute </span><span class="s1">name</span><span class="s2">=&quot;value&quot;</span><span class="s0">&gt;</span>
+        <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;non-empty-string&quot;</span><span class="s0">/&gt;</span>
+      <span class="s0">&lt;/attribute&gt;</span>
+    <span class="s0">&lt;/element&gt;</span>
+  <span class="s0">&lt;/define&gt;</span>
+  <span class="s0">&lt;define </span><span class="s1">name</span><span class="s2">=&quot;pattern&quot;</span><span class="s0">&gt;</span>
+    <span class="s0">&lt;element </span><span class="s1">name</span><span class="s2">=&quot;pattern&quot;</span><span class="s0">&gt;</span>
+      <span class="s0">&lt;optional&gt;</span>
+        <span class="s0">&lt;attribute </span><span class="s1">name</span><span class="s2">=&quot;documents&quot;</span><span class="s0">&gt;</span>
+          <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;pathValue&quot;</span><span class="s0">/&gt;</span>
+        <span class="s0">&lt;/attribute&gt;</span>
+      <span class="s0">&lt;/optional&gt;</span>
+      <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;rich&quot;</span><span class="s0">/&gt;</span>
+      <span class="s0">&lt;interleave&gt;</span>
+        <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;foreign&quot;</span><span class="s0">/&gt;</span>
+        <span class="s0">&lt;zeroOrMore&gt;</span>
+          <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;inclusion&quot;</span><span class="s0">/&gt;</span>
+        <span class="s0">&lt;/zeroOrMore&gt;</span>
+        <span class="s0">&lt;choice&gt;</span>
+          <span class="s0">&lt;group&gt;</span>
+            <span class="s0">&lt;attribute </span><span class="s1">name</span><span class="s2">=&quot;abstract&quot;</span><span class="s0">&gt;</span>
+              <span class="s0">&lt;value&gt;</span><span class="s3">true</span><span class="s0">&lt;/value&gt;</span>
+            <span class="s0">&lt;/attribute&gt;</span>
+            <span class="s0">&lt;attribute </span><span class="s1">name</span><span class="s2">=&quot;id&quot;</span><span class="s0">&gt;</span>
+              <span class="s0">&lt;data </span><span class="s1">type</span><span class="s2">=&quot;ID&quot;</span><span class="s0">/&gt;</span>
+            <span class="s0">&lt;/attribute&gt;</span>
+            <span class="s0">&lt;optional&gt;</span>
+              <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;title&quot;</span><span class="s0">/&gt;</span>
+            <span class="s0">&lt;/optional&gt;</span>
+            <span class="s0">&lt;group&gt;</span>
+              <span class="s0">&lt;zeroOrMore&gt;</span>
+                <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;p&quot;</span><span class="s0">/&gt;</span>
+              <span class="s0">&lt;/zeroOrMore&gt;</span>
+              <span class="s0">&lt;zeroOrMore&gt;</span>
+                <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;let&quot;</span><span class="s0">/&gt;</span>
+              <span class="s0">&lt;/zeroOrMore&gt;</span>
+              <span class="s0">&lt;zeroOrMore&gt;</span>
+                <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;rule&quot;</span><span class="s0">/&gt;</span>
+              <span class="s0">&lt;/zeroOrMore&gt;</span>
+            <span class="s0">&lt;/group&gt;</span>
+          <span class="s0">&lt;/group&gt;</span>
+          <span class="s0">&lt;group&gt;</span>
+            <span class="s0">&lt;optional&gt;</span>
+              <span class="s0">&lt;attribute </span><span class="s1">name</span><span class="s2">=&quot;abstract&quot;</span><span class="s0">&gt;</span>
+                <span class="s0">&lt;value&gt;</span><span class="s3">false</span><span class="s0">&lt;/value&gt;</span>
+              <span class="s0">&lt;/attribute&gt;</span>
+            <span class="s0">&lt;/optional&gt;</span>
+            <span class="s0">&lt;optional&gt;</span>
+              <span class="s0">&lt;attribute </span><span class="s1">name</span><span class="s2">=&quot;id&quot;</span><span class="s0">&gt;</span>
+                <span class="s0">&lt;data </span><span class="s1">type</span><span class="s2">=&quot;ID&quot;</span><span class="s0">/&gt;</span>
+              <span class="s0">&lt;/attribute&gt;</span>
+            <span class="s0">&lt;/optional&gt;</span>
+            <span class="s0">&lt;optional&gt;</span>
+              <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;title&quot;</span><span class="s0">/&gt;</span>
+            <span class="s0">&lt;/optional&gt;</span>
+            <span class="s0">&lt;group&gt;</span>
+              <span class="s0">&lt;zeroOrMore&gt;</span>
+                <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;p&quot;</span><span class="s0">/&gt;</span>
+              <span class="s0">&lt;/zeroOrMore&gt;</span>
+              <span class="s0">&lt;zeroOrMore&gt;</span>
+                <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;let&quot;</span><span class="s0">/&gt;</span>
+              <span class="s0">&lt;/zeroOrMore&gt;</span>
+              <span class="s0">&lt;zeroOrMore&gt;</span>
+                <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;rule&quot;</span><span class="s0">/&gt;</span>
+              <span class="s0">&lt;/zeroOrMore&gt;</span>
+            <span class="s0">&lt;/group&gt;</span>
+          <span class="s0">&lt;/group&gt;</span>
+          <span class="s0">&lt;group&gt;</span>
+            <span class="s0">&lt;optional&gt;</span>
+              <span class="s0">&lt;attribute </span><span class="s1">name</span><span class="s2">=&quot;abstract&quot;</span><span class="s0">&gt;</span>
+                <span class="s0">&lt;value&gt;</span><span class="s3">false</span><span class="s0">&lt;/value&gt;</span>
+              <span class="s0">&lt;/attribute&gt;</span>
+            <span class="s0">&lt;/optional&gt;</span>
+            <span class="s0">&lt;attribute </span><span class="s1">name</span><span class="s2">=&quot;is-a&quot;</span><span class="s0">&gt;</span>
+              <span class="s0">&lt;data </span><span class="s1">type</span><span class="s2">=&quot;IDREF&quot;</span><span class="s0">/&gt;</span>
+            <span class="s0">&lt;/attribute&gt;</span>
+            <span class="s0">&lt;optional&gt;</span>
+              <span class="s0">&lt;attribute </span><span class="s1">name</span><span class="s2">=&quot;id&quot;</span><span class="s0">&gt;</span>
+                <span class="s0">&lt;data </span><span class="s1">type</span><span class="s2">=&quot;ID&quot;</span><span class="s0">/&gt;</span>
+              <span class="s0">&lt;/attribute&gt;</span>
+            <span class="s0">&lt;/optional&gt;</span>
+            <span class="s0">&lt;optional&gt;</span>
+              <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;title&quot;</span><span class="s0">/&gt;</span>
+            <span class="s0">&lt;/optional&gt;</span>
+            <span class="s0">&lt;group&gt;</span>
+              <span class="s0">&lt;zeroOrMore&gt;</span>
+                <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;p&quot;</span><span class="s0">/&gt;</span>
+              <span class="s0">&lt;/zeroOrMore&gt;</span>
+              <span class="s0">&lt;zeroOrMore&gt;</span>
+                <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;param&quot;</span><span class="s0">/&gt;</span>
+              <span class="s0">&lt;/zeroOrMore&gt;</span>
+            <span class="s0">&lt;/group&gt;</span>
+          <span class="s0">&lt;/group&gt;</span>
+        <span class="s0">&lt;/choice&gt;</span>
+      <span class="s0">&lt;/interleave&gt;</span>
+    <span class="s0">&lt;/element&gt;</span>
+  <span class="s0">&lt;/define&gt;</span>
+  <span class="s0">&lt;define </span><span class="s1">name</span><span class="s2">=&quot;phase&quot;</span><span class="s0">&gt;</span>
+    <span class="s0">&lt;element </span><span class="s1">name</span><span class="s2">=&quot;phase&quot;</span><span class="s0">&gt;</span>
+      <span class="s0">&lt;attribute </span><span class="s1">name</span><span class="s2">=&quot;id&quot;</span><span class="s0">&gt;</span>
+        <span class="s0">&lt;data </span><span class="s1">type</span><span class="s2">=&quot;ID&quot;</span><span class="s0">/&gt;</span>
+      <span class="s0">&lt;/attribute&gt;</span>
+      <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;rich&quot;</span><span class="s0">/&gt;</span>
+      <span class="s0">&lt;interleave&gt;</span>
+        <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;foreign&quot;</span><span class="s0">/&gt;</span>
+        <span class="s0">&lt;zeroOrMore&gt;</span>
+          <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;inclusion&quot;</span><span class="s0">/&gt;</span>
+        <span class="s0">&lt;/zeroOrMore&gt;</span>
+        <span class="s0">&lt;group&gt;</span>
+          <span class="s0">&lt;zeroOrMore&gt;</span>
+            <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;p&quot;</span><span class="s0">/&gt;</span>
+          <span class="s0">&lt;/zeroOrMore&gt;</span>
+          <span class="s0">&lt;zeroOrMore&gt;</span>
+            <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;let&quot;</span><span class="s0">/&gt;</span>
+          <span class="s0">&lt;/zeroOrMore&gt;</span>
+          <span class="s0">&lt;zeroOrMore&gt;</span>
+            <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;active&quot;</span><span class="s0">/&gt;</span>
+          <span class="s0">&lt;/zeroOrMore&gt;</span>
+        <span class="s0">&lt;/group&gt;</span>
+      <span class="s0">&lt;/interleave&gt;</span>
+    <span class="s0">&lt;/element&gt;</span>
+  <span class="s0">&lt;/define&gt;</span>
+  <span class="s0">&lt;define </span><span class="s1">name</span><span class="s2">=&quot;properties&quot;</span><span class="s0">&gt;</span>
+    <span class="s0">&lt;element </span><span class="s1">name</span><span class="s2">=&quot;properties&quot;</span><span class="s0">&gt;</span>
+      <span class="s0">&lt;zeroOrMore&gt;</span>
+        <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;property&quot;</span><span class="s0">/&gt;</span>
+      <span class="s0">&lt;/zeroOrMore&gt;</span>
+    <span class="s0">&lt;/element&gt;</span>
+  <span class="s0">&lt;/define&gt;</span>
+  <span class="s0">&lt;define </span><span class="s1">name</span><span class="s2">=&quot;property&quot;</span><span class="s0">&gt;</span>
+    <span class="s0">&lt;element </span><span class="s1">name</span><span class="s2">=&quot;property&quot;</span><span class="s0">&gt;</span>
+      <span class="s0">&lt;attribute </span><span class="s1">name</span><span class="s2">=&quot;id&quot;</span><span class="s0">&gt;</span>
+        <span class="s0">&lt;data </span><span class="s1">type</span><span class="s2">=&quot;ID&quot;</span><span class="s0">/&gt;</span>
+      <span class="s0">&lt;/attribute&gt;</span>
+      <span class="s0">&lt;optional&gt;</span>
+        <span class="s0">&lt;attribute </span><span class="s1">name</span><span class="s2">=&quot;role&quot;</span><span class="s0">&gt;</span>
+          <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;roleValue&quot;</span><span class="s0">/&gt;</span>
+        <span class="s0">&lt;/attribute&gt;</span>
+      <span class="s0">&lt;/optional&gt;</span>
+      <span class="s0">&lt;optional&gt;</span>
+        <span class="s0">&lt;attribute </span><span class="s1">name</span><span class="s2">=&quot;scheme&quot;</span><span class="s0">/&gt;</span>
+      <span class="s0">&lt;/optional&gt;</span>
+      <span class="s0">&lt;interleave&gt;</span>
+        <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;foreign&quot;</span><span class="s0">/&gt;</span>
+        <span class="s0">&lt;zeroOrMore&gt;</span>
+          <span class="s0">&lt;choice&gt;</span>
+            <span class="s0">&lt;text/&gt;</span>
+            <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;name&quot;</span><span class="s0">/&gt;</span>
+            <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;value-of&quot;</span><span class="s0">/&gt;</span>
+            <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;emph&quot;</span><span class="s0">/&gt;</span>
+            <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;dir&quot;</span><span class="s0">/&gt;</span>
+            <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;span&quot;</span><span class="s0">/&gt;</span>
+          <span class="s0">&lt;/choice&gt;</span>
+        <span class="s0">&lt;/zeroOrMore&gt;</span>
+      <span class="s0">&lt;/interleave&gt;</span>
+    <span class="s0">&lt;/element&gt;</span>
+  <span class="s0">&lt;/define&gt;</span>
+  <span class="s0">&lt;define </span><span class="s1">name</span><span class="s2">=&quot;report&quot;</span><span class="s0">&gt;</span>
+    <span class="s0">&lt;element </span><span class="s1">name</span><span class="s2">=&quot;report&quot;</span><span class="s0">&gt;</span>
+      <span class="s0">&lt;attribute </span><span class="s1">name</span><span class="s2">=&quot;test&quot;</span><span class="s0">&gt;</span>
+        <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;exprValue&quot;</span><span class="s0">/&gt;</span>
+      <span class="s0">&lt;/attribute&gt;</span>
+      <span class="s0">&lt;optional&gt;</span>
+        <span class="s0">&lt;attribute </span><span class="s1">name</span><span class="s2">=&quot;flag&quot;</span><span class="s0">&gt;</span>
+          <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;flagValue&quot;</span><span class="s0">/&gt;</span>
+        <span class="s0">&lt;/attribute&gt;</span>
+      <span class="s0">&lt;/optional&gt;</span>
+      <span class="s0">&lt;optional&gt;</span>
+        <span class="s0">&lt;attribute </span><span class="s1">name</span><span class="s2">=&quot;id&quot;</span><span class="s0">&gt;</span>
+          <span class="s0">&lt;data </span><span class="s1">type</span><span class="s2">=&quot;ID&quot;</span><span class="s0">/&gt;</span>
+        <span class="s0">&lt;/attribute&gt;</span>
+      <span class="s0">&lt;/optional&gt;</span>
+      <span class="s0">&lt;optional&gt;</span>
+        <span class="s0">&lt;attribute </span><span class="s1">name</span><span class="s2">=&quot;diagnostics&quot;</span><span class="s0">&gt;</span>
+          <span class="s0">&lt;data </span><span class="s1">type</span><span class="s2">=&quot;IDREFS&quot;</span><span class="s0">/&gt;</span>
+        <span class="s0">&lt;/attribute&gt;</span>
+      <span class="s0">&lt;/optional&gt;</span>
+      <span class="s0">&lt;optional&gt;</span>
+        <span class="s0">&lt;attribute </span><span class="s1">name</span><span class="s2">=&quot;properties&quot;</span><span class="s0">&gt;</span>
+          <span class="s0">&lt;data </span><span class="s1">type</span><span class="s2">=&quot;IDREFS&quot;</span><span class="s0">/&gt;</span>
+        <span class="s0">&lt;/attribute&gt;</span>
+      <span class="s0">&lt;/optional&gt;</span>
+      <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;rich&quot;</span><span class="s0">/&gt;</span>
+      <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;linkable&quot;</span><span class="s0">/&gt;</span>
+      <span class="s0">&lt;interleave&gt;</span>
+        <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;foreign&quot;</span><span class="s0">/&gt;</span>
+        <span class="s0">&lt;zeroOrMore&gt;</span>
+          <span class="s0">&lt;choice&gt;</span>
+            <span class="s0">&lt;text/&gt;</span>
+            <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;name&quot;</span><span class="s0">/&gt;</span>
+            <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;value-of&quot;</span><span class="s0">/&gt;</span>
+            <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;emph&quot;</span><span class="s0">/&gt;</span>
+            <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;dir&quot;</span><span class="s0">/&gt;</span>
+            <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;span&quot;</span><span class="s0">/&gt;</span>
+          <span class="s0">&lt;/choice&gt;</span>
+        <span class="s0">&lt;/zeroOrMore&gt;</span>
+      <span class="s0">&lt;/interleave&gt;</span>
+    <span class="s0">&lt;/element&gt;</span>
+  <span class="s0">&lt;/define&gt;</span>
+  <span class="s0">&lt;define </span><span class="s1">name</span><span class="s2">=&quot;rule&quot;</span><span class="s0">&gt;</span>
+    <span class="s0">&lt;element </span><span class="s1">name</span><span class="s2">=&quot;rule&quot;</span><span class="s0">&gt;</span>
+      <span class="s0">&lt;optional&gt;</span>
+        <span class="s0">&lt;attribute </span><span class="s1">name</span><span class="s2">=&quot;flag&quot;</span><span class="s0">&gt;</span>
+          <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;flagValue&quot;</span><span class="s0">/&gt;</span>
+        <span class="s0">&lt;/attribute&gt;</span>
+      <span class="s0">&lt;/optional&gt;</span>
+      <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;rich&quot;</span><span class="s0">/&gt;</span>
+      <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;linkable&quot;</span><span class="s0">/&gt;</span>
+      <span class="s0">&lt;interleave&gt;</span>
+        <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;foreign&quot;</span><span class="s0">/&gt;</span>
+        <span class="s0">&lt;zeroOrMore&gt;</span>
+          <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;inclusion&quot;</span><span class="s0">/&gt;</span>
+        <span class="s0">&lt;/zeroOrMore&gt;</span>
+        <span class="s0">&lt;choice&gt;</span>
+          <span class="s0">&lt;group&gt;</span>
+            <span class="s0">&lt;attribute </span><span class="s1">name</span><span class="s2">=&quot;abstract&quot;</span><span class="s0">&gt;</span>
+              <span class="s0">&lt;value&gt;</span><span class="s3">true</span><span class="s0">&lt;/value&gt;</span>
+            <span class="s0">&lt;/attribute&gt;</span>
+            <span class="s0">&lt;attribute </span><span class="s1">name</span><span class="s2">=&quot;id&quot;</span><span class="s0">&gt;</span>
+              <span class="s0">&lt;data </span><span class="s1">type</span><span class="s2">=&quot;ID&quot;</span><span class="s0">/&gt;</span>
+            <span class="s0">&lt;/attribute&gt;</span>
+            <span class="s0">&lt;zeroOrMore&gt;</span>
+              <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;let&quot;</span><span class="s0">/&gt;</span>
+            <span class="s0">&lt;/zeroOrMore&gt;</span>
+            <span class="s0">&lt;oneOrMore&gt;</span>
+              <span class="s0">&lt;choice&gt;</span>
+                <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;assert&quot;</span><span class="s0">/&gt;</span>
+                <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;report&quot;</span><span class="s0">/&gt;</span>
+                <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;extends&quot;</span><span class="s0">/&gt;</span>
+                <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;p&quot;</span><span class="s0">/&gt;</span>
+              <span class="s0">&lt;/choice&gt;</span>
+            <span class="s0">&lt;/oneOrMore&gt;</span>
+          <span class="s0">&lt;/group&gt;</span>
+          <span class="s0">&lt;group&gt;</span>
+            <span class="s0">&lt;attribute </span><span class="s1">name</span><span class="s2">=&quot;context&quot;</span><span class="s0">&gt;</span>
+              <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;pathValue&quot;</span><span class="s0">/&gt;</span>
+            <span class="s0">&lt;/attribute&gt;</span>
+            <span class="s0">&lt;optional&gt;</span>
+              <span class="s0">&lt;attribute </span><span class="s1">name</span><span class="s2">=&quot;id&quot;</span><span class="s0">&gt;</span>
+                <span class="s0">&lt;data </span><span class="s1">type</span><span class="s2">=&quot;ID&quot;</span><span class="s0">/&gt;</span>
+              <span class="s0">&lt;/attribute&gt;</span>
+            <span class="s0">&lt;/optional&gt;</span>
+            <span class="s0">&lt;optional&gt;</span>
+              <span class="s0">&lt;attribute </span><span class="s1">name</span><span class="s2">=&quot;abstract&quot;</span><span class="s0">&gt;</span>
+                <span class="s0">&lt;value&gt;</span><span class="s3">false</span><span class="s0">&lt;/value&gt;</span>
+              <span class="s0">&lt;/attribute&gt;</span>
+            <span class="s0">&lt;/optional&gt;</span>
+            <span class="s0">&lt;zeroOrMore&gt;</span>
+              <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;let&quot;</span><span class="s0">/&gt;</span>
+            <span class="s0">&lt;/zeroOrMore&gt;</span>
+            <span class="s0">&lt;oneOrMore&gt;</span>
+              <span class="s0">&lt;choice&gt;</span>
+                <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;assert&quot;</span><span class="s0">/&gt;</span>
+                <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;report&quot;</span><span class="s0">/&gt;</span>
+                <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;extends&quot;</span><span class="s0">/&gt;</span>
+                <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;p&quot;</span><span class="s0">/&gt;</span>
+              <span class="s0">&lt;/choice&gt;</span>
+            <span class="s0">&lt;/oneOrMore&gt;</span>
+          <span class="s0">&lt;/group&gt;</span>
+        <span class="s0">&lt;/choice&gt;</span>
+      <span class="s0">&lt;/interleave&gt;</span>
+    <span class="s0">&lt;/element&gt;</span>
+  <span class="s0">&lt;/define&gt;</span>
+  <span class="s0">&lt;define </span><span class="s1">name</span><span class="s2">=&quot;span&quot;</span><span class="s0">&gt;</span>
+    <span class="s0">&lt;element </span><span class="s1">name</span><span class="s2">=&quot;span&quot;</span><span class="s0">&gt;</span>
+      <span class="s0">&lt;attribute </span><span class="s1">name</span><span class="s2">=&quot;class&quot;</span><span class="s0">&gt;</span>
+        <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;classValue&quot;</span><span class="s0">/&gt;</span>
+      <span class="s0">&lt;/attribute&gt;</span>
+      <span class="s0">&lt;interleave&gt;</span>
+        <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;foreign&quot;</span><span class="s0">/&gt;</span>
+        <span class="s0">&lt;text/&gt;</span>
+      <span class="s0">&lt;/interleave&gt;</span>
+    <span class="s0">&lt;/element&gt;</span>
+  <span class="s0">&lt;/define&gt;</span>
+  <span class="s0">&lt;define </span><span class="s1">name</span><span class="s2">=&quot;title&quot;</span><span class="s0">&gt;</span>
+    <span class="s0">&lt;element </span><span class="s1">name</span><span class="s2">=&quot;title&quot;</span><span class="s0">&gt;</span>
+      <span class="s0">&lt;zeroOrMore&gt;</span>
+        <span class="s0">&lt;choice&gt;</span>
+          <span class="s0">&lt;text/&gt;</span>
+          <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;dir&quot;</span><span class="s0">/&gt;</span>
+        <span class="s0">&lt;/choice&gt;</span>
+      <span class="s0">&lt;/zeroOrMore&gt;</span>
+    <span class="s0">&lt;/element&gt;</span>
+  <span class="s0">&lt;/define&gt;</span>
+  <span class="s0">&lt;define </span><span class="s1">name</span><span class="s2">=&quot;value-of&quot;</span><span class="s0">&gt;</span>
+    <span class="s0">&lt;element </span><span class="s1">name</span><span class="s2">=&quot;value-of&quot;</span><span class="s0">&gt;</span>
+      <span class="s0">&lt;attribute </span><span class="s1">name</span><span class="s2">=&quot;select&quot;</span><span class="s0">&gt;</span>
+        <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;pathValue&quot;</span><span class="s0">/&gt;</span>
+      <span class="s0">&lt;/attribute&gt;</span>
+      <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;foreign-empty&quot;</span><span class="s0">/&gt;</span>
+    <span class="s0">&lt;/element&gt;</span>
+  <span class="s0">&lt;/define&gt;</span>
+  <span class="s4">&lt;!-- common declarations --&gt;</span>
+  <span class="s0">&lt;define </span><span class="s1">name</span><span class="s2">=&quot;inclusion&quot;</span><span class="s0">&gt;</span>
+    <span class="s0">&lt;element </span><span class="s1">name</span><span class="s2">=&quot;include&quot;</span><span class="s0">&gt;</span>
+      <span class="s0">&lt;attribute </span><span class="s1">name</span><span class="s2">=&quot;href&quot;</span><span class="s0">&gt;</span>
+        <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;uriValue&quot;</span><span class="s0">/&gt;</span>
+      <span class="s0">&lt;/attribute&gt;</span>
+      <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;foreign-empty&quot;</span><span class="s0">/&gt;</span>
+    <span class="s0">&lt;/element&gt;</span>
+  <span class="s0">&lt;/define&gt;</span>
+  <span class="s0">&lt;define </span><span class="s1">name</span><span class="s2">=&quot;rich&quot;</span><span class="s0">&gt;</span>
+    <span class="s0">&lt;optional&gt;</span>
+      <span class="s0">&lt;attribute </span><span class="s1">name</span><span class="s2">=&quot;icon&quot;</span><span class="s0">&gt;</span>
+        <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;uriValue&quot;</span><span class="s0">/&gt;</span>
+      <span class="s0">&lt;/attribute&gt;</span>
+    <span class="s0">&lt;/optional&gt;</span>
+    <span class="s0">&lt;optional&gt;</span>
+      <span class="s0">&lt;attribute </span><span class="s1">name</span><span class="s2">=&quot;see&quot;</span><span class="s0">&gt;</span>
+        <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;uriValue&quot;</span><span class="s0">/&gt;</span>
+      <span class="s0">&lt;/attribute&gt;</span>
+    <span class="s0">&lt;/optional&gt;</span>
+    <span class="s0">&lt;optional&gt;</span>
+      <span class="s0">&lt;attribute </span><span class="s1">name</span><span class="s2">=&quot;fpi&quot;</span><span class="s0">&gt;</span>
+        <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;fpiValue&quot;</span><span class="s0">/&gt;</span>
+      <span class="s0">&lt;/attribute&gt;</span>
+    <span class="s0">&lt;/optional&gt;</span>
+    <span class="s0">&lt;optional&gt;</span>
+      <span class="s0">&lt;attribute </span><span class="s1">name</span><span class="s2">=&quot;xml:lang&quot;</span><span class="s0">&gt;</span>
+        <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;langValue&quot;</span><span class="s0">/&gt;</span>
+      <span class="s0">&lt;/attribute&gt;</span>
+    <span class="s0">&lt;/optional&gt;</span>
+    <span class="s0">&lt;optional&gt;</span>
+      <span class="s0">&lt;attribute </span><span class="s1">name</span><span class="s2">=&quot;xml:space&quot;</span><span class="s0">&gt;</span>
+        <span class="s0">&lt;choice&gt;</span>
+          <span class="s0">&lt;value&gt;</span><span class="s3">preserve</span><span class="s0">&lt;/value&gt;</span>
+          <span class="s0">&lt;value&gt;</span><span class="s3">default</span><span class="s0">&lt;/value&gt;</span>
+        <span class="s0">&lt;/choice&gt;</span>
+      <span class="s0">&lt;/attribute&gt;</span>
+    <span class="s0">&lt;/optional&gt;</span>
+  <span class="s0">&lt;/define&gt;</span>
+  <span class="s0">&lt;define </span><span class="s1">name</span><span class="s2">=&quot;linkable&quot;</span><span class="s0">&gt;</span>
+    <span class="s0">&lt;optional&gt;</span>
+      <span class="s0">&lt;attribute </span><span class="s1">name</span><span class="s2">=&quot;role&quot;</span><span class="s0">&gt;</span>
+        <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;roleValue&quot;</span><span class="s0">/&gt;</span>
+      <span class="s0">&lt;/attribute&gt;</span>
+    <span class="s0">&lt;/optional&gt;</span>
+    <span class="s0">&lt;optional&gt;</span>
+      <span class="s0">&lt;attribute </span><span class="s1">name</span><span class="s2">=&quot;subject&quot;</span><span class="s0">&gt;</span>
+        <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;pathValue&quot;</span><span class="s0">/&gt;</span>
+      <span class="s0">&lt;/attribute&gt;</span>
+    <span class="s0">&lt;/optional&gt;</span>
+  <span class="s0">&lt;/define&gt;</span>
+  <span class="s0">&lt;define </span><span class="s1">name</span><span class="s2">=&quot;foreign&quot;</span><span class="s0">&gt;</span>
+    <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;foreign-attributes&quot;</span><span class="s0">/&gt;</span>
+    <span class="s0">&lt;zeroOrMore&gt;</span>
+      <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;foreign-element&quot;</span><span class="s0">/&gt;</span>
+    <span class="s0">&lt;/zeroOrMore&gt;</span>
+  <span class="s0">&lt;/define&gt;</span>
+  <span class="s0">&lt;define </span><span class="s1">name</span><span class="s2">=&quot;foreign-empty&quot;</span><span class="s0">&gt;</span>
+    <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;foreign-attributes&quot;</span><span class="s0">/&gt;</span>
+  <span class="s0">&lt;/define&gt;</span>
+  <span class="s0">&lt;define </span><span class="s1">name</span><span class="s2">=&quot;foreign-attributes&quot;</span><span class="s0">&gt;</span>
+    <span class="s0">&lt;zeroOrMore&gt;</span>
+      <span class="s0">&lt;attribute&gt;</span>
+        <span class="s0">&lt;anyName&gt;</span>
+          <span class="s0">&lt;except&gt;</span>
+            <span class="s0">&lt;nsName </span><span class="s1">ns</span><span class="s2">=&quot;&quot;</span><span class="s0">/&gt;</span>
+            <span class="s0">&lt;nsName </span><span class="s1">ns</span><span class="s2">=&quot;http://www.w3.org/XML/1998/namespace&quot;</span><span class="s0">/&gt;</span>
+          <span class="s0">&lt;/except&gt;</span>
+        <span class="s0">&lt;/anyName&gt;</span>
+      <span class="s0">&lt;/attribute&gt;</span>
+    <span class="s0">&lt;/zeroOrMore&gt;</span>
+  <span class="s0">&lt;/define&gt;</span>
+  <span class="s0">&lt;define </span><span class="s1">name</span><span class="s2">=&quot;foreign-element&quot;</span><span class="s0">&gt;</span>
+    <span class="s0">&lt;element&gt;</span>
+      <span class="s0">&lt;anyName&gt;</span>
+        <span class="s0">&lt;except&gt;</span>
+          <span class="s0">&lt;nsName/&gt;</span>
+        <span class="s0">&lt;/except&gt;</span>
+      <span class="s0">&lt;/anyName&gt;</span>
+      <span class="s0">&lt;zeroOrMore&gt;</span>
+        <span class="s0">&lt;choice&gt;</span>
+          <span class="s0">&lt;attribute&gt;</span>
+            <span class="s0">&lt;anyName/&gt;</span>
+          <span class="s0">&lt;/attribute&gt;</span>
+          <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;foreign-element&quot;</span><span class="s0">/&gt;</span>
+          <span class="s0">&lt;ref </span><span class="s1">name</span><span class="s2">=&quot;schema&quot;</span><span class="s0">/&gt;</span>
+          <span class="s0">&lt;text/&gt;</span>
+        <span class="s0">&lt;/choice&gt;</span>
+      <span class="s0">&lt;/zeroOrMore&gt;</span>
+    <span class="s0">&lt;/element&gt;</span>
+  <span class="s0">&lt;/define&gt;</span>
+  <span class="s4">&lt;!-- Data types --&gt;</span>
+  <span class="s0">&lt;define </span><span class="s1">name</span><span class="s2">=&quot;uriValue&quot;</span><span class="s0">&gt;</span>
+    <span class="s0">&lt;data </span><span class="s1">type</span><span class="s2">=&quot;anyURI&quot;</span><span class="s0">/&gt;</span>
+  <span class="s0">&lt;/define&gt;</span>
+  <span class="s0">&lt;define </span><span class="s1">name</span><span class="s2">=&quot;pathValue&quot;</span><span class="s0">&gt;</span>
+    <span class="s0">&lt;data </span><span class="s1">type</span><span class="s2">=&quot;string&quot; </span><span class="s1">datatypeLibrary</span><span class="s2">=&quot;&quot;</span><span class="s0">/&gt;</span>
+  <span class="s0">&lt;/define&gt;</span>
+  <span class="s0">&lt;define </span><span class="s1">name</span><span class="s2">=&quot;exprValue&quot;</span><span class="s0">&gt;</span>
+    <span class="s0">&lt;data </span><span class="s1">type</span><span class="s2">=&quot;string&quot; </span><span class="s1">datatypeLibrary</span><span class="s2">=&quot;&quot;</span><span class="s0">/&gt;</span>
+  <span class="s0">&lt;/define&gt;</span>
+  <span class="s0">&lt;define </span><span class="s1">name</span><span class="s2">=&quot;fpiValue&quot;</span><span class="s0">&gt;</span>
+    <span class="s0">&lt;data </span><span class="s1">type</span><span class="s2">=&quot;string&quot; </span><span class="s1">datatypeLibrary</span><span class="s2">=&quot;&quot;</span><span class="s0">/&gt;</span>
+  <span class="s0">&lt;/define&gt;</span>
+  <span class="s0">&lt;define </span><span class="s1">name</span><span class="s2">=&quot;langValue&quot;</span><span class="s0">&gt;</span>
+    <span class="s0">&lt;data </span><span class="s1">type</span><span class="s2">=&quot;language&quot;</span><span class="s0">/&gt;</span>
+  <span class="s0">&lt;/define&gt;</span>
+  <span class="s0">&lt;define </span><span class="s1">name</span><span class="s2">=&quot;roleValue&quot;</span><span class="s0">&gt;</span>
+    <span class="s0">&lt;data </span><span class="s1">type</span><span class="s2">=&quot;string&quot; </span><span class="s1">datatypeLibrary</span><span class="s2">=&quot;&quot;</span><span class="s0">/&gt;</span>
+  <span class="s0">&lt;/define&gt;</span>
+  <span class="s0">&lt;define </span><span class="s1">name</span><span class="s2">=&quot;flagValue&quot;</span><span class="s0">&gt;</span>
+    <span class="s0">&lt;data </span><span class="s1">type</span><span class="s2">=&quot;string&quot; </span><span class="s1">datatypeLibrary</span><span class="s2">=&quot;&quot;</span><span class="s0">/&gt;</span>
+  <span class="s0">&lt;/define&gt;</span>
+  <span class="s0">&lt;define </span><span class="s1">name</span><span class="s2">=&quot;nameValue&quot;</span><span class="s0">&gt;</span>
+    <span class="s0">&lt;data </span><span class="s1">type</span><span class="s2">=&quot;string&quot; </span><span class="s1">datatypeLibrary</span><span class="s2">=&quot;&quot;</span><span class="s0">/&gt;</span>
+  <span class="s0">&lt;/define&gt;</span>
+  <span class="s4">&lt;!-- In the default query language binding, xsd:NCNAME --&gt;</span>
+  <span class="s0">&lt;define </span><span class="s1">name</span><span class="s2">=&quot;classValue&quot;</span><span class="s0">&gt;</span>
+    <span class="s0">&lt;data </span><span class="s1">type</span><span class="s2">=&quot;string&quot; </span><span class="s1">datatypeLibrary</span><span class="s2">=&quot;&quot;</span><span class="s0">/&gt;</span>
+  <span class="s0">&lt;/define&gt;</span>
+  <span class="s0">&lt;define </span><span class="s1">name</span><span class="s2">=&quot;non-empty-string&quot;</span><span class="s0">&gt;</span>
+    <span class="s0">&lt;data </span><span class="s1">type</span><span class="s2">=&quot;token&quot;</span><span class="s0">&gt;</span>
+      <span class="s0">&lt;param </span><span class="s1">name</span><span class="s2">=&quot;minLength&quot;</span><span class="s0">&gt;</span><span class="s3">1</span><span class="s0">&lt;/param&gt;</span>
+    <span class="s0">&lt;/data&gt;</span>
+  <span class="s0">&lt;/define&gt;</span>
+<span class="s0">&lt;/grammar&gt;</span>
+</pre>
+</body>
+</html>

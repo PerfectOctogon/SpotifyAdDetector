@@ -1,0 +1,74 @@
+<html>
+<head>
+<title>keys.h</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+.s4 { color: #6897bb;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+keys.h</font>
+</center></td></tr></table>
+<pre><span class="s0">/* 
+ * Summary:  interface for the key matching used in key() and template matches. 
+ * Description: implementation of the key mechanims. 
+ * 
+ * Copy: See Copyright for the status of this software. 
+ * 
+ * Author: Daniel Veillard 
+ */</span>
+
+<span class="s2">#ifndef </span><span class="s1">__XML_XSLT_KEY_H__</span>
+<span class="s2">#define </span><span class="s1">__XML_XSLT_KEY_H__</span>
+
+<span class="s2">#include </span><span class="s1">&lt;libxml/xpath.h&gt;</span>
+<span class="s2">#include </span><span class="s3">&quot;xsltexports.h&quot;</span>
+<span class="s2">#include </span><span class="s3">&quot;xsltInternals.h&quot;</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s2">extern </span><span class="s3">&quot;C&quot; </span><span class="s1">{</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * NODE_IS_KEYED: 
+ * 
+ * check for bit 15 set 
+ */</span>
+<span class="s2">#define </span><span class="s1">NODE_IS_KEYED (</span><span class="s4">1 </span><span class="s1">&gt;&gt; </span><span class="s4">15</span><span class="s1">)</span>
+
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltAddKey		(xsltStylesheetPtr style,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *nameURI,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *match,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *use,</span>
+					 <span class="s1">xmlNodePtr inst);</span>
+<span class="s1">XSLTPUBFUN xmlNodeSetPtr XSLTCALL</span>
+		<span class="s1">xsltGetKey		(xsltTransformContextPtr ctxt,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *nameURI,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *value);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltInitCtxtKeys	(xsltTransformContextPtr ctxt,</span>
+					 <span class="s1">xsltDocumentPtr doc);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltFreeKeys		(xsltStylesheetPtr style);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltFreeDocumentKeys	(xsltDocumentPtr doc);</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s1">}</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#endif </span><span class="s0">/* __XML_XSLT_H__ */</span>
+
+</pre>
+</body>
+</html>

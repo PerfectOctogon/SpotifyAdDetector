@@ -1,0 +1,124 @@
+<html>
+<head>
+<title>cssselect.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #629755; font-style: italic;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+.s4 { color: #808080;}
+.s5 { color: #6897bb;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+cssselect.py</font>
+</center></td></tr></table>
+<pre><span class="s0">&quot;&quot;&quot;CSS Selectors based on XPath. 
+ 
+This module supports selecting XML/HTML tags based on CSS selectors. 
+See the `CSSSelector` class for details. 
+ 
+This is a thin wrapper around cssselect 0.7 or later. 
+&quot;&quot;&quot;</span>
+
+<span class="s2">from </span><span class="s1">__future__ </span><span class="s2">import </span><span class="s1">absolute_import</span>
+
+<span class="s2">from </span><span class="s1">. </span><span class="s2">import </span><span class="s1">etree</span>
+<span class="s2">try</span><span class="s1">:</span>
+    <span class="s2">import </span><span class="s1">cssselect </span><span class="s2">as </span><span class="s1">external_cssselect</span>
+<span class="s2">except </span><span class="s1">ImportError:</span>
+    <span class="s2">raise </span><span class="s1">ImportError(</span>
+        <span class="s3">'cssselect does not seem to be installed. '</span>
+        <span class="s3">'See http://packages.python.org/cssselect/'</span><span class="s1">)</span>
+
+
+<span class="s1">SelectorSyntaxError = external_cssselect.SelectorSyntaxError</span>
+<span class="s1">ExpressionError = external_cssselect.ExpressionError</span>
+<span class="s1">SelectorError = external_cssselect.SelectorError</span>
+
+
+<span class="s1">__all__ = [</span><span class="s3">'SelectorSyntaxError'</span><span class="s2">, </span><span class="s3">'ExpressionError'</span><span class="s2">, </span><span class="s3">'SelectorError'</span><span class="s2">,</span>
+           <span class="s3">'CSSSelector'</span><span class="s1">]</span>
+
+
+<span class="s2">class </span><span class="s1">LxmlTranslator(external_cssselect.GenericTranslator):</span>
+    <span class="s0">&quot;&quot;&quot; 
+    A custom CSS selector to XPath translator with lxml-specific extensions. 
+    &quot;&quot;&quot;</span>
+    <span class="s2">def </span><span class="s1">xpath_contains_function(self</span><span class="s2">, </span><span class="s1">xpath</span><span class="s2">, </span><span class="s1">function):</span>
+        <span class="s4"># Defined there, removed in later drafts:</span>
+        <span class="s4"># http://www.w3.org/TR/2001/CR-css3-selectors-20011113/#content-selectors</span>
+        <span class="s2">if </span><span class="s1">function.argument_types() </span><span class="s2">not in </span><span class="s1">([</span><span class="s3">'STRING'</span><span class="s1">]</span><span class="s2">, </span><span class="s1">[</span><span class="s3">'IDENT'</span><span class="s1">]):</span>
+            <span class="s2">raise </span><span class="s1">ExpressionError(</span>
+                <span class="s3">&quot;Expected a single string or ident for :contains(), got %r&quot;</span>
+                <span class="s1">% function.arguments)</span>
+        <span class="s1">value = function.arguments[</span><span class="s5">0</span><span class="s1">].value</span>
+        <span class="s2">return </span><span class="s1">xpath.add_condition(</span>
+            <span class="s3">'contains(__lxml_internal_css:lower-case(string(.)), %s)'</span>
+            <span class="s1">% self.xpath_literal(value.lower()))</span>
+
+
+<span class="s2">class </span><span class="s1">LxmlHTMLTranslator(LxmlTranslator</span><span class="s2">, </span><span class="s1">external_cssselect.HTMLTranslator):</span>
+    <span class="s0">&quot;&quot;&quot; 
+    lxml extensions + HTML support. 
+    &quot;&quot;&quot;</span>
+
+
+<span class="s2">def </span><span class="s1">_make_lower_case(context</span><span class="s2">, </span><span class="s1">s):</span>
+    <span class="s2">return </span><span class="s1">s.lower()</span>
+
+<span class="s1">ns = etree.FunctionNamespace(</span><span class="s3">'http://codespeak.net/lxml/css/'</span><span class="s1">)</span>
+<span class="s1">ns.prefix = </span><span class="s3">'__lxml_internal_css'</span>
+<span class="s1">ns[</span><span class="s3">'lower-case'</span><span class="s1">] = _make_lower_case</span>
+
+
+<span class="s2">class </span><span class="s1">CSSSelector(etree.XPath):</span>
+    <span class="s0">&quot;&quot;&quot;A CSS selector. 
+ 
+    Usage:: 
+ 
+        &gt;&gt;&gt; from lxml import etree, cssselect 
+        &gt;&gt;&gt; select = cssselect.CSSSelector(&quot;a tag &gt; child&quot;) 
+ 
+        &gt;&gt;&gt; root = etree.XML(&quot;&lt;a&gt;&lt;b&gt;&lt;c/&gt;&lt;tag&gt;&lt;child&gt;TEXT&lt;/child&gt;&lt;/tag&gt;&lt;/b&gt;&lt;/a&gt;&quot;) 
+        &gt;&gt;&gt; [ el.tag for el in select(root) ] 
+        ['child'] 
+ 
+    To use CSS namespaces, you need to pass a prefix-to-namespace 
+    mapping as ``namespaces`` keyword argument:: 
+ 
+        &gt;&gt;&gt; rdfns = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#' 
+        &gt;&gt;&gt; select_ns = cssselect.CSSSelector('root &gt; rdf|Description', 
+        ...                                   namespaces={'rdf': rdfns}) 
+ 
+        &gt;&gt;&gt; rdf = etree.XML(( 
+        ...     '&lt;root xmlns:rdf=&quot;%s&quot;&gt;' 
+        ...       '&lt;rdf:Description&gt;blah&lt;/rdf:Description&gt;' 
+        ...     '&lt;/root&gt;') % rdfns) 
+        &gt;&gt;&gt; [(el.tag, el.text) for el in select_ns(rdf)] 
+        [('{http://www.w3.org/1999/02/22-rdf-syntax-ns#}Description', 'blah')] 
+ 
+    &quot;&quot;&quot;</span>
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">css</span><span class="s2">, </span><span class="s1">namespaces=</span><span class="s2">None, </span><span class="s1">translator=</span><span class="s3">'xml'</span><span class="s1">):</span>
+        <span class="s2">if </span><span class="s1">translator == </span><span class="s3">'xml'</span><span class="s1">:</span>
+            <span class="s1">translator = LxmlTranslator()</span>
+        <span class="s2">elif </span><span class="s1">translator == </span><span class="s3">'html'</span><span class="s1">:</span>
+            <span class="s1">translator = LxmlHTMLTranslator()</span>
+        <span class="s2">elif </span><span class="s1">translator == </span><span class="s3">'xhtml'</span><span class="s1">:</span>
+            <span class="s1">translator = LxmlHTMLTranslator(xhtml=</span><span class="s2">True</span><span class="s1">)</span>
+        <span class="s1">path = translator.css_to_xpath(css)</span>
+        <span class="s1">etree.XPath.__init__(self</span><span class="s2">, </span><span class="s1">path</span><span class="s2">, </span><span class="s1">namespaces=namespaces)</span>
+        <span class="s1">self.css = css</span>
+
+    <span class="s2">def </span><span class="s1">__repr__(self):</span>
+        <span class="s2">return </span><span class="s3">'&lt;%s %s for %r&gt;' </span><span class="s1">% (</span>
+            <span class="s1">self.__class__.__name__</span><span class="s2">,</span>
+            <span class="s1">hex(abs(id(self)))[</span><span class="s5">2</span><span class="s1">:]</span><span class="s2">,</span>
+            <span class="s1">self.css)</span>
+</pre>
+</body>
+</html>

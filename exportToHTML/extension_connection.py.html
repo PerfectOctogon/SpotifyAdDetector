@@ -1,0 +1,106 @@
+<html>
+<head>
+<title>extension_connection.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6897bb;}
+.s4 { color: #6a8759;}
+.s5 { color: #629755; font-style: italic;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+extension_connection.py</font>
+</center></td></tr></table>
+<pre><span class="s0"># Licensed to the Software Freedom Conservancy (SFC) under one</span>
+<span class="s0"># or more contributor license agreements.  See the NOTICE file</span>
+<span class="s0"># distributed with this work for additional information</span>
+<span class="s0"># regarding copyright ownership.  The SFC licenses this file</span>
+<span class="s0"># to you under the Apache License, Version 2.0 (the</span>
+<span class="s0"># &quot;License&quot;); you may not use this file except in compliance</span>
+<span class="s0"># with the License.  You may obtain a copy of the License at</span>
+<span class="s0">#</span>
+<span class="s0">#   http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="s0">#</span>
+<span class="s0"># Unless required by applicable law or agreed to in writing,</span>
+<span class="s0"># software distributed under the License is distributed on an</span>
+<span class="s0"># &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY</span>
+<span class="s0"># KIND, either express or implied.  See the License for the</span>
+<span class="s0"># specific language governing permissions and limitations</span>
+<span class="s0"># under the License.</span>
+
+<span class="s2">import </span><span class="s1">logging</span>
+<span class="s2">import </span><span class="s1">time</span>
+
+<span class="s2">from </span><span class="s1">selenium.webdriver.common.desired_capabilities </span><span class="s2">import </span><span class="s1">DesiredCapabilities</span>
+<span class="s2">from </span><span class="s1">selenium.webdriver.common </span><span class="s2">import </span><span class="s1">utils</span>
+<span class="s2">from </span><span class="s1">selenium.webdriver.remote.command </span><span class="s2">import </span><span class="s1">Command</span>
+<span class="s2">from </span><span class="s1">selenium.webdriver.remote.remote_connection </span><span class="s2">import </span><span class="s1">RemoteConnection</span>
+<span class="s2">from </span><span class="s1">selenium.webdriver.firefox.firefox_binary </span><span class="s2">import </span><span class="s1">FirefoxBinary</span>
+
+<span class="s1">LOGGER = logging.getLogger(__name__)</span>
+<span class="s1">PORT = </span><span class="s3">0</span>
+<span class="s1">HOST = </span><span class="s2">None</span>
+<span class="s1">_URL = </span><span class="s4">&quot;&quot;</span>
+
+
+<span class="s2">class </span><span class="s1">ExtensionConnection(RemoteConnection):</span>
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">host</span><span class="s2">, </span><span class="s1">firefox_profile</span><span class="s2">, </span><span class="s1">firefox_binary=</span><span class="s2">None, </span><span class="s1">timeout=</span><span class="s3">30</span><span class="s1">):</span>
+        <span class="s1">self.profile = firefox_profile</span>
+        <span class="s1">self.binary = firefox_binary</span>
+        <span class="s1">HOST = host</span>
+        <span class="s1">timeout = int(timeout)</span>
+
+        <span class="s2">if </span><span class="s1">self.binary </span><span class="s2">is None</span><span class="s1">:</span>
+            <span class="s1">self.binary = FirefoxBinary()</span>
+
+        <span class="s2">if </span><span class="s1">HOST </span><span class="s2">is None</span><span class="s1">:</span>
+            <span class="s1">HOST = </span><span class="s4">&quot;127.0.0.1&quot;</span>
+
+        <span class="s1">PORT = utils.free_port()</span>
+        <span class="s1">self.profile.port = PORT</span>
+        <span class="s1">self.profile.update_preferences()</span>
+
+        <span class="s1">self.profile.add_extension()</span>
+
+        <span class="s1">self.binary.launch_browser(self.profile</span><span class="s2">, </span><span class="s1">timeout=timeout)</span>
+        <span class="s1">_URL = </span><span class="s4">&quot;http://%s:%d/hub&quot; </span><span class="s1">% (HOST</span><span class="s2">, </span><span class="s1">PORT)</span>
+        <span class="s1">RemoteConnection.__init__(</span>
+            <span class="s1">self</span><span class="s2">, </span><span class="s1">_URL</span><span class="s2">, </span><span class="s1">keep_alive=</span><span class="s2">True</span><span class="s1">)</span>
+
+    <span class="s2">def </span><span class="s1">quit(self</span><span class="s2">, </span><span class="s1">sessionId=</span><span class="s2">None</span><span class="s1">):</span>
+        <span class="s1">self.execute(Command.QUIT</span><span class="s2">, </span><span class="s1">{</span><span class="s4">'sessionId'</span><span class="s1">: sessionId})</span>
+        <span class="s2">while </span><span class="s1">self.is_connectable():</span>
+            <span class="s1">LOGGER.info(</span><span class="s4">&quot;waiting to quit&quot;</span><span class="s1">)</span>
+            <span class="s1">time.sleep(</span><span class="s3">1</span><span class="s1">)</span>
+
+    <span class="s2">def </span><span class="s1">connect(self):</span>
+        <span class="s5">&quot;&quot;&quot;Connects to the extension and retrieves the session id.&quot;&quot;&quot;</span>
+        <span class="s2">return </span><span class="s1">self.execute(Command.NEW_SESSION</span><span class="s2">,</span>
+                            <span class="s1">{</span><span class="s4">'desiredCapabilities'</span><span class="s1">: DesiredCapabilities.FIREFOX})</span>
+
+    <span class="s1">@classmethod</span>
+    <span class="s2">def </span><span class="s1">connect_and_quit(self):</span>
+        <span class="s5">&quot;&quot;&quot;Connects to an running browser and quit immediately.&quot;&quot;&quot;</span>
+        <span class="s1">self._request(</span><span class="s4">'%s/extensions/firefox/quit' </span><span class="s1">% _URL)</span>
+
+    <span class="s1">@classmethod</span>
+    <span class="s2">def </span><span class="s1">is_connectable(self):</span>
+        <span class="s5">&quot;&quot;&quot;Trys to connect to the extension but do not retrieve context.&quot;&quot;&quot;</span>
+        <span class="s1">utils.is_connectable(self.profile.port)</span>
+
+
+<span class="s2">class </span><span class="s1">ExtensionConnectionError(Exception):</span>
+    <span class="s5">&quot;&quot;&quot;An internal error occurred int the extension. 
+ 
+    Might be caused by bad input or bugs in webdriver 
+    &quot;&quot;&quot;</span>
+    <span class="s2">pass</span>
+</pre>
+</body>
+</html>

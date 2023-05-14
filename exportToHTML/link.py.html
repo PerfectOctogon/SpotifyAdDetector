@@ -1,0 +1,270 @@
+<html>
+<head>
+<title>link.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #cc7832;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #629755; font-style: italic;}
+.s3 { color: #6a8759;}
+.s4 { color: #808080;}
+.s5 { color: #6897bb;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+link.py</font>
+</center></td></tr></table>
+<pre><span class="s0">import </span><span class="s1">os</span>
+<span class="s0">import </span><span class="s1">posixpath</span>
+<span class="s0">import </span><span class="s1">re</span>
+<span class="s0">import </span><span class="s1">urllib.parse</span>
+<span class="s0">from </span><span class="s1">typing </span><span class="s0">import </span><span class="s1">TYPE_CHECKING</span><span class="s0">, </span><span class="s1">Optional</span><span class="s0">, </span><span class="s1">Tuple</span><span class="s0">, </span><span class="s1">Union</span>
+
+<span class="s0">from </span><span class="s1">pip._internal.utils.filetypes </span><span class="s0">import </span><span class="s1">WHEEL_EXTENSION</span>
+<span class="s0">from </span><span class="s1">pip._internal.utils.hashes </span><span class="s0">import </span><span class="s1">Hashes</span>
+<span class="s0">from </span><span class="s1">pip._internal.utils.misc </span><span class="s0">import </span><span class="s1">(</span>
+    <span class="s1">redact_auth_from_url</span><span class="s0">,</span>
+    <span class="s1">split_auth_from_netloc</span><span class="s0">,</span>
+    <span class="s1">splitext</span><span class="s0">,</span>
+<span class="s1">)</span>
+<span class="s0">from </span><span class="s1">pip._internal.utils.models </span><span class="s0">import </span><span class="s1">KeyBasedCompareMixin</span>
+<span class="s0">from </span><span class="s1">pip._internal.utils.urls </span><span class="s0">import </span><span class="s1">path_to_url</span><span class="s0">, </span><span class="s1">url_to_path</span>
+
+<span class="s0">if </span><span class="s1">TYPE_CHECKING:</span>
+    <span class="s0">from </span><span class="s1">pip._internal.index.collector </span><span class="s0">import </span><span class="s1">HTMLPage</span>
+
+
+<span class="s0">class </span><span class="s1">Link(KeyBasedCompareMixin):</span>
+    <span class="s2">&quot;&quot;&quot;Represents a parsed link from a Package Index's simple URL 
+    &quot;&quot;&quot;</span>
+
+    <span class="s1">__slots__ = [</span>
+        <span class="s3">&quot;_parsed_url&quot;</span><span class="s0">,</span>
+        <span class="s3">&quot;_url&quot;</span><span class="s0">,</span>
+        <span class="s3">&quot;comes_from&quot;</span><span class="s0">,</span>
+        <span class="s3">&quot;requires_python&quot;</span><span class="s0">,</span>
+        <span class="s3">&quot;yanked_reason&quot;</span><span class="s0">,</span>
+        <span class="s3">&quot;cache_link_parsing&quot;</span><span class="s0">,</span>
+    <span class="s1">]</span>
+
+    <span class="s0">def </span><span class="s1">__init__(</span>
+        <span class="s1">self</span><span class="s0">,</span>
+        <span class="s1">url</span><span class="s0">,                   </span><span class="s4"># type: str</span>
+        <span class="s1">comes_from=</span><span class="s0">None,       </span><span class="s4"># type: Optional[Union[str, HTMLPage]]</span>
+        <span class="s1">requires_python=</span><span class="s0">None,  </span><span class="s4"># type: Optional[str]</span>
+        <span class="s1">yanked_reason=</span><span class="s0">None,    </span><span class="s4"># type: Optional[str]</span>
+        <span class="s1">cache_link_parsing=</span><span class="s0">True,  </span><span class="s4"># type: bool</span>
+    <span class="s1">):</span>
+        <span class="s4"># type: (...) -&gt; None</span>
+        <span class="s2">&quot;&quot;&quot; 
+        :param url: url of the resource pointed to (href of the link) 
+        :param comes_from: instance of HTMLPage where the link was found, 
+            or string. 
+        :param requires_python: String containing the `Requires-Python` 
+            metadata field, specified in PEP 345. This may be specified by 
+            a data-requires-python attribute in the HTML link tag, as 
+            described in PEP 503. 
+        :param yanked_reason: the reason the file has been yanked, if the 
+            file has been yanked, or None if the file hasn't been yanked. 
+            This is the value of the &quot;data-yanked&quot; attribute, if present, in 
+            a simple repository HTML link. If the file has been yanked but 
+            no reason was provided, this should be the empty string. See 
+            PEP 592 for more information and the specification. 
+        :param cache_link_parsing: A flag that is used elsewhere to determine 
+                                   whether resources retrieved from this link 
+                                   should be cached. PyPI index urls should 
+                                   generally have this set to False, for 
+                                   example. 
+        &quot;&quot;&quot;</span>
+
+        <span class="s4"># url can be a UNC windows share</span>
+        <span class="s0">if </span><span class="s1">url.startswith(</span><span class="s3">'</span><span class="s0">\\\\</span><span class="s3">'</span><span class="s1">):</span>
+            <span class="s1">url = path_to_url(url)</span>
+
+        <span class="s1">self._parsed_url = urllib.parse.urlsplit(url)</span>
+        <span class="s4"># Store the url as a private attribute to prevent accidentally</span>
+        <span class="s4"># trying to set a new value.</span>
+        <span class="s1">self._url = url</span>
+
+        <span class="s1">self.comes_from = comes_from</span>
+        <span class="s1">self.requires_python = requires_python </span><span class="s0">if </span><span class="s1">requires_python </span><span class="s0">else None</span>
+        <span class="s1">self.yanked_reason = yanked_reason</span>
+
+        <span class="s1">super().__init__(key=url</span><span class="s0">, </span><span class="s1">defining_class=Link)</span>
+
+        <span class="s1">self.cache_link_parsing = cache_link_parsing</span>
+
+    <span class="s0">def </span><span class="s1">__str__(self):</span>
+        <span class="s4"># type: () -&gt; str</span>
+        <span class="s0">if </span><span class="s1">self.requires_python:</span>
+            <span class="s1">rp = </span><span class="s3">f' (requires-python:</span><span class="s0">{</span><span class="s1">self.requires_python</span><span class="s0">}</span><span class="s3">)'</span>
+        <span class="s0">else</span><span class="s1">:</span>
+            <span class="s1">rp = </span><span class="s3">''</span>
+        <span class="s0">if </span><span class="s1">self.comes_from:</span>
+            <span class="s0">return </span><span class="s3">'{} (from {}){}'</span><span class="s1">.format(</span>
+                <span class="s1">redact_auth_from_url(self._url)</span><span class="s0">, </span><span class="s1">self.comes_from</span><span class="s0">, </span><span class="s1">rp)</span>
+        <span class="s0">else</span><span class="s1">:</span>
+            <span class="s0">return </span><span class="s1">redact_auth_from_url(str(self._url))</span>
+
+    <span class="s0">def </span><span class="s1">__repr__(self):</span>
+        <span class="s4"># type: () -&gt; str</span>
+        <span class="s0">return </span><span class="s3">f'&lt;Link </span><span class="s0">{</span><span class="s1">self</span><span class="s0">}</span><span class="s3">&gt;'</span>
+
+    <span class="s1">@property</span>
+    <span class="s0">def </span><span class="s1">url(self):</span>
+        <span class="s4"># type: () -&gt; str</span>
+        <span class="s0">return </span><span class="s1">self._url</span>
+
+    <span class="s1">@property</span>
+    <span class="s0">def </span><span class="s1">filename(self):</span>
+        <span class="s4"># type: () -&gt; str</span>
+        <span class="s1">path = self.path.rstrip(</span><span class="s3">'/'</span><span class="s1">)</span>
+        <span class="s1">name = posixpath.basename(path)</span>
+        <span class="s0">if not </span><span class="s1">name:</span>
+            <span class="s4"># Make sure we don't leak auth information if the netloc</span>
+            <span class="s4"># includes a username and password.</span>
+            <span class="s1">netloc</span><span class="s0">, </span><span class="s1">user_pass = split_auth_from_netloc(self.netloc)</span>
+            <span class="s0">return </span><span class="s1">netloc</span>
+
+        <span class="s1">name = urllib.parse.unquote(name)</span>
+        <span class="s0">assert </span><span class="s1">name</span><span class="s0">, </span><span class="s3">f'URL </span><span class="s0">{</span><span class="s1">self._url</span><span class="s0">!r} </span><span class="s3">produced no filename'</span>
+        <span class="s0">return </span><span class="s1">name</span>
+
+    <span class="s1">@property</span>
+    <span class="s0">def </span><span class="s1">file_path(self):</span>
+        <span class="s4"># type: () -&gt; str</span>
+        <span class="s0">return </span><span class="s1">url_to_path(self.url)</span>
+
+    <span class="s1">@property</span>
+    <span class="s0">def </span><span class="s1">scheme(self):</span>
+        <span class="s4"># type: () -&gt; str</span>
+        <span class="s0">return </span><span class="s1">self._parsed_url.scheme</span>
+
+    <span class="s1">@property</span>
+    <span class="s0">def </span><span class="s1">netloc(self):</span>
+        <span class="s4"># type: () -&gt; str</span>
+        <span class="s2">&quot;&quot;&quot; 
+        This can contain auth information. 
+        &quot;&quot;&quot;</span>
+        <span class="s0">return </span><span class="s1">self._parsed_url.netloc</span>
+
+    <span class="s1">@property</span>
+    <span class="s0">def </span><span class="s1">path(self):</span>
+        <span class="s4"># type: () -&gt; str</span>
+        <span class="s0">return </span><span class="s1">urllib.parse.unquote(self._parsed_url.path)</span>
+
+    <span class="s0">def </span><span class="s1">splitext(self):</span>
+        <span class="s4"># type: () -&gt; Tuple[str, str]</span>
+        <span class="s0">return </span><span class="s1">splitext(posixpath.basename(self.path.rstrip(</span><span class="s3">'/'</span><span class="s1">)))</span>
+
+    <span class="s1">@property</span>
+    <span class="s0">def </span><span class="s1">ext(self):</span>
+        <span class="s4"># type: () -&gt; str</span>
+        <span class="s0">return </span><span class="s1">self.splitext()[</span><span class="s5">1</span><span class="s1">]</span>
+
+    <span class="s1">@property</span>
+    <span class="s0">def </span><span class="s1">url_without_fragment(self):</span>
+        <span class="s4"># type: () -&gt; str</span>
+        <span class="s1">scheme</span><span class="s0">, </span><span class="s1">netloc</span><span class="s0">, </span><span class="s1">path</span><span class="s0">, </span><span class="s1">query</span><span class="s0">, </span><span class="s1">fragment = self._parsed_url</span>
+        <span class="s0">return </span><span class="s1">urllib.parse.urlunsplit((scheme</span><span class="s0">, </span><span class="s1">netloc</span><span class="s0">, </span><span class="s1">path</span><span class="s0">, </span><span class="s1">query</span><span class="s0">, None</span><span class="s1">))</span>
+
+    <span class="s1">_egg_fragment_re = re.compile(</span><span class="s3">r'[#&amp;]egg=([^&amp;]*)'</span><span class="s1">)</span>
+
+    <span class="s1">@property</span>
+    <span class="s0">def </span><span class="s1">egg_fragment(self):</span>
+        <span class="s4"># type: () -&gt; Optional[str]</span>
+        <span class="s1">match = self._egg_fragment_re.search(self._url)</span>
+        <span class="s0">if not </span><span class="s1">match:</span>
+            <span class="s0">return None</span>
+        <span class="s0">return </span><span class="s1">match.group(</span><span class="s5">1</span><span class="s1">)</span>
+
+    <span class="s1">_subdirectory_fragment_re = re.compile(</span><span class="s3">r'[#&amp;]subdirectory=([^&amp;]*)'</span><span class="s1">)</span>
+
+    <span class="s1">@property</span>
+    <span class="s0">def </span><span class="s1">subdirectory_fragment(self):</span>
+        <span class="s4"># type: () -&gt; Optional[str]</span>
+        <span class="s1">match = self._subdirectory_fragment_re.search(self._url)</span>
+        <span class="s0">if not </span><span class="s1">match:</span>
+            <span class="s0">return None</span>
+        <span class="s0">return </span><span class="s1">match.group(</span><span class="s5">1</span><span class="s1">)</span>
+
+    <span class="s1">_hash_re = re.compile(</span>
+        <span class="s3">r'(sha1|sha224|sha384|sha256|sha512|md5)=([a-f0-9]+)'</span>
+    <span class="s1">)</span>
+
+    <span class="s1">@property</span>
+    <span class="s0">def </span><span class="s1">hash(self):</span>
+        <span class="s4"># type: () -&gt; Optional[str]</span>
+        <span class="s1">match = self._hash_re.search(self._url)</span>
+        <span class="s0">if </span><span class="s1">match:</span>
+            <span class="s0">return </span><span class="s1">match.group(</span><span class="s5">2</span><span class="s1">)</span>
+        <span class="s0">return None</span>
+
+    <span class="s1">@property</span>
+    <span class="s0">def </span><span class="s1">hash_name(self):</span>
+        <span class="s4"># type: () -&gt; Optional[str]</span>
+        <span class="s1">match = self._hash_re.search(self._url)</span>
+        <span class="s0">if </span><span class="s1">match:</span>
+            <span class="s0">return </span><span class="s1">match.group(</span><span class="s5">1</span><span class="s1">)</span>
+        <span class="s0">return None</span>
+
+    <span class="s1">@property</span>
+    <span class="s0">def </span><span class="s1">show_url(self):</span>
+        <span class="s4"># type: () -&gt; str</span>
+        <span class="s0">return </span><span class="s1">posixpath.basename(self._url.split(</span><span class="s3">'#'</span><span class="s0">, </span><span class="s5">1</span><span class="s1">)[</span><span class="s5">0</span><span class="s1">].split(</span><span class="s3">'?'</span><span class="s0">, </span><span class="s5">1</span><span class="s1">)[</span><span class="s5">0</span><span class="s1">])</span>
+
+    <span class="s1">@property</span>
+    <span class="s0">def </span><span class="s1">is_file(self):</span>
+        <span class="s4"># type: () -&gt; bool</span>
+        <span class="s0">return </span><span class="s1">self.scheme == </span><span class="s3">'file'</span>
+
+    <span class="s0">def </span><span class="s1">is_existing_dir(self):</span>
+        <span class="s4"># type: () -&gt; bool</span>
+        <span class="s0">return </span><span class="s1">self.is_file </span><span class="s0">and </span><span class="s1">os.path.isdir(self.file_path)</span>
+
+    <span class="s1">@property</span>
+    <span class="s0">def </span><span class="s1">is_wheel(self):</span>
+        <span class="s4"># type: () -&gt; bool</span>
+        <span class="s0">return </span><span class="s1">self.ext == WHEEL_EXTENSION</span>
+
+    <span class="s1">@property</span>
+    <span class="s0">def </span><span class="s1">is_vcs(self):</span>
+        <span class="s4"># type: () -&gt; bool</span>
+        <span class="s0">from </span><span class="s1">pip._internal.vcs </span><span class="s0">import </span><span class="s1">vcs</span>
+
+        <span class="s0">return </span><span class="s1">self.scheme </span><span class="s0">in </span><span class="s1">vcs.all_schemes</span>
+
+    <span class="s1">@property</span>
+    <span class="s0">def </span><span class="s1">is_yanked(self):</span>
+        <span class="s4"># type: () -&gt; bool</span>
+        <span class="s0">return </span><span class="s1">self.yanked_reason </span><span class="s0">is not None</span>
+
+    <span class="s1">@property</span>
+    <span class="s0">def </span><span class="s1">has_hash(self):</span>
+        <span class="s4"># type: () -&gt; bool</span>
+        <span class="s0">return </span><span class="s1">self.hash_name </span><span class="s0">is not None</span>
+
+    <span class="s0">def </span><span class="s1">is_hash_allowed(self</span><span class="s0">, </span><span class="s1">hashes):</span>
+        <span class="s4"># type: (Optional[Hashes]) -&gt; bool</span>
+        <span class="s2">&quot;&quot;&quot; 
+        Return True if the link has a hash and it is allowed. 
+        &quot;&quot;&quot;</span>
+        <span class="s0">if </span><span class="s1">hashes </span><span class="s0">is None or not </span><span class="s1">self.has_hash:</span>
+            <span class="s0">return False</span>
+        <span class="s4"># Assert non-None so mypy knows self.hash_name and self.hash are str.</span>
+        <span class="s0">assert </span><span class="s1">self.hash_name </span><span class="s0">is not None</span>
+        <span class="s0">assert </span><span class="s1">self.hash </span><span class="s0">is not None</span>
+
+        <span class="s0">return </span><span class="s1">hashes.is_hash_allowed(self.hash_name</span><span class="s0">, </span><span class="s1">hex_digest=self.hash)</span>
+
+
+<span class="s4"># TODO: Relax this comparison logic to ignore, for example, fragments.</span>
+<span class="s0">def </span><span class="s1">links_equivalent(link1</span><span class="s0">, </span><span class="s1">link2):</span>
+    <span class="s4"># type: (Link, Link) -&gt; bool</span>
+    <span class="s0">return </span><span class="s1">link1 == link2</span>
+</pre>
+</body>
+</html>

@@ -1,0 +1,2004 @@
+<html>
+<head>
+<title>xsltInternals.h</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+.s4 { color: #0f9795;}
+.s5 { color: #6897bb;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+xsltInternals.h</font>
+</center></td></tr></table>
+<pre><span class="s0">/* 
+ * Summary: internal data structures, constants and functions 
+ * Description: Internal data structures, constants and functions used 
+ *              by the XSLT engine. 
+ *              They are not part of the API or ABI, i.e. they can change 
+ *              without prior notice, use carefully. 
+ * 
+ * Copy: See Copyright for the status of this software. 
+ * 
+ * Author: Daniel Veillard 
+ */</span>
+
+<span class="s2">#ifndef </span><span class="s1">__XML_XSLT_INTERNALS_H__</span>
+<span class="s2">#define </span><span class="s1">__XML_XSLT_INTERNALS_H__</span>
+
+<span class="s2">#include </span><span class="s1">&lt;libxml/tree.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/hash.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/xpath.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/xmlerror.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/dict.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/xmlstring.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxslt/xslt.h&gt;</span>
+<span class="s2">#include </span><span class="s3">&quot;xsltexports.h&quot;</span>
+<span class="s2">#include </span><span class="s3">&quot;xsltlocale.h&quot;</span>
+<span class="s2">#include </span><span class="s3">&quot;numbersInternals.h&quot;</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s2">extern </span><span class="s3">&quot;C&quot; </span><span class="s1">{</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/* #define XSLT_DEBUG_PROFILE_CACHE */</span>
+
+<span class="s0">/** 
+ * XSLT_IS_TEXT_NODE: 
+ * 
+ * check if the argument is a text node 
+ */</span>
+<span class="s2">#define </span><span class="s1">XSLT_IS_TEXT_NODE(n) ((n != NULL) &amp;&amp; \</span>
+    <span class="s1">(((n)</span><span class="s4">-&gt;</span><span class="s1">type == XML_TEXT_NODE) || \</span>
+     <span class="s1">((n)</span><span class="s4">-&gt;</span><span class="s1">type == XML_CDATA_SECTION_NODE)))</span>
+
+
+<span class="s0">/** 
+ * XSLT_MARK_RES_TREE_FRAG: 
+ * 
+ * internal macro to set up tree fragments 
+ */</span>
+<span class="s2">#define </span><span class="s1">XSLT_MARK_RES_TREE_FRAG(n) \</span>
+    <span class="s1">(n)</span><span class="s4">-&gt;</span><span class="s1">name = (</span><span class="s2">char </span><span class="s1">*) xmlStrdup(BAD_CAST </span><span class="s3">&quot; fake node libxslt&quot;</span><span class="s1">);</span>
+
+<span class="s0">/** 
+ * XSLT_IS_RES_TREE_FRAG: 
+ * 
+ * internal macro to test tree fragments 
+ */</span>
+<span class="s2">#define </span><span class="s1">XSLT_IS_RES_TREE_FRAG(n) \</span>
+    <span class="s1">((n != NULL) &amp;&amp; ((n)</span><span class="s4">-&gt;</span><span class="s1">type == XML_DOCUMENT_NODE) &amp;&amp; \</span>
+     <span class="s1">((n)</span><span class="s4">-&gt;</span><span class="s1">name != NULL) &amp;&amp; ((n)</span><span class="s4">-&gt;</span><span class="s1">name[</span><span class="s5">0</span><span class="s1">] == </span><span class="s3">' '</span><span class="s1">))</span>
+
+<span class="s0">/** 
+ * XSLT_REFACTORED_KEYCOMP: 
+ * 
+ * Internal define to enable on-demand xsl:key computation. 
+ * That's the only mode now but the define is kept for compatibility 
+ */</span>
+<span class="s2">#define </span><span class="s1">XSLT_REFACTORED_KEYCOMP</span>
+
+<span class="s0">/** 
+ * XSLT_FAST_IF: 
+ * 
+ * Internal define to enable usage of xmlXPathCompiledEvalToBoolean() 
+ * for XSLT &quot;tests&quot;; e.g. in &lt;xsl:if test=&quot;/foo/bar&quot;&gt; 
+ */</span>
+<span class="s2">#define </span><span class="s1">XSLT_FAST_IF</span>
+
+<span class="s0">/** 
+ * XSLT_REFACTORED: 
+ * 
+ * Internal define to enable the refactored parts of Libxslt. 
+ */</span>
+<span class="s0">/* #define XSLT_REFACTORED */</span>
+<span class="s0">/* ==================================================================== */</span>
+
+<span class="s0">/** 
+ * XSLT_REFACTORED_VARS: 
+ * 
+ * Internal define to enable the refactored variable part of libxslt 
+ */</span>
+<span class="s2">#define </span><span class="s1">XSLT_REFACTORED_VARS</span>
+
+<span class="s2">#ifdef </span><span class="s1">XSLT_REFACTORED</span>
+
+<span class="s2">extern const </span><span class="s1">xmlChar *xsltXSLTAttrMarker;</span>
+
+
+<span class="s0">/* TODO: REMOVE: #define XSLT_REFACTORED_EXCLRESNS */</span>
+
+<span class="s0">/* TODO: REMOVE: #define XSLT_REFACTORED_NSALIAS */</span>
+
+<span class="s0">/** 
+ * XSLT_REFACTORED_XSLT_NSCOMP 
+ * 
+ * Internal define to enable the pointer-comparison of 
+ * namespaces of XSLT elements. 
+ */</span>
+<span class="s0">/* #define XSLT_REFACTORED_XSLT_NSCOMP */</span>
+
+<span class="s0">/** 
+ * XSLT_REFACTORED_XPATHCOMP: 
+ * 
+ * Internal define to enable the optimization of the 
+ * compilation of XPath expressions. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XSLT_REFACTORED_XPATHCOMP</span>
+
+<span class="s2">#ifdef </span><span class="s1">XSLT_REFACTORED_XSLT_NSCOMP</span>
+
+<span class="s2">extern const </span><span class="s1">xmlChar *xsltConstNamespaceNameXSLT;</span>
+
+<span class="s0">/** 
+ * IS_XSLT_ELEM_FAST: 
+ * 
+ * quick test to detect XSLT elements 
+ */</span>
+<span class="s2">#define </span><span class="s1">IS_XSLT_ELEM_FAST(n) \</span>
+    <span class="s1">(((n) != NULL) &amp;&amp; ((n)</span><span class="s4">-&gt;</span><span class="s1">ns != NULL) &amp;&amp; \</span>
+    <span class="s1">((n)</span><span class="s4">-&gt;</span><span class="s1">ns</span><span class="s4">-&gt;</span><span class="s1">href == xsltConstNamespaceNameXSLT))</span>
+
+<span class="s0">/** 
+ * IS_XSLT_ATTR_FAST: 
+ * 
+ * quick test to detect XSLT attributes 
+ */</span>
+<span class="s2">#define </span><span class="s1">IS_XSLT_ATTR_FAST(a) \</span>
+    <span class="s1">(((a) != NULL) &amp;&amp; ((a)</span><span class="s4">-&gt;</span><span class="s1">ns != NULL) &amp;&amp; \</span>
+    <span class="s1">((a)</span><span class="s4">-&gt;</span><span class="s1">ns</span><span class="s4">-&gt;</span><span class="s1">href == xsltConstNamespaceNameXSLT))</span>
+
+<span class="s0">/** 
+ * XSLT_HAS_INTERNAL_NSMAP: 
+ * 
+ * check for namespace mapping 
+ */</span>
+<span class="s2">#define </span><span class="s1">XSLT_HAS_INTERNAL_NSMAP(s) \</span>
+    <span class="s1">(((s) != NULL) &amp;&amp; ((s)</span><span class="s4">-&gt;</span><span class="s1">principal) &amp;&amp; \</span>
+     <span class="s1">((s)</span><span class="s4">-&gt;</span><span class="s1">principal</span><span class="s4">-&gt;</span><span class="s1">principalData) &amp;&amp; \</span>
+     <span class="s1">((s)</span><span class="s4">-&gt;</span><span class="s1">principal</span><span class="s4">-&gt;</span><span class="s1">principalData</span><span class="s4">-&gt;</span><span class="s1">nsMap))</span>
+
+<span class="s0">/** 
+ * XSLT_GET_INTERNAL_NSMAP: 
+ * 
+ * get pointer to namespace map 
+ */</span>
+<span class="s2">#define </span><span class="s1">XSLT_GET_INTERNAL_NSMAP(s) ((s)</span><span class="s4">-&gt;</span><span class="s1">principal</span><span class="s4">-&gt;</span><span class="s1">principalData</span><span class="s4">-&gt;</span><span class="s1">nsMap)</span>
+
+<span class="s2">#else </span><span class="s0">/* XSLT_REFACTORED_XSLT_NSCOMP */</span>
+
+<span class="s0">/** 
+ * IS_XSLT_ELEM_FAST: 
+ * 
+ * quick check whether this is an xslt element 
+ */</span>
+<span class="s2">#define </span><span class="s1">IS_XSLT_ELEM_FAST(n) \</span>
+    <span class="s1">(((n) != NULL) &amp;&amp; ((n)</span><span class="s4">-&gt;</span><span class="s1">ns != NULL) &amp;&amp; \</span>
+     <span class="s1">(xmlStrEqual((n)</span><span class="s4">-&gt;</span><span class="s1">ns</span><span class="s4">-&gt;</span><span class="s1">href, XSLT_NAMESPACE)))</span>
+
+<span class="s0">/** 
+ * IS_XSLT_ATTR_FAST: 
+ * 
+ * quick check for xslt namespace attribute 
+ */</span>
+<span class="s2">#define </span><span class="s1">IS_XSLT_ATTR_FAST(a) \</span>
+    <span class="s1">(((a) != NULL) &amp;&amp; ((a)</span><span class="s4">-&gt;</span><span class="s1">ns != NULL) &amp;&amp; \</span>
+     <span class="s1">(xmlStrEqual((a)</span><span class="s4">-&gt;</span><span class="s1">ns</span><span class="s4">-&gt;</span><span class="s1">href, XSLT_NAMESPACE)))</span>
+
+
+<span class="s2">#endif </span><span class="s0">/* XSLT_REFACTORED_XSLT_NSCOMP */</span>
+
+
+<span class="s0">/** 
+ * XSLT_REFACTORED_MANDATORY_VERSION: 
+ * 
+ * TODO: Currently disabled to surpress regression test failures, since 
+ *  the old behaviour was that a missing version attribute 
+ *  produced a only a warning and not an error, which was incerrect. 
+ *  So the regression tests need to be fixed if this is enabled. 
+ */</span>
+<span class="s0">/* #define XSLT_REFACTORED_MANDATORY_VERSION */</span>
+
+<span class="s0">/** 
+ * xsltPointerList: 
+ * 
+ * Pointer-list for various purposes. 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xsltPointerList xsltPointerList;</span>
+<span class="s2">typedef </span><span class="s1">xsltPointerList *xsltPointerListPtr;</span>
+<span class="s2">struct </span><span class="s1">_xsltPointerList {</span>
+    <span class="s2">void </span><span class="s1">**items;</span>
+    <span class="s2">int </span><span class="s1">number;</span>
+    <span class="s2">int </span><span class="s1">size;</span>
+<span class="s1">};</span>
+
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * XSLT_REFACTORED_PARSING: 
+ * 
+ * Internal define to enable the refactored parts of Libxslt 
+ * related to parsing. 
+ */</span>
+<span class="s0">/* #define XSLT_REFACTORED_PARSING */</span>
+
+<span class="s0">/** 
+ * XSLT_MAX_SORT: 
+ * 
+ * Max number of specified xsl:sort on an element. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XSLT_MAX_SORT </span><span class="s5">15</span>
+
+<span class="s0">/** 
+ * XSLT_PAT_NO_PRIORITY: 
+ * 
+ * Specific value for pattern without priority expressed. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XSLT_PAT_NO_PRIORITY -</span><span class="s5">12345789</span>
+
+<span class="s0">/** 
+ * xsltRuntimeExtra: 
+ * 
+ * Extra information added to the transformation context. 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xsltRuntimeExtra xsltRuntimeExtra;</span>
+<span class="s2">typedef </span><span class="s1">xsltRuntimeExtra *xsltRuntimeExtraPtr;</span>
+<span class="s2">struct </span><span class="s1">_xsltRuntimeExtra {</span>
+    <span class="s2">void       </span><span class="s1">*info;		</span><span class="s0">/* pointer to the extra data */</span>
+    <span class="s1">xmlFreeFunc deallocate;	</span><span class="s0">/* pointer to the deallocation routine */</span>
+    <span class="s2">union </span><span class="s1">{			</span><span class="s0">/* dual-purpose field */</span>
+        <span class="s2">void   </span><span class="s1">*ptr;		</span><span class="s0">/* data not needing deallocation */</span>
+	<span class="s2">int    </span><span class="s1">ival;		</span><span class="s0">/* integer value storage */</span>
+    <span class="s1">} val;</span>
+<span class="s1">};</span>
+
+<span class="s0">/** 
+ * XSLT_RUNTIME_EXTRA_LST: 
+ * @ctxt: the transformation context 
+ * @nr: the index 
+ * 
+ * Macro used to access extra information stored in the context 
+ */</span>
+<span class="s2">#define </span><span class="s1">XSLT_RUNTIME_EXTRA_LST(ctxt, nr) (ctxt)</span><span class="s4">-&gt;</span><span class="s1">extras[(nr)].info</span>
+<span class="s0">/** 
+ * XSLT_RUNTIME_EXTRA_FREE: 
+ * @ctxt: the transformation context 
+ * @nr: the index 
+ * 
+ * Macro used to free extra information stored in the context 
+ */</span>
+<span class="s2">#define </span><span class="s1">XSLT_RUNTIME_EXTRA_FREE(ctxt, nr) (ctxt)</span><span class="s4">-&gt;</span><span class="s1">extras[(nr)].deallocate</span>
+<span class="s0">/** 
+ * XSLT_RUNTIME_EXTRA: 
+ * @ctxt: the transformation context 
+ * @nr: the index 
+ * 
+ * Macro used to define extra information stored in the context 
+ */</span>
+<span class="s2">#define	</span><span class="s1">XSLT_RUNTIME_EXTRA(ctxt, nr, typ) (ctxt)</span><span class="s4">-&gt;</span><span class="s1">extras[(nr)].val.typ</span>
+
+<span class="s0">/** 
+ * xsltTemplate: 
+ * 
+ * The in-memory structure corresponding to an XSLT Template. 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xsltTemplate xsltTemplate;</span>
+<span class="s2">typedef </span><span class="s1">xsltTemplate *xsltTemplatePtr;</span>
+<span class="s2">struct </span><span class="s1">_xsltTemplate {</span>
+    <span class="s2">struct </span><span class="s1">_xsltTemplate *next;</span><span class="s0">/* chained list sorted by priority */</span>
+    <span class="s2">struct </span><span class="s1">_xsltStylesheet *style;</span><span class="s0">/* the containing stylesheet */</span>
+    <span class="s1">xmlChar *match;	</span><span class="s0">/* the matching string */</span>
+    <span class="s2">float </span><span class="s1">priority;	</span><span class="s0">/* as given from the stylesheet, not computed */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *name; </span><span class="s0">/* the local part of the name QName */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *nameURI; </span><span class="s0">/* the URI part of the name QName */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *mode;</span><span class="s0">/* the local part of the mode QName */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *modeURI;</span><span class="s0">/* the URI part of the mode QName */</span>
+    <span class="s1">xmlNodePtr content;	</span><span class="s0">/* the template replacement value */</span>
+    <span class="s1">xmlNodePtr elem;	</span><span class="s0">/* the source element */</span>
+
+    <span class="s0">/* 
+    * TODO: @inheritedNsNr and @inheritedNs won't be used in the 
+    *  refactored code. 
+    */</span>
+    <span class="s2">int </span><span class="s1">inheritedNsNr;  </span><span class="s0">/* number of inherited namespaces */</span>
+    <span class="s1">xmlNsPtr *inheritedNs;</span><span class="s0">/* inherited non-excluded namespaces */</span>
+
+    <span class="s0">/* Profiling informations */</span>
+    <span class="s2">int </span><span class="s1">nbCalls;        </span><span class="s0">/* the number of time the template was called */</span>
+    <span class="s2">unsigned long </span><span class="s1">time; </span><span class="s0">/* the time spent in this template */</span>
+    <span class="s2">void </span><span class="s1">*params;       </span><span class="s0">/* xsl:param instructions */</span>
+
+    <span class="s2">int              </span><span class="s1">templNr;		</span><span class="s0">/* Nb of templates in the stack */</span>
+    <span class="s2">int              </span><span class="s1">templMax;		</span><span class="s0">/* Size of the templtes stack */</span>
+    <span class="s1">xsltTemplatePtr *templCalledTab;	</span><span class="s0">/* templates called */</span>
+    <span class="s2">int             </span><span class="s1">*templCountTab;  </span><span class="s0">/* .. and how often */</span>
+<span class="s1">};</span>
+
+<span class="s0">/** 
+ * xsltDecimalFormat: 
+ * 
+ * Data structure of decimal-format. 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xsltDecimalFormat xsltDecimalFormat;</span>
+<span class="s2">typedef </span><span class="s1">xsltDecimalFormat *xsltDecimalFormatPtr;</span>
+<span class="s2">struct </span><span class="s1">_xsltDecimalFormat {</span>
+    <span class="s2">struct </span><span class="s1">_xsltDecimalFormat *next; </span><span class="s0">/* chained list */</span>
+    <span class="s1">xmlChar *name;</span>
+    <span class="s0">/* Used for interpretation of pattern */</span>
+    <span class="s1">xmlChar *digit;</span>
+    <span class="s1">xmlChar *patternSeparator;</span>
+    <span class="s0">/* May appear in result */</span>
+    <span class="s1">xmlChar *minusSign;</span>
+    <span class="s1">xmlChar *infinity;</span>
+    <span class="s1">xmlChar *noNumber; </span><span class="s0">/* Not-a-number */</span>
+    <span class="s0">/* Used for interpretation of pattern and may appear in result */</span>
+    <span class="s1">xmlChar *decimalPoint;</span>
+    <span class="s1">xmlChar *grouping;</span>
+    <span class="s1">xmlChar *percent;</span>
+    <span class="s1">xmlChar *permille;</span>
+    <span class="s1">xmlChar *zeroDigit;</span>
+    <span class="s2">const </span><span class="s1">xmlChar *nsUri;</span>
+<span class="s1">};</span>
+
+<span class="s0">/** 
+ * xsltDocument: 
+ * 
+ * Data structure associated to a parsed document. 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xsltDocument xsltDocument;</span>
+<span class="s2">typedef </span><span class="s1">xsltDocument *xsltDocumentPtr;</span>
+<span class="s2">struct </span><span class="s1">_xsltDocument {</span>
+    <span class="s2">struct </span><span class="s1">_xsltDocument *next;	</span><span class="s0">/* documents are kept in a chained list */</span>
+    <span class="s2">int </span><span class="s1">main;			</span><span class="s0">/* is this the main document */</span>
+    <span class="s1">xmlDocPtr doc;		</span><span class="s0">/* the parsed document */</span>
+    <span class="s2">void </span><span class="s1">*keys;			</span><span class="s0">/* key tables storage */</span>
+    <span class="s2">struct </span><span class="s1">_xsltDocument *includes; </span><span class="s0">/* subsidiary includes */</span>
+    <span class="s2">int </span><span class="s1">preproc;		</span><span class="s0">/* pre-processing already done */</span>
+    <span class="s2">int </span><span class="s1">nbKeysComputed;</span>
+<span class="s1">};</span>
+
+<span class="s0">/** 
+ * xsltKeyDef: 
+ * 
+ * Representation of an xsl:key. 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xsltKeyDef xsltKeyDef;</span>
+<span class="s2">typedef </span><span class="s1">xsltKeyDef *xsltKeyDefPtr;</span>
+<span class="s2">struct </span><span class="s1">_xsltKeyDef {</span>
+    <span class="s2">struct </span><span class="s1">_xsltKeyDef *next;</span>
+    <span class="s1">xmlNodePtr inst;</span>
+    <span class="s1">xmlChar *name;</span>
+    <span class="s1">xmlChar *nameURI;</span>
+    <span class="s1">xmlChar *match;</span>
+    <span class="s1">xmlChar *use;</span>
+    <span class="s1">xmlXPathCompExprPtr comp;</span>
+    <span class="s1">xmlXPathCompExprPtr usecomp;</span>
+    <span class="s1">xmlNsPtr *nsList;           </span><span class="s0">/* the namespaces in scope */</span>
+    <span class="s2">int </span><span class="s1">nsNr;                   </span><span class="s0">/* the number of namespaces in scope */</span>
+<span class="s1">};</span>
+
+<span class="s0">/** 
+ * xsltKeyTable: 
+ * 
+ * Holds the computed keys for key definitions of the same QName. 
+ * Is owned by an xsltDocument. 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xsltKeyTable xsltKeyTable;</span>
+<span class="s2">typedef </span><span class="s1">xsltKeyTable *xsltKeyTablePtr;</span>
+<span class="s2">struct </span><span class="s1">_xsltKeyTable {</span>
+    <span class="s2">struct </span><span class="s1">_xsltKeyTable *next;</span>
+    <span class="s1">xmlChar *name;</span>
+    <span class="s1">xmlChar *nameURI;</span>
+    <span class="s1">xmlHashTablePtr keys;</span>
+<span class="s1">};</span>
+
+<span class="s0">/* 
+ * The in-memory structure corresponding to an XSLT Stylesheet. 
+ * NOTE: most of the content is simply linked from the doc tree 
+ *       structure, no specific allocation is made. 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xsltStylesheet xsltStylesheet;</span>
+<span class="s2">typedef </span><span class="s1">xsltStylesheet *xsltStylesheetPtr;</span>
+
+<span class="s2">typedef struct </span><span class="s1">_xsltTransformContext xsltTransformContext;</span>
+<span class="s2">typedef </span><span class="s1">xsltTransformContext *xsltTransformContextPtr;</span>
+
+<span class="s0">/** 
+ * xsltElemPreComp: 
+ * 
+ * The in-memory structure corresponding to element precomputed data, 
+ * designed to be extended by extension implementors. 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xsltElemPreComp xsltElemPreComp;</span>
+<span class="s2">typedef </span><span class="s1">xsltElemPreComp *xsltElemPreCompPtr;</span>
+
+<span class="s0">/** 
+ * xsltTransformFunction: 
+ * @ctxt: the XSLT transformation context 
+ * @node: the input node 
+ * @inst: the stylesheet node 
+ * @comp: the compiled information from the stylesheet 
+ * 
+ * Signature of the function associated to elements part of the 
+ * stylesheet language like xsl:if or xsl:apply-templates. 
+ */</span>
+<span class="s2">typedef void </span><span class="s1">(*xsltTransformFunction) (xsltTransformContextPtr ctxt,</span>
+	                               <span class="s1">xmlNodePtr node,</span>
+				       <span class="s1">xmlNodePtr inst,</span>
+			               <span class="s1">xsltElemPreCompPtr comp);</span>
+
+<span class="s0">/** 
+ * xsltSortFunc: 
+ * @ctxt:    a transformation context 
+ * @sorts:   the node-set to sort 
+ * @nbsorts: the number of sorts 
+ * 
+ * Signature of the function to use during sorting 
+ */</span>
+<span class="s2">typedef void </span><span class="s1">(*xsltSortFunc) (xsltTransformContextPtr ctxt, xmlNodePtr *sorts,</span>
+			      <span class="s2">int </span><span class="s1">nbsorts);</span>
+
+<span class="s2">typedef enum </span><span class="s1">{</span>
+    <span class="s1">XSLT_FUNC_COPY=</span><span class="s5">1</span><span class="s1">,</span>
+    <span class="s1">XSLT_FUNC_SORT,</span>
+    <span class="s1">XSLT_FUNC_TEXT,</span>
+    <span class="s1">XSLT_FUNC_ELEMENT,</span>
+    <span class="s1">XSLT_FUNC_ATTRIBUTE,</span>
+    <span class="s1">XSLT_FUNC_COMMENT,</span>
+    <span class="s1">XSLT_FUNC_PI,</span>
+    <span class="s1">XSLT_FUNC_COPYOF,</span>
+    <span class="s1">XSLT_FUNC_VALUEOF,</span>
+    <span class="s1">XSLT_FUNC_NUMBER,</span>
+    <span class="s1">XSLT_FUNC_APPLYIMPORTS,</span>
+    <span class="s1">XSLT_FUNC_CALLTEMPLATE,</span>
+    <span class="s1">XSLT_FUNC_APPLYTEMPLATES,</span>
+    <span class="s1">XSLT_FUNC_CHOOSE,</span>
+    <span class="s1">XSLT_FUNC_IF,</span>
+    <span class="s1">XSLT_FUNC_FOREACH,</span>
+    <span class="s1">XSLT_FUNC_DOCUMENT,</span>
+    <span class="s1">XSLT_FUNC_WITHPARAM,</span>
+    <span class="s1">XSLT_FUNC_PARAM,</span>
+    <span class="s1">XSLT_FUNC_VARIABLE,</span>
+    <span class="s1">XSLT_FUNC_WHEN,</span>
+    <span class="s1">XSLT_FUNC_EXTENSION</span>
+<span class="s2">#ifdef </span><span class="s1">XSLT_REFACTORED</span>
+    <span class="s1">,</span>
+    <span class="s1">XSLT_FUNC_OTHERWISE,</span>
+    <span class="s1">XSLT_FUNC_FALLBACK,</span>
+    <span class="s1">XSLT_FUNC_MESSAGE,</span>
+    <span class="s1">XSLT_FUNC_INCLUDE,</span>
+    <span class="s1">XSLT_FUNC_ATTRSET,</span>
+    <span class="s1">XSLT_FUNC_LITERAL_RESULT_ELEMENT,</span>
+    <span class="s1">XSLT_FUNC_UNKOWN_FORWARDS_COMPAT</span>
+<span class="s2">#endif</span>
+<span class="s1">} xsltStyleType;</span>
+
+<span class="s0">/** 
+ * xsltElemPreCompDeallocator: 
+ * @comp:  the #xsltElemPreComp to free up 
+ * 
+ * Deallocates an #xsltElemPreComp structure. 
+ */</span>
+<span class="s2">typedef void </span><span class="s1">(*xsltElemPreCompDeallocator) (xsltElemPreCompPtr comp);</span>
+
+<span class="s0">/** 
+ * xsltElemPreComp: 
+ * 
+ * The basic structure for compiled items of the AST of the XSLT processor. 
+ * This structure is also intended to be extended by extension implementors. 
+ * TODO: This is somehow not nice, since it has a &quot;free&quot; field, which 
+ *   derived stylesheet-structs do not have. 
+ */</span>
+<span class="s2">struct </span><span class="s1">_xsltElemPreComp {</span>
+    <span class="s1">xsltElemPreCompPtr next;		</span><span class="s0">/* next item in the global chained 
+                       list hold by xsltStylesheet. */</span>
+    <span class="s1">xsltStyleType type;		</span><span class="s0">/* type of the element */</span>
+    <span class="s1">xsltTransformFunction func;	</span><span class="s0">/* handling function */</span>
+    <span class="s1">xmlNodePtr inst;			</span><span class="s0">/* the node in the stylesheet's tree 
+                       corresponding to this item */</span>
+
+    <span class="s0">/* end of common part */</span>
+    <span class="s1">xsltElemPreCompDeallocator free;	</span><span class="s0">/* the deallocator */</span>
+<span class="s1">};</span>
+
+<span class="s0">/** 
+ * xsltStylePreComp: 
+ * 
+ * The abstract basic structure for items of the XSLT processor. 
+ * This includes: 
+ * 1) compiled forms of XSLT instructions (xsl:if, xsl:attribute, etc.) 
+ * 2) compiled forms of literal result elements 
+ * 3) compiled forms of extension elements 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xsltStylePreComp xsltStylePreComp;</span>
+<span class="s2">typedef </span><span class="s1">xsltStylePreComp *xsltStylePreCompPtr;</span>
+
+<span class="s2">#ifdef </span><span class="s1">XSLT_REFACTORED</span>
+
+<span class="s0">/* 
+* Some pointer-list utility functions. 
+*/</span>
+<span class="s1">XSLTPUBFUN xsltPointerListPtr XSLTCALL</span>
+		<span class="s1">xsltPointerListCreate		(</span><span class="s2">int </span><span class="s1">initialSize);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltPointerListFree		(xsltPointerListPtr list);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltPointerListClear		(xsltPointerListPtr list);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltPointerListAddSize		(xsltPointerListPtr list,</span>
+						 <span class="s2">void </span><span class="s1">*item,</span>
+						 <span class="s2">int </span><span class="s1">initialSize);</span>
+
+<span class="s0">/************************************************************************ 
+ *                                  * 
+ * Refactored structures                                                * 
+ *                                  * 
+ ************************************************************************/</span>
+
+<span class="s2">typedef struct </span><span class="s1">_xsltNsListContainer xsltNsListContainer;</span>
+<span class="s2">typedef </span><span class="s1">xsltNsListContainer *xsltNsListContainerPtr;</span>
+<span class="s2">struct </span><span class="s1">_xsltNsListContainer {</span>
+    <span class="s1">xmlNsPtr *list;</span>
+    <span class="s2">int </span><span class="s1">totalNumber;</span>
+    <span class="s2">int </span><span class="s1">xpathNumber;</span>
+<span class="s1">};</span>
+
+<span class="s0">/** 
+ * XSLT_ITEM_COMPATIBILITY_FIELDS: 
+ * 
+ * Fields for API compatibility to the structure 
+ * _xsltElemPreComp which is used for extension functions. 
+ * Note that @next is used for storage; it does not reflect a next 
+ * sibling in the tree. 
+ * TODO: Evaluate if we really need such a compatibility. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XSLT_ITEM_COMPATIBILITY_FIELDS \</span>
+    <span class="s1">xsltElemPreCompPtr next;\</span>
+    <span class="s1">xsltStyleType type;\</span>
+    <span class="s1">xsltTransformFunction func;\</span>
+    <span class="s1">xmlNodePtr inst;</span>
+
+<span class="s0">/** 
+ * XSLT_ITEM_NAVIGATION_FIELDS: 
+ * 
+ * Currently empty. 
+ * TODO: It is intended to hold navigational fields in the future. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XSLT_ITEM_NAVIGATION_FIELDS</span>
+<span class="s0">/* 
+    xsltStylePreCompPtr parent;\ 
+    xsltStylePreCompPtr children;\ 
+    xsltStylePreCompPtr nextItem; 
+*/</span>
+
+<span class="s0">/** 
+ * XSLT_ITEM_NSINSCOPE_FIELDS: 
+ * 
+ * The in-scope namespaces. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XSLT_ITEM_NSINSCOPE_FIELDS xsltNsListContainerPtr inScopeNs;</span>
+
+<span class="s0">/** 
+ * XSLT_ITEM_COMMON_FIELDS: 
+ * 
+ * Common fields used for all items. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XSLT_ITEM_COMMON_FIELDS \</span>
+    <span class="s1">XSLT_ITEM_COMPATIBILITY_FIELDS \</span>
+    <span class="s1">XSLT_ITEM_NAVIGATION_FIELDS \</span>
+    <span class="s1">XSLT_ITEM_NSINSCOPE_FIELDS</span>
+
+<span class="s0">/** 
+ * _xsltStylePreComp: 
+ * 
+ * The abstract basic structure for items of the XSLT processor. 
+ * This includes: 
+ * 1) compiled forms of XSLT instructions (e.g. xsl:if, xsl:attribute, etc.) 
+ * 2) compiled forms of literal result elements 
+ * 3) various properties for XSLT instructions (e.g. xsl:when, 
+ *    xsl:with-param) 
+ * 
+ * REVISIT TODO: Keep this structure equal to the fields 
+ *   defined by XSLT_ITEM_COMMON_FIELDS 
+ */</span>
+<span class="s2">struct </span><span class="s1">_xsltStylePreComp {</span>
+    <span class="s1">xsltElemPreCompPtr next;    </span><span class="s0">/* next item in the global chained 
+                   list hold by xsltStylesheet */</span>
+    <span class="s1">xsltStyleType type;         </span><span class="s0">/* type of the item */</span>
+    <span class="s1">xsltTransformFunction func; </span><span class="s0">/* handling function */</span>
+    <span class="s1">xmlNodePtr inst;		</span><span class="s0">/* the node in the stylesheet's tree 
+                   corresponding to this item. */</span>
+    <span class="s0">/* Currently no navigational fields. */</span>
+    <span class="s1">xsltNsListContainerPtr inScopeNs;</span>
+<span class="s1">};</span>
+
+<span class="s0">/** 
+ * xsltStyleBasicEmptyItem: 
+ * 
+ * Abstract structure only used as a short-cut for 
+ * XSLT items with no extra fields. 
+ * NOTE that it is intended that this structure looks the same as 
+ *  _xsltStylePreComp. 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xsltStyleBasicEmptyItem xsltStyleBasicEmptyItem;</span>
+<span class="s2">typedef </span><span class="s1">xsltStyleBasicEmptyItem *xsltStyleBasicEmptyItemPtr;</span>
+
+<span class="s2">struct </span><span class="s1">_xsltStyleBasicEmptyItem {</span>
+    <span class="s1">XSLT_ITEM_COMMON_FIELDS</span>
+<span class="s1">};</span>
+
+<span class="s0">/** 
+ * xsltStyleBasicExpressionItem: 
+ * 
+ * Abstract structure only used as a short-cut for 
+ * XSLT items with just an expression. 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xsltStyleBasicExpressionItem xsltStyleBasicExpressionItem;</span>
+<span class="s2">typedef </span><span class="s1">xsltStyleBasicExpressionItem *xsltStyleBasicExpressionItemPtr;</span>
+
+<span class="s2">struct </span><span class="s1">_xsltStyleBasicExpressionItem {</span>
+    <span class="s1">XSLT_ITEM_COMMON_FIELDS</span>
+
+    <span class="s2">const </span><span class="s1">xmlChar *select; </span><span class="s0">/* TODO: Change this to &quot;expression&quot;. */</span>
+    <span class="s1">xmlXPathCompExprPtr comp; </span><span class="s0">/* TODO: Change this to compExpr. */</span>
+<span class="s1">};</span>
+
+<span class="s0">/************************************************************************ 
+ *                                  * 
+ * XSLT-instructions/declarations                                       * 
+ *                                  * 
+ ************************************************************************/</span>
+
+<span class="s0">/** 
+ * xsltStyleItemElement: 
+ * 
+ * &lt;!-- Category: instruction --&gt; 
+ * &lt;xsl:element 
+ *  name = { qname } 
+ *  namespace = { uri-reference } 
+ *  use-attribute-sets = qnames&gt; 
+ *  &lt;!-- Content: template --&gt; 
+ * &lt;/xsl:element&gt; 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xsltStyleItemElement xsltStyleItemElement;</span>
+<span class="s2">typedef </span><span class="s1">xsltStyleItemElement *xsltStyleItemElementPtr;</span>
+
+<span class="s2">struct </span><span class="s1">_xsltStyleItemElement {</span>
+    <span class="s1">XSLT_ITEM_COMMON_FIELDS</span>
+
+    <span class="s2">const </span><span class="s1">xmlChar *use;</span>
+    <span class="s2">int      </span><span class="s1">has_use;</span>
+    <span class="s2">const </span><span class="s1">xmlChar *name;</span>
+    <span class="s2">int      </span><span class="s1">has_name;</span>
+    <span class="s2">const </span><span class="s1">xmlChar *ns;</span>
+    <span class="s2">const </span><span class="s1">xmlChar *nsPrefix;</span>
+    <span class="s2">int      </span><span class="s1">has_ns;</span>
+<span class="s1">};</span>
+
+<span class="s0">/** 
+ * xsltStyleItemAttribute: 
+ * 
+ * &lt;!-- Category: instruction --&gt; 
+ * &lt;xsl:attribute 
+ *  name = { qname } 
+ *  namespace = { uri-reference }&gt; 
+ *  &lt;!-- Content: template --&gt; 
+ * &lt;/xsl:attribute&gt; 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xsltStyleItemAttribute xsltStyleItemAttribute;</span>
+<span class="s2">typedef </span><span class="s1">xsltStyleItemAttribute *xsltStyleItemAttributePtr;</span>
+
+<span class="s2">struct </span><span class="s1">_xsltStyleItemAttribute {</span>
+    <span class="s1">XSLT_ITEM_COMMON_FIELDS</span>
+    <span class="s2">const </span><span class="s1">xmlChar *name;</span>
+    <span class="s2">int      </span><span class="s1">has_name;</span>
+    <span class="s2">const </span><span class="s1">xmlChar *ns;</span>
+    <span class="s2">const </span><span class="s1">xmlChar *nsPrefix;</span>
+    <span class="s2">int      </span><span class="s1">has_ns;</span>
+<span class="s1">};</span>
+
+<span class="s0">/** 
+ * xsltStyleItemText: 
+ * 
+ * &lt;!-- Category: instruction --&gt; 
+ * &lt;xsl:text 
+ *  disable-output-escaping = &quot;yes&quot; | &quot;no&quot;&gt; 
+ *  &lt;!-- Content: #PCDATA --&gt; 
+ * &lt;/xsl:text&gt; 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xsltStyleItemText xsltStyleItemText;</span>
+<span class="s2">typedef </span><span class="s1">xsltStyleItemText *xsltStyleItemTextPtr;</span>
+
+<span class="s2">struct </span><span class="s1">_xsltStyleItemText {</span>
+    <span class="s1">XSLT_ITEM_COMMON_FIELDS</span>
+    <span class="s2">int      </span><span class="s1">noescape;		</span><span class="s0">/* text */</span>
+<span class="s1">};</span>
+
+<span class="s0">/** 
+ * xsltStyleItemComment: 
+ * 
+ * &lt;!-- Category: instruction --&gt; 
+ *  &lt;xsl:comment&gt; 
+ *  &lt;!-- Content: template --&gt; 
+ * &lt;/xsl:comment&gt; 
+ */</span>
+<span class="s2">typedef </span><span class="s1">xsltStyleBasicEmptyItem xsltStyleItemComment;</span>
+<span class="s2">typedef </span><span class="s1">xsltStyleItemComment *xsltStyleItemCommentPtr;</span>
+
+<span class="s0">/** 
+ * xsltStyleItemPI: 
+ * 
+ * &lt;!-- Category: instruction --&gt; 
+ *  &lt;xsl:processing-instruction 
+ *  name = { ncname }&gt; 
+ *  &lt;!-- Content: template --&gt; 
+ * &lt;/xsl:processing-instruction&gt; 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xsltStyleItemPI xsltStyleItemPI;</span>
+<span class="s2">typedef </span><span class="s1">xsltStyleItemPI *xsltStyleItemPIPtr;</span>
+
+<span class="s2">struct </span><span class="s1">_xsltStyleItemPI {</span>
+    <span class="s1">XSLT_ITEM_COMMON_FIELDS</span>
+    <span class="s2">const </span><span class="s1">xmlChar *name;</span>
+    <span class="s2">int      </span><span class="s1">has_name;</span>
+<span class="s1">};</span>
+
+<span class="s0">/** 
+ * xsltStyleItemApplyImports: 
+ * 
+ * &lt;!-- Category: instruction --&gt; 
+ * &lt;xsl:apply-imports /&gt; 
+ */</span>
+<span class="s2">typedef </span><span class="s1">xsltStyleBasicEmptyItem xsltStyleItemApplyImports;</span>
+<span class="s2">typedef </span><span class="s1">xsltStyleItemApplyImports *xsltStyleItemApplyImportsPtr;</span>
+
+<span class="s0">/** 
+ * xsltStyleItemApplyTemplates: 
+ * 
+ * &lt;!-- Category: instruction --&gt; 
+ *  &lt;xsl:apply-templates 
+ *  select = node-set-expression 
+ *  mode = qname&gt; 
+ *  &lt;!-- Content: (xsl:sort | xsl:with-param)* --&gt; 
+ * &lt;/xsl:apply-templates&gt; 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xsltStyleItemApplyTemplates xsltStyleItemApplyTemplates;</span>
+<span class="s2">typedef </span><span class="s1">xsltStyleItemApplyTemplates *xsltStyleItemApplyTemplatesPtr;</span>
+
+<span class="s2">struct </span><span class="s1">_xsltStyleItemApplyTemplates {</span>
+    <span class="s1">XSLT_ITEM_COMMON_FIELDS</span>
+
+    <span class="s2">const </span><span class="s1">xmlChar *mode;	</span><span class="s0">/* apply-templates */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *modeURI;	</span><span class="s0">/* apply-templates */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *select;	</span><span class="s0">/* sort, copy-of, value-of, apply-templates */</span>
+    <span class="s1">xmlXPathCompExprPtr comp;	</span><span class="s0">/* a precompiled XPath expression */</span>
+    <span class="s0">/* TODO: with-params */</span>
+<span class="s1">};</span>
+
+<span class="s0">/** 
+ * xsltStyleItemCallTemplate: 
+ * 
+ * &lt;!-- Category: instruction --&gt; 
+ *  &lt;xsl:call-template 
+ *  name = qname&gt; 
+ *  &lt;!-- Content: xsl:with-param* --&gt; 
+ * &lt;/xsl:call-template&gt; 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xsltStyleItemCallTemplate xsltStyleItemCallTemplate;</span>
+<span class="s2">typedef </span><span class="s1">xsltStyleItemCallTemplate *xsltStyleItemCallTemplatePtr;</span>
+
+<span class="s2">struct </span><span class="s1">_xsltStyleItemCallTemplate {</span>
+    <span class="s1">XSLT_ITEM_COMMON_FIELDS</span>
+
+    <span class="s1">xsltTemplatePtr templ;	</span><span class="s0">/* call-template */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *name;	</span><span class="s0">/* element, attribute, pi */</span>
+    <span class="s2">int      </span><span class="s1">has_name;		</span><span class="s0">/* element, attribute, pi */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *ns;		</span><span class="s0">/* element */</span>
+    <span class="s2">int      </span><span class="s1">has_ns;		</span><span class="s0">/* element */</span>
+    <span class="s0">/* TODO: with-params */</span>
+<span class="s1">};</span>
+
+<span class="s0">/** 
+ * xsltStyleItemCopy: 
+ * 
+ * &lt;!-- Category: instruction --&gt; 
+ * &lt;xsl:copy 
+ *  use-attribute-sets = qnames&gt; 
+ *  &lt;!-- Content: template --&gt; 
+ * &lt;/xsl:copy&gt; 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xsltStyleItemCopy xsltStyleItemCopy;</span>
+<span class="s2">typedef </span><span class="s1">xsltStyleItemCopy *xsltStyleItemCopyPtr;</span>
+
+<span class="s2">struct </span><span class="s1">_xsltStyleItemCopy {</span>
+   <span class="s1">XSLT_ITEM_COMMON_FIELDS</span>
+    <span class="s2">const </span><span class="s1">xmlChar *use;		</span><span class="s0">/* copy, element */</span>
+    <span class="s2">int      </span><span class="s1">has_use;		</span><span class="s0">/* copy, element */</span>
+<span class="s1">};</span>
+
+<span class="s0">/** 
+ * xsltStyleItemIf: 
+ * 
+ * &lt;!-- Category: instruction --&gt; 
+ *  &lt;xsl:if 
+ *  test = boolean-expression&gt; 
+ *  &lt;!-- Content: template --&gt; 
+ * &lt;/xsl:if&gt; 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xsltStyleItemIf xsltStyleItemIf;</span>
+<span class="s2">typedef </span><span class="s1">xsltStyleItemIf *xsltStyleItemIfPtr;</span>
+
+<span class="s2">struct </span><span class="s1">_xsltStyleItemIf {</span>
+    <span class="s1">XSLT_ITEM_COMMON_FIELDS</span>
+
+    <span class="s2">const </span><span class="s1">xmlChar *test;	</span><span class="s0">/* if */</span>
+    <span class="s1">xmlXPathCompExprPtr comp;	</span><span class="s0">/* a precompiled XPath expression */</span>
+<span class="s1">};</span>
+
+
+<span class="s0">/** 
+ * xsltStyleItemCopyOf: 
+ * 
+ * &lt;!-- Category: instruction --&gt; 
+ * &lt;xsl:copy-of 
+ *  select = expression /&gt; 
+ */</span>
+<span class="s2">typedef </span><span class="s1">xsltStyleBasicExpressionItem xsltStyleItemCopyOf;</span>
+<span class="s2">typedef </span><span class="s1">xsltStyleItemCopyOf *xsltStyleItemCopyOfPtr;</span>
+
+<span class="s0">/** 
+ * xsltStyleItemValueOf: 
+ * 
+ * &lt;!-- Category: instruction --&gt; 
+ * &lt;xsl:value-of 
+ *  select = string-expression 
+ *  disable-output-escaping = &quot;yes&quot; | &quot;no&quot; /&gt; 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xsltStyleItemValueOf xsltStyleItemValueOf;</span>
+<span class="s2">typedef </span><span class="s1">xsltStyleItemValueOf *xsltStyleItemValueOfPtr;</span>
+
+<span class="s2">struct </span><span class="s1">_xsltStyleItemValueOf {</span>
+    <span class="s1">XSLT_ITEM_COMMON_FIELDS</span>
+
+    <span class="s2">const </span><span class="s1">xmlChar *select;</span>
+    <span class="s1">xmlXPathCompExprPtr comp;	</span><span class="s0">/* a precompiled XPath expression */</span>
+    <span class="s2">int      </span><span class="s1">noescape;</span>
+<span class="s1">};</span>
+
+<span class="s0">/** 
+ * xsltStyleItemNumber: 
+ * 
+ * &lt;!-- Category: instruction --&gt; 
+ *  &lt;xsl:number 
+ *  level = &quot;single&quot; | &quot;multiple&quot; | &quot;any&quot; 
+ *  count = pattern 
+ *  from = pattern 
+ *  value = number-expression 
+ *  format = { string } 
+ *  lang = { nmtoken } 
+ *  letter-value = { &quot;alphabetic&quot; | &quot;traditional&quot; } 
+ *  grouping-separator = { char } 
+ *  grouping-size = { number } /&gt; 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xsltStyleItemNumber xsltStyleItemNumber;</span>
+<span class="s2">typedef </span><span class="s1">xsltStyleItemNumber *xsltStyleItemNumberPtr;</span>
+
+<span class="s2">struct </span><span class="s1">_xsltStyleItemNumber {</span>
+    <span class="s1">XSLT_ITEM_COMMON_FIELDS</span>
+    <span class="s1">xsltNumberData numdata;	</span><span class="s0">/* number */</span>
+<span class="s1">};</span>
+
+<span class="s0">/** 
+ * xsltStyleItemChoose: 
+ * 
+ * &lt;!-- Category: instruction --&gt; 
+ *  &lt;xsl:choose&gt; 
+ *  &lt;!-- Content: (xsl:when+, xsl:otherwise?) --&gt; 
+ * &lt;/xsl:choose&gt; 
+ */</span>
+<span class="s2">typedef </span><span class="s1">xsltStyleBasicEmptyItem xsltStyleItemChoose;</span>
+<span class="s2">typedef </span><span class="s1">xsltStyleItemChoose *xsltStyleItemChoosePtr;</span>
+
+<span class="s0">/** 
+ * xsltStyleItemFallback: 
+ * 
+ * &lt;!-- Category: instruction --&gt; 
+ *  &lt;xsl:fallback&gt; 
+ *  &lt;!-- Content: template --&gt; 
+ * &lt;/xsl:fallback&gt; 
+ */</span>
+<span class="s2">typedef </span><span class="s1">xsltStyleBasicEmptyItem xsltStyleItemFallback;</span>
+<span class="s2">typedef </span><span class="s1">xsltStyleItemFallback *xsltStyleItemFallbackPtr;</span>
+
+<span class="s0">/** 
+ * xsltStyleItemForEach: 
+ * 
+ * &lt;!-- Category: instruction --&gt; 
+ * &lt;xsl:for-each 
+ *   select = node-set-expression&gt; 
+ *   &lt;!-- Content: (xsl:sort*, template) --&gt; 
+ * &lt;/xsl:for-each&gt; 
+ */</span>
+<span class="s2">typedef </span><span class="s1">xsltStyleBasicExpressionItem xsltStyleItemForEach;</span>
+<span class="s2">typedef </span><span class="s1">xsltStyleItemForEach *xsltStyleItemForEachPtr;</span>
+
+<span class="s0">/** 
+ * xsltStyleItemMessage: 
+ * 
+ * &lt;!-- Category: instruction --&gt; 
+ * &lt;xsl:message 
+ *   terminate = &quot;yes&quot; | &quot;no&quot;&gt; 
+ *   &lt;!-- Content: template --&gt; 
+ * &lt;/xsl:message&gt; 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xsltStyleItemMessage xsltStyleItemMessage;</span>
+<span class="s2">typedef </span><span class="s1">xsltStyleItemMessage *xsltStyleItemMessagePtr;</span>
+
+<span class="s2">struct </span><span class="s1">_xsltStyleItemMessage {</span>
+    <span class="s1">XSLT_ITEM_COMMON_FIELDS</span>
+    <span class="s2">int </span><span class="s1">terminate;</span>
+<span class="s1">};</span>
+
+<span class="s0">/** 
+ * xsltStyleItemDocument: 
+ * 
+ * NOTE: This is not an instruction of XSLT 1.0. 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xsltStyleItemDocument xsltStyleItemDocument;</span>
+<span class="s2">typedef </span><span class="s1">xsltStyleItemDocument *xsltStyleItemDocumentPtr;</span>
+
+<span class="s2">struct </span><span class="s1">_xsltStyleItemDocument {</span>
+    <span class="s1">XSLT_ITEM_COMMON_FIELDS</span>
+    <span class="s2">int      </span><span class="s1">ver11;		</span><span class="s0">/* assigned: in xsltDocumentComp; 
+                                  read: nowhere; 
+                                  TODO: Check if we need. */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *filename;	</span><span class="s0">/* document URL */</span>
+    <span class="s2">int </span><span class="s1">has_filename;</span>
+<span class="s1">};</span>
+
+<span class="s0">/************************************************************************ 
+ *                                  * 
+ * Non-instructions (actually properties of instructions/declarations)  * 
+ *                                  * 
+ ************************************************************************/</span>
+
+<span class="s0">/** 
+ * xsltStyleBasicItemVariable: 
+ * 
+ * Basic struct for xsl:variable, xsl:param and xsl:with-param. 
+ * It's currently important to have equal fields, since 
+ * xsltParseStylesheetCallerParam() is used with xsl:with-param from 
+ * the xslt side and with xsl:param from the exslt side (in 
+ * exsltFuncFunctionFunction()). 
+ * 
+ * FUTURE NOTE: In XSLT 2.0 xsl:param, xsl:variable and xsl:with-param 
+ *   have additional different fields. 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xsltStyleBasicItemVariable xsltStyleBasicItemVariable;</span>
+<span class="s2">typedef </span><span class="s1">xsltStyleBasicItemVariable *xsltStyleBasicItemVariablePtr;</span>
+
+<span class="s2">struct </span><span class="s1">_xsltStyleBasicItemVariable {</span>
+    <span class="s1">XSLT_ITEM_COMMON_FIELDS</span>
+
+    <span class="s2">const </span><span class="s1">xmlChar *select;</span>
+    <span class="s1">xmlXPathCompExprPtr comp;</span>
+
+    <span class="s2">const </span><span class="s1">xmlChar *name;</span>
+    <span class="s2">int      </span><span class="s1">has_name;</span>
+    <span class="s2">const </span><span class="s1">xmlChar *ns;</span>
+    <span class="s2">int      </span><span class="s1">has_ns;</span>
+<span class="s1">};</span>
+
+<span class="s0">/** 
+ * xsltStyleItemVariable: 
+ * 
+ * &lt;!-- Category: top-level-element --&gt; 
+ * &lt;xsl:param 
+ *   name = qname 
+ *   select = expression&gt; 
+ *   &lt;!-- Content: template --&gt; 
+ * &lt;/xsl:param&gt; 
+ */</span>
+<span class="s2">typedef </span><span class="s1">xsltStyleBasicItemVariable xsltStyleItemVariable;</span>
+<span class="s2">typedef </span><span class="s1">xsltStyleItemVariable *xsltStyleItemVariablePtr;</span>
+
+<span class="s0">/** 
+ * xsltStyleItemParam: 
+ * 
+ * &lt;!-- Category: top-level-element --&gt; 
+ * &lt;xsl:param 
+ *   name = qname 
+ *   select = expression&gt; 
+ *   &lt;!-- Content: template --&gt; 
+ * &lt;/xsl:param&gt; 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xsltStyleItemParam xsltStyleItemParam;</span>
+<span class="s2">typedef </span><span class="s1">xsltStyleItemParam *xsltStyleItemParamPtr;</span>
+
+<span class="s2">struct </span><span class="s1">_xsltStyleItemParam {</span>
+    <span class="s1">XSLT_ITEM_COMMON_FIELDS</span>
+
+    <span class="s2">const </span><span class="s1">xmlChar *select;</span>
+    <span class="s1">xmlXPathCompExprPtr comp;</span>
+
+    <span class="s2">const </span><span class="s1">xmlChar *name;</span>
+    <span class="s2">int      </span><span class="s1">has_name;</span>
+    <span class="s2">const </span><span class="s1">xmlChar *ns;</span>
+    <span class="s2">int      </span><span class="s1">has_ns;</span>
+<span class="s1">};</span>
+
+<span class="s0">/** 
+ * xsltStyleItemWithParam: 
+ * 
+ * &lt;xsl:with-param 
+ *  name = qname 
+ *  select = expression&gt; 
+ *  &lt;!-- Content: template --&gt; 
+ * &lt;/xsl:with-param&gt; 
+ */</span>
+<span class="s2">typedef </span><span class="s1">xsltStyleBasicItemVariable xsltStyleItemWithParam;</span>
+<span class="s2">typedef </span><span class="s1">xsltStyleItemWithParam *xsltStyleItemWithParamPtr;</span>
+
+<span class="s0">/** 
+ * xsltStyleItemSort: 
+ * 
+ * Reflects the XSLT xsl:sort item. 
+ * Allowed parents: xsl:apply-templates, xsl:for-each 
+ * &lt;xsl:sort 
+ *   select = string-expression 
+ *   lang = { nmtoken } 
+ *   data-type = { &quot;text&quot; | &quot;number&quot; | qname-but-not-ncname } 
+ *   order = { &quot;ascending&quot; | &quot;descending&quot; } 
+ *   case-order = { &quot;upper-first&quot; | &quot;lower-first&quot; } /&gt; 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xsltStyleItemSort xsltStyleItemSort;</span>
+<span class="s2">typedef </span><span class="s1">xsltStyleItemSort *xsltStyleItemSortPtr;</span>
+
+<span class="s2">struct </span><span class="s1">_xsltStyleItemSort {</span>
+    <span class="s1">XSLT_ITEM_COMMON_FIELDS</span>
+
+    <span class="s2">const </span><span class="s1">xmlChar *stype;       </span><span class="s0">/* sort */</span>
+    <span class="s2">int      </span><span class="s1">has_stype;		</span><span class="s0">/* sort */</span>
+    <span class="s2">int      </span><span class="s1">number;		</span><span class="s0">/* sort */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *order;	</span><span class="s0">/* sort */</span>
+    <span class="s2">int      </span><span class="s1">has_order;		</span><span class="s0">/* sort */</span>
+    <span class="s2">int      </span><span class="s1">descending;	</span><span class="s0">/* sort */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *lang;	</span><span class="s0">/* sort */</span>
+    <span class="s2">int      </span><span class="s1">has_lang;		</span><span class="s0">/* sort */</span>
+    <span class="s1">xsltLocale locale;		</span><span class="s0">/* sort */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *case_order;	</span><span class="s0">/* sort */</span>
+    <span class="s2">int      </span><span class="s1">lower_first;	</span><span class="s0">/* sort */</span>
+
+    <span class="s2">const </span><span class="s1">xmlChar *use;</span>
+    <span class="s2">int      </span><span class="s1">has_use;</span>
+
+    <span class="s2">const </span><span class="s1">xmlChar *select;	</span><span class="s0">/* sort, copy-of, value-of, apply-templates */</span>
+
+    <span class="s1">xmlXPathCompExprPtr comp;	</span><span class="s0">/* a precompiled XPath expression */</span>
+<span class="s1">};</span>
+
+
+<span class="s0">/** 
+ * xsltStyleItemWhen: 
+ * 
+ * &lt;xsl:when 
+ *   test = boolean-expression&gt; 
+ *   &lt;!-- Content: template --&gt; 
+ * &lt;/xsl:when&gt; 
+ * Allowed parent: xsl:choose 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xsltStyleItemWhen xsltStyleItemWhen;</span>
+<span class="s2">typedef </span><span class="s1">xsltStyleItemWhen *xsltStyleItemWhenPtr;</span>
+
+<span class="s2">struct </span><span class="s1">_xsltStyleItemWhen {</span>
+    <span class="s1">XSLT_ITEM_COMMON_FIELDS</span>
+
+    <span class="s2">const </span><span class="s1">xmlChar *test;</span>
+    <span class="s1">xmlXPathCompExprPtr comp;</span>
+<span class="s1">};</span>
+
+<span class="s0">/** 
+ * xsltStyleItemOtherwise: 
+ * 
+ * Allowed parent: xsl:choose 
+ * &lt;xsl:otherwise&gt; 
+ *   &lt;!-- Content: template --&gt; 
+ * &lt;/xsl:otherwise&gt; 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xsltStyleItemOtherwise xsltStyleItemOtherwise;</span>
+<span class="s2">typedef </span><span class="s1">xsltStyleItemOtherwise *xsltStyleItemOtherwisePtr;</span>
+
+<span class="s2">struct </span><span class="s1">_xsltStyleItemOtherwise {</span>
+    <span class="s1">XSLT_ITEM_COMMON_FIELDS</span>
+<span class="s1">};</span>
+
+<span class="s2">typedef struct </span><span class="s1">_xsltStyleItemInclude xsltStyleItemInclude;</span>
+<span class="s2">typedef </span><span class="s1">xsltStyleItemInclude *xsltStyleItemIncludePtr;</span>
+
+<span class="s2">struct </span><span class="s1">_xsltStyleItemInclude {</span>
+    <span class="s1">XSLT_ITEM_COMMON_FIELDS</span>
+    <span class="s1">xsltDocumentPtr include;</span>
+<span class="s1">};</span>
+
+<span class="s0">/************************************************************************ 
+ *                                  * 
+ *  XSLT elements in forwards-compatible mode                           * 
+ *                                  * 
+ ************************************************************************/</span>
+
+<span class="s2">typedef struct </span><span class="s1">_xsltStyleItemUknown xsltStyleItemUknown;</span>
+<span class="s2">typedef </span><span class="s1">xsltStyleItemUknown *xsltStyleItemUknownPtr;</span>
+<span class="s2">struct </span><span class="s1">_xsltStyleItemUknown {</span>
+    <span class="s1">XSLT_ITEM_COMMON_FIELDS</span>
+<span class="s1">};</span>
+
+
+<span class="s0">/************************************************************************ 
+ *                                  * 
+ *  Extension elements                                                  * 
+ *                                  * 
+ ************************************************************************/</span>
+
+<span class="s0">/* 
+ * xsltStyleItemExtElement: 
+ * 
+ * Reflects extension elements. 
+ * 
+ * NOTE: Due to the fact that the structure xsltElemPreComp is most 
+ * probably already heavily in use out there by users, so we cannot 
+ * easily change it, we'll create an intermediate structure which will 
+ * hold an xsltElemPreCompPtr. 
+ * BIG NOTE: The only problem I see here is that the user processes the 
+ *  content of the stylesheet tree, possibly he'll lookup the node-&gt;psvi 
+ *  fields in order to find subsequent extension functions. 
+ *  In this case, the user's code will break, since the node-&gt;psvi 
+ *  field will hold now the xsltStyleItemExtElementPtr and not 
+ *  the xsltElemPreCompPtr. 
+ *  However the place where the structure is anchored in the node-tree, 
+ *  namely node-&gt;psvi, has beed already once been moved from node-&gt;_private 
+ *  to node-&gt;psvi, so we have a precedent here, which, I think, should allow 
+ *  us to change such semantics without headaches. 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xsltStyleItemExtElement xsltStyleItemExtElement;</span>
+<span class="s2">typedef </span><span class="s1">xsltStyleItemExtElement *xsltStyleItemExtElementPtr;</span>
+<span class="s2">struct </span><span class="s1">_xsltStyleItemExtElement {</span>
+    <span class="s1">XSLT_ITEM_COMMON_FIELDS</span>
+    <span class="s1">xsltElemPreCompPtr item;</span>
+<span class="s1">};</span>
+
+<span class="s0">/************************************************************************ 
+ *                                  * 
+ *  Literal result elements                                             * 
+ *                                  * 
+ ************************************************************************/</span>
+
+<span class="s2">typedef struct </span><span class="s1">_xsltEffectiveNs xsltEffectiveNs;</span>
+<span class="s2">typedef </span><span class="s1">xsltEffectiveNs *xsltEffectiveNsPtr;</span>
+<span class="s2">struct </span><span class="s1">_xsltEffectiveNs {</span>
+    <span class="s1">xsltEffectiveNsPtr nextInStore; </span><span class="s0">/* storage next */</span>
+    <span class="s1">xsltEffectiveNsPtr next; </span><span class="s0">/* next item in the list */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *prefix;</span>
+    <span class="s2">const </span><span class="s1">xmlChar *nsName;</span>
+    <span class="s0">/* 
+    * Indicates if eclared on the literal result element; dunno if really 
+    * needed. 
+    */</span>
+    <span class="s2">int </span><span class="s1">holdByElem;</span>
+<span class="s1">};</span>
+
+<span class="s0">/* 
+ * Info for literal result elements. 
+ * This will be set on the elem-&gt;psvi field and will be 
+ * shared by literal result elements, which have the same 
+ * excluded result namespaces; i.e., this *won't* be created uniquely 
+ * for every literal result element. 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xsltStyleItemLRElementInfo xsltStyleItemLRElementInfo;</span>
+<span class="s2">typedef </span><span class="s1">xsltStyleItemLRElementInfo *xsltStyleItemLRElementInfoPtr;</span>
+<span class="s2">struct </span><span class="s1">_xsltStyleItemLRElementInfo {</span>
+    <span class="s1">XSLT_ITEM_COMMON_FIELDS</span>
+    <span class="s0">/* 
+    * @effectiveNs is the set of effective ns-nodes 
+    *  on the literal result element, which will be added to the result 
+    *  element if not already existing in the result tree. 
+    *  This means that excluded namespaces (via exclude-result-prefixes, 
+    *  extension-element-prefixes and the XSLT namespace) not added 
+    *  to the set. 
+    *  Namespace-aliasing was applied on the @effectiveNs. 
+    */</span>
+    <span class="s1">xsltEffectiveNsPtr effectiveNs;</span>
+
+<span class="s1">};</span>
+
+<span class="s2">#ifdef </span><span class="s1">XSLT_REFACTORED</span>
+
+<span class="s2">typedef struct </span><span class="s1">_xsltNsAlias xsltNsAlias;</span>
+<span class="s2">typedef </span><span class="s1">xsltNsAlias *xsltNsAliasPtr;</span>
+<span class="s2">struct </span><span class="s1">_xsltNsAlias {</span>
+    <span class="s1">xsltNsAliasPtr next; </span><span class="s0">/* next in the list */</span>
+    <span class="s1">xmlNsPtr literalNs;</span>
+    <span class="s1">xmlNsPtr targetNs;</span>
+    <span class="s1">xmlDocPtr docOfTargetNs;</span>
+<span class="s1">};</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#ifdef </span><span class="s1">XSLT_REFACTORED_XSLT_NSCOMP</span>
+
+<span class="s2">typedef struct </span><span class="s1">_xsltNsMap xsltNsMap;</span>
+<span class="s2">typedef </span><span class="s1">xsltNsMap *xsltNsMapPtr;</span>
+<span class="s2">struct </span><span class="s1">_xsltNsMap {</span>
+    <span class="s1">xsltNsMapPtr next; </span><span class="s0">/* next in the list */</span>
+    <span class="s1">xmlDocPtr doc;</span>
+    <span class="s1">xmlNodePtr elem; </span><span class="s0">/* the element holding the ns-decl */</span>
+    <span class="s1">xmlNsPtr ns; </span><span class="s0">/* the xmlNs structure holding the XML namespace name */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *origNsName; </span><span class="s0">/* the original XML namespace name */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *newNsName; </span><span class="s0">/* the mapped XML namespace name */</span>
+<span class="s1">};</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/************************************************************************ 
+ *                                  * 
+ *  Compile-time structures for *internal* use only                     * 
+ *                                  * 
+ ************************************************************************/</span>
+
+<span class="s2">typedef struct </span><span class="s1">_xsltPrincipalStylesheetData xsltPrincipalStylesheetData;</span>
+<span class="s2">typedef </span><span class="s1">xsltPrincipalStylesheetData *xsltPrincipalStylesheetDataPtr;</span>
+
+<span class="s2">typedef struct </span><span class="s1">_xsltNsList xsltNsList;</span>
+<span class="s2">typedef </span><span class="s1">xsltNsList *xsltNsListPtr;</span>
+<span class="s2">struct </span><span class="s1">_xsltNsList {</span>
+    <span class="s1">xsltNsListPtr next; </span><span class="s0">/* next in the list */</span>
+    <span class="s1">xmlNsPtr ns;</span>
+<span class="s1">};</span>
+
+<span class="s0">/* 
+* xsltVarInfo: 
+* 
+* Used at compilation time for parameters and variables. 
+*/</span>
+<span class="s2">typedef struct </span><span class="s1">_xsltVarInfo xsltVarInfo;</span>
+<span class="s2">typedef </span><span class="s1">xsltVarInfo *xsltVarInfoPtr;</span>
+<span class="s2">struct </span><span class="s1">_xsltVarInfo {</span>
+    <span class="s1">xsltVarInfoPtr next; </span><span class="s0">/* next in the list */</span>
+    <span class="s1">xsltVarInfoPtr prev;</span>
+    <span class="s2">int </span><span class="s1">depth; </span><span class="s0">/* the depth in the tree */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *name;</span>
+    <span class="s2">const </span><span class="s1">xmlChar *nsName;</span>
+<span class="s1">};</span>
+
+<span class="s0">/** 
+ * xsltCompilerNodeInfo: 
+ * 
+ * Per-node information during compile-time. 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xsltCompilerNodeInfo xsltCompilerNodeInfo;</span>
+<span class="s2">typedef </span><span class="s1">xsltCompilerNodeInfo *xsltCompilerNodeInfoPtr;</span>
+<span class="s2">struct </span><span class="s1">_xsltCompilerNodeInfo {</span>
+    <span class="s1">xsltCompilerNodeInfoPtr next;</span>
+    <span class="s1">xsltCompilerNodeInfoPtr prev;</span>
+    <span class="s1">xmlNodePtr node;</span>
+    <span class="s2">int </span><span class="s1">depth;</span>
+    <span class="s1">xsltTemplatePtr templ;   </span><span class="s0">/* The owning template */</span>
+    <span class="s2">int </span><span class="s1">category;	     </span><span class="s0">/* XSLT element, LR-element or 
+                                extension element */</span>
+    <span class="s1">xsltStyleType type;</span>
+    <span class="s1">xsltElemPreCompPtr item; </span><span class="s0">/* The compiled information */</span>
+    <span class="s0">/* The current in-scope namespaces */</span>
+    <span class="s1">xsltNsListContainerPtr inScopeNs;</span>
+    <span class="s0">/* The current excluded result namespaces */</span>
+    <span class="s1">xsltPointerListPtr exclResultNs;</span>
+    <span class="s0">/* The current extension instruction namespaces */</span>
+    <span class="s1">xsltPointerListPtr extElemNs;</span>
+
+    <span class="s0">/* The current info for literal result elements. */</span>
+    <span class="s1">xsltStyleItemLRElementInfoPtr litResElemInfo;</span>
+    <span class="s0">/* 
+    * Set to 1 if in-scope namespaces changed, 
+    *  or excluded result namespaces changed, 
+    *  or extension element namespaces changed. 
+    * This will trigger creation of new infos 
+    *  for literal result elements. 
+    */</span>
+    <span class="s2">int </span><span class="s1">nsChanged;</span>
+    <span class="s2">int </span><span class="s1">preserveWhitespace;</span>
+    <span class="s2">int </span><span class="s1">stripWhitespace;</span>
+    <span class="s2">int </span><span class="s1">isRoot; </span><span class="s0">/* whether this is the stylesheet's root node */</span>
+    <span class="s2">int </span><span class="s1">forwardsCompat; </span><span class="s0">/* whether forwards-compatible mode is enabled */</span>
+    <span class="s0">/* whether the content of an extension element was processed */</span>
+    <span class="s2">int </span><span class="s1">extContentHandled;</span>
+    <span class="s0">/* the type of the current child */</span>
+    <span class="s1">xsltStyleType curChildType;</span>
+<span class="s1">};</span>
+
+<span class="s0">/** 
+ * XSLT_CCTXT: 
+ * 
+ * get pointer to compiler context 
+ */</span>
+<span class="s2">#define </span><span class="s1">XSLT_CCTXT(style) ((xsltCompilerCtxtPtr) style</span><span class="s4">-&gt;</span><span class="s1">compCtxt)</span>
+
+<span class="s2">typedef enum </span><span class="s1">{</span>
+    <span class="s1">XSLT_ERROR_SEVERITY_ERROR = </span><span class="s5">0</span><span class="s1">,</span>
+    <span class="s1">XSLT_ERROR_SEVERITY_WARNING</span>
+<span class="s1">} xsltErrorSeverityType;</span>
+
+<span class="s2">typedef struct </span><span class="s1">_xsltCompilerCtxt xsltCompilerCtxt;</span>
+<span class="s2">typedef </span><span class="s1">xsltCompilerCtxt *xsltCompilerCtxtPtr;</span>
+<span class="s2">struct </span><span class="s1">_xsltCompilerCtxt {</span>
+    <span class="s2">void </span><span class="s1">*errorCtxt;            </span><span class="s0">/* user specific error context */</span>
+    <span class="s0">/* 
+    * used for error/warning reports; e.g. XSLT_ERROR_SEVERITY_WARNING */</span>
+    <span class="s1">xsltErrorSeverityType errSeverity;</span>
+    <span class="s2">int </span><span class="s1">warnings;		</span><span class="s0">/* TODO: number of warnings found at 
+                                   compilation */</span>
+    <span class="s2">int </span><span class="s1">errors;			</span><span class="s0">/* TODO: number of errors found at 
+                                   compilation */</span>
+    <span class="s1">xmlDictPtr dict;</span>
+    <span class="s1">xsltStylesheetPtr style;</span>
+    <span class="s2">int </span><span class="s1">simplified; </span><span class="s0">/* whether this is a simplified stylesheet */</span>
+    <span class="s0">/* TODO: structured/unstructured error contexts. */</span>
+    <span class="s2">int </span><span class="s1">depth; </span><span class="s0">/* Current depth of processing */</span>
+
+    <span class="s1">xsltCompilerNodeInfoPtr inode;</span>
+    <span class="s1">xsltCompilerNodeInfoPtr inodeList;</span>
+    <span class="s1">xsltCompilerNodeInfoPtr inodeLast;</span>
+    <span class="s1">xsltPointerListPtr tmpList; </span><span class="s0">/* Used for various purposes */</span>
+    <span class="s0">/* 
+    * The XSLT version as specified by the stylesheet's root element. 
+    */</span>
+    <span class="s2">int </span><span class="s1">isInclude;</span>
+    <span class="s2">int </span><span class="s1">hasForwardsCompat; </span><span class="s0">/* whether forwards-compatible mode was used 
+                 in a parsing episode */</span>
+    <span class="s2">int </span><span class="s1">maxNodeInfos; </span><span class="s0">/* TEMP TODO: just for the interest */</span>
+    <span class="s2">int </span><span class="s1">maxLREs;  </span><span class="s0">/* TEMP TODO: just for the interest */</span>
+    <span class="s0">/* 
+    * In order to keep the old behaviour, applying strict rules of 
+    * the spec can be turned off. This has effect only on special 
+    * mechanisms like whitespace-stripping in the stylesheet. 
+    */</span>
+    <span class="s2">int </span><span class="s1">strict;</span>
+    <span class="s1">xsltPrincipalStylesheetDataPtr psData;</span>
+<span class="s2">#ifdef </span><span class="s1">XSLT_REFACTORED_XPATHCOMP</span>
+    <span class="s1">xmlXPathContextPtr xpathCtxt;</span>
+<span class="s2">#endif</span>
+    <span class="s1">xsltStyleItemUknownPtr unknownItem;</span>
+    <span class="s2">int </span><span class="s1">hasNsAliases; </span><span class="s0">/* Indicator if there was an xsl:namespace-alias. */</span>
+    <span class="s1">xsltNsAliasPtr nsAliases;</span>
+    <span class="s1">xsltVarInfoPtr ivars; </span><span class="s0">/* Storage of local in-scope variables/params. */</span>
+    <span class="s1">xsltVarInfoPtr ivar; </span><span class="s0">/* topmost local variable/param. */</span>
+<span class="s1">};</span>
+
+<span class="s2">#else </span><span class="s0">/* XSLT_REFACTORED */</span>
+<span class="s0">/* 
+* The old structures before refactoring. 
+*/</span>
+
+<span class="s0">/** 
+ * _xsltStylePreComp: 
+ * 
+ * The in-memory structure corresponding to XSLT stylesheet constructs 
+ * precomputed data. 
+ */</span>
+<span class="s2">struct </span><span class="s1">_xsltStylePreComp {</span>
+    <span class="s1">xsltElemPreCompPtr next;	</span><span class="s0">/* chained list */</span>
+    <span class="s1">xsltStyleType type;		</span><span class="s0">/* type of the element */</span>
+    <span class="s1">xsltTransformFunction func; </span><span class="s0">/* handling function */</span>
+    <span class="s1">xmlNodePtr inst;		</span><span class="s0">/* the instruction */</span>
+
+    <span class="s0">/* 
+     * Pre computed values. 
+     */</span>
+
+    <span class="s2">const </span><span class="s1">xmlChar *stype;       </span><span class="s0">/* sort */</span>
+    <span class="s2">int      </span><span class="s1">has_stype;		</span><span class="s0">/* sort */</span>
+    <span class="s2">int      </span><span class="s1">number;		</span><span class="s0">/* sort */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *order;	</span><span class="s0">/* sort */</span>
+    <span class="s2">int      </span><span class="s1">has_order;		</span><span class="s0">/* sort */</span>
+    <span class="s2">int      </span><span class="s1">descending;	</span><span class="s0">/* sort */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *lang;	</span><span class="s0">/* sort */</span>
+    <span class="s2">int      </span><span class="s1">has_lang;		</span><span class="s0">/* sort */</span>
+    <span class="s1">xsltLocale locale;		</span><span class="s0">/* sort */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *case_order;	</span><span class="s0">/* sort */</span>
+    <span class="s2">int      </span><span class="s1">lower_first;	</span><span class="s0">/* sort */</span>
+
+    <span class="s2">const </span><span class="s1">xmlChar *use;		</span><span class="s0">/* copy, element */</span>
+    <span class="s2">int      </span><span class="s1">has_use;		</span><span class="s0">/* copy, element */</span>
+
+    <span class="s2">int      </span><span class="s1">noescape;		</span><span class="s0">/* text */</span>
+
+    <span class="s2">const </span><span class="s1">xmlChar *name;	</span><span class="s0">/* element, attribute, pi */</span>
+    <span class="s2">int      </span><span class="s1">has_name;		</span><span class="s0">/* element, attribute, pi */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *ns;		</span><span class="s0">/* element */</span>
+    <span class="s2">int      </span><span class="s1">has_ns;		</span><span class="s0">/* element */</span>
+
+    <span class="s2">const </span><span class="s1">xmlChar *mode;	</span><span class="s0">/* apply-templates */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *modeURI;	</span><span class="s0">/* apply-templates */</span>
+
+    <span class="s2">const </span><span class="s1">xmlChar *test;	</span><span class="s0">/* if */</span>
+
+    <span class="s1">xsltTemplatePtr templ;	</span><span class="s0">/* call-template */</span>
+
+    <span class="s2">const </span><span class="s1">xmlChar *select;	</span><span class="s0">/* sort, copy-of, value-of, apply-templates */</span>
+
+    <span class="s2">int      </span><span class="s1">ver11;		</span><span class="s0">/* document */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *filename;	</span><span class="s0">/* document URL */</span>
+    <span class="s2">int      </span><span class="s1">has_filename;	</span><span class="s0">/* document */</span>
+
+    <span class="s1">xsltNumberData numdata;	</span><span class="s0">/* number */</span>
+
+    <span class="s1">xmlXPathCompExprPtr comp;	</span><span class="s0">/* a precompiled XPath expression */</span>
+    <span class="s1">xmlNsPtr *nsList;		</span><span class="s0">/* the namespaces in scope */</span>
+    <span class="s2">int </span><span class="s1">nsNr;			</span><span class="s0">/* the number of namespaces in scope */</span>
+<span class="s1">};</span>
+
+<span class="s2">#endif </span><span class="s0">/* XSLT_REFACTORED */</span>
+
+
+<span class="s0">/* 
+ * The in-memory structure corresponding to an XSLT Variable 
+ * or Param. 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xsltStackElem xsltStackElem;</span>
+<span class="s2">typedef </span><span class="s1">xsltStackElem *xsltStackElemPtr;</span>
+<span class="s2">struct </span><span class="s1">_xsltStackElem {</span>
+    <span class="s2">struct </span><span class="s1">_xsltStackElem *next;</span><span class="s0">/* chained list */</span>
+    <span class="s1">xsltStylePreCompPtr comp;   </span><span class="s0">/* the compiled form */</span>
+    <span class="s2">int </span><span class="s1">computed;		</span><span class="s0">/* was the evaluation done */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *name;	</span><span class="s0">/* the local part of the name QName */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *nameURI;	</span><span class="s0">/* the URI part of the name QName */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *select;	</span><span class="s0">/* the eval string */</span>
+    <span class="s1">xmlNodePtr tree;		</span><span class="s0">/* the sequence constructor if no eval 
+                    string or the location */</span>
+    <span class="s1">xmlXPathObjectPtr value;	</span><span class="s0">/* The value if computed */</span>
+    <span class="s1">xmlDocPtr fragment;		</span><span class="s0">/* The Result Tree Fragments (needed for XSLT 1.0) 
+                   which are bound to the variable's lifetime. */</span>
+    <span class="s2">int </span><span class="s1">level;                  </span><span class="s0">/* the depth in the tree; 
+                                   -1 if persistent (e.g. a given xsl:with-param) */</span>
+    <span class="s1">xsltTransformContextPtr context; </span><span class="s0">/* The transformation context; needed to cache 
+                                        the variables */</span>
+    <span class="s2">int </span><span class="s1">flags;</span>
+<span class="s1">};</span>
+
+<span class="s2">#ifdef </span><span class="s1">XSLT_REFACTORED</span>
+
+<span class="s2">struct </span><span class="s1">_xsltPrincipalStylesheetData {</span>
+    <span class="s0">/* 
+    * Namespace dictionary for ns-prefixes and ns-names: 
+    * TODO: Shared between stylesheets, and XPath mechanisms. 
+    *   Not used yet. 
+    */</span>
+    <span class="s1">xmlDictPtr namespaceDict;</span>
+    <span class="s0">/* 
+    * Global list of in-scope namespaces. 
+    */</span>
+    <span class="s1">xsltPointerListPtr inScopeNamespaces;</span>
+    <span class="s0">/* 
+    * Global list of information for [xsl:]excluded-result-prefixes. 
+    */</span>
+    <span class="s1">xsltPointerListPtr exclResultNamespaces;</span>
+    <span class="s0">/* 
+    * Global list of information for [xsl:]extension-element-prefixes. 
+    */</span>
+    <span class="s1">xsltPointerListPtr extElemNamespaces;</span>
+    <span class="s1">xsltEffectiveNsPtr effectiveNs;</span>
+<span class="s2">#ifdef </span><span class="s1">XSLT_REFACTORED_XSLT_NSCOMP</span>
+    <span class="s0">/* 
+    * Namespace name map to get rid of string comparison of namespace names. 
+    */</span>
+    <span class="s1">xsltNsMapPtr nsMap;</span>
+<span class="s2">#endif</span>
+<span class="s1">};</span>
+
+
+<span class="s2">#endif</span>
+<span class="s0">/* 
+ * Note that we added a @compCtxt field to anchor an stylesheet compilation 
+ * context, since, due to historical reasons, various compile-time function 
+ * take only the stylesheet as argument and not a compilation context. 
+ */</span>
+<span class="s2">struct </span><span class="s1">_xsltStylesheet {</span>
+    <span class="s0">/* 
+     * The stylesheet import relation is kept as a tree. 
+     */</span>
+    <span class="s2">struct </span><span class="s1">_xsltStylesheet *parent;</span>
+    <span class="s2">struct </span><span class="s1">_xsltStylesheet *next;</span>
+    <span class="s2">struct </span><span class="s1">_xsltStylesheet *imports;</span>
+
+    <span class="s1">xsltDocumentPtr docList;		</span><span class="s0">/* the include document list */</span>
+
+    <span class="s0">/* 
+     * General data on the style sheet document. 
+     */</span>
+    <span class="s1">xmlDocPtr doc;		</span><span class="s0">/* the parsed XML stylesheet */</span>
+    <span class="s1">xmlHashTablePtr stripSpaces;</span><span class="s0">/* the hash table of the strip-space and 
+                   preserve space elements */</span>
+    <span class="s2">int             </span><span class="s1">stripAll;	</span><span class="s0">/* strip-space * (1) preserve-space * (-1) */</span>
+    <span class="s1">xmlHashTablePtr cdataSection;</span><span class="s0">/* the hash table of the cdata-section */</span>
+
+    <span class="s0">/* 
+     * Global variable or parameters. 
+     */</span>
+    <span class="s1">xsltStackElemPtr variables; </span><span class="s0">/* linked list of param and variables */</span>
+
+    <span class="s0">/* 
+     * Template descriptions. 
+     */</span>
+    <span class="s1">xsltTemplatePtr templates;	</span><span class="s0">/* the ordered list of templates */</span>
+    <span class="s2">void </span><span class="s1">*templatesHash;	</span><span class="s0">/* hash table or wherever compiled templates 
+                   informations are stored */</span>
+    <span class="s2">void </span><span class="s1">*rootMatch;		</span><span class="s0">/* template based on / */</span>
+    <span class="s2">void </span><span class="s1">*keyMatch;		</span><span class="s0">/* template based on key() */</span>
+    <span class="s2">void </span><span class="s1">*elemMatch;		</span><span class="s0">/* template based on * */</span>
+    <span class="s2">void </span><span class="s1">*attrMatch;		</span><span class="s0">/* template based on @* */</span>
+    <span class="s2">void </span><span class="s1">*parentMatch;		</span><span class="s0">/* template based on .. */</span>
+    <span class="s2">void </span><span class="s1">*textMatch;		</span><span class="s0">/* template based on text() */</span>
+    <span class="s2">void </span><span class="s1">*piMatch;		</span><span class="s0">/* template based on processing-instruction() */</span>
+    <span class="s2">void </span><span class="s1">*commentMatch;		</span><span class="s0">/* template based on comment() */</span>
+
+    <span class="s0">/* 
+     * Namespace aliases. 
+     * NOTE: Not used in the refactored code. 
+     */</span>
+    <span class="s1">xmlHashTablePtr nsAliases;	</span><span class="s0">/* the namespace alias hash tables */</span>
+
+    <span class="s0">/* 
+     * Attribute sets. 
+     */</span>
+    <span class="s1">xmlHashTablePtr attributeSets;</span><span class="s0">/* the attribute sets hash tables */</span>
+
+    <span class="s0">/* 
+     * Namespaces. 
+     * TODO: Eliminate this. 
+     */</span>
+    <span class="s1">xmlHashTablePtr nsHash;     </span><span class="s0">/* the set of namespaces in use: 
+                                   ATTENTION: This is used for 
+                                   execution of XPath expressions; unfortunately 
+                                   it restricts the stylesheet to have distinct 
+                                   prefixes. 
+                   TODO: We need to get rid of this. 
+                 */</span>
+    <span class="s2">void           </span><span class="s1">*nsDefs;     </span><span class="s0">/* ATTENTION TODO: This is currently used to store 
+                   xsltExtDefPtr (in extensions.c) and 
+                                   *not* xmlNsPtr. 
+                 */</span>
+
+    <span class="s0">/* 
+     * Key definitions. 
+     */</span>
+    <span class="s2">void </span><span class="s1">*keys;			</span><span class="s0">/* key definitions */</span>
+
+    <span class="s0">/* 
+     * Output related stuff. 
+     */</span>
+    <span class="s1">xmlChar *method;		</span><span class="s0">/* the output method */</span>
+    <span class="s1">xmlChar *methodURI;		</span><span class="s0">/* associated namespace if any */</span>
+    <span class="s1">xmlChar *version;		</span><span class="s0">/* version string */</span>
+    <span class="s1">xmlChar *encoding;		</span><span class="s0">/* encoding string */</span>
+    <span class="s2">int </span><span class="s1">omitXmlDeclaration;     </span><span class="s0">/* omit-xml-declaration = &quot;yes&quot; | &quot;no&quot; */</span>
+
+    <span class="s0">/* 
+     * Number formatting. 
+     */</span>
+    <span class="s1">xsltDecimalFormatPtr decimalFormat;</span>
+    <span class="s2">int </span><span class="s1">standalone;             </span><span class="s0">/* standalone = &quot;yes&quot; | &quot;no&quot; */</span>
+    <span class="s1">xmlChar *doctypePublic;     </span><span class="s0">/* doctype-public string */</span>
+    <span class="s1">xmlChar *doctypeSystem;     </span><span class="s0">/* doctype-system string */</span>
+    <span class="s2">int </span><span class="s1">indent;			</span><span class="s0">/* should output being indented */</span>
+    <span class="s1">xmlChar *mediaType;		</span><span class="s0">/* media-type string */</span>
+
+    <span class="s0">/* 
+     * Precomputed blocks. 
+     */</span>
+    <span class="s1">xsltElemPreCompPtr preComps;</span><span class="s0">/* list of precomputed blocks */</span>
+    <span class="s2">int </span><span class="s1">warnings;		</span><span class="s0">/* number of warnings found at compilation */</span>
+    <span class="s2">int </span><span class="s1">errors;			</span><span class="s0">/* number of errors found at compilation */</span>
+
+    <span class="s1">xmlChar  *exclPrefix;	</span><span class="s0">/* last excluded prefixes */</span>
+    <span class="s1">xmlChar **exclPrefixTab;	</span><span class="s0">/* array of excluded prefixes */</span>
+    <span class="s2">int       </span><span class="s1">exclPrefixNr;	</span><span class="s0">/* number of excluded prefixes in scope */</span>
+    <span class="s2">int       </span><span class="s1">exclPrefixMax;	</span><span class="s0">/* size of the array */</span>
+
+    <span class="s2">void     </span><span class="s1">*_private;		</span><span class="s0">/* user defined data */</span>
+
+    <span class="s0">/* 
+     * Extensions. 
+     */</span>
+    <span class="s1">xmlHashTablePtr extInfos;	</span><span class="s0">/* the extension data */</span>
+    <span class="s2">int		    </span><span class="s1">extrasNr;	</span><span class="s0">/* the number of extras required */</span>
+
+    <span class="s0">/* 
+     * For keeping track of nested includes 
+     */</span>
+    <span class="s1">xsltDocumentPtr includes;	</span><span class="s0">/* points to last nested include */</span>
+
+    <span class="s0">/* 
+     * dictionary: shared between stylesheet, context and documents. 
+     */</span>
+    <span class="s1">xmlDictPtr dict;</span>
+    <span class="s0">/* 
+     * precompiled attribute value templates. 
+     */</span>
+    <span class="s2">void </span><span class="s1">*attVTs;</span>
+    <span class="s0">/* 
+     * if namespace-alias has an alias for the default stylesheet prefix 
+     * NOTE: Not used in the refactored code. 
+     */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *defaultAlias;</span>
+    <span class="s0">/* 
+     * bypass pre-processing (already done) (used in imports) 
+     */</span>
+    <span class="s2">int </span><span class="s1">nopreproc;</span>
+    <span class="s0">/* 
+     * all document text strings were internalized 
+     */</span>
+    <span class="s2">int </span><span class="s1">internalized;</span>
+    <span class="s0">/* 
+     * Literal Result Element as Stylesheet c.f. section 2.3 
+     */</span>
+    <span class="s2">int </span><span class="s1">literal_result;</span>
+    <span class="s0">/* 
+    * The principal stylesheet 
+    */</span>
+    <span class="s1">xsltStylesheetPtr principal;</span>
+<span class="s2">#ifdef </span><span class="s1">XSLT_REFACTORED</span>
+    <span class="s0">/* 
+    * Compilation context used during compile-time. 
+    */</span>
+    <span class="s1">xsltCompilerCtxtPtr compCtxt; </span><span class="s0">/* TODO: Change this to (void *). */</span>
+
+    <span class="s1">xsltPrincipalStylesheetDataPtr principalData;</span>
+<span class="s2">#endif</span>
+    <span class="s0">/* 
+     * Forwards-compatible processing 
+     */</span>
+    <span class="s2">int </span><span class="s1">forwards_compatible;</span>
+
+    <span class="s1">xmlHashTablePtr namedTemplates; </span><span class="s0">/* hash table of named templates */</span>
+<span class="s1">};</span>
+
+<span class="s2">typedef struct </span><span class="s1">_xsltTransformCache xsltTransformCache;</span>
+<span class="s2">typedef </span><span class="s1">xsltTransformCache *xsltTransformCachePtr;</span>
+<span class="s2">struct </span><span class="s1">_xsltTransformCache {</span>
+    <span class="s1">xmlDocPtr RVT;</span>
+    <span class="s2">int </span><span class="s1">nbRVT;</span>
+    <span class="s1">xsltStackElemPtr stackItems;</span>
+    <span class="s2">int </span><span class="s1">nbStackItems;</span>
+<span class="s2">#ifdef </span><span class="s1">XSLT_DEBUG_PROFILE_CACHE</span>
+    <span class="s2">int </span><span class="s1">dbgCachedRVTs;</span>
+    <span class="s2">int </span><span class="s1">dbgReusedRVTs;</span>
+    <span class="s2">int </span><span class="s1">dbgCachedVars;</span>
+    <span class="s2">int </span><span class="s1">dbgReusedVars;</span>
+<span class="s2">#endif</span>
+<span class="s1">};</span>
+
+<span class="s0">/* 
+ * The in-memory structure corresponding to an XSLT Transformation. 
+ */</span>
+<span class="s2">typedef enum </span><span class="s1">{</span>
+    <span class="s1">XSLT_OUTPUT_XML = </span><span class="s5">0</span><span class="s1">,</span>
+    <span class="s1">XSLT_OUTPUT_HTML,</span>
+    <span class="s1">XSLT_OUTPUT_TEXT</span>
+<span class="s1">} xsltOutputType;</span>
+
+<span class="s2">typedef enum </span><span class="s1">{</span>
+    <span class="s1">XSLT_STATE_OK = </span><span class="s5">0</span><span class="s1">,</span>
+    <span class="s1">XSLT_STATE_ERROR,</span>
+    <span class="s1">XSLT_STATE_STOPPED</span>
+<span class="s1">} xsltTransformState;</span>
+
+<span class="s2">struct </span><span class="s1">_xsltTransformContext {</span>
+    <span class="s1">xsltStylesheetPtr style;		</span><span class="s0">/* the stylesheet used */</span>
+    <span class="s1">xsltOutputType type;		</span><span class="s0">/* the type of output */</span>
+
+    <span class="s1">xsltTemplatePtr  templ;		</span><span class="s0">/* the current template */</span>
+    <span class="s2">int              </span><span class="s1">templNr;		</span><span class="s0">/* Nb of templates in the stack */</span>
+    <span class="s2">int              </span><span class="s1">templMax;		</span><span class="s0">/* Size of the templtes stack */</span>
+    <span class="s1">xsltTemplatePtr *templTab;		</span><span class="s0">/* the template stack */</span>
+
+    <span class="s1">xsltStackElemPtr  vars;		</span><span class="s0">/* the current variable list */</span>
+    <span class="s2">int               </span><span class="s1">varsNr;		</span><span class="s0">/* Nb of variable list in the stack */</span>
+    <span class="s2">int               </span><span class="s1">varsMax;		</span><span class="s0">/* Size of the variable list stack */</span>
+    <span class="s1">xsltStackElemPtr *varsTab;		</span><span class="s0">/* the variable list stack */</span>
+    <span class="s2">int               </span><span class="s1">varsBase;		</span><span class="s0">/* the var base for current templ */</span>
+
+    <span class="s0">/* 
+     * Extensions 
+     */</span>
+    <span class="s1">xmlHashTablePtr   extFunctions;	</span><span class="s0">/* the extension functions */</span>
+    <span class="s1">xmlHashTablePtr   extElements;	</span><span class="s0">/* the extension elements */</span>
+    <span class="s1">xmlHashTablePtr   extInfos;		</span><span class="s0">/* the extension data */</span>
+
+    <span class="s2">const </span><span class="s1">xmlChar *mode;		</span><span class="s0">/* the current mode */</span>
+    <span class="s2">const </span><span class="s1">xmlChar *modeURI;		</span><span class="s0">/* the current mode URI */</span>
+
+    <span class="s1">xsltDocumentPtr docList;		</span><span class="s0">/* the document list */</span>
+
+    <span class="s1">xsltDocumentPtr document;		</span><span class="s0">/* the current source document; can be NULL if an RTF */</span>
+    <span class="s1">xmlNodePtr node;			</span><span class="s0">/* the current node being processed */</span>
+    <span class="s1">xmlNodeSetPtr nodeList;		</span><span class="s0">/* the current node list */</span>
+    <span class="s0">/* xmlNodePtr current;          the node */</span>
+
+    <span class="s1">xmlDocPtr output;			</span><span class="s0">/* the resulting document */</span>
+    <span class="s1">xmlNodePtr insert;			</span><span class="s0">/* the insertion node */</span>
+
+    <span class="s1">xmlXPathContextPtr xpathCtxt;	</span><span class="s0">/* the XPath context */</span>
+    <span class="s1">xsltTransformState state;		</span><span class="s0">/* the current state */</span>
+
+    <span class="s0">/* 
+     * Global variables 
+     */</span>
+    <span class="s1">xmlHashTablePtr   globalVars;	</span><span class="s0">/* the global variables and params */</span>
+
+    <span class="s1">xmlNodePtr inst;			</span><span class="s0">/* the instruction in the stylesheet */</span>
+
+    <span class="s2">int </span><span class="s1">xinclude;			</span><span class="s0">/* should XInclude be processed */</span>
+
+    <span class="s2">const char </span><span class="s1">*      outputFile;	</span><span class="s0">/* the output URI if known */</span>
+
+    <span class="s2">int </span><span class="s1">profile;                        </span><span class="s0">/* is this run profiled */</span>
+    <span class="s2">long             </span><span class="s1">prof;		</span><span class="s0">/* the current profiled value */</span>
+    <span class="s2">int              </span><span class="s1">profNr;		</span><span class="s0">/* Nb of templates in the stack */</span>
+    <span class="s2">int              </span><span class="s1">profMax;		</span><span class="s0">/* Size of the templtaes stack */</span>
+    <span class="s2">long            </span><span class="s1">*profTab;		</span><span class="s0">/* the profile template stack */</span>
+
+    <span class="s2">void            </span><span class="s1">*_private;		</span><span class="s0">/* user defined data */</span>
+
+    <span class="s2">int              </span><span class="s1">extrasNr;		</span><span class="s0">/* the number of extras used */</span>
+    <span class="s2">int              </span><span class="s1">extrasMax;		</span><span class="s0">/* the number of extras allocated */</span>
+    <span class="s1">xsltRuntimeExtraPtr extras;		</span><span class="s0">/* extra per runtime informations */</span>
+
+    <span class="s1">xsltDocumentPtr  styleList;		</span><span class="s0">/* the stylesheet docs list */</span>
+    <span class="s2">void                 </span><span class="s1">* sec;		</span><span class="s0">/* the security preferences if any */</span>
+
+    <span class="s1">xmlGenericErrorFunc  error;		</span><span class="s0">/* a specific error handler */</span>
+    <span class="s2">void              </span><span class="s1">* errctx;		</span><span class="s0">/* context for the error handler */</span>
+
+    <span class="s1">xsltSortFunc      sortfunc;		</span><span class="s0">/* a ctxt specific sort routine */</span>
+
+    <span class="s0">/* 
+     * handling of temporary Result Value Tree 
+     * (XSLT 1.0 term: &quot;Result Tree Fragment&quot;) 
+     */</span>
+    <span class="s1">xmlDocPtr       tmpRVT;		</span><span class="s0">/* list of RVT without persistance */</span>
+    <span class="s1">xmlDocPtr       persistRVT;		</span><span class="s0">/* list of persistant RVTs */</span>
+    <span class="s2">int             </span><span class="s1">ctxtflags;          </span><span class="s0">/* context processing flags */</span>
+
+    <span class="s0">/* 
+     * Speed optimization when coalescing text nodes 
+     */</span>
+    <span class="s2">const </span><span class="s1">xmlChar  *lasttext;		</span><span class="s0">/* last text node content */</span>
+    <span class="s2">int             </span><span class="s1">lasttsize;		</span><span class="s0">/* last text node size */</span>
+    <span class="s2">int             </span><span class="s1">lasttuse;		</span><span class="s0">/* last text node use */</span>
+    <span class="s0">/* 
+     * Per Context Debugging 
+     */</span>
+    <span class="s2">int </span><span class="s1">debugStatus;			</span><span class="s0">/* the context level debug status */</span>
+    <span class="s2">unsigned long</span><span class="s1">* traceCode;		</span><span class="s0">/* pointer to the variable holding the mask */</span>
+
+    <span class="s2">int </span><span class="s1">parserOptions;			</span><span class="s0">/* parser options xmlParserOption */</span>
+
+    <span class="s0">/* 
+     * dictionary: shared between stylesheet, context and documents. 
+     */</span>
+    <span class="s1">xmlDictPtr dict;</span>
+    <span class="s1">xmlDocPtr		tmpDoc; </span><span class="s0">/* Obsolete; not used in the library. */</span>
+    <span class="s0">/* 
+     * all document text strings are internalized 
+     */</span>
+    <span class="s2">int </span><span class="s1">internalized;</span>
+    <span class="s2">int </span><span class="s1">nbKeys;</span>
+    <span class="s2">int </span><span class="s1">hasTemplKeyPatterns;</span>
+    <span class="s1">xsltTemplatePtr currentTemplateRule; </span><span class="s0">/* the Current Template Rule */</span>
+    <span class="s1">xmlNodePtr initialContextNode;</span>
+    <span class="s1">xmlDocPtr initialContextDoc;</span>
+    <span class="s1">xsltTransformCachePtr cache;</span>
+    <span class="s2">void </span><span class="s1">*contextVariable; </span><span class="s0">/* the current variable item */</span>
+    <span class="s1">xmlDocPtr localRVT; </span><span class="s0">/* list of local tree fragments; will be freed when 
+               the instruction which created the fragment 
+                           exits */</span>
+    <span class="s1">xmlDocPtr localRVTBase; </span><span class="s0">/* Obsolete */</span>
+    <span class="s2">int </span><span class="s1">keyInitLevel;   </span><span class="s0">/* Needed to catch recursive keys issues */</span>
+    <span class="s2">int </span><span class="s1">depth;          </span><span class="s0">/* Needed to catch recursions */</span>
+    <span class="s2">int </span><span class="s1">maxTemplateDepth;</span>
+    <span class="s2">int </span><span class="s1">maxTemplateVars;</span>
+<span class="s1">};</span>
+
+<span class="s0">/** 
+ * CHECK_STOPPED: 
+ * 
+ * Macro to check if the XSLT processing should be stopped. 
+ * Will return from the function. 
+ */</span>
+<span class="s2">#define </span><span class="s1">CHECK_STOPPED </span><span class="s2">if </span><span class="s1">(ctxt</span><span class="s4">-&gt;</span><span class="s1">state == XSLT_STATE_STOPPED) </span><span class="s2">return</span><span class="s1">;</span>
+
+<span class="s0">/** 
+ * CHECK_STOPPEDE: 
+ * 
+ * Macro to check if the XSLT processing should be stopped. 
+ * Will goto the error: label. 
+ */</span>
+<span class="s2">#define </span><span class="s1">CHECK_STOPPEDE </span><span class="s2">if </span><span class="s1">(ctxt</span><span class="s4">-&gt;</span><span class="s1">state == XSLT_STATE_STOPPED) </span><span class="s2">goto </span><span class="s1">error;</span>
+
+<span class="s0">/** 
+ * CHECK_STOPPED0: 
+ * 
+ * Macro to check if the XSLT processing should be stopped. 
+ * Will return from the function with a 0 value. 
+ */</span>
+<span class="s2">#define </span><span class="s1">CHECK_STOPPED0 </span><span class="s2">if </span><span class="s1">(ctxt</span><span class="s4">-&gt;</span><span class="s1">state == XSLT_STATE_STOPPED) </span><span class="s2">return</span><span class="s1">(</span><span class="s5">0</span><span class="s1">);</span>
+
+<span class="s0">/* 
+ * The macro XML_CAST_FPTR is a hack to avoid a gcc warning about 
+ * possible incompatibilities between function pointers and object 
+ * pointers.  It is defined in libxml/hash.h within recent versions 
+ * of libxml2, but is put here for compatibility. 
+ */</span>
+<span class="s2">#ifndef </span><span class="s1">XML_CAST_FPTR</span>
+<span class="s0">/** 
+ * XML_CAST_FPTR: 
+ * @fptr:  pointer to a function 
+ * 
+ * Macro to do a casting from an object pointer to a 
+ * function pointer without encountering a warning from 
+ * gcc 
+ * 
+ * #define XML_CAST_FPTR(fptr) (*(void **)(&amp;fptr)) 
+ * This macro violated ISO C aliasing rules (gcc4 on s390 broke) 
+ * so it is disabled now 
+ */</span>
+
+<span class="s2">#define </span><span class="s1">XML_CAST_FPTR(fptr) fptr</span>
+<span class="s2">#endif</span>
+<span class="s0">/* 
+ * Functions associated to the internal types 
+xsltDecimalFormatPtr    xsltDecimalFormatGetByName(xsltStylesheetPtr sheet, 
+                           xmlChar *name); 
+ */</span>
+<span class="s1">XSLTPUBFUN xsltStylesheetPtr XSLTCALL</span>
+			<span class="s1">xsltNewStylesheet	(</span><span class="s2">void</span><span class="s1">);</span>
+<span class="s1">XSLTPUBFUN xsltStylesheetPtr XSLTCALL</span>
+			<span class="s1">xsltParseStylesheetFile	(</span><span class="s2">const </span><span class="s1">xmlChar* filename);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+			<span class="s1">xsltFreeStylesheet	(xsltStylesheetPtr style);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+			<span class="s1">xsltIsBlank		(xmlChar *str);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+			<span class="s1">xsltFreeStackElemList	(xsltStackElemPtr elem);</span>
+<span class="s1">XSLTPUBFUN xsltDecimalFormatPtr XSLTCALL</span>
+			<span class="s1">xsltDecimalFormatGetByName(xsltStylesheetPtr style,</span>
+						 <span class="s1">xmlChar *name);</span>
+<span class="s1">XSLTPUBFUN xsltDecimalFormatPtr XSLTCALL</span>
+			<span class="s1">xsltDecimalFormatGetByQName(xsltStylesheetPtr style,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *nsUri,</span>
+                                                 <span class="s2">const </span><span class="s1">xmlChar *name);</span>
+
+<span class="s1">XSLTPUBFUN xsltStylesheetPtr XSLTCALL</span>
+			<span class="s1">xsltParseStylesheetProcess(xsltStylesheetPtr ret,</span>
+						 <span class="s1">xmlDocPtr doc);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+			<span class="s1">xsltParseStylesheetOutput(xsltStylesheetPtr style,</span>
+						 <span class="s1">xmlNodePtr cur);</span>
+<span class="s1">XSLTPUBFUN xsltStylesheetPtr XSLTCALL</span>
+			<span class="s1">xsltParseStylesheetDoc	(xmlDocPtr doc);</span>
+<span class="s1">XSLTPUBFUN xsltStylesheetPtr XSLTCALL</span>
+			<span class="s1">xsltParseStylesheetImportedDoc(xmlDocPtr doc,</span>
+						<span class="s1">xsltStylesheetPtr style);</span>
+<span class="s1">XSLTPUBFUN xsltStylesheetPtr XSLTCALL</span>
+			<span class="s1">xsltLoadStylesheetPI	(xmlDocPtr doc);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+			<span class="s1">xsltNumberFormat	(xsltTransformContextPtr ctxt,</span>
+						 <span class="s1">xsltNumberDataPtr data,</span>
+						 <span class="s1">xmlNodePtr node);</span>
+<span class="s1">XSLTPUBFUN xmlXPathError XSLTCALL</span>
+			<span class="s1">xsltFormatNumberConversion(xsltDecimalFormatPtr self,</span>
+						 <span class="s1">xmlChar *format,</span>
+						 <span class="s2">double </span><span class="s1">number,</span>
+						 <span class="s1">xmlChar **result);</span>
+
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+			<span class="s1">xsltParseTemplateContent(xsltStylesheetPtr style,</span>
+						 <span class="s1">xmlNodePtr templ);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+			<span class="s1">xsltAllocateExtra	(xsltStylesheetPtr style);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+			<span class="s1">xsltAllocateExtraCtxt	(xsltTransformContextPtr ctxt);</span>
+<span class="s0">/* 
+ * Extra functions for Result Value Trees 
+ */</span>
+<span class="s1">XSLTPUBFUN xmlDocPtr XSLTCALL</span>
+			<span class="s1">xsltCreateRVT		(xsltTransformContextPtr ctxt);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+			<span class="s1">xsltRegisterTmpRVT	(xsltTransformContextPtr ctxt,</span>
+						 <span class="s1">xmlDocPtr RVT);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+			<span class="s1">xsltRegisterLocalRVT	(xsltTransformContextPtr ctxt,</span>
+						 <span class="s1">xmlDocPtr RVT);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+			<span class="s1">xsltRegisterPersistRVT	(xsltTransformContextPtr ctxt,</span>
+						 <span class="s1">xmlDocPtr RVT);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+			<span class="s1">xsltExtensionInstructionResultRegister(</span>
+						 <span class="s1">xsltTransformContextPtr ctxt,</span>
+						 <span class="s1">xmlXPathObjectPtr obj);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+			<span class="s1">xsltExtensionInstructionResultFinalize(</span>
+						 <span class="s1">xsltTransformContextPtr ctxt);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+			<span class="s1">xsltFlagRVTs(</span>
+						 <span class="s1">xsltTransformContextPtr ctxt,</span>
+						 <span class="s1">xmlXPathObjectPtr obj,</span>
+						 <span class="s2">void </span><span class="s1">*val);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+			<span class="s1">xsltFreeRVTs		(xsltTransformContextPtr ctxt);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+			<span class="s1">xsltReleaseRVT		(xsltTransformContextPtr ctxt,</span>
+						 <span class="s1">xmlDocPtr RVT);</span>
+<span class="s0">/* 
+ * Extra functions for Attribute Value Templates 
+ */</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+			<span class="s1">xsltCompileAttr		(xsltStylesheetPtr style,</span>
+						 <span class="s1">xmlAttrPtr attr);</span>
+<span class="s1">XSLTPUBFUN xmlChar * XSLTCALL</span>
+			<span class="s1">xsltEvalAVT		(xsltTransformContextPtr ctxt,</span>
+						 <span class="s2">void </span><span class="s1">*avt,</span>
+						 <span class="s1">xmlNodePtr node);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+			<span class="s1">xsltFreeAVTList		(</span><span class="s2">void </span><span class="s1">*avt);</span>
+
+<span class="s0">/* 
+ * Extra function for successful xsltCleanupGlobals / xsltInit sequence. 
+ */</span>
+
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+			<span class="s1">xsltUninit		(</span><span class="s2">void</span><span class="s1">);</span>
+
+<span class="s0">/************************************************************************ 
+ *                                  * 
+ *  Compile-time functions for *internal* use only                      * 
+ *                                  * 
+ ************************************************************************/</span>
+
+<span class="s2">#ifdef </span><span class="s1">XSLT_REFACTORED</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+			<span class="s1">xsltParseSequenceConstructor(</span>
+						 <span class="s1">xsltCompilerCtxtPtr cctxt,</span>
+						 <span class="s1">xmlNodePtr start);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+			<span class="s1">xsltParseAnyXSLTElem	(xsltCompilerCtxtPtr cctxt,</span>
+						 <span class="s1">xmlNodePtr elem);</span>
+<span class="s2">#ifdef </span><span class="s1">XSLT_REFACTORED_XSLT_NSCOMP</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+			<span class="s1">xsltRestoreDocumentNamespaces(</span>
+						 <span class="s1">xsltNsMapPtr ns,</span>
+						 <span class="s1">xmlDocPtr doc);</span>
+<span class="s2">#endif</span>
+<span class="s2">#endif </span><span class="s0">/* XSLT_REFACTORED */</span>
+
+<span class="s0">/************************************************************************ 
+ *                                  * 
+ *  Transformation-time functions for *internal* use only               * 
+ *                                  * 
+ ************************************************************************/</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+			<span class="s1">xsltInitCtxtKey		(xsltTransformContextPtr ctxt,</span>
+						 <span class="s1">xsltDocumentPtr doc,</span>
+						 <span class="s1">xsltKeyDefPtr keyd);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+			<span class="s1">xsltInitAllDocKeys	(xsltTransformContextPtr ctxt);</span>
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s1">}</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#endif </span><span class="s0">/* __XML_XSLT_H__ */</span>
+
+</pre>
+</body>
+</html>

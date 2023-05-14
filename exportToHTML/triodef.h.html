@@ -1,0 +1,241 @@
+<html>
+<head>
+<title>triodef.h</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6897bb;}
+.s4 { color: #ab51ba;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+triodef.h</font>
+</center></td></tr></table>
+<pre><span class="s0">/************************************************************************* 
+ * 
+ * $Id$ 
+ * 
+ * Copyright (C) 2001 Bjorn Reese &lt;breese@users.sourceforge.net&gt; 
+ * 
+ * Permission to use, copy, modify, and distribute this software for any 
+ * purpose with or without fee is hereby granted, provided that the above 
+ * copyright notice and this permission notice appear in all copies. 
+ * 
+ * THIS SOFTWARE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR IMPLIED 
+ * WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTIES OF 
+ * MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE AUTHORS AND 
+ * CONTRIBUTORS ACCEPT NO RESPONSIBILITY IN ANY CONCEIVABLE MANNER. 
+ * 
+ ************************************************************************/</span>
+
+<span class="s2">#ifndef </span><span class="s1">TRIO_TRIODEF_H</span>
+<span class="s2">#define </span><span class="s1">TRIO_TRIODEF_H</span>
+
+<span class="s0">/************************************************************************* 
+ * Platform and compiler support detection 
+ */</span>
+<span class="s2">#if </span><span class="s1">defined(__GNUC__)</span>
+<span class="s1"># define TRIO_COMPILER_GCC</span>
+<span class="s1">#elif defined(__SUNPRO_C)</span>
+<span class="s1"># define TRIO_COMPILER_SUNPRO</span>
+<span class="s1">#elif defined(__SUNPRO_CC)</span>
+<span class="s1"># define TRIO_COMPILER_SUNPRO</span>
+<span class="s1"># define __SUNPRO_C __SUNPRO_CC</span>
+<span class="s1">#elif defined(__xlC__) || defined(__IBMC__) || defined(__IBMCPP__)</span>
+<span class="s1"># define TRIO_COMPILER_XLC</span>
+<span class="s1">#elif defined(_AIX) &amp;&amp; !defined(__GNUC__)</span>
+<span class="s1"># define TRIO_COMPILER_XLC </span><span class="s0">/* Workaround for old xlc */</span>
+<span class="s1">#elif defined(__DECC) || defined(__DECCXX)</span>
+<span class="s1"># define TRIO_COMPILER_DECC</span>
+<span class="s1">#elif defined(__osf__) &amp;&amp; defined(__LANGUAGE_C__)</span>
+<span class="s1"># define TRIO_COMPILER_DECC </span><span class="s0">/* Workaround for old DEC C compilers */</span>
+<span class="s1">#elif defined(_MSC_VER)</span>
+<span class="s1"># define TRIO_COMPILER_MSVC</span>
+<span class="s1">#elif defined(__BORLANDC__)</span>
+<span class="s1"># define TRIO_COMPILER_BCB</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#if </span><span class="s1">defined(VMS) || defined(__VMS)</span>
+<span class="s0">/* 
+ * VMS is placed first to avoid identifying the platform as Unix 
+ * based on the DECC compiler later on. 
+ */</span>
+<span class="s1"># define TRIO_PLATFORM_VMS</span>
+<span class="s1">#elif defined(unix) || defined(__unix) || defined(__unix__)</span>
+<span class="s1"># define TRIO_PLATFORM_UNIX</span>
+<span class="s1">#elif defined(TRIO_COMPILER_XLC) || defined(_AIX)</span>
+<span class="s1"># define TRIO_PLATFORM_UNIX</span>
+<span class="s1">#elif defined(TRIO_COMPILER_DECC) || defined(__osf___)</span>
+<span class="s1"># define TRIO_PLATFORM_UNIX</span>
+<span class="s1">#elif defined(__NetBSD__)</span>
+<span class="s1"># define TRIO_PLATFORM_UNIX</span>
+<span class="s1">#elif defined(__QNX__)</span>
+<span class="s1"># define TRIO_PLATFORM_UNIX</span>
+<span class="s1"># define TRIO_PLATFORM_QNX</span>
+<span class="s1">#elif defined(__CYGWIN__)</span>
+<span class="s1"># define TRIO_PLATFORM_UNIX</span>
+<span class="s1">#elif defined(AMIGA) &amp;&amp; defined(TRIO_COMPILER_GCC)</span>
+<span class="s1"># define TRIO_PLATFORM_UNIX</span>
+<span class="s1">#elif defined(TRIO_COMPILER_MSVC) || defined(WIN32) || defined(_WIN32)</span>
+<span class="s1"># define TRIO_PLATFORM_WIN32</span>
+<span class="s1">#elif defined(mpeix) || defined(__mpexl)</span>
+<span class="s1"># define TRIO_PLATFORM_MPEIX</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#if </span><span class="s1">defined(_AIX)</span>
+<span class="s1"># define TRIO_PLATFORM_AIX</span>
+<span class="s1">#elif defined(__hpux)</span>
+<span class="s1"># define TRIO_PLATFORM_HPUX</span>
+<span class="s1">#elif defined(sun) || defined(__sun__)</span>
+<span class="s1"># </span><span class="s2">if </span><span class="s1">defined(__SVR4) || defined(__svr4__)</span>
+<span class="s1">#  define TRIO_PLATFORM_SOLARIS</span>
+<span class="s1"># </span><span class="s2">else</span>
+<span class="s1">#  define TRIO_PLATFORM_SUNOS</span>
+<span class="s1"># endif</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#if </span><span class="s1">defined(__STDC__) || defined(TRIO_COMPILER_MSVC) || defined(TRIO_COMPILER_BCB)</span>
+<span class="s1"># define TRIO_COMPILER_SUPPORTS_C89</span>
+<span class="s1"># </span><span class="s2">if </span><span class="s1">defined(__STDC_VERSION__)</span>
+<span class="s1">#  define TRIO_COMPILER_SUPPORTS_C90</span>
+<span class="s1">#  </span><span class="s2">if </span><span class="s1">(__STDC_VERSION__ &gt;= </span><span class="s3">199409</span><span class="s1">L)</span>
+<span class="s1">#   define TRIO_COMPILER_SUPPORTS_C94</span>
+<span class="s1">#  endif</span>
+<span class="s1">#  </span><span class="s2">if </span><span class="s1">(__STDC_VERSION__ &gt;= </span><span class="s3">199901</span><span class="s1">L)</span>
+<span class="s1">#   define TRIO_COMPILER_SUPPORTS_C99</span>
+<span class="s1">#  endif</span>
+<span class="s1"># elif defined(TRIO_COMPILER_SUNPRO)</span>
+<span class="s1">#  </span><span class="s2">if </span><span class="s1">(__SUNPRO_C &gt;= </span><span class="s3">0x420</span><span class="s1">)</span>
+<span class="s1">#   define TRIO_COMPILER_SUPPORTS_C94</span>
+<span class="s1">#  endif</span>
+<span class="s1"># endif</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#if </span><span class="s1">defined(_XOPEN_SOURCE)</span>
+<span class="s1"># </span><span class="s2">if </span><span class="s1">defined(_XOPEN_SOURCE_EXTENDED)</span>
+<span class="s1">#  define TRIO_COMPILER_SUPPORTS_UNIX95</span>
+<span class="s1"># endif</span>
+<span class="s1"># </span><span class="s2">if </span><span class="s1">(_XOPEN_VERSION &gt;= </span><span class="s3">500</span><span class="s1">)</span>
+<span class="s1">#  define TRIO_COMPILER_SUPPORTS_UNIX98</span>
+<span class="s1"># endif</span>
+<span class="s1"># </span><span class="s2">if </span><span class="s1">(_XOPEN_VERSION &gt;= </span><span class="s3">600</span><span class="s1">)</span>
+<span class="s1">#  define TRIO_COMPILER_SUPPORTS_UNIX01</span>
+<span class="s1"># endif</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/************************************************************************* 
+ * Generic defines 
+ */</span>
+
+<span class="s2">#if </span><span class="s1">!defined(TRIO_PUBLIC)</span>
+<span class="s1"># define TRIO_PUBLIC</span>
+<span class="s2">#endif</span>
+<span class="s2">#if </span><span class="s1">!defined(TRIO_PRIVATE)</span>
+<span class="s1"># define TRIO_PRIVATE </span><span class="s2">static</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#if </span><span class="s1">!(defined(TRIO_COMPILER_SUPPORTS_C89) || defined(__cplusplus))</span>
+<span class="s1"># define TRIO_COMPILER_ANCIENT</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#if </span><span class="s1">defined(TRIO_COMPILER_ANCIENT)</span>
+<span class="s1"># define TRIO_CONST</span>
+<span class="s1"># define TRIO_VOLATILE</span>
+<span class="s1"># define TRIO_SIGNED</span>
+<span class="s2">typedef double </span><span class="s1">trio_long_double_t;</span>
+<span class="s2">typedef char </span><span class="s1">* trio_pointer_t;</span>
+<span class="s1"># define TRIO_SUFFIX_LONG(x) x</span>
+<span class="s1"># define TRIO_PROTO(x) ()</span>
+<span class="s1"># define TRIO_NOARGS</span>
+<span class="s1"># define TRIO_ARGS1(list,a1) list a1;</span>
+<span class="s1"># define TRIO_ARGS2(list,a1,a2) list a1; a2;</span>
+<span class="s1"># define TRIO_ARGS3(list,a1,a2,a3) list a1; a2; a3;</span>
+<span class="s1"># define TRIO_ARGS4(list,a1,a2,a3,a4) list a1; a2; a3; a4;</span>
+<span class="s1"># define TRIO_ARGS5(list,a1,a2,a3,a4,a5) list a1; a2; a3; a4; a5;</span>
+<span class="s1"># define TRIO_ARGS6(list,a1,a2,a3,a4,a5,a6) list a1; a2; a3; a4; a5; a6;</span>
+<span class="s1"># define TRIO_VARGS2(list,a1,a2) list a1; a2</span>
+<span class="s1"># define TRIO_VARGS3(list,a1,a2,a3) list a1; a2; a3</span>
+<span class="s1"># define TRIO_VARGS4(list,a1,a2,a3,a4) list a1; a2; a3; a4</span>
+<span class="s1"># define TRIO_VARGS5(list,a1,a2,a3,a4,a5) list a1; a2; a3; a4; a5</span>
+<span class="s1"># define TRIO_VA_DECL va_dcl</span>
+<span class="s1"># define TRIO_VA_START(x,y) va_start(x)</span>
+<span class="s1"># define TRIO_VA_END(x) va_end(x)</span>
+<span class="s2">#else </span><span class="s0">/* ANSI C */</span>
+<span class="s1"># define TRIO_CONST </span><span class="s2">const</span>
+<span class="s1"># define TRIO_VOLATILE </span><span class="s2">volatile</span>
+<span class="s1"># define TRIO_SIGNED </span><span class="s2">signed</span>
+<span class="s2">typedef long double </span><span class="s1">trio_long_double_t;</span>
+<span class="s2">typedef void </span><span class="s1">* trio_pointer_t;</span>
+<span class="s1"># define TRIO_SUFFIX_LONG(x) x ## L</span>
+<span class="s1"># define TRIO_PROTO(x) x</span>
+<span class="s1"># define TRIO_NOARGS </span><span class="s2">void</span>
+<span class="s1"># define TRIO_ARGS1(list,a1) (a1)</span>
+<span class="s1"># define TRIO_ARGS2(list,a1,a2) (a1,a2)</span>
+<span class="s1"># define TRIO_ARGS3(list,a1,a2,a3) (a1,a2,a3)</span>
+<span class="s1"># define TRIO_ARGS4(list,a1,a2,a3,a4) (a1,a2,a3,a4)</span>
+<span class="s1"># define TRIO_ARGS5(list,a1,a2,a3,a4,a5) (a1,a2,a3,a4,a5)</span>
+<span class="s1"># define TRIO_ARGS6(list,a1,a2,a3,a4,a5,a6) (a1,a2,a3,a4,a5,a6)</span>
+<span class="s1"># define TRIO_VARGS2 TRIO_ARGS2</span>
+<span class="s1"># define TRIO_VARGS3 TRIO_ARGS3</span>
+<span class="s1"># define TRIO_VARGS4 TRIO_ARGS4</span>
+<span class="s1"># define TRIO_VARGS5 TRIO_ARGS5</span>
+<span class="s1"># define TRIO_VA_DECL ...</span>
+<span class="s1"># define TRIO_VA_START(x,y) va_start(x,y)</span>
+<span class="s1"># define TRIO_VA_END(x) va_end(x)</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#if </span><span class="s1">defined(TRIO_COMPILER_SUPPORTS_C99) || defined(__cplusplus)</span>
+<span class="s1"># define TRIO_INLINE </span><span class="s4">inline</span>
+<span class="s1">#elif defined(TRIO_COMPILER_GCC)</span>
+<span class="s1"># define TRIO_INLINE __inline__</span>
+<span class="s1">#elif defined(TRIO_COMPILER_MSVC)</span>
+<span class="s1"># define TRIO_INLINE _inline</span>
+<span class="s1">#elif defined(TRIO_COMPILER_BCB)</span>
+<span class="s1"># define TRIO_INLINE __inline</span>
+<span class="s2">#else</span>
+<span class="s1"># define TRIO_INLINE</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/************************************************************************* 
+ * Workarounds 
+ */</span>
+
+<span class="s2">#if </span><span class="s1">defined(TRIO_PLATFORM_VMS)</span>
+<span class="s0">/* 
+ * Computations done with constants at compile time can trigger these 
+ * even when compiling with IEEE enabled. 
+ */</span>
+<span class="s1"># pragma message disable (UNDERFLOW, FLOATOVERFL)</span>
+
+<span class="s1"># </span><span class="s2">if </span><span class="s1">(__CRTL_VER &lt; </span><span class="s3">80000000</span><span class="s1">)</span>
+<span class="s0">/* 
+ * Although the compiler supports C99 language constructs, the C 
+ * run-time library does not contain all C99 functions. 
+ * 
+ * This was the case for 70300022. Update the 80000000 value when 
+ * it has been accurately determined what version of the library 
+ * supports C99. 
+ */</span>
+<span class="s1">#  </span><span class="s2">if </span><span class="s1">defined(TRIO_COMPILER_SUPPORTS_C99)</span>
+<span class="s1">#   undef TRIO_COMPILER_SUPPORTS_C99</span>
+<span class="s1">#  endif</span>
+<span class="s1"># endif</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/* 
+ * Not all preprocessors supports the LL token. 
+ */</span>
+<span class="s2">#if </span><span class="s1">defined(TRIO_COMPILER_BCB)</span>
+<span class="s2">#else</span>
+<span class="s1"># define TRIO_COMPILER_SUPPORTS_LL</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#endif </span><span class="s0">/* TRIO_TRIODEF_H */</span>
+</pre>
+</body>
+</html>

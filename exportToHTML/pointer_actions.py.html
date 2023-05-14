@@ -1,0 +1,121 @@
+<html>
+<head>
+<title>pointer_actions.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+.s4 { color: #6897bb;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+pointer_actions.py</font>
+</center></td></tr></table>
+<pre><span class="s0"># Licensed to the Software Freedom Conservancy (SFC) under one</span>
+<span class="s0"># or more contributor license agreements.  See the NOTICE file</span>
+<span class="s0"># distributed with this work for additional information</span>
+<span class="s0"># regarding copyright ownership.  The SFC licenses this file</span>
+<span class="s0"># to you under the Apache License, Version 2.0 (the</span>
+<span class="s0"># &quot;License&quot;); you may not use this file except in compliance</span>
+<span class="s0"># with the License.  You may obtain a copy of the License at</span>
+<span class="s0">#</span>
+<span class="s0">#   http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="s0">#</span>
+<span class="s0"># Unless required by applicable law or agreed to in writing,</span>
+<span class="s0"># software distributed under the License is distributed on an</span>
+<span class="s0"># &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY</span>
+<span class="s0"># KIND, either express or implied.  See the License for the</span>
+<span class="s0"># specific language governing permissions and limitations</span>
+<span class="s0"># under the License.</span>
+<span class="s2">from </span><span class="s1">. </span><span class="s2">import </span><span class="s1">interaction</span>
+
+<span class="s2">from </span><span class="s1">.interaction </span><span class="s2">import </span><span class="s1">Interaction</span>
+<span class="s2">from </span><span class="s1">.mouse_button </span><span class="s2">import </span><span class="s1">MouseButton</span>
+<span class="s2">from </span><span class="s1">.pointer_input </span><span class="s2">import </span><span class="s1">PointerInput</span>
+
+<span class="s2">from </span><span class="s1">selenium.webdriver.remote.webelement </span><span class="s2">import </span><span class="s1">WebElement</span>
+
+
+<span class="s2">class </span><span class="s1">PointerActions(Interaction):</span>
+
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">source=</span><span class="s2">None</span><span class="s1">):</span>
+        <span class="s2">if </span><span class="s1">source </span><span class="s2">is None</span><span class="s1">:</span>
+            <span class="s1">source = PointerInput(interaction.POINTER_MOUSE</span><span class="s2">, </span><span class="s3">&quot;mouse&quot;</span><span class="s1">)</span>
+        <span class="s1">self.source = source</span>
+        <span class="s1">super(PointerActions</span><span class="s2">, </span><span class="s1">self).__init__(source)</span>
+
+    <span class="s2">def </span><span class="s1">pointer_down(self</span><span class="s2">, </span><span class="s1">button=MouseButton.LEFT):</span>
+        <span class="s1">self._button_action(</span><span class="s3">&quot;create_pointer_down&quot;</span><span class="s2">, </span><span class="s1">button=button)</span>
+
+    <span class="s2">def </span><span class="s1">pointer_up(self</span><span class="s2">, </span><span class="s1">button=MouseButton.LEFT):</span>
+        <span class="s1">self._button_action(</span><span class="s3">&quot;create_pointer_up&quot;</span><span class="s2">, </span><span class="s1">button=button)</span>
+
+    <span class="s2">def </span><span class="s1">move_to(self</span><span class="s2">, </span><span class="s1">element</span><span class="s2">, </span><span class="s1">x=</span><span class="s2">None, </span><span class="s1">y=</span><span class="s2">None</span><span class="s1">):</span>
+        <span class="s2">if not </span><span class="s1">isinstance(element</span><span class="s2">, </span><span class="s1">WebElement):</span>
+            <span class="s2">raise </span><span class="s1">AttributeError(</span><span class="s3">&quot;move_to requires a WebElement&quot;</span><span class="s1">)</span>
+        <span class="s2">if </span><span class="s1">x </span><span class="s2">is not None or </span><span class="s1">y </span><span class="s2">is not None</span><span class="s1">:</span>
+            <span class="s1">el_rect = element.rect</span>
+            <span class="s1">left_offset = el_rect[</span><span class="s3">'width'</span><span class="s1">] / </span><span class="s4">2</span>
+            <span class="s1">top_offset = el_rect[</span><span class="s3">'height'</span><span class="s1">] / </span><span class="s4">2</span>
+            <span class="s1">left = -left_offset + (x </span><span class="s2">or </span><span class="s4">0</span><span class="s1">)</span>
+            <span class="s1">top = -top_offset + (y </span><span class="s2">or </span><span class="s4">0</span><span class="s1">)</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s1">left = </span><span class="s4">0</span>
+            <span class="s1">top = </span><span class="s4">0</span>
+        <span class="s1">self.source.create_pointer_move(origin=element</span><span class="s2">, </span><span class="s1">x=int(left)</span><span class="s2">, </span><span class="s1">y=int(top))</span>
+        <span class="s2">return </span><span class="s1">self</span>
+
+    <span class="s2">def </span><span class="s1">move_by(self</span><span class="s2">, </span><span class="s1">x</span><span class="s2">, </span><span class="s1">y):</span>
+        <span class="s1">self.source.create_pointer_move(origin=interaction.POINTER</span><span class="s2">, </span><span class="s1">x=int(x)</span><span class="s2">, </span><span class="s1">y=int(y))</span>
+        <span class="s2">return </span><span class="s1">self</span>
+
+    <span class="s2">def </span><span class="s1">move_to_location(self</span><span class="s2">, </span><span class="s1">x</span><span class="s2">, </span><span class="s1">y):</span>
+        <span class="s1">self.source.create_pointer_move(origin=</span><span class="s3">'viewport'</span><span class="s2">, </span><span class="s1">x=int(x)</span><span class="s2">, </span><span class="s1">y=int(y))</span>
+        <span class="s2">return </span><span class="s1">self</span>
+
+    <span class="s2">def </span><span class="s1">click(self</span><span class="s2">, </span><span class="s1">element=</span><span class="s2">None</span><span class="s1">):</span>
+        <span class="s2">if </span><span class="s1">element:</span>
+            <span class="s1">self.move_to(element)</span>
+        <span class="s1">self.pointer_down(MouseButton.LEFT)</span>
+        <span class="s1">self.pointer_up(MouseButton.LEFT)</span>
+        <span class="s2">return </span><span class="s1">self</span>
+
+    <span class="s2">def </span><span class="s1">context_click(self</span><span class="s2">, </span><span class="s1">element=</span><span class="s2">None</span><span class="s1">):</span>
+        <span class="s2">if </span><span class="s1">element:</span>
+            <span class="s1">self.move_to(element)</span>
+        <span class="s1">self.pointer_down(MouseButton.RIGHT)</span>
+        <span class="s1">self.pointer_up(MouseButton.RIGHT)</span>
+        <span class="s2">return </span><span class="s1">self</span>
+
+    <span class="s2">def </span><span class="s1">click_and_hold(self</span><span class="s2">, </span><span class="s1">element=</span><span class="s2">None</span><span class="s1">):</span>
+        <span class="s2">if </span><span class="s1">element:</span>
+            <span class="s1">self.move_to(element)</span>
+        <span class="s1">self.pointer_down()</span>
+        <span class="s2">return </span><span class="s1">self</span>
+
+    <span class="s2">def </span><span class="s1">release(self):</span>
+        <span class="s1">self.pointer_up()</span>
+        <span class="s2">return </span><span class="s1">self</span>
+
+    <span class="s2">def </span><span class="s1">double_click(self</span><span class="s2">, </span><span class="s1">element=</span><span class="s2">None</span><span class="s1">):</span>
+        <span class="s2">if </span><span class="s1">element:</span>
+            <span class="s1">self.move_to(element)</span>
+        <span class="s1">self.click()</span>
+        <span class="s1">self.click()</span>
+
+    <span class="s2">def </span><span class="s1">pause(self</span><span class="s2">, </span><span class="s1">duration=</span><span class="s4">0</span><span class="s1">):</span>
+        <span class="s1">self.source.create_pause(duration)</span>
+        <span class="s2">return </span><span class="s1">self</span>
+
+    <span class="s2">def </span><span class="s1">_button_action(self</span><span class="s2">, </span><span class="s1">action</span><span class="s2">, </span><span class="s1">button=MouseButton.LEFT):</span>
+        <span class="s1">meth = getattr(self.source</span><span class="s2">, </span><span class="s1">action)</span>
+        <span class="s1">meth(button)</span>
+        <span class="s2">return </span><span class="s1">self</span>
+</pre>
+</body>
+</html>

@@ -1,0 +1,266 @@
+<html>
+<head>
+<title>ElementInclude.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #629755; font-style: italic;}
+.s3 { color: #cc7832;}
+.s4 { color: #6a8759;}
+.s5 { color: #6897bb;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+ElementInclude.py</font>
+</center></td></tr></table>
+<pre><span class="s0">#</span>
+<span class="s0"># ElementTree</span>
+<span class="s0"># $Id: ElementInclude.py 1862 2004-06-18 07:31:02Z Fredrik $</span>
+<span class="s0">#</span>
+<span class="s0"># limited xinclude support for element trees</span>
+<span class="s0">#</span>
+<span class="s0"># history:</span>
+<span class="s0"># 2003-08-15 fl   created</span>
+<span class="s0"># 2003-11-14 fl   fixed default loader</span>
+<span class="s0">#</span>
+<span class="s0"># Copyright (c) 2003-2004 by Fredrik Lundh.  All rights reserved.</span>
+<span class="s0">#</span>
+<span class="s0"># fredrik@pythonware.com</span>
+<span class="s0"># http://www.pythonware.com</span>
+<span class="s0">#</span>
+<span class="s0"># --------------------------------------------------------------------</span>
+<span class="s0"># The ElementTree toolkit is</span>
+<span class="s0">#</span>
+<span class="s0"># Copyright (c) 1999-2004 by Fredrik Lundh</span>
+<span class="s0">#</span>
+<span class="s0"># By obtaining, using, and/or copying this software and/or its</span>
+<span class="s0"># associated documentation, you agree that you have read, understood,</span>
+<span class="s0"># and will comply with the following terms and conditions:</span>
+<span class="s0">#</span>
+<span class="s0"># Permission to use, copy, modify, and distribute this software and</span>
+<span class="s0"># its associated documentation for any purpose and without fee is</span>
+<span class="s0"># hereby granted, provided that the above copyright notice appears in</span>
+<span class="s0"># all copies, and that both that copyright notice and this permission</span>
+<span class="s0"># notice appear in supporting documentation, and that the name of</span>
+<span class="s0"># Secret Labs AB or the author not be used in advertising or publicity</span>
+<span class="s0"># pertaining to distribution of the software without specific, written</span>
+<span class="s0"># prior permission.</span>
+<span class="s0">#</span>
+<span class="s0"># SECRET LABS AB AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH REGARD</span>
+<span class="s0"># TO THIS SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANT-</span>
+<span class="s0"># ABILITY AND FITNESS.  IN NO EVENT SHALL SECRET LABS AB OR THE AUTHOR</span>
+<span class="s0"># BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY</span>
+<span class="s0"># DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS,</span>
+<span class="s0"># WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS</span>
+<span class="s0"># ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE</span>
+<span class="s0"># OF THIS SOFTWARE.</span>
+<span class="s0"># --------------------------------------------------------------------</span>
+
+<span class="s2">&quot;&quot;&quot; 
+Limited XInclude support for the ElementTree package. 
+ 
+While lxml.etree has full support for XInclude (see 
+`etree.ElementTree.xinclude()`), this module provides a simpler, pure 
+Python, ElementTree compatible implementation that supports a simple 
+form of custom URL resolvers. 
+&quot;&quot;&quot;</span>
+
+<span class="s3">from </span><span class="s1">lxml </span><span class="s3">import </span><span class="s1">etree</span>
+<span class="s3">try</span><span class="s1">:</span>
+    <span class="s3">from </span><span class="s1">urlparse </span><span class="s3">import </span><span class="s1">urljoin</span>
+    <span class="s3">from </span><span class="s1">urllib2 </span><span class="s3">import </span><span class="s1">urlopen</span>
+<span class="s3">except </span><span class="s1">ImportError:</span>
+    <span class="s0"># Python 3</span>
+    <span class="s3">from </span><span class="s1">urllib.parse </span><span class="s3">import </span><span class="s1">urljoin</span>
+    <span class="s3">from </span><span class="s1">urllib.request </span><span class="s3">import </span><span class="s1">urlopen</span>
+
+<span class="s1">XINCLUDE = </span><span class="s4">&quot;{http://www.w3.org/2001/XInclude}&quot;</span>
+
+<span class="s1">XINCLUDE_INCLUDE = XINCLUDE + </span><span class="s4">&quot;include&quot;</span>
+<span class="s1">XINCLUDE_FALLBACK = XINCLUDE + </span><span class="s4">&quot;fallback&quot;</span>
+<span class="s1">XINCLUDE_ITER_TAG = XINCLUDE + </span><span class="s4">&quot;*&quot;</span>
+
+<span class="s0"># For security reasons, the inclusion depth is limited to this read-only value by default.</span>
+<span class="s1">DEFAULT_MAX_INCLUSION_DEPTH = </span><span class="s5">6</span>
+
+
+<span class="s0">##</span>
+<span class="s0"># Fatal include error.</span>
+
+<span class="s3">class </span><span class="s1">FatalIncludeError(etree.LxmlSyntaxError):</span>
+    <span class="s3">pass</span>
+
+
+<span class="s3">class </span><span class="s1">LimitedRecursiveIncludeError(FatalIncludeError):</span>
+    <span class="s3">pass</span>
+
+
+<span class="s0">##</span>
+<span class="s0"># ET compatible default loader.</span>
+<span class="s0"># This loader reads an included resource from disk.</span>
+<span class="s0">#</span>
+<span class="s0"># @param href Resource reference.</span>
+<span class="s0"># @param parse Parse mode.  Either &quot;xml&quot; or &quot;text&quot;.</span>
+<span class="s0"># @param encoding Optional text encoding.</span>
+<span class="s0"># @return The expanded resource.  If the parse mode is &quot;xml&quot;, this</span>
+<span class="s0">#    is an ElementTree instance.  If the parse mode is &quot;text&quot;, this</span>
+<span class="s0">#    is a Unicode string.  If the loader fails, it can return None</span>
+<span class="s0">#    or raise an IOError exception.</span>
+<span class="s0"># @throws IOError If the loader fails to load the resource.</span>
+
+<span class="s3">def </span><span class="s1">default_loader(href</span><span class="s3">, </span><span class="s1">parse</span><span class="s3">, </span><span class="s1">encoding=</span><span class="s3">None</span><span class="s1">):</span>
+    <span class="s1">file = open(href</span><span class="s3">, </span><span class="s4">'rb'</span><span class="s1">)</span>
+    <span class="s3">if </span><span class="s1">parse == </span><span class="s4">&quot;xml&quot;</span><span class="s1">:</span>
+        <span class="s1">data = etree.parse(file).getroot()</span>
+    <span class="s3">else</span><span class="s1">:</span>
+        <span class="s1">data = file.read()</span>
+        <span class="s3">if not </span><span class="s1">encoding:</span>
+            <span class="s1">encoding = </span><span class="s4">'utf-8'</span>
+        <span class="s1">data = data.decode(encoding)</span>
+    <span class="s1">file.close()</span>
+    <span class="s3">return </span><span class="s1">data</span>
+
+
+<span class="s0">##</span>
+<span class="s0"># Default loader used by lxml.etree - handles custom resolvers properly</span>
+<span class="s0"># </span>
+
+<span class="s3">def </span><span class="s1">_lxml_default_loader(href</span><span class="s3">, </span><span class="s1">parse</span><span class="s3">, </span><span class="s1">encoding=</span><span class="s3">None, </span><span class="s1">parser=</span><span class="s3">None</span><span class="s1">):</span>
+    <span class="s3">if </span><span class="s1">parse == </span><span class="s4">&quot;xml&quot;</span><span class="s1">:</span>
+        <span class="s1">data = etree.parse(href</span><span class="s3">, </span><span class="s1">parser).getroot()</span>
+    <span class="s3">else</span><span class="s1">:</span>
+        <span class="s3">if </span><span class="s4">&quot;://&quot; </span><span class="s3">in </span><span class="s1">href:</span>
+            <span class="s1">f = urlopen(href)</span>
+        <span class="s3">else</span><span class="s1">:</span>
+            <span class="s1">f = open(href</span><span class="s3">, </span><span class="s4">'rb'</span><span class="s1">)</span>
+        <span class="s1">data = f.read()</span>
+        <span class="s1">f.close()</span>
+        <span class="s3">if not </span><span class="s1">encoding:</span>
+            <span class="s1">encoding = </span><span class="s4">'utf-8'</span>
+        <span class="s1">data = data.decode(encoding)</span>
+    <span class="s3">return </span><span class="s1">data</span>
+
+
+<span class="s0">##</span>
+<span class="s0"># Wrapper for ET compatibility - drops the parser</span>
+
+<span class="s3">def </span><span class="s1">_wrap_et_loader(loader):</span>
+    <span class="s3">def </span><span class="s1">load(href</span><span class="s3">, </span><span class="s1">parse</span><span class="s3">, </span><span class="s1">encoding=</span><span class="s3">None, </span><span class="s1">parser=</span><span class="s3">None</span><span class="s1">):</span>
+        <span class="s3">return </span><span class="s1">loader(href</span><span class="s3">, </span><span class="s1">parse</span><span class="s3">, </span><span class="s1">encoding)</span>
+    <span class="s3">return </span><span class="s1">load</span>
+
+
+<span class="s0">##</span>
+<span class="s0"># Expand XInclude directives.</span>
+<span class="s0">#</span>
+<span class="s0"># @param elem Root element.</span>
+<span class="s0"># @param loader Optional resource loader.  If omitted, it defaults</span>
+<span class="s0">#     to {@link default_loader}.  If given, it should be a callable</span>
+<span class="s0">#     that implements the same interface as &lt;b&gt;default_loader&lt;/b&gt;.</span>
+<span class="s0"># @param base_url The base URL of the original file, to resolve</span>
+<span class="s0">#     relative include file references.</span>
+<span class="s0"># @param max_depth The maximum number of recursive inclusions.</span>
+<span class="s0">#     Limited to reduce the risk of malicious content explosion.</span>
+<span class="s0">#     Pass None to disable the limitation.</span>
+<span class="s0"># @throws LimitedRecursiveIncludeError If the {@link max_depth} was exceeded.</span>
+<span class="s0"># @throws FatalIncludeError If the function fails to include a given</span>
+<span class="s0">#     resource, or if the tree contains malformed XInclude elements.</span>
+<span class="s0"># @throws IOError If the function fails to load a given resource.</span>
+<span class="s0"># @returns the node or its replacement if it was an XInclude node</span>
+
+<span class="s3">def </span><span class="s1">include(elem</span><span class="s3">, </span><span class="s1">loader=</span><span class="s3">None, </span><span class="s1">base_url=</span><span class="s3">None,</span>
+            <span class="s1">max_depth=DEFAULT_MAX_INCLUSION_DEPTH):</span>
+    <span class="s3">if </span><span class="s1">max_depth </span><span class="s3">is None</span><span class="s1">:</span>
+        <span class="s1">max_depth = -</span><span class="s5">1</span>
+    <span class="s3">elif </span><span class="s1">max_depth &lt; </span><span class="s5">0</span><span class="s1">:</span>
+        <span class="s3">raise </span><span class="s1">ValueError(</span><span class="s4">&quot;expected non-negative depth or None for 'max_depth', got %r&quot; </span><span class="s1">% max_depth)</span>
+
+    <span class="s3">if </span><span class="s1">base_url </span><span class="s3">is None</span><span class="s1">:</span>
+        <span class="s3">if </span><span class="s1">hasattr(elem</span><span class="s3">, </span><span class="s4">'getroot'</span><span class="s1">):</span>
+            <span class="s1">tree = elem</span>
+            <span class="s1">elem = elem.getroot()</span>
+        <span class="s3">else</span><span class="s1">:</span>
+            <span class="s1">tree = elem.getroottree()</span>
+        <span class="s3">if </span><span class="s1">hasattr(tree</span><span class="s3">, </span><span class="s4">'docinfo'</span><span class="s1">):</span>
+            <span class="s1">base_url = tree.docinfo.URL</span>
+    <span class="s3">elif </span><span class="s1">hasattr(elem</span><span class="s3">, </span><span class="s4">'getroot'</span><span class="s1">):</span>
+        <span class="s1">elem = elem.getroot()</span>
+    <span class="s1">_include(elem</span><span class="s3">, </span><span class="s1">loader</span><span class="s3">, </span><span class="s1">base_url</span><span class="s3">, </span><span class="s1">max_depth)</span>
+
+
+<span class="s3">def </span><span class="s1">_include(elem</span><span class="s3">, </span><span class="s1">loader=</span><span class="s3">None, </span><span class="s1">base_url=</span><span class="s3">None,</span>
+             <span class="s1">max_depth=DEFAULT_MAX_INCLUSION_DEPTH</span><span class="s3">, </span><span class="s1">_parent_hrefs=</span><span class="s3">None</span><span class="s1">):</span>
+    <span class="s3">if </span><span class="s1">loader </span><span class="s3">is not None</span><span class="s1">:</span>
+        <span class="s1">load_include = _wrap_et_loader(loader)</span>
+    <span class="s3">else</span><span class="s1">:</span>
+        <span class="s1">load_include = _lxml_default_loader</span>
+
+    <span class="s3">if </span><span class="s1">_parent_hrefs </span><span class="s3">is None</span><span class="s1">:</span>
+        <span class="s1">_parent_hrefs = set()</span>
+
+    <span class="s1">parser = elem.getroottree().parser</span>
+
+    <span class="s1">include_elements = list(</span>
+        <span class="s1">elem.iter(XINCLUDE_ITER_TAG))</span>
+
+    <span class="s3">for </span><span class="s1">e </span><span class="s3">in </span><span class="s1">include_elements:</span>
+        <span class="s3">if </span><span class="s1">e.tag == XINCLUDE_INCLUDE:</span>
+            <span class="s0"># process xinclude directive</span>
+            <span class="s1">href = urljoin(base_url</span><span class="s3">, </span><span class="s1">e.get(</span><span class="s4">&quot;href&quot;</span><span class="s1">))</span>
+            <span class="s1">parse = e.get(</span><span class="s4">&quot;parse&quot;</span><span class="s3">, </span><span class="s4">&quot;xml&quot;</span><span class="s1">)</span>
+            <span class="s1">parent = e.getparent()</span>
+            <span class="s3">if </span><span class="s1">parse == </span><span class="s4">&quot;xml&quot;</span><span class="s1">:</span>
+                <span class="s3">if </span><span class="s1">href </span><span class="s3">in </span><span class="s1">_parent_hrefs:</span>
+                    <span class="s3">raise </span><span class="s1">FatalIncludeError(</span>
+                        <span class="s4">&quot;recursive include of %r detected&quot; </span><span class="s1">% href</span>
+                        <span class="s1">)</span>
+                <span class="s3">if </span><span class="s1">max_depth == </span><span class="s5">0</span><span class="s1">:</span>
+                    <span class="s3">raise </span><span class="s1">LimitedRecursiveIncludeError(</span>
+                        <span class="s4">&quot;maximum xinclude depth reached when including file %s&quot; </span><span class="s1">% href)</span>
+                <span class="s1">node = load_include(href</span><span class="s3">, </span><span class="s1">parse</span><span class="s3">, </span><span class="s1">parser=parser)</span>
+                <span class="s3">if </span><span class="s1">node </span><span class="s3">is None</span><span class="s1">:</span>
+                    <span class="s3">raise </span><span class="s1">FatalIncludeError(</span>
+                        <span class="s4">&quot;cannot load %r as %r&quot; </span><span class="s1">% (href</span><span class="s3">, </span><span class="s1">parse)</span>
+                        <span class="s1">)</span>
+                <span class="s1">node = _include(node</span><span class="s3">, </span><span class="s1">loader</span><span class="s3">, </span><span class="s1">href</span><span class="s3">, </span><span class="s1">max_depth - </span><span class="s5">1</span><span class="s3">, </span><span class="s1">{href} | _parent_hrefs)</span>
+                <span class="s3">if </span><span class="s1">e.tail:</span>
+                    <span class="s1">node.tail = (node.tail </span><span class="s3">or </span><span class="s4">&quot;&quot;</span><span class="s1">) + e.tail</span>
+                <span class="s3">if </span><span class="s1">parent </span><span class="s3">is None</span><span class="s1">:</span>
+                    <span class="s3">return </span><span class="s1">node </span><span class="s0"># replaced the root node!</span>
+                <span class="s1">parent.replace(e</span><span class="s3">, </span><span class="s1">node)</span>
+            <span class="s3">elif </span><span class="s1">parse == </span><span class="s4">&quot;text&quot;</span><span class="s1">:</span>
+                <span class="s1">text = load_include(href</span><span class="s3">, </span><span class="s1">parse</span><span class="s3">, </span><span class="s1">encoding=e.get(</span><span class="s4">&quot;encoding&quot;</span><span class="s1">))</span>
+                <span class="s3">if </span><span class="s1">text </span><span class="s3">is None</span><span class="s1">:</span>
+                    <span class="s3">raise </span><span class="s1">FatalIncludeError(</span>
+                        <span class="s4">&quot;cannot load %r as %r&quot; </span><span class="s1">% (href</span><span class="s3">, </span><span class="s1">parse)</span>
+                        <span class="s1">)</span>
+                <span class="s1">predecessor = e.getprevious()</span>
+                <span class="s3">if </span><span class="s1">predecessor </span><span class="s3">is not None</span><span class="s1">:</span>
+                    <span class="s1">predecessor.tail = (predecessor.tail </span><span class="s3">or </span><span class="s4">&quot;&quot;</span><span class="s1">) + text</span>
+                <span class="s3">elif </span><span class="s1">parent </span><span class="s3">is None</span><span class="s1">:</span>
+                    <span class="s3">return </span><span class="s1">text </span><span class="s0"># replaced the root node!</span>
+                <span class="s3">else</span><span class="s1">:</span>
+                    <span class="s1">parent.text = (parent.text </span><span class="s3">or </span><span class="s4">&quot;&quot;</span><span class="s1">) + text + (e.tail </span><span class="s3">or </span><span class="s4">&quot;&quot;</span><span class="s1">)</span>
+                <span class="s1">parent.remove(e)</span>
+            <span class="s3">else</span><span class="s1">:</span>
+                <span class="s3">raise </span><span class="s1">FatalIncludeError(</span>
+                    <span class="s4">&quot;unknown parse type in xi:include tag (%r)&quot; </span><span class="s1">% parse</span>
+                <span class="s1">)</span>
+        <span class="s3">elif </span><span class="s1">e.tag == XINCLUDE_FALLBACK:</span>
+            <span class="s1">parent = e.getparent()</span>
+            <span class="s3">if </span><span class="s1">parent </span><span class="s3">is not None and </span><span class="s1">parent.tag != XINCLUDE_INCLUDE:</span>
+                <span class="s3">raise </span><span class="s1">FatalIncludeError(</span>
+                    <span class="s4">&quot;xi:fallback tag must be child of xi:include (%r)&quot; </span><span class="s1">% e.tag</span>
+                    <span class="s1">)</span>
+        <span class="s3">else</span><span class="s1">:</span>
+            <span class="s3">raise </span><span class="s1">FatalIncludeError(</span>
+                <span class="s4">&quot;Invalid element found in XInclude namespace (%r)&quot; </span><span class="s1">% e.tag</span>
+                <span class="s1">)</span>
+    <span class="s3">return </span><span class="s1">elem</span>
+</pre>
+</body>
+</html>

@@ -1,0 +1,243 @@
+<html>
+<head>
+<title>xmlregexp.h</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+.s4 { color: #6897bb;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+xmlregexp.h</font>
+</center></td></tr></table>
+<pre><span class="s0">/* 
+ * Summary: regular expressions handling 
+ * Description: basic API for libxml regular expressions handling used 
+ *              for XML Schemas and validation. 
+ * 
+ * Copy: See Copyright for the status of this software. 
+ * 
+ * Author: Daniel Veillard 
+ */</span>
+
+<span class="s2">#ifndef </span><span class="s1">__XML_REGEXP_H__</span>
+<span class="s2">#define </span><span class="s1">__XML_REGEXP_H__</span>
+
+<span class="s2">#include </span><span class="s1">&lt;libxml/xmlversion.h&gt;</span>
+
+<span class="s2">#ifdef </span><span class="s1">LIBXML_REGEXP_ENABLED</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s2">extern </span><span class="s3">&quot;C&quot; </span><span class="s1">{</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * xmlRegexpPtr: 
+ * 
+ * A libxml regular expression, they can actually be far more complex 
+ * thank the POSIX regex expressions. 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xmlRegexp xmlRegexp;</span>
+<span class="s2">typedef </span><span class="s1">xmlRegexp *xmlRegexpPtr;</span>
+
+<span class="s0">/** 
+ * xmlRegExecCtxtPtr: 
+ * 
+ * A libxml progressive regular expression evaluation context 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xmlRegExecCtxt xmlRegExecCtxt;</span>
+<span class="s2">typedef </span><span class="s1">xmlRegExecCtxt *xmlRegExecCtxtPtr;</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s1">}</span>
+<span class="s2">#endif</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/tree.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/dict.h&gt;</span>
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s2">extern </span><span class="s3">&quot;C&quot; </span><span class="s1">{</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/* 
+ * The POSIX like API 
+ */</span>
+<span class="s1">XMLPUBFUN xmlRegexpPtr XMLCALL</span>
+		    <span class="s1">xmlRegexpCompile	(</span><span class="s2">const </span><span class="s1">xmlChar *regexp);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL			 xmlRegFreeRegexp(xmlRegexpPtr regexp);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		    <span class="s1">xmlRegexpExec	(xmlRegexpPtr comp,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *value);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		    <span class="s1">xmlRegexpPrint	(FILE *output,</span>
+					 <span class="s1">xmlRegexpPtr regexp);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		    <span class="s1">xmlRegexpIsDeterminist(xmlRegexpPtr comp);</span>
+
+<span class="s0">/** 
+ * xmlRegExecCallbacks: 
+ * @exec: the regular expression context 
+ * @token: the current token string 
+ * @transdata: transition data 
+ * @inputdata: input data 
+ * 
+ * Callback function when doing a transition in the automata 
+ */</span>
+<span class="s2">typedef void </span><span class="s1">(*xmlRegExecCallbacks) (xmlRegExecCtxtPtr exec,</span>
+	                             <span class="s2">const </span><span class="s1">xmlChar *token,</span>
+				     <span class="s2">void </span><span class="s1">*transdata,</span>
+				     <span class="s2">void </span><span class="s1">*inputdata);</span>
+
+<span class="s0">/* 
+ * The progressive API 
+ */</span>
+<span class="s1">XMLPUBFUN xmlRegExecCtxtPtr XMLCALL</span>
+		    <span class="s1">xmlRegNewExecCtxt	(xmlRegexpPtr comp,</span>
+					 <span class="s1">xmlRegExecCallbacks callback,</span>
+					 <span class="s2">void </span><span class="s1">*data);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		    <span class="s1">xmlRegFreeExecCtxt	(xmlRegExecCtxtPtr exec);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		    <span class="s1">xmlRegExecPushString(xmlRegExecCtxtPtr exec,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *value,</span>
+					 <span class="s2">void </span><span class="s1">*data);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		    <span class="s1">xmlRegExecPushString2(xmlRegExecCtxtPtr exec,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *value,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *value2,</span>
+					 <span class="s2">void </span><span class="s1">*data);</span>
+
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		    <span class="s1">xmlRegExecNextValues(xmlRegExecCtxtPtr exec,</span>
+					 <span class="s2">int </span><span class="s1">*nbval,</span>
+					 <span class="s2">int </span><span class="s1">*nbneg,</span>
+					 <span class="s1">xmlChar **values,</span>
+					 <span class="s2">int </span><span class="s1">*terminal);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		    <span class="s1">xmlRegExecErrInfo	(xmlRegExecCtxtPtr exec,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar **string,</span>
+					 <span class="s2">int </span><span class="s1">*nbval,</span>
+					 <span class="s2">int </span><span class="s1">*nbneg,</span>
+					 <span class="s1">xmlChar **values,</span>
+					 <span class="s2">int </span><span class="s1">*terminal);</span>
+<span class="s2">#ifdef </span><span class="s1">LIBXML_EXPR_ENABLED</span>
+<span class="s0">/* 
+ * Formal regular expression handling 
+ * Its goal is to do some formal work on content models 
+ */</span>
+
+<span class="s0">/* expressions are used within a context */</span>
+<span class="s2">typedef struct </span><span class="s1">_xmlExpCtxt xmlExpCtxt;</span>
+<span class="s2">typedef </span><span class="s1">xmlExpCtxt *xmlExpCtxtPtr;</span>
+
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlExpFreeCtxt	(xmlExpCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN xmlExpCtxtPtr XMLCALL</span>
+			<span class="s1">xmlExpNewCtxt	(</span><span class="s2">int </span><span class="s1">maxNodes,</span>
+					 <span class="s1">xmlDictPtr dict);</span>
+
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlExpCtxtNbNodes(xmlExpCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlExpCtxtNbCons(xmlExpCtxtPtr ctxt);</span>
+
+<span class="s0">/* Expressions are trees but the tree is opaque */</span>
+<span class="s2">typedef struct </span><span class="s1">_xmlExpNode xmlExpNode;</span>
+<span class="s2">typedef </span><span class="s1">xmlExpNode *xmlExpNodePtr;</span>
+
+<span class="s2">typedef enum </span><span class="s1">{</span>
+    <span class="s1">XML_EXP_EMPTY = </span><span class="s4">0</span><span class="s1">,</span>
+    <span class="s1">XML_EXP_FORBID = </span><span class="s4">1</span><span class="s1">,</span>
+    <span class="s1">XML_EXP_ATOM = </span><span class="s4">2</span><span class="s1">,</span>
+    <span class="s1">XML_EXP_SEQ = </span><span class="s4">3</span><span class="s1">,</span>
+    <span class="s1">XML_EXP_OR = </span><span class="s4">4</span><span class="s1">,</span>
+    <span class="s1">XML_EXP_COUNT = </span><span class="s4">5</span>
+<span class="s1">} xmlExpNodeType;</span>
+
+<span class="s0">/* 
+ * 2 core expressions shared by all for the empty language set 
+ * and for the set with just the empty token 
+ */</span>
+<span class="s1">XMLPUBVAR xmlExpNodePtr forbiddenExp;</span>
+<span class="s1">XMLPUBVAR xmlExpNodePtr emptyExp;</span>
+
+<span class="s0">/* 
+ * Expressions are reference counted internally 
+ */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlExpFree	(xmlExpCtxtPtr ctxt,</span>
+					 <span class="s1">xmlExpNodePtr expr);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlExpRef	(xmlExpNodePtr expr);</span>
+
+<span class="s0">/* 
+ * constructors can be either manual or from a string 
+ */</span>
+<span class="s1">XMLPUBFUN xmlExpNodePtr XMLCALL</span>
+			<span class="s1">xmlExpParse	(xmlExpCtxtPtr ctxt,</span>
+					 <span class="s2">const char </span><span class="s1">*expr);</span>
+<span class="s1">XMLPUBFUN xmlExpNodePtr XMLCALL</span>
+			<span class="s1">xmlExpNewAtom	(xmlExpCtxtPtr ctxt,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+					 <span class="s2">int </span><span class="s1">len);</span>
+<span class="s1">XMLPUBFUN xmlExpNodePtr XMLCALL</span>
+			<span class="s1">xmlExpNewOr	(xmlExpCtxtPtr ctxt,</span>
+					 <span class="s1">xmlExpNodePtr left,</span>
+					 <span class="s1">xmlExpNodePtr right);</span>
+<span class="s1">XMLPUBFUN xmlExpNodePtr XMLCALL</span>
+			<span class="s1">xmlExpNewSeq	(xmlExpCtxtPtr ctxt,</span>
+					 <span class="s1">xmlExpNodePtr left,</span>
+					 <span class="s1">xmlExpNodePtr right);</span>
+<span class="s1">XMLPUBFUN xmlExpNodePtr XMLCALL</span>
+			<span class="s1">xmlExpNewRange	(xmlExpCtxtPtr ctxt,</span>
+					 <span class="s1">xmlExpNodePtr subset,</span>
+					 <span class="s2">int </span><span class="s1">min,</span>
+					 <span class="s2">int </span><span class="s1">max);</span>
+<span class="s0">/* 
+ * The really interesting APIs 
+ */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlExpIsNillable(xmlExpNodePtr expr);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlExpMaxToken	(xmlExpNodePtr expr);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlExpGetLanguage(xmlExpCtxtPtr ctxt,</span>
+					 <span class="s1">xmlExpNodePtr expr,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar**langList,</span>
+					 <span class="s2">int </span><span class="s1">len);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlExpGetStart	(xmlExpCtxtPtr ctxt,</span>
+					 <span class="s1">xmlExpNodePtr expr,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar**tokList,</span>
+					 <span class="s2">int </span><span class="s1">len);</span>
+<span class="s1">XMLPUBFUN xmlExpNodePtr XMLCALL</span>
+			<span class="s1">xmlExpStringDerive(xmlExpCtxtPtr ctxt,</span>
+					 <span class="s1">xmlExpNodePtr expr,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *str,</span>
+					 <span class="s2">int </span><span class="s1">len);</span>
+<span class="s1">XMLPUBFUN xmlExpNodePtr XMLCALL</span>
+			<span class="s1">xmlExpExpDerive	(xmlExpCtxtPtr ctxt,</span>
+					 <span class="s1">xmlExpNodePtr expr,</span>
+					 <span class="s1">xmlExpNodePtr sub);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlExpSubsume	(xmlExpCtxtPtr ctxt,</span>
+					 <span class="s1">xmlExpNodePtr expr,</span>
+					 <span class="s1">xmlExpNodePtr sub);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlExpDump	(xmlBufferPtr buf,</span>
+					 <span class="s1">xmlExpNodePtr expr);</span>
+<span class="s2">#endif </span><span class="s0">/* LIBXML_EXPR_ENABLED */</span>
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s1">}</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#endif </span><span class="s0">/* LIBXML_REGEXP_ENABLED */</span>
+
+<span class="s2">#endif </span><span class="s0">/*__XML_REGEXP_H__ */</span>
+</pre>
+</body>
+</html>

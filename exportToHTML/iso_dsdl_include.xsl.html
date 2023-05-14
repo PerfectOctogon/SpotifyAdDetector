@@ -1,0 +1,1181 @@
+<html>
+<head>
+<title>iso_dsdl_include.xsl</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #e8bf6a;}
+.s1 { color: #bababa;}
+.s2 { color: #6a8759;}
+.s3 { color: #a9b7c6;}
+.s4 { color: #808080;}
+.s5 { color: #6d9cbe;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+iso_dsdl_include.xsl</font>
+</center></td></tr></table>
+<pre><span class="s0">&lt;?</span><span class="s1">xml version</span><span class="s2">=&quot;1.0&quot; </span><span class="s1">encoding</span><span class="s2">=&quot;UTF-8&quot;</span><span class="s0">?&gt;&lt;?</span><span class="s1">xar </span><span class="s2">XSLT</span><span class="s0">?&gt;</span>
+
+<span class="s4">&lt;!-- </span>
+     <span class="s4">OVERVIEW : iso_dsdl_include.xsl 
+      
+        This is an inclusion preprocessor for the non-smart text inclusions 
+        of ISO DSDL. It handles  
+            &lt;relax:extRef&gt; for ISO RELAX NG 
+            &lt;sch:include&gt;  for ISO Schematron and Schematron 1.n 
+            &lt;sch:extends&gt;  for 2009 draft ISO Schematron 
+            &lt;xi:xinclude&gt;  simple W3C XIncludes for ISO NVRL and DSRL  
+            &lt;crdl:ref&gt;     for draft ISO CRDL 
+            &lt;dtll:include&gt; for draft ISO DTLL 
+            &lt;* @xlink:href&gt; for simple W3C XLink 1.1 embedded links 
+             
+          
+        This should be the first in any chain of processing. It only requires 
+        XSLT 1. Each kind of inclusion can be turned off (or on) on the command line. 
+         
+        Ids in fragment identifiers or xpointers will be sought in the following 
+        order: 
+            * @xml:id 
+            * id() for typed schemas (e.g. from DTD) [NOTE: XInclude does not support this] 
+            * untyped @id  
+             
+    The proposed behaviour for the update to ISO Schematron has been implemented. If an 
+    include points to an element with the same name as the parent, then that element's 
+    contents will be included. This supports the merge style of inclusion.     
+     
+    When an inclusion is made, it is preceded by a PI with target DSDL_INCLUDE_START 
+    and the href and closed by a PI with target DSDL_INCLUDE_START and the href. This is 
+    to allow better location of problems, though only to the file level.  
+     
+    Limitations: 
+    * No rebasing: relative paths will be interpreted based on the initial document's 
+    path, not the including document. (Severe limitation!) 
+    * No checking for circular references 
+    * Not full xpointers: only ID matching 
+    * &lt;relax:include&gt; not implemented  
+    * XInclude handling of xml:base and xml:lang not implemented    
+--&gt;</span>
+<span class="s4">&lt;!-- </span>
+  <span class="s4">VERSION INFORMATION 
+    2009-02-25  
+    * Update DSDL namespace to use schematron.com 
+    * Tested with SAXON9, Xalan 2.7.1, IE7,  
+    * IE does not like multiple variables in same template with same name: rename.    
+    2008-09-18 
+    * Remove new behaviour for include, because it conflicts with existing usage [KH] 
+    * Add extends[@href] element with that merge functionality 
+    * Generate PIs to notate source of inclusions for potential better diagnostics 
+     
+    2008-09-16 
+    * Fix for XSLT1 
+     
+    2008-08-28 
+    * New behaviour for schematron includes: if the pointed to element is the same as the current, 
+    include the children. 
+     
+    2008-08-20 
+    * Fix bug: in XSLT1 cannot do $document/id('x') but need to use for-each 
+     
+    2008-08-04 
+    * Add support for inclusions in old namespace   
+     
+    2008-08-03 
+    * Fix wrong param name include-relaxng &amp; include-crdl (KH, PH) 
+    * Allow inclusion of XSLT and XHTML (KH) 
+    * Fix inclusion of fragments (KH) 
+     
+    2008-07-25 
+    * Add selectable input parameter 
+     
+    2008-07-24   
+    * RJ New 
+--&gt;</span>
+<span class="s4">&lt;!--</span>
+	<span class="s4">LEGAL INFORMATION 
+     
+    Copyright (c) 2008 Rick Jelliffe  
+     
+    This software is provided 'as-is', without any express or implied warranty.  
+    In no event will the authors be held liable for any damages arising from  
+    the use of this software. 
+     
+    Permission is granted to anyone to use this software for any purpose,  
+    including commercial applications, and to alter it and redistribute it freely, 
+    subject to the following restrictions: 
+     
+    1. The origin of this software must not be misrepresented; you must not claim 
+    that you wrote the original software. If you use this software in a product,  
+    an acknowledgment in the product documentation would be appreciated but is  
+    not required. 
+     
+    2. Altered source versions must be plainly marked as such, and must not be  
+    misrepresented as being the original software. 
+     
+    3. This notice may not be removed or altered from any source distribution. 
+--&gt;</span>
+<span class="s0">&lt;xslt:stylesheet </span><span class="s1">version</span><span class="s2">=&quot;1.0&quot;</span>
+	<span class="s1">xmlns:xslt</span><span class="s2">=&quot;http://www.w3.org/1999/XSL/Transform&quot;</span>
+	<span class="s1">xmlns:xsl</span><span class="s2">=&quot;http://www.w3.org/1999/XSL/Transform&quot;</span>
+	<span class="s1">xmlns:iso</span><span class="s2">=&quot;http://purl.oclc.org/dsdl/schematron&quot;</span>
+	<span class="s1">xmlns:nvdl</span><span class="s2">=&quot;http://purl.oclc.org/dsdl/nvdl&quot;</span>
+	<span class="s1">xmlns:xhtml</span><span class="s2">=&quot;http://www.w3.org/1999/xhtml&quot;</span>
+	<span class="s1">xmlns:schold</span><span class="s2">=&quot;http://www.ascc.net/xml/schematron&quot;</span>
+	<span class="s1">xmlns:crdl</span><span class="s2">=&quot;http://purl.oclc.org/dsdl/crepdl/ns/structure/1.0&quot;</span>
+	<span class="s1">xmlns:xi</span><span class="s2">=&quot;http://www.w3.org/2001/XInclude&quot;</span>
+	<span class="s1">xmlns:dtll</span><span class="s2">=&quot;http://www.jenitennison.com/datatypes&quot;</span>
+	<span class="s1">xmlns:dsdl</span><span class="s2">=&quot;http://www.schematron.com/namespace/dsdl&quot;</span>
+	<span class="s1">xmlns:relax</span><span class="s2">=&quot;http://relaxng.org/ns/structure/1.0&quot;</span>
+	<span class="s1">xmlns:xlink</span><span class="s2">=&quot;http://www.w3.org/1999/xlink&quot;</span><span class="s0">&gt;</span>
+	<span class="s4">&lt;!-- Note: The URL for the dsdl namespace is not official --&gt;</span>
+
+
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;include-schematron&quot;</span><span class="s0">&gt;</span><span class="s3">true</span><span class="s0">&lt;/xsl:param&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;include-crdl&quot;</span><span class="s0">&gt;</span><span class="s3">true</span><span class="s0">&lt;/xsl:param&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;include-xinclude&quot;</span><span class="s0">&gt;</span><span class="s3">true</span><span class="s0">&lt;/xsl:param&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;include-dtll&quot;</span><span class="s0">&gt;</span><span class="s3">true</span><span class="s0">&lt;/xsl:param&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;include-relaxng&quot;</span><span class="s0">&gt;</span><span class="s3">true</span><span class="s0">&lt;/xsl:param&gt;</span>
+	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;include-xlink&quot;</span><span class="s0">&gt;</span><span class="s3">true</span><span class="s0">&lt;/xsl:param&gt;</span>
+
+	<span class="s0">&lt;xsl:template </span><span class="s1">match</span><span class="s2">=&quot;/&quot;</span><span class="s0">&gt;</span>
+		<span class="s0">&lt;xsl:apply-templates </span><span class="s1">select</span><span class="s2">=&quot;.&quot; </span><span class="s1">mode</span><span class="s2">=&quot;dsdl:go&quot; </span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;/xsl:template&gt;</span>
+
+	<span class="s4">&lt;!-- output everything else unchanged --&gt;</span>
+	<span class="s0">&lt;xslt:template </span><span class="s1">match</span><span class="s2">=&quot;node()&quot; </span><span class="s1">priority</span><span class="s2">=&quot;-1&quot; </span><span class="s1">mode</span><span class="s2">=&quot;dsdl:go&quot;</span><span class="s0">&gt;</span>
+		<span class="s0">&lt;xslt:copy&gt;</span>
+			<span class="s0">&lt;xslt:copy-of </span><span class="s1">select</span><span class="s2">=&quot;@*&quot; </span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;xslt:apply-templates </span><span class="s1">mode</span><span class="s2">=&quot;dsdl:go&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;/xslt:copy&gt;</span>
+	<span class="s0">&lt;/xslt:template&gt;</span>
+
+
+
+	<span class="s4">&lt;!-- =========================================================== --&gt;</span>
+	<span class="s4">&lt;!-- ISO/IEC 19757 - DSDL Document Schema Definition Languages   --&gt;</span>
+	<span class="s4">&lt;!-- Part 2 - Regular grammar-based validation - RELAX NG        --&gt;</span>
+	<span class="s4">&lt;!-- This only implements relax:extRef not relax:include which   --&gt;</span>
+	<span class="s4">&lt;!-- is complex.                                                 --&gt;</span>
+	<span class="s4">&lt;!-- =========================================================== --&gt;</span>
+	<span class="s0">&lt;xslt:template </span><span class="s1">match</span><span class="s2">=&quot;relax:extRef&quot; </span><span class="s1">mode</span><span class="s2">=&quot;dsdl:go&quot;</span><span class="s0">&gt;</span>
+
+
+		<span class="s4">&lt;!-- Insert subschema --&gt;</span>
+
+		<span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;document-uri&quot;</span>
+			<span class="s1">select</span><span class="s2">=&quot;substring-before(concat(@href,'#'), '#')&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;fragment-id&quot;</span>
+			<span class="s1">select</span><span class="s2">=&quot;substring-after(@href, '#')&quot; </span><span class="s0">/&gt;</span>
+
+		<span class="s0">&lt;xsl:processing-instruction </span><span class="s1">name</span><span class="s2">=&quot;DSDL_INCLUDE_START&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;@href&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;/xsl:processing-instruction&gt;</span>
+		<span class="s0">&lt;xsl:choose&gt;</span>
+			<span class="s0">&lt;xsl:when </span><span class="s1">test</span><span class="s2">=&quot;not( $include-relaxng = 'true' )&quot;</span><span class="s0">&gt;</span>
+				<span class="s0">&lt;xslt:copy&gt;</span>
+					<span class="s0">&lt;xslt:copy-of </span><span class="s1">select</span><span class="s2">=&quot;@*&quot; </span><span class="s0">/&gt;</span>
+					<span class="s0">&lt;xslt:apply-templates </span><span class="s1">mode</span><span class="s2">=&quot;dsdl:go&quot; </span><span class="s0">/&gt;</span>
+				<span class="s0">&lt;/xslt:copy&gt;</span>
+			<span class="s0">&lt;/xsl:when&gt;</span>
+			<span class="s0">&lt;xsl:otherwise&gt;</span>
+
+				<span class="s0">&lt;xsl:choose&gt;</span>
+
+					<span class="s0">&lt;xsl:when</span>
+						<span class="s1">test</span><span class="s2">=&quot;string-length( $document-uri ) = 0 and string-length( $fragment-id ) = 0&quot;</span><span class="s0">&gt;</span>
+						<span class="s0">&lt;xsl:message&gt;</span>
+							<span class="s3">Error: Impossible URL in RELAX NG extRef</span>
+							<span class="s3">include</span>
+						<span class="s0">&lt;/xsl:message&gt;</span>
+					<span class="s0">&lt;/xsl:when&gt;</span>
+
+					<span class="s4">&lt;!-- this case is when there is in embedded schema in the same document elsewhere --&gt;</span>
+					<span class="s0">&lt;xslt:when</span>
+						<span class="s1">test</span><span class="s2">=&quot;string-length( $document-uri ) = 0&quot;</span><span class="s0">&gt;</span>
+						<span class="s0">&lt;xslt:apply-templates </span><span class="s1">mode</span><span class="s2">=&quot;dsdl:go&quot;</span>
+							<span class="s1">select</span><span class="s2">=&quot;//*[@xml:id= $fragment-id ] | id( $fragment-id) | //*[@id= $fragment-id ]&quot; </span><span class="s0">/&gt;</span>
+					<span class="s0">&lt;/xslt:when&gt;</span>
+
+					<span class="s0">&lt;xsl:when</span>
+						<span class="s1">test</span><span class="s2">=&quot;string-length( $fragment-id ) </span><span class="s5">&amp;gt; </span><span class="s2">0&quot;</span><span class="s0">&gt;</span>
+						<span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;theDocument_1&quot;</span>
+							<span class="s1">select</span><span class="s2">=&quot;document( $document-uri,/ )&quot; </span><span class="s0">/&gt;</span>
+
+						<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;not($theDocument_1)&quot;</span><span class="s0">&gt;</span>
+							<span class="s0">&lt;xsl:message </span><span class="s1">terminate</span><span class="s2">=&quot;no&quot;</span><span class="s0">&gt;</span>
+								<span class="s0">&lt;xsl:text&gt;</span><span class="s3">Unable to open referenced included file: </span><span class="s0">&lt;/xsl:text&gt;</span>
+								<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;@href&quot; </span><span class="s0">/&gt;</span>
+							<span class="s0">&lt;/xsl:message&gt;</span>
+						<span class="s0">&lt;/xsl:if&gt;</span>
+						<span class="s4">&lt;!-- use a for-each so that the id() function works correctly on the external document --&gt;</span>
+						<span class="s0">&lt;xsl:for-each </span><span class="s1">select</span><span class="s2">=&quot;$theDocument_1&quot;</span><span class="s0">&gt;</span>
+							<span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;theFragment_1&quot;</span>
+								<span class="s1">select</span><span class="s2">=&quot;$theDocument_1//*[@xml:id= $fragment-id ]         
+                  |  id( $fragment-id)           
+              | $theDocument_1//*[@id= $fragment-id ]&quot; </span><span class="s0">/&gt;</span>
+							<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;not($theFragment_1)&quot;</span><span class="s0">&gt;</span>
+								<span class="s0">&lt;xsl:message </span><span class="s1">terminate</span><span class="s2">=&quot;no&quot;</span><span class="s0">&gt;</span>
+									<span class="s0">&lt;xsl:text&gt;</span><span class="s3">Unable to locate id attribute: </span><span class="s0">&lt;/xsl:text&gt;</span>
+									<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;@href&quot; </span><span class="s0">/&gt;</span>
+								<span class="s0">&lt;/xsl:message&gt;</span>
+							<span class="s0">&lt;/xsl:if&gt;</span>
+							<span class="s0">&lt;xsl:apply-templates</span>
+								<span class="s1">select</span><span class="s2">=&quot; $theFragment_1[1]&quot; </span><span class="s1">mode</span><span class="s2">=&quot;dsdl:go&quot; </span><span class="s0">/&gt;</span>
+						<span class="s0">&lt;/xsl:for-each&gt;</span>
+					<span class="s0">&lt;/xsl:when&gt;</span>
+
+					<span class="s0">&lt;xsl:otherwise&gt;</span>
+						<span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;theDocument_2&quot;</span>
+							<span class="s1">select</span><span class="s2">=&quot;document( $document-uri,/ )&quot; </span><span class="s0">/&gt;</span>
+						<span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;theFragment_2&quot;</span>
+							<span class="s1">select</span><span class="s2">=&quot;$theDocument_2/*&quot; </span><span class="s0">/&gt;</span>
+						<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;not($theDocument_2)&quot;</span><span class="s0">&gt;</span>
+							<span class="s0">&lt;xsl:message </span><span class="s1">terminate</span><span class="s2">=&quot;no&quot;</span><span class="s0">&gt;</span>
+								<span class="s0">&lt;xsl:text&gt;</span><span class="s3">Unable to open referenced included file: </span><span class="s0">&lt;/xsl:text&gt;</span>
+								<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;@href&quot; </span><span class="s0">/&gt;</span>
+							<span class="s0">&lt;/xsl:message&gt;</span>
+						<span class="s0">&lt;/xsl:if&gt;</span>
+
+						<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;not($theFragment_2)&quot;</span><span class="s0">&gt;</span>
+							<span class="s0">&lt;xsl:message </span><span class="s1">terminate</span><span class="s2">=&quot;no&quot;</span><span class="s0">&gt;</span>
+								<span class="s0">&lt;xsl:text&gt;</span><span class="s3">Unable to locate id attribute: </span><span class="s0">&lt;/xsl:text&gt;</span>
+								<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;@href&quot; </span><span class="s0">/&gt;</span>
+							<span class="s0">&lt;/xsl:message&gt;</span>
+						<span class="s0">&lt;/xsl:if&gt;</span>
+						<span class="s0">&lt;xsl:apply-templates </span><span class="s1">select</span><span class="s2">=&quot;$theFragment_2 &quot;</span>
+							<span class="s1">mode</span><span class="s2">=&quot;dsdl:go&quot; </span><span class="s0">/&gt;</span>
+					<span class="s0">&lt;/xsl:otherwise&gt;</span>
+				<span class="s0">&lt;/xsl:choose&gt;</span>
+
+			<span class="s0">&lt;/xsl:otherwise&gt;</span>
+		<span class="s0">&lt;/xsl:choose&gt;</span>
+
+		<span class="s0">&lt;xsl:processing-instruction </span><span class="s1">name</span><span class="s2">=&quot;DSDL_INCLUDE_END&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;@href&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;/xsl:processing-instruction&gt;</span>
+	<span class="s0">&lt;/xslt:template&gt;</span>
+
+
+
+	<span class="s4">&lt;!-- =========================================================== --&gt;</span>
+	<span class="s4">&lt;!-- ISO/IEC 19757 - DSDL Document Schema Definition Languages   --&gt;</span>
+	<span class="s4">&lt;!-- Part 3 - Rule-based validation - Schematron                 --&gt;</span>
+	<span class="s4">&lt;!-- =========================================================== --&gt;</span>
+
+
+	<span class="s4">&lt;!-- Extend the URI syntax to allow # references --&gt;</span>
+	<span class="s4">&lt;!-- Add experimental support for simple containers like  /xxx:xxx/iso:pattern to allow better includes --&gt;</span>
+	<span class="s0">&lt;xsl:template </span><span class="s1">match</span><span class="s2">=&quot;iso:include&quot; </span><span class="s1">mode</span><span class="s2">=&quot;dsdl:go&quot;</span><span class="s0">&gt;</span>
+
+		<span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;document-uri&quot;</span>
+			<span class="s1">select</span><span class="s2">=&quot;substring-before(concat(@href,'#'), '#')&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;fragment-id&quot;</span>
+			<span class="s1">select</span><span class="s2">=&quot;substring-after(@href, '#')&quot; </span><span class="s0">/&gt;</span>
+
+
+		<span class="s0">&lt;xsl:processing-instruction </span><span class="s1">name</span><span class="s2">=&quot;DSDL_INCLUDE_START&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;@href&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;/xsl:processing-instruction&gt;</span>
+
+		<span class="s0">&lt;xsl:choose&gt;</span>
+			<span class="s0">&lt;xsl:when </span><span class="s1">test</span><span class="s2">=&quot;not( $include-schematron = 'true' )&quot;</span><span class="s0">&gt;</span>
+				<span class="s0">&lt;xslt:copy&gt;</span>
+					<span class="s0">&lt;xslt:copy-of </span><span class="s1">select</span><span class="s2">=&quot;@*&quot; </span><span class="s0">/&gt;</span>
+					<span class="s0">&lt;xslt:apply-templates </span><span class="s1">mode</span><span class="s2">=&quot;dsdl:go&quot; </span><span class="s0">/&gt;</span>
+				<span class="s0">&lt;/xslt:copy&gt;</span>
+			<span class="s0">&lt;/xsl:when&gt;</span>
+			<span class="s0">&lt;xsl:otherwise&gt;</span>
+
+				<span class="s0">&lt;xsl:choose&gt;</span>
+
+					<span class="s0">&lt;xsl:when</span>
+						<span class="s1">test</span><span class="s2">=&quot;string-length( $document-uri ) = 0 and string-length( $fragment-id ) = 0&quot;</span><span class="s0">&gt;</span>
+						<span class="s0">&lt;xsl:message&gt;</span>
+							<span class="s3">Error: Impossible URL in Schematron include</span>
+						<span class="s0">&lt;/xsl:message&gt;</span>
+					<span class="s0">&lt;/xsl:when&gt;</span>
+
+					<span class="s4">&lt;!-- this case is when there is in embedded schema in the same document elsewhere --&gt;</span>
+					<span class="s0">&lt;xslt:when</span>
+						<span class="s1">test</span><span class="s2">=&quot;string-length( $document-uri ) = 0&quot;</span><span class="s0">&gt;</span>
+						<span class="s0">&lt;xslt:apply-templates </span><span class="s1">mode</span><span class="s2">=&quot;dsdl:go&quot;</span>
+							<span class="s1">select</span><span class="s2">=&quot;//iso:*[@xml:id= $fragment-id ]  
+                 |id( $fragment-id) 
+                 | //iso:*[@id= $fragment-id ]&quot; </span><span class="s0">/&gt;</span>
+					<span class="s0">&lt;/xslt:when&gt;</span>
+
+					<span class="s4">&lt;!-- case where there is a fragment in another document (should be an iso: element) --&gt;</span>
+					<span class="s4">&lt;!-- There are three cases for includes with fragment: 
+                        0) No href file or no matching id - error! 
+                        1) REMOVED 
+                         
+                        2) The linked-to element is sch:schema however the parent of the include 
+                        is not a schema. In this case, it is an error. (Actually, it should 
+                        be an error for other kinds of containment problems, but we won't 
+                        check for them in this version.) 
+                         
+                        3) Otherwise, include the pointed-to element 
+                    --&gt;</span>
+
+					<span class="s0">&lt;xsl:when</span>
+						<span class="s1">test</span><span class="s2">=&quot;string-length( $fragment-id ) </span><span class="s5">&amp;gt; </span><span class="s2">0&quot;</span><span class="s0">&gt;</span>
+						<span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;theDocument_1&quot;</span>
+							<span class="s1">select</span><span class="s2">=&quot;document( $document-uri,/ )&quot; </span><span class="s0">/&gt;</span>
+						<span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;originalParent&quot; </span><span class="s1">select</span><span class="s2">=&quot;..&quot; </span><span class="s0">/&gt;</span>
+
+						<span class="s4">&lt;!-- case 0 --&gt;</span>
+						<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;not($theDocument_1)&quot;</span><span class="s0">&gt;</span>
+							<span class="s0">&lt;xsl:message </span><span class="s1">terminate</span><span class="s2">=&quot;no&quot;</span><span class="s0">&gt;</span>
+								<span class="s0">&lt;xsl:text&gt;</span><span class="s3">Unable to open referenced included file: </span><span class="s0">&lt;/xsl:text&gt;</span>
+								<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;@href&quot; </span><span class="s0">/&gt;</span>
+							<span class="s0">&lt;/xsl:message&gt;</span>
+						<span class="s0">&lt;/xsl:if&gt;</span>
+						<span class="s4">&lt;!-- use for-each to rebase id() to external document --&gt;</span>
+						<span class="s0">&lt;xsl:for-each </span><span class="s1">select</span><span class="s2">=&quot;$theDocument_1&quot;</span><span class="s0">&gt;</span>
+							<span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;theFragment_1&quot;</span>
+								<span class="s1">select</span><span class="s2">=&quot; $theDocument_1//iso:*[@xml:id= $fragment-id ] | 
+                        id($fragment-id) | 
+                        $theDocument_1//iso:*[@id= $fragment-id ]&quot; </span><span class="s0">/&gt;</span>
+
+
+							<span class="s0">&lt;xsl:choose&gt;</span>
+								<span class="s4">&lt;!-- case 0 --&gt;</span>
+								<span class="s0">&lt;xsl:when </span><span class="s1">test</span><span class="s2">=&quot;not($theFragment_1)&quot;</span><span class="s0">&gt;</span>
+									<span class="s0">&lt;xsl:message </span><span class="s1">terminate</span><span class="s2">=&quot;no&quot;</span><span class="s0">&gt;</span>
+										<span class="s0">&lt;xsl:text&gt;</span><span class="s3">Unable to locate id attribute: </span><span class="s0">&lt;/xsl:text&gt;</span>
+										<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;@href&quot; </span><span class="s0">/&gt;</span>
+									<span class="s0">&lt;/xsl:message&gt;</span>
+								<span class="s0">&lt;/xsl:when&gt;</span>
+
+
+								<span class="s4">&lt;!-- case 1 REMOVED --&gt;</span>
+
+								<span class="s4">&lt;!-- case 2 --&gt;</span>
+								<span class="s0">&lt;xsl:when</span>
+									<span class="s1">test</span><span class="s2">=&quot; $theFragment_1/self::iso:schema &quot;</span><span class="s0">&gt;</span>
+									<span class="s0">&lt;xsl:message&gt;</span>
+										<span class="s3">Schema error: Use include to</span>
+										<span class="s3">include fragments, not a whole</span>
+										<span class="s3">schema</span>
+									<span class="s0">&lt;/xsl:message&gt;</span>
+								<span class="s0">&lt;/xsl:when&gt;</span>
+
+								<span class="s4">&lt;!-- case 3 --&gt;</span>
+								<span class="s0">&lt;xsl:otherwise&gt;</span>
+									<span class="s0">&lt;xsl:apply-templates</span>
+										<span class="s1">select</span><span class="s2">=&quot; $theFragment_1[1]&quot; </span><span class="s1">mode</span><span class="s2">=&quot;dsdl:go&quot; </span><span class="s0">/&gt;</span>
+								<span class="s0">&lt;/xsl:otherwise&gt;</span>
+							<span class="s0">&lt;/xsl:choose&gt;</span>
+						<span class="s0">&lt;/xsl:for-each&gt;</span>
+					<span class="s0">&lt;/xsl:when&gt;</span>
+
+					<span class="s4">&lt;!-- Case where there is no ID so we include the whole document --&gt;</span>
+					<span class="s4">&lt;!-- Experimental addition: include fragments of children --&gt;</span>
+					<span class="s0">&lt;xsl:otherwise&gt;</span>
+						<span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;theDocument_2&quot;</span>
+							<span class="s1">select</span><span class="s2">=&quot;document( $document-uri,/ )&quot; </span><span class="s0">/&gt;</span>
+						<span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;theFragment_2&quot;</span>
+							<span class="s1">select</span><span class="s2">=&quot;$theDocument_2/iso:*&quot; </span><span class="s0">/&gt;</span>
+						<span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;theContainedFragments&quot;</span>
+							<span class="s1">select</span><span class="s2">=&quot;$theDocument_2/*/iso:* | $theDocument_2/*/xsl:* | $theDocument_2/*/xhtml:*&quot; </span><span class="s0">/&gt;</span>
+						<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;not($theDocument_2)&quot;</span><span class="s0">&gt;</span>
+							<span class="s0">&lt;xsl:message </span><span class="s1">terminate</span><span class="s2">=&quot;no&quot;</span><span class="s0">&gt;</span>
+								<span class="s0">&lt;xsl:text&gt;</span><span class="s3">Unable to open referenced included file: </span><span class="s0">&lt;/xsl:text&gt;</span>
+								<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;@href&quot; </span><span class="s0">/&gt;</span>
+							<span class="s0">&lt;/xsl:message&gt;</span>
+						<span class="s0">&lt;/xsl:if&gt;</span>
+
+						<span class="s4">&lt;!-- There are three cases for includes: 
+                            0) No text specified- error! 
+                             
+                            1) REMOVED 
+                             
+                            2) The linked-to element is sch:schema however the parent of the include 
+                            is not a schema. In this case, it is an error. (Actually, it should 
+                            be an error for other kinds of containment problems, but we won't 
+                            check for them in this version.) 
+                             
+                            3) Otherwise, include the pointed-to element 
+                        --&gt;</span>
+						<span class="s0">&lt;xsl:choose&gt;</span>
+							<span class="s4">&lt;!-- case 0 --&gt;</span>
+							<span class="s0">&lt;xsl:when</span>
+								<span class="s1">test</span><span class="s2">=&quot;not($theFragment_2) and not ($theContainedFragments)&quot;</span><span class="s0">&gt;</span>
+								<span class="s0">&lt;xsl:message </span><span class="s1">terminate</span><span class="s2">=&quot;no&quot;</span><span class="s0">&gt;</span>
+									<span class="s0">&lt;xsl:text&gt;</span><span class="s3">Unable to locate id attribute: </span><span class="s0">&lt;/xsl:text&gt;</span>
+									<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;@href&quot; </span><span class="s0">/&gt;</span>
+								<span class="s0">&lt;/xsl:message&gt;</span>
+							<span class="s0">&lt;/xsl:when&gt;</span>
+
+							<span class="s4">&lt;!-- case 1 removed --&gt;</span>
+
+							<span class="s4">&lt;!-- case 2 --&gt;</span>
+							<span class="s0">&lt;xsl:when</span>
+								<span class="s1">test</span><span class="s2">=&quot; $theFragment_2/self::iso:schema or $theContainedFragments/self::iso:schema&quot;</span><span class="s0">&gt;</span>
+								<span class="s0">&lt;xsl:message&gt;</span>
+									<span class="s3">Schema error: Use include to include</span>
+									<span class="s3">fragments, not a whole schema</span>
+								<span class="s0">&lt;/xsl:message&gt;</span>
+							<span class="s0">&lt;/xsl:when&gt;</span>
+
+							<span class="s4">&lt;!-- If this were XLST 2, we could use   
+                                if ($theFragment) then $theFragment else $theContainedFragments 
+                                here (thanks to KN) 
+                            --&gt;</span>
+							<span class="s4">&lt;!-- case 3 --&gt;</span>
+							<span class="s0">&lt;xsl:otherwise&gt;</span>
+								<span class="s0">&lt;xsl:apply-templates</span>
+									<span class="s1">select</span><span class="s2">=&quot;$theFragment_2 &quot; </span><span class="s1">mode</span><span class="s2">=&quot;dsdl:go&quot; </span><span class="s0">/&gt;</span>
+							<span class="s0">&lt;/xsl:otherwise&gt;</span>
+						<span class="s0">&lt;/xsl:choose&gt;</span>
+					<span class="s0">&lt;/xsl:otherwise&gt;</span>
+				<span class="s0">&lt;/xsl:choose&gt;</span>
+			<span class="s0">&lt;/xsl:otherwise&gt;</span>
+		<span class="s0">&lt;/xsl:choose&gt;</span>
+
+		<span class="s0">&lt;xsl:processing-instruction </span><span class="s1">name</span><span class="s2">=&quot;DSDL_INCLUDE_END&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;@href&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;/xsl:processing-instruction&gt;</span>
+	<span class="s0">&lt;/xsl:template&gt;</span>
+
+
+	<span class="s4">&lt;!-- WARNING   sch:extends[@href] is experimental and non standard  --&gt;</span>
+	<span class="s4">&lt;!-- Basically, it adds the children of the selected element, not the element itself.  --&gt;</span>
+	<span class="s0">&lt;xsl:template </span><span class="s1">match</span><span class="s2">=&quot;iso:extends[@href]&quot; </span><span class="s1">mode</span><span class="s2">=&quot;dsdl:go&quot;</span><span class="s0">&gt;</span>
+
+		<span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;document-uri&quot;</span>
+			<span class="s1">select</span><span class="s2">=&quot;substring-before(concat(@href,'#'), '#')&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;fragment-id&quot;</span>
+			<span class="s1">select</span><span class="s2">=&quot;substring-after(@href, '#')&quot; </span><span class="s0">/&gt;</span>
+
+
+		<span class="s0">&lt;xsl:processing-instruction </span><span class="s1">name</span><span class="s2">=&quot;DSDL_INCLUDE_START&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;@href&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;/xsl:processing-instruction&gt;</span>
+
+		<span class="s0">&lt;xsl:choose&gt;</span>
+			<span class="s0">&lt;xsl:when </span><span class="s1">test</span><span class="s2">=&quot;not( $include-schematron = 'true' )&quot;</span><span class="s0">&gt;</span>
+				<span class="s0">&lt;xslt:copy&gt;</span>
+					<span class="s0">&lt;xslt:copy-of </span><span class="s1">select</span><span class="s2">=&quot;@*&quot; </span><span class="s0">/&gt;</span>
+					<span class="s0">&lt;xslt:apply-templates </span><span class="s1">mode</span><span class="s2">=&quot;dsdl:go&quot; </span><span class="s0">/&gt;</span>
+				<span class="s0">&lt;/xslt:copy&gt;</span>
+			<span class="s0">&lt;/xsl:when&gt;</span>
+			<span class="s0">&lt;xsl:otherwise&gt;</span>
+
+				<span class="s0">&lt;xsl:choose&gt;</span>
+
+					<span class="s0">&lt;xsl:when</span>
+						<span class="s1">test</span><span class="s2">=&quot;string-length( $document-uri ) = 0 and string-length( $fragment-id ) = 0&quot;</span><span class="s0">&gt;</span>
+						<span class="s0">&lt;xsl:message&gt;</span>
+							<span class="s3">Error: Impossible URL in Schematron include</span>
+						<span class="s0">&lt;/xsl:message&gt;</span>
+					<span class="s0">&lt;/xsl:when&gt;</span>
+
+					<span class="s4">&lt;!-- this case is when there is in embedded schema in the same document elsewhere --&gt;</span>
+					<span class="s0">&lt;xslt:when</span>
+						<span class="s1">test</span><span class="s2">=&quot;string-length( $document-uri ) = 0&quot;</span><span class="s0">&gt;</span>
+						<span class="s0">&lt;xslt:apply-templates </span><span class="s1">mode</span><span class="s2">=&quot;dsdl:go&quot;</span>
+							<span class="s1">select</span><span class="s2">=&quot;//iso:*[@xml:id= $fragment-id ]/*  
+                 |id( $fragment-id)/* 
+                 | //iso:*[@id= $fragment-id ]/*&quot; </span><span class="s0">/&gt;</span>
+					<span class="s0">&lt;/xslt:when&gt;</span>
+
+					<span class="s4">&lt;!-- case where there is a fragment in another document (should be an iso: element) --&gt;</span>
+					<span class="s4">&lt;!-- There are three cases for includes with fragment: 
+                        0) No href file or no matching id - error! 
+                        1) REMOVED 
+                         
+                        2) REMOVED 
+                         
+                        3) Otherwise, include the pointed-to element 
+                    --&gt;</span>
+
+					<span class="s0">&lt;xsl:when</span>
+						<span class="s1">test</span><span class="s2">=&quot;string-length( $fragment-id ) </span><span class="s5">&amp;gt; </span><span class="s2">0&quot;</span><span class="s0">&gt;</span>
+						<span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;theDocument_1&quot;</span>
+							<span class="s1">select</span><span class="s2">=&quot;document( $document-uri,/ )&quot; </span><span class="s0">/&gt;</span>
+						<span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;originalParent&quot; </span><span class="s1">select</span><span class="s2">=&quot;..&quot; </span><span class="s0">/&gt;</span>
+
+						<span class="s4">&lt;!-- case 0 --&gt;</span>
+						<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;not($theDocument_1)&quot;</span><span class="s0">&gt;</span>
+							<span class="s0">&lt;xsl:message </span><span class="s1">terminate</span><span class="s2">=&quot;no&quot;</span><span class="s0">&gt;</span>
+								<span class="s0">&lt;xsl:text&gt;</span><span class="s3">Unable to open referenced included file: </span><span class="s0">&lt;/xsl:text&gt;</span>
+								<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;@href&quot; </span><span class="s0">/&gt;</span>
+							<span class="s0">&lt;/xsl:message&gt;</span>
+						<span class="s0">&lt;/xsl:if&gt;</span>
+						<span class="s4">&lt;!-- use for-each to rebase id() to external document --&gt;</span>
+						<span class="s0">&lt;xsl:for-each </span><span class="s1">select</span><span class="s2">=&quot;$theDocument_1&quot;</span><span class="s0">&gt;</span>
+							<span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;theFragment_1&quot;</span>
+								<span class="s1">select</span><span class="s2">=&quot; $theDocument_1//iso:*[@xml:id= $fragment-id ] | 
+                        id($fragment-id) | 
+                        $theDocument_1//iso:*[@id= $fragment-id ]&quot; </span><span class="s0">/&gt;</span>
+
+
+							<span class="s0">&lt;xsl:choose&gt;</span>
+								<span class="s4">&lt;!-- case 0 --&gt;</span>
+								<span class="s0">&lt;xsl:when </span><span class="s1">test</span><span class="s2">=&quot;not($theFragment_1)&quot;</span><span class="s0">&gt;</span>
+									<span class="s0">&lt;xsl:message </span><span class="s1">terminate</span><span class="s2">=&quot;no&quot;</span><span class="s0">&gt;</span>
+										<span class="s0">&lt;xsl:text&gt;</span><span class="s3">Unable to locate id attribute: </span><span class="s0">&lt;/xsl:text&gt;</span>
+										<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;@href&quot; </span><span class="s0">/&gt;</span>
+									<span class="s0">&lt;/xsl:message&gt;</span>
+								<span class="s0">&lt;/xsl:when&gt;</span>
+
+
+								<span class="s4">&lt;!-- case 1 REMOVED --&gt;</span>
+
+								<span class="s4">&lt;!-- case 2 REMOVED --&gt;</span>
+
+
+								<span class="s4">&lt;!-- case 3 --&gt;</span>
+								<span class="s0">&lt;xsl:otherwise&gt;</span>
+
+									<span class="s0">&lt;xsl:apply-templates</span>
+										<span class="s1">select</span><span class="s2">=&quot; $theFragment_1[1]/*&quot; </span><span class="s1">mode</span><span class="s2">=&quot;dsdl:go&quot; </span><span class="s0">/&gt;</span>
+								<span class="s0">&lt;/xsl:otherwise&gt;</span>
+							<span class="s0">&lt;/xsl:choose&gt;</span>
+						<span class="s0">&lt;/xsl:for-each&gt;</span>
+					<span class="s0">&lt;/xsl:when&gt;</span>
+
+					<span class="s4">&lt;!-- Case where there is no ID so we include the whole document --&gt;</span>
+					<span class="s4">&lt;!-- Experimental addition: include fragments of children --&gt;</span>
+					<span class="s0">&lt;xsl:otherwise&gt;</span>
+						<span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;theDocument_2&quot;</span>
+							<span class="s1">select</span><span class="s2">=&quot;document( $document-uri,/ )&quot; </span><span class="s0">/&gt;</span>
+						<span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;theFragment_2&quot;</span>
+							<span class="s1">select</span><span class="s2">=&quot;$theDocument_2/iso:*&quot; </span><span class="s0">/&gt;</span>
+						<span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;theContainedFragments&quot;</span>
+							<span class="s1">select</span><span class="s2">=&quot;$theDocument_2/*/iso:* | $theDocument_2/*/xsl:* | $theDocument_2/*/xhtml:*&quot; </span><span class="s0">/&gt;</span>
+						<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;not($theDocument_2)&quot;</span><span class="s0">&gt;</span>
+							<span class="s0">&lt;xsl:message </span><span class="s1">terminate</span><span class="s2">=&quot;no&quot;</span><span class="s0">&gt;</span>
+								<span class="s0">&lt;xsl:text&gt;</span><span class="s3">Unable to open referenced included file: </span><span class="s0">&lt;/xsl:text&gt;</span>
+								<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;@href&quot; </span><span class="s0">/&gt;</span>
+							<span class="s0">&lt;/xsl:message&gt;</span>
+						<span class="s0">&lt;/xsl:if&gt;</span>
+
+						<span class="s4">&lt;!-- There are three cases for includes: 
+                            0) No text specified- error! 
+                             
+                            1) REMOVED 
+                             
+                            2) REMOVED 
+                             
+                            3) Otherwise, include the pointed-to element 
+                        --&gt;</span>
+						<span class="s0">&lt;xsl:choose&gt;</span>
+							<span class="s4">&lt;!-- case 0 --&gt;</span>
+							<span class="s0">&lt;xsl:when</span>
+								<span class="s1">test</span><span class="s2">=&quot;not($theFragment_2) and not ($theContainedFragments)&quot;</span><span class="s0">&gt;</span>
+								<span class="s0">&lt;xsl:message </span><span class="s1">terminate</span><span class="s2">=&quot;no&quot;</span><span class="s0">&gt;</span>
+									<span class="s0">&lt;xsl:text&gt;</span><span class="s3">Unable to locate id attribute: </span><span class="s0">&lt;/xsl:text&gt;</span>
+									<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;@href&quot; </span><span class="s0">/&gt;</span>
+								<span class="s0">&lt;/xsl:message&gt;</span>
+							<span class="s0">&lt;/xsl:when&gt;</span>
+
+							<span class="s4">&lt;!-- case 1 removed --&gt;</span>
+
+							<span class="s4">&lt;!-- case 2 removed --&gt;</span>
+
+							<span class="s4">&lt;!-- If this were XLST 2, we could use   
+                                if ($theFragment) then $theFragment else $theContainedFragments 
+                                here (thanks to KN) 
+                            --&gt;</span>
+							<span class="s4">&lt;!-- case 3 --&gt;</span>
+							<span class="s0">&lt;xsl:otherwise&gt;</span>
+								<span class="s0">&lt;xsl:apply-templates</span>
+									<span class="s1">select</span><span class="s2">=&quot;$theFragment_2/* &quot; </span><span class="s1">mode</span><span class="s2">=&quot;dsdl:go&quot; </span><span class="s0">/&gt;</span>
+							<span class="s0">&lt;/xsl:otherwise&gt;</span>
+						<span class="s0">&lt;/xsl:choose&gt;</span>
+					<span class="s0">&lt;/xsl:otherwise&gt;</span>
+				<span class="s0">&lt;/xsl:choose&gt;</span>
+			<span class="s0">&lt;/xsl:otherwise&gt;</span>
+		<span class="s0">&lt;/xsl:choose&gt;</span>
+
+		<span class="s0">&lt;xsl:processing-instruction </span><span class="s1">name</span><span class="s2">=&quot;DSDL_INCLUDE_END&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;@href&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;/xsl:processing-instruction&gt;</span>
+	<span class="s0">&lt;/xsl:template&gt;</span>
+
+
+
+	<span class="s4">&lt;!-- =========================================================== --&gt;</span>
+	<span class="s4">&lt;!-- Handle Schematron 1.6 inclusions: clone of ISO code above   --&gt;</span>
+	<span class="s4">&lt;!-- =========================================================== --&gt;</span>
+
+
+	<span class="s4">&lt;!-- Extend the URI syntax to allow # references --&gt;</span>
+	<span class="s4">&lt;!-- Add experimental support for simple containers like  /xxx:xxx/schold:pattern to allow better includes --&gt;</span>
+	<span class="s0">&lt;xsl:template </span><span class="s1">match</span><span class="s2">=&quot;schold:include&quot; </span><span class="s1">mode</span><span class="s2">=&quot;dsdl:go&quot;</span><span class="s0">&gt;</span>
+		<span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;document-uri&quot;</span>
+			<span class="s1">select</span><span class="s2">=&quot;substring-before(concat(@href,'#'), '#')&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;fragment-id&quot;</span>
+			<span class="s1">select</span><span class="s2">=&quot;substring-after(@href, '#')&quot; </span><span class="s0">/&gt;</span>
+
+		<span class="s0">&lt;xsl:processing-instruction </span><span class="s1">name</span><span class="s2">=&quot;DSDL_INCLUDE_START&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;@href&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;/xsl:processing-instruction&gt;</span>
+
+		<span class="s0">&lt;xsl:choose&gt;</span>
+			<span class="s0">&lt;xsl:when </span><span class="s1">test</span><span class="s2">=&quot;not( $include-schematron = 'true' )&quot;</span><span class="s0">&gt;</span>
+				<span class="s0">&lt;xslt:copy&gt;</span>
+					<span class="s0">&lt;xslt:copy-of </span><span class="s1">select</span><span class="s2">=&quot;@*&quot; </span><span class="s0">/&gt;</span>
+					<span class="s0">&lt;xslt:apply-templates </span><span class="s1">mode</span><span class="s2">=&quot;dsdl:go&quot; </span><span class="s0">/&gt;</span>
+				<span class="s0">&lt;/xslt:copy&gt;</span>
+			<span class="s0">&lt;/xsl:when&gt;</span>
+			<span class="s0">&lt;xsl:otherwise&gt;</span>
+				<span class="s0">&lt;xsl:choose&gt;</span>
+
+					<span class="s0">&lt;xsl:when</span>
+						<span class="s1">test</span><span class="s2">=&quot;string-length( $document-uri ) = 0 and string-length( $fragment-id ) = 0&quot;</span><span class="s0">&gt;</span>
+						<span class="s0">&lt;xsl:message&gt;</span>
+							<span class="s3">Error: Impossible URL in Schematron include</span>
+						<span class="s0">&lt;/xsl:message&gt;</span>
+					<span class="s0">&lt;/xsl:when&gt;</span>
+
+					<span class="s4">&lt;!-- this case is when there is in embedded schema in the same document elsewhere --&gt;</span>
+					<span class="s0">&lt;xslt:when</span>
+						<span class="s1">test</span><span class="s2">=&quot;string-length( $document-uri ) = 0&quot;</span><span class="s0">&gt;</span>
+						<span class="s0">&lt;xslt:apply-templates </span><span class="s1">mode</span><span class="s2">=&quot;dsdl:go&quot;</span>
+							<span class="s1">select</span><span class="s2">=&quot;//schold:*[@xml:id= $fragment-id ]  
+                 |id( $fragment-id) 
+                 | //schold:*[@id= $fragment-id ]&quot; </span><span class="s0">/&gt;</span>
+					<span class="s0">&lt;/xslt:when&gt;</span>
+
+					<span class="s4">&lt;!-- case where there is a fragment in another document (should be an iso: element) --&gt;</span>
+					<span class="s0">&lt;xsl:when</span>
+						<span class="s1">test</span><span class="s2">=&quot;string-length( $fragment-id ) </span><span class="s5">&amp;gt; </span><span class="s2">0&quot;</span><span class="s0">&gt;</span>
+						<span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;theDocument_1&quot;</span>
+							<span class="s1">select</span><span class="s2">=&quot;document( $document-uri,/ )&quot; </span><span class="s0">/&gt;</span>
+						<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;not($theDocument_1)&quot;</span><span class="s0">&gt;</span>
+							<span class="s0">&lt;xsl:message </span><span class="s1">terminate</span><span class="s2">=&quot;no&quot;</span><span class="s0">&gt;</span>
+								<span class="s0">&lt;xsl:text&gt;</span><span class="s3">Unable to open referenced included file: </span><span class="s0">&lt;/xsl:text&gt;</span>
+								<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;@href&quot; </span><span class="s0">/&gt;</span>
+							<span class="s0">&lt;/xsl:message&gt;</span>
+						<span class="s0">&lt;/xsl:if&gt;</span>
+						<span class="s4">&lt;!-- use for-each to rebase id() to $theDocument --&gt;</span>
+						<span class="s0">&lt;xsl:for-each </span><span class="s1">select</span><span class="s2">=&quot;$theDocument_1&quot;</span><span class="s0">&gt;</span>
+							<span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;theFragment_1&quot;</span>
+								<span class="s1">select</span><span class="s2">=&quot; $theDocument_1//schold:*[@xml:id= $fragment-id ] | 
+                id($fragment-id) | 
+                $theDocument_1//schold:*[@id= $fragment-id ]&quot; </span><span class="s0">/&gt;</span>
+							<span class="s0">&lt;xsl:if</span>
+								<span class="s1">test</span><span class="s2">=&quot; $theFragment_1/self::schold:schema &quot;</span><span class="s0">&gt;</span>
+								<span class="s0">&lt;xsl:message&gt;</span>
+									<span class="s3">Schema error: Use include to include</span>
+									<span class="s3">fragments, not a whole schema</span>
+								<span class="s0">&lt;/xsl:message&gt;</span>
+							<span class="s0">&lt;/xsl:if&gt;</span>
+							<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;not($theFragment_1)&quot;</span><span class="s0">&gt;</span>
+								<span class="s0">&lt;xsl:message </span><span class="s1">terminate</span><span class="s2">=&quot;no&quot;</span><span class="s0">&gt;</span>
+									<span class="s0">&lt;xsl:text&gt;</span><span class="s3">Unable to locate id attribute: </span><span class="s0">&lt;/xsl:text&gt;</span>
+									<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;@href&quot; </span><span class="s0">/&gt;</span>
+								<span class="s0">&lt;/xsl:message&gt;</span>
+							<span class="s0">&lt;/xsl:if&gt;</span>
+							<span class="s0">&lt;xsl:apply-templates</span>
+								<span class="s1">select</span><span class="s2">=&quot; $theFragment_1[1]&quot; </span><span class="s1">mode</span><span class="s2">=&quot;dsdl:go&quot; </span><span class="s0">/&gt;</span>
+						<span class="s0">&lt;/xsl:for-each&gt;</span>
+					<span class="s0">&lt;/xsl:when&gt;</span>
+
+					<span class="s4">&lt;!-- Case where there is no ID so we include the whole document --&gt;</span>
+					<span class="s4">&lt;!-- Experimental addition: include fragments of children --&gt;</span>
+					<span class="s0">&lt;xsl:otherwise&gt;</span>
+						<span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;theDocument_2&quot;</span>
+							<span class="s1">select</span><span class="s2">=&quot;document( $document-uri,/ )&quot; </span><span class="s0">/&gt;</span>
+						<span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;theFragment_2&quot;</span>
+							<span class="s1">select</span><span class="s2">=&quot;$theDocument_2/iso:*&quot; </span><span class="s0">/&gt;</span>
+						<span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;theContainedFragments&quot;</span>
+							<span class="s1">select</span><span class="s2">=&quot;$theDocument_2/*/schold:* | $theDocument_2/*/xsl:* | $theDocument_2/*/xhtml:*&quot; </span><span class="s0">/&gt;</span>
+						<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;not($theDocument_2)&quot;</span><span class="s0">&gt;</span>
+							<span class="s0">&lt;xsl:message </span><span class="s1">terminate</span><span class="s2">=&quot;no&quot;</span><span class="s0">&gt;</span>
+								<span class="s0">&lt;xsl:text&gt;</span><span class="s3">Unable to open referenced included file: </span><span class="s0">&lt;/xsl:text&gt;</span>
+								<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;@href&quot; </span><span class="s0">/&gt;</span>
+							<span class="s0">&lt;/xsl:message&gt;</span>
+						<span class="s0">&lt;/xsl:if&gt;</span>
+
+						<span class="s0">&lt;xsl:if</span>
+							<span class="s1">test</span><span class="s2">=&quot; $theFragment_2/self::schold:schema or $theContainedFragments/self::schold:schema&quot;</span><span class="s0">&gt;</span>
+							<span class="s0">&lt;xsl:message&gt;</span>
+								<span class="s3">Schema error: Use include to include</span>
+								<span class="s3">fragments, not a whole schema</span>
+							<span class="s0">&lt;/xsl:message&gt;</span>
+						<span class="s0">&lt;/xsl:if&gt;</span>
+						<span class="s0">&lt;xsl:if</span>
+							<span class="s1">test</span><span class="s2">=&quot;not($theFragment_2) and not ($theContainedFragments)&quot;</span><span class="s0">&gt;</span>
+							<span class="s0">&lt;xsl:message </span><span class="s1">terminate</span><span class="s2">=&quot;no&quot;</span><span class="s0">&gt;</span>
+								<span class="s0">&lt;xsl:text&gt;</span><span class="s3">Unable to locate id attribute: </span><span class="s0">&lt;/xsl:text&gt;</span>
+								<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;@href&quot; </span><span class="s0">/&gt;</span>
+							<span class="s0">&lt;/xsl:message&gt;</span>
+						<span class="s0">&lt;/xsl:if&gt;</span>
+						<span class="s4">&lt;!-- If this were XLST 2, we could use   
+                            if ($theFragment) then $theFragment else $theContainedFragments 
+                            here (thanks to KN) 
+                        --&gt;</span>
+						<span class="s0">&lt;xsl:choose&gt;</span>
+							<span class="s0">&lt;xsl:when </span><span class="s1">test</span><span class="s2">=&quot; $theFragment_2 &quot;</span><span class="s0">&gt;</span>
+								<span class="s0">&lt;xsl:apply-templates</span>
+									<span class="s1">select</span><span class="s2">=&quot;$theFragment_2 &quot; </span><span class="s1">mode</span><span class="s2">=&quot;dsdl:go&quot; </span><span class="s0">/&gt;</span>
+							<span class="s0">&lt;/xsl:when&gt;</span>
+							<span class="s0">&lt;xsl:otherwise&gt;</span>
+								<span class="s4">&lt;!-- WARNING!  EXPERIMENTAL! Use at your own risk. This may be discontinued! --&gt;</span>
+								<span class="s0">&lt;xsl:apply-templates</span>
+									<span class="s1">select</span><span class="s2">=&quot;  $theContainedFragments &quot; </span><span class="s1">mode</span><span class="s2">=&quot;dsdl:go&quot; </span><span class="s0">/&gt;</span>
+							<span class="s0">&lt;/xsl:otherwise&gt;</span>
+						<span class="s0">&lt;/xsl:choose&gt;</span>
+					<span class="s0">&lt;/xsl:otherwise&gt;</span>
+				<span class="s0">&lt;/xsl:choose&gt;</span>
+
+			<span class="s0">&lt;/xsl:otherwise&gt;</span>
+		<span class="s0">&lt;/xsl:choose&gt;</span>
+
+		<span class="s0">&lt;xsl:processing-instruction </span><span class="s1">name</span><span class="s2">=&quot;DSDL_INCLUDE_END&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;@href&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;/xsl:processing-instruction&gt;</span>
+	<span class="s0">&lt;/xsl:template&gt;</span>
+	<span class="s4">&lt;!-- =========================================================== --&gt;</span>
+	<span class="s4">&lt;!-- ISO/IEC 19757 - DSDL Document Schema Definition Languages   --&gt;</span>
+	<span class="s4">&lt;!-- Part 5 - DataType Library Language - DTLL                   --&gt;</span>
+	<span class="s4">&lt;!-- Committee Draft  Experimental support only                  --&gt;</span>
+	<span class="s4">&lt;!-- The &lt;include&gt; element may well be replaced by XInclude in   --&gt;</span>
+	<span class="s4">&lt;!-- any final version.                                          --&gt;</span>
+	<span class="s4">&lt;!-- =========================================================== --&gt;</span>
+	<span class="s0">&lt;xslt:template </span><span class="s1">match</span><span class="s2">=&quot;dtll:include&quot; </span><span class="s1">mode</span><span class="s2">=&quot;dsdl:go&quot;</span><span class="s0">&gt;</span>
+		<span class="s4">&lt;!-- Insert subschema --&gt;</span>
+
+		<span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;document-uri&quot;</span>
+			<span class="s1">select</span><span class="s2">=&quot;substring-before(concat(@href,'#'), '#')&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;fragment-id&quot;</span>
+			<span class="s1">select</span><span class="s2">=&quot;substring-after(@href, '#')&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;xsl:processing-instruction </span><span class="s1">name</span><span class="s2">=&quot;DSDL_INCLUDE_START&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;@href&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;/xsl:processing-instruction&gt;</span>
+		<span class="s0">&lt;xsl:choose&gt;</span>
+			<span class="s0">&lt;xsl:when </span><span class="s1">test</span><span class="s2">=&quot;not( $include-dtll = 'true' )&quot;</span><span class="s0">&gt;</span>
+				<span class="s0">&lt;xslt:copy&gt;</span>
+					<span class="s0">&lt;xslt:copy-of </span><span class="s1">select</span><span class="s2">=&quot;@*&quot; </span><span class="s0">/&gt;</span>
+					<span class="s0">&lt;xslt:apply-templates </span><span class="s1">mode</span><span class="s2">=&quot;dsdl:go&quot; </span><span class="s0">/&gt;</span>
+				<span class="s0">&lt;/xslt:copy&gt;</span>
+			<span class="s0">&lt;/xsl:when&gt;</span>
+			<span class="s0">&lt;xsl:otherwise&gt;</span>
+				<span class="s0">&lt;xsl:choose&gt;</span>
+
+					<span class="s0">&lt;xsl:when</span>
+						<span class="s1">test</span><span class="s2">=&quot;string-length( $document-uri ) = 0 and string-length( $fragment-id ) = 0&quot;</span><span class="s0">&gt;</span>
+						<span class="s0">&lt;xsl:message&gt;</span>
+							<span class="s3">Error: Impossible URL in DTLL include</span>
+						<span class="s0">&lt;/xsl:message&gt;</span>
+					<span class="s0">&lt;/xsl:when&gt;</span>
+
+					<span class="s4">&lt;!-- this case is when there is in embedded schema in the same document elsewhere --&gt;</span>
+					<span class="s0">&lt;xslt:when</span>
+						<span class="s1">test</span><span class="s2">=&quot;string-length( $document-uri ) = 0&quot;</span><span class="s0">&gt;</span>
+						<span class="s0">&lt;xslt:apply-templates </span><span class="s1">mode</span><span class="s2">=&quot;dsdl:go&quot;</span>
+							<span class="s1">select</span><span class="s2">=&quot;//*[@xml:id= $fragment-id ] | id( $fragment-id)  
+                | //*[@id= $fragment-id ]&quot; </span><span class="s0">/&gt;</span>
+					<span class="s0">&lt;/xslt:when&gt;</span>
+
+					<span class="s0">&lt;xsl:when</span>
+						<span class="s1">test</span><span class="s2">=&quot;string-length( $fragment-id ) </span><span class="s5">&amp;gt; </span><span class="s2">0&quot;</span><span class="s0">&gt;</span>
+						<span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;theDocument_1&quot;</span>
+							<span class="s1">select</span><span class="s2">=&quot;document( $document-uri,/ )&quot; </span><span class="s0">/&gt;</span>
+						<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;not($theDocument_1)&quot;</span><span class="s0">&gt;</span>
+							<span class="s0">&lt;xsl:message </span><span class="s1">terminate</span><span class="s2">=&quot;no&quot;</span><span class="s0">&gt;</span>
+								<span class="s0">&lt;xsl:text&gt;</span><span class="s3">Unable to open referenced included file: </span><span class="s0">&lt;/xsl:text&gt;</span>
+								<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;@href&quot; </span><span class="s0">/&gt;</span>
+							<span class="s0">&lt;/xsl:message&gt;</span>
+						<span class="s0">&lt;/xsl:if&gt;</span>
+						<span class="s4">&lt;!-- use for-each to rebase id() to $theDocument --&gt;</span>
+						<span class="s0">&lt;xsl:for-each </span><span class="s1">select</span><span class="s2">=&quot;$theDocument_1&quot;</span><span class="s0">&gt;</span>
+							<span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;theFragment_1&quot;</span>
+								<span class="s1">select</span><span class="s2">=&quot;$theDocument_1//*[@xml:id= $fragment-id ] 
+               | id( $fragment-id )  
+               | $theDocument_1//*[@id= $fragment-id ]&quot; </span><span class="s0">/&gt;</span>
+							<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;not($theFragment_1)&quot;</span><span class="s0">&gt;</span>
+								<span class="s0">&lt;xsl:message </span><span class="s1">terminate</span><span class="s2">=&quot;no&quot;</span><span class="s0">&gt;</span>
+									<span class="s0">&lt;xsl:text&gt;</span><span class="s3">Unable to locate id attribute: </span><span class="s0">&lt;/xsl:text&gt;</span>
+									<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;@href&quot; </span><span class="s0">/&gt;</span>
+								<span class="s0">&lt;/xsl:message&gt;</span>
+							<span class="s0">&lt;/xsl:if&gt;</span>
+							<span class="s0">&lt;xsl:apply-templates</span>
+								<span class="s1">select</span><span class="s2">=&quot; $theFragment_1[1]&quot; </span><span class="s1">mode</span><span class="s2">=&quot;dsdl:go&quot; </span><span class="s0">/&gt;</span>
+						<span class="s0">&lt;/xsl:for-each&gt;</span>
+					<span class="s0">&lt;/xsl:when&gt;</span>
+
+					<span class="s0">&lt;xsl:otherwise&gt;</span>
+						<span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;theDocument_2&quot;</span>
+							<span class="s1">select</span><span class="s2">=&quot;document( $document-uri,/ )&quot; </span><span class="s0">/&gt;</span>
+						<span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;theFragment_2&quot;</span>
+							<span class="s1">select</span><span class="s2">=&quot;$theDocument_2/*&quot; </span><span class="s0">/&gt;</span>
+
+						<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;not($theDocument_2)&quot;</span><span class="s0">&gt;</span>
+							<span class="s0">&lt;xsl:message </span><span class="s1">terminate</span><span class="s2">=&quot;no&quot;</span><span class="s0">&gt;</span>
+								<span class="s0">&lt;xsl:text&gt;</span><span class="s3">Unable to open referenced included file: </span><span class="s0">&lt;/xsl:text&gt;</span>
+								<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;@href&quot; </span><span class="s0">/&gt;</span>
+							<span class="s0">&lt;/xsl:message&gt;</span>
+						<span class="s0">&lt;/xsl:if&gt;</span>
+
+						<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;not($theFragment_2)&quot;</span><span class="s0">&gt;</span>
+							<span class="s0">&lt;xsl:message </span><span class="s1">terminate</span><span class="s2">=&quot;no&quot;</span><span class="s0">&gt;</span>
+								<span class="s0">&lt;xsl:text&gt;</span><span class="s3">Unable to locate id attribute: </span><span class="s0">&lt;/xsl:text&gt;</span>
+								<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;@href&quot; </span><span class="s0">/&gt;</span>
+							<span class="s0">&lt;/xsl:message&gt;</span>
+						<span class="s0">&lt;/xsl:if&gt;</span>
+						<span class="s0">&lt;xsl:apply-templates </span><span class="s1">select</span><span class="s2">=&quot;$theFragment_2 &quot;</span>
+							<span class="s1">mode</span><span class="s2">=&quot;dsdl:go&quot; </span><span class="s0">/&gt;</span>
+					<span class="s0">&lt;/xsl:otherwise&gt;</span>
+				<span class="s0">&lt;/xsl:choose&gt;</span>
+
+			<span class="s0">&lt;/xsl:otherwise&gt;</span>
+		<span class="s0">&lt;/xsl:choose&gt;</span>
+		<span class="s0">&lt;xsl:processing-instruction </span><span class="s1">name</span><span class="s2">=&quot;DSDL_INCLUDE_END&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;@href&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;/xsl:processing-instruction&gt;</span>
+	<span class="s0">&lt;/xslt:template&gt;</span>
+
+	<span class="s4">&lt;!-- =========================================================== --&gt;</span>
+	<span class="s4">&lt;!-- ISO/IEC 19757 - DSDL Document Schema Definition Languages   --&gt;</span>
+	<span class="s4">&lt;!-- Part 7 - Character Repertoire Description Language - CRDL   --&gt;</span>
+	<span class="s4">&lt;!-- Final Committee Draft 2008-01-11 Experimental support only  --&gt;</span>
+	<span class="s4">&lt;!-- =========================================================== --&gt;</span>
+	<span class="s0">&lt;xslt:template </span><span class="s1">match</span><span class="s2">=&quot;crdl:ref&quot; </span><span class="s1">mode</span><span class="s2">=&quot;dsdl:go&quot;</span><span class="s0">&gt;</span>
+		<span class="s4">&lt;!-- Insert subschema --&gt;</span>
+
+		<span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;document-uri&quot;</span>
+			<span class="s1">select</span><span class="s2">=&quot;substring-before(concat(@href,'#'), '#')&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;fragment-id&quot;</span>
+			<span class="s1">select</span><span class="s2">=&quot;substring-after(@href, '#')&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;xsl:processing-instruction </span><span class="s1">name</span><span class="s2">=&quot;DSDL_INCLUDE_START&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;@href&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;/xsl:processing-instruction&gt;</span>
+		<span class="s0">&lt;xsl:choose&gt;</span>
+			<span class="s0">&lt;xsl:when </span><span class="s1">test</span><span class="s2">=&quot;not( $include-crdl = 'true' )&quot;</span><span class="s0">&gt;</span>
+				<span class="s0">&lt;xslt:copy&gt;</span>
+					<span class="s0">&lt;xslt:copy-of </span><span class="s1">select</span><span class="s2">=&quot;@*&quot; </span><span class="s0">/&gt;</span>
+					<span class="s0">&lt;xslt:apply-templates </span><span class="s1">mode</span><span class="s2">=&quot;dsdl:go&quot; </span><span class="s0">/&gt;</span>
+				<span class="s0">&lt;/xslt:copy&gt;</span>
+			<span class="s0">&lt;/xsl:when&gt;</span>
+			<span class="s0">&lt;xsl:otherwise&gt;</span>
+				<span class="s0">&lt;xsl:choose&gt;</span>
+
+					<span class="s0">&lt;xsl:when</span>
+						<span class="s1">test</span><span class="s2">=&quot;string-length( $document-uri ) = 0 and string-length( $fragment-id ) = 0&quot;</span><span class="s0">&gt;</span>
+						<span class="s0">&lt;xsl:message&gt;</span>
+							<span class="s3">Error: Impossible URL in CRDL include</span>
+						<span class="s0">&lt;/xsl:message&gt;</span>
+					<span class="s0">&lt;/xsl:when&gt;</span>
+
+					<span class="s4">&lt;!-- this case is when there is in embedded schema in the same document elsewhere --&gt;</span>
+					<span class="s0">&lt;xslt:when</span>
+						<span class="s1">test</span><span class="s2">=&quot;string-length( $document-uri ) = 0&quot;</span><span class="s0">&gt;</span>
+
+						<span class="s0">&lt;xslt:apply-templates </span><span class="s1">mode</span><span class="s2">=&quot;dsdl:go&quot;</span>
+							<span class="s1">select</span><span class="s2">=&quot;//*[@xml:id= $fragment-id ] | id( $fragment-id) 
+                | //*[@id= $fragment-id ]&quot; </span><span class="s0">/&gt;</span>
+					<span class="s0">&lt;/xslt:when&gt;</span>
+
+					<span class="s0">&lt;xsl:when</span>
+						<span class="s1">test</span><span class="s2">=&quot;string-length( $fragment-id ) </span><span class="s5">&amp;gt; </span><span class="s2">0&quot;</span><span class="s0">&gt;</span>
+						<span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;theDocument_1&quot;</span>
+							<span class="s1">select</span><span class="s2">=&quot;document( $document-uri,/ )&quot; </span><span class="s0">/&gt;</span>
+						<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;not($theDocument_1)&quot;</span><span class="s0">&gt;</span>
+							<span class="s0">&lt;xsl:message </span><span class="s1">terminate</span><span class="s2">=&quot;no&quot;</span><span class="s0">&gt;</span>
+								<span class="s0">&lt;xsl:text&gt;</span><span class="s3">Unable to open referenced included file: </span><span class="s0">&lt;/xsl:text&gt;</span>
+								<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;@href&quot; </span><span class="s0">/&gt;</span>
+							<span class="s0">&lt;/xsl:message&gt;</span>
+						<span class="s0">&lt;/xsl:if&gt;</span>
+						<span class="s4">&lt;!-- use for-each to rebase id() to $theDocument --&gt;</span>
+						<span class="s0">&lt;xsl:for-each </span><span class="s1">select</span><span class="s2">=&quot;$theDocument_1&quot;</span><span class="s0">&gt;</span>
+							<span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;theFragment_1&quot;</span>
+								<span class="s1">select</span><span class="s2">=&quot;$theDocument_1//*[@xml:id= $fragment-id ] 
+               | id( $fragment-id ) 
+               | $theDocument_1//*[@id= $fragment-id ]&quot; </span><span class="s0">/&gt;</span>
+
+							<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;not($theFragment_1)&quot;</span><span class="s0">&gt;</span>
+								<span class="s0">&lt;xsl:message </span><span class="s1">terminate</span><span class="s2">=&quot;no&quot;</span><span class="s0">&gt;</span>
+									<span class="s0">&lt;xsl:text&gt;</span><span class="s3">Unable to locate id attribute: </span><span class="s0">&lt;/xsl:text&gt;</span>
+									<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;@href&quot; </span><span class="s0">/&gt;</span>
+								<span class="s0">&lt;/xsl:message&gt;</span>
+							<span class="s0">&lt;/xsl:if&gt;</span>
+							<span class="s0">&lt;xsl:apply-templates </span><span class="s1">select</span><span class="s2">=&quot; $theFragment_1 &quot;</span>
+								<span class="s1">mode</span><span class="s2">=&quot;dsdl:go&quot; </span><span class="s0">/&gt;</span>
+						<span class="s0">&lt;/xsl:for-each&gt;</span>
+					<span class="s0">&lt;/xsl:when&gt;</span>
+
+					<span class="s0">&lt;xsl:otherwise&gt;</span>
+						<span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;theDocument_2&quot;</span>
+							<span class="s1">select</span><span class="s2">=&quot;document( $document-uri,/ )&quot; </span><span class="s0">/&gt;</span>
+						<span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;theFragment_2&quot;</span>
+							<span class="s1">select</span><span class="s2">=&quot;$theDocument_2/*&quot; </span><span class="s0">/&gt;</span>
+
+						<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;not($theDocument_2)&quot;</span><span class="s0">&gt;</span>
+							<span class="s0">&lt;xsl:message </span><span class="s1">terminate</span><span class="s2">=&quot;no&quot;</span><span class="s0">&gt;</span>
+								<span class="s0">&lt;xsl:text&gt;</span><span class="s3">Unable to open referenced included file: </span><span class="s0">&lt;/xsl:text&gt;</span>
+								<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;@href&quot; </span><span class="s0">/&gt;</span>
+							<span class="s0">&lt;/xsl:message&gt;</span>
+						<span class="s0">&lt;/xsl:if&gt;</span>
+						<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;not($theFragment_2)&quot;</span><span class="s0">&gt;</span>
+							<span class="s0">&lt;xsl:message </span><span class="s1">terminate</span><span class="s2">=&quot;no&quot;</span><span class="s0">&gt;</span>
+								<span class="s0">&lt;xsl:text&gt;</span><span class="s3">Unable to locate id attribute: </span><span class="s0">&lt;/xsl:text&gt;</span>
+								<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;@href&quot; </span><span class="s0">/&gt;</span>
+							<span class="s0">&lt;/xsl:message&gt;</span>
+						<span class="s0">&lt;/xsl:if&gt;</span>
+
+						<span class="s0">&lt;xsl:apply-templates </span><span class="s1">select</span><span class="s2">=&quot;$theFragment_2&quot;</span>
+							<span class="s1">mode</span><span class="s2">=&quot;dsdl:go&quot; </span><span class="s0">/&gt;</span>
+					<span class="s0">&lt;/xsl:otherwise&gt;</span>
+				<span class="s0">&lt;/xsl:choose&gt;</span>
+
+			<span class="s0">&lt;/xsl:otherwise&gt;</span>
+		<span class="s0">&lt;/xsl:choose&gt;</span>
+		<span class="s0">&lt;xsl:processing-instruction </span><span class="s1">name</span><span class="s2">=&quot;DSDL_INCLUDE_END&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;@href&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;/xsl:processing-instruction&gt;</span>
+	<span class="s0">&lt;/xslt:template&gt;</span>
+
+
+	<span class="s4">&lt;!-- =========================================================== --&gt;</span>
+	<span class="s4">&lt;!-- ISO/IEC 19757 - DSDL Document Schema Definition Languages   --&gt;</span>
+	<span class="s4">&lt;!-- Part 4 - Namespace-based Validation Dispatching Language - NVDL --&gt;</span>
+	<span class="s4">&lt;!-- Note: This does not include schemas referenced for          --&gt;</span>
+	<span class="s4">&lt;!-- validation, it merely handles any simple XIncludes          --&gt;</span>
+	<span class="s4">&lt;!-- =========================================================== --&gt;</span>
+	<span class="s4">&lt;!-- ISO/IEC 19757 - DSDL Document Schema Definition Languages   --&gt;</span>
+	<span class="s4">&lt;!-- Part 8 - Document Schema Renaming Language - DSRL           --&gt;</span>
+	<span class="s4">&lt;!-- Note: Final? Committee Draft   Experimental support only    --&gt;</span>
+	<span class="s4">&lt;!-- =========================================================== --&gt;</span>
+	<span class="s4">&lt;!-- XInclude support for id based references only, with 1 level --&gt;</span>
+	<span class="s4">&lt;!-- of fallback.                                                --&gt;</span>
+	<span class="s4">&lt;!-- =========================================================== --&gt;</span>
+
+	<span class="s0">&lt;xslt:template </span><span class="s1">mode</span><span class="s2">=&quot;dsdl:go&quot;</span>
+		<span class="s1">match</span><span class="s2">=&quot;xi:include[@href][not(@parseType) or @parseType ='xml']&quot;</span><span class="s0">&gt;</span>
+		<span class="s4">&lt;!-- Simple inclusions only here --&gt;</span>
+		<span class="s0">&lt;xsl:processing-instruction </span><span class="s1">name</span><span class="s2">=&quot;DSDL_INCLUDE_START&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;@href&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;/xsl:processing-instruction&gt;</span>
+		<span class="s0">&lt;xsl:choose&gt;</span>
+			<span class="s0">&lt;xsl:when </span><span class="s1">test</span><span class="s2">=&quot;not( $include-xinclude = 'true' )&quot;</span><span class="s0">&gt;</span>
+				<span class="s0">&lt;xslt:copy&gt;</span>
+					<span class="s0">&lt;xslt:copy-of </span><span class="s1">select</span><span class="s2">=&quot;@*&quot; </span><span class="s0">/&gt;</span>
+					<span class="s0">&lt;xslt:apply-templates </span><span class="s1">mode</span><span class="s2">=&quot;dsdl:go&quot; </span><span class="s0">/&gt;</span>
+				<span class="s0">&lt;/xslt:copy&gt;</span>
+			<span class="s0">&lt;/xsl:when&gt;</span>
+			<span class="s0">&lt;xsl:otherwise&gt;</span>
+				<span class="s0">&lt;xsl:choose&gt;</span>
+
+					<span class="s0">&lt;xsl:when </span><span class="s1">test</span><span class="s2">=&quot;contains( @href, '#')&quot;</span><span class="s0">&gt;</span>
+						<span class="s0">&lt;xsl:message </span><span class="s1">terminate</span><span class="s2">=&quot;yes&quot;</span><span class="s0">&gt;</span>
+							<span class="s3">Fatal error: Xinclude href contains fragment</span>
+							<span class="s3">identifier #</span>
+						<span class="s0">&lt;/xsl:message&gt;</span>
+					<span class="s0">&lt;/xsl:when&gt;</span>
+
+
+					<span class="s0">&lt;xsl:when </span><span class="s1">test</span><span class="s2">=&quot;contains( @xpointer, '(')&quot;</span><span class="s0">&gt;</span>
+						<span class="s0">&lt;xsl:message </span><span class="s1">terminate</span><span class="s2">=&quot;yes&quot;</span><span class="s0">&gt;</span>
+							<span class="s3">Fatal error: Sorry, this software only</span>
+							<span class="s3">supports simple ids in XInclude xpointers</span>
+						<span class="s0">&lt;/xsl:message&gt;</span>
+					<span class="s0">&lt;/xsl:when&gt;</span>
+
+					<span class="s0">&lt;xsl:when</span>
+						<span class="s1">test</span><span class="s2">=&quot;string-length( @href ) = 0 and string-length( @xpointer ) = 0&quot;</span><span class="s0">&gt;</span>
+
+						<span class="s0">&lt;xsl:message </span><span class="s1">terminate</span><span class="s2">=&quot;yes&quot;</span><span class="s0">&gt;</span>
+							<span class="s3">Fatal Error: Impossible URL in XInclude</span>
+							<span class="s3">include</span>
+						<span class="s0">&lt;/xsl:message&gt;</span>
+					<span class="s0">&lt;/xsl:when&gt;</span>
+
+					<span class="s4">&lt;!-- this case is when there is in embedded schema in the same document elsewhere --&gt;</span>
+					<span class="s0">&lt;xslt:when </span><span class="s1">test</span><span class="s2">=&quot;string-length( @href ) = 0&quot;</span><span class="s0">&gt;</span>
+
+						<span class="s0">&lt;xslt:apply-templates </span><span class="s1">mode</span><span class="s2">=&quot;dsdl:go&quot;</span>
+							<span class="s1">select</span><span class="s2">=&quot;//*[@xml:id= current()/@xpointer  ] | id( @xpointer) 
+                | //*[@id= current()/@xpointer  ]&quot; </span><span class="s0">/&gt;</span>
+					<span class="s0">&lt;/xslt:when&gt;</span>
+
+					<span class="s0">&lt;xsl:when</span>
+						<span class="s1">test</span><span class="s2">=&quot;string-length( @xpointer ) </span><span class="s5">&amp;gt; </span><span class="s2">0&quot;</span><span class="s0">&gt;</span>
+						<span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;theDocument_1&quot;</span>
+							<span class="s1">select</span><span class="s2">=&quot;document( @href,/ )&quot; </span><span class="s0">/&gt;</span>
+						<span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;theFragment_1&quot;</span>
+							<span class="s1">select</span><span class="s2">=&quot;$theDocument_1//*[@xml:id= current()/@xpointer  ] 
+              
+              | $theDocument_1//*[@id= current()/@xpointer  ]&quot; </span><span class="s0">/&gt;</span>
+						<span class="s4">&lt;!-- removed 
+                            | $theDocument_1/id( @xpointer) 
+                            because it requires rebasing in XSLT1 and that would mess up the use of current() 
+                        --&gt;</span>
+
+
+						<span class="s4">&lt;!-- Allow one level of fallback, to another XInclude --&gt;</span>
+						<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;not($theDocument_1)&quot;</span><span class="s0">&gt;</span>
+							<span class="s0">&lt;xsl:choose&gt;</span>
+								<span class="s0">&lt;xsl:when </span><span class="s1">test</span><span class="s2">=&quot;xi:fallback&quot;</span><span class="s0">&gt;</span>
+									<span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;theDocument_2&quot;</span>
+										<span class="s1">select</span><span class="s2">=&quot;document( xi:fallback[1]/xi:include[not(@parseType) 
+                         or @parseType='xml']/@href,/ )&quot; </span><span class="s0">/&gt;</span>
+									<span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;theFragment_2&quot;</span>
+										<span class="s1">select</span><span class="s2">=&quot;$theDocument_2//*[@xml:id= current()/xi:fallback[1]/xi:include/@xpointer  ] 
+                            | $theDocument_2//*[@id= current()/xi:fallback[1]/xi:include/@xpointer  ]&quot; </span><span class="s0">/&gt;</span>
+									<span class="s4">&lt;!-- removed  
+                                        | $theDocument_2/id( xi:fallback[1]/xi:include/@xpointer) 
+                                        because it id() would need rebasing in XSLT1 and that would mess up use of current() 
+                                    --&gt;</span>
+
+									<span class="s0">&lt;xsl:if</span>
+										<span class="s1">test</span><span class="s2">=&quot;not($theDocument_2)&quot;</span><span class="s0">&gt;</span>
+
+										<span class="s0">&lt;xsl:message </span><span class="s1">terminate</span><span class="s2">=&quot;no&quot;</span><span class="s0">&gt;</span>
+											<span class="s0">&lt;xsl:text&gt;</span><span class="s3">Unable to open referenced included file and fallback</span>
+									<span class="s3">file: </span><span class="s0">&lt;/xsl:text&gt;</span>
+											<span class="s0">&lt;xsl:value-of</span>
+												<span class="s1">select</span><span class="s2">=&quot;@href&quot; </span><span class="s0">/&gt;</span>
+										<span class="s0">&lt;/xsl:message&gt;</span>
+									<span class="s0">&lt;/xsl:if&gt;</span>
+								<span class="s0">&lt;/xsl:when&gt;</span>
+								<span class="s0">&lt;xsl:otherwise&gt;</span>
+									<span class="s0">&lt;xsl:message </span><span class="s1">terminate</span><span class="s2">=&quot;no&quot;</span><span class="s0">&gt;</span>
+										<span class="s0">&lt;xsl:text&gt;</span><span class="s3">Unable to open referenced included file: </span><span class="s0">&lt;/xsl:text&gt;</span>
+										<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;@href&quot; </span><span class="s0">/&gt;</span>
+									<span class="s0">&lt;/xsl:message&gt;</span>
+								<span class="s0">&lt;/xsl:otherwise&gt;</span>
+							<span class="s0">&lt;/xsl:choose&gt;</span>
+						<span class="s0">&lt;/xsl:if&gt;</span>
+						<span class="s0">&lt;xsl:apply-templates </span><span class="s1">select</span><span class="s2">=&quot; $theFragment_1&quot;</span>
+							<span class="s1">mode</span><span class="s2">=&quot;dsdl:go&quot; </span><span class="s0">/&gt;</span>
+					<span class="s0">&lt;/xsl:when&gt;</span>
+
+					<span class="s4">&lt;!-- Document but no fragment specified --&gt;</span>
+					<span class="s0">&lt;xsl:otherwise&gt;</span>
+						<span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;theDocument_3&quot;</span>
+							<span class="s1">select</span><span class="s2">=&quot;document( @href,/ )&quot; </span><span class="s0">/&gt;</span>
+						<span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;theFragment_3&quot;</span>
+							<span class="s1">select</span><span class="s2">=&quot;$theDocument_3/*&quot; </span><span class="s0">/&gt;</span>
+
+						<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;not($theDocument_3)&quot;</span><span class="s0">&gt;</span>
+							<span class="s0">&lt;xsl:message </span><span class="s1">terminate</span><span class="s2">=&quot;no&quot;</span><span class="s0">&gt;</span>
+								<span class="s0">&lt;xsl:text&gt;</span><span class="s3">Unable to open referenced included file: </span><span class="s0">&lt;/xsl:text&gt;</span>
+								<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;@href&quot; </span><span class="s0">/&gt;</span>
+							<span class="s0">&lt;/xsl:message&gt;</span>
+						<span class="s0">&lt;/xsl:if&gt;</span>
+
+						<span class="s0">&lt;xsl:apply-templates </span><span class="s1">select</span><span class="s2">=&quot;$theFragment_3 &quot;</span>
+							<span class="s1">mode</span><span class="s2">=&quot;dsdl:go&quot; </span><span class="s0">/&gt;</span>
+					<span class="s0">&lt;/xsl:otherwise&gt;</span>
+				<span class="s0">&lt;/xsl:choose&gt;</span>
+
+			<span class="s0">&lt;/xsl:otherwise&gt;</span>
+		<span class="s0">&lt;/xsl:choose&gt;</span>
+		<span class="s0">&lt;xsl:processing-instruction </span><span class="s1">name</span><span class="s2">=&quot;DSDL_INCLUDE_END&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;@href&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;/xsl:processing-instruction&gt;</span>
+	<span class="s0">&lt;/xslt:template&gt;</span>
+
+	<span class="s4">&lt;!-- =========================================================== --&gt;</span>
+	<span class="s4">&lt;!-- W3C XLink 1.1 embedded simple links                        --&gt;</span>
+	<span class="s4">&lt;!-- =========================================================== --&gt;</span>
+	<span class="s0">&lt;xslt:template</span>
+		<span class="s1">match</span><span class="s2">=&quot;*[@xlink:href][not(parent::*[@xlink:type='complex'])] 
+               [not(@xlink:type) or (@xlink:type='simple')] 
+               [@xlink:show='embed'] 
+               [not(@xlink:actuate) or (@xlink:actuate='onLoad')]&quot;</span>
+		<span class="s1">mode</span><span class="s2">=&quot;dsdl:go&quot; </span><span class="s1">priority</span><span class="s2">=&quot;1&quot;</span><span class="s0">&gt;</span>
+
+		<span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;document-uri&quot;</span>
+			<span class="s1">select</span><span class="s2">=&quot;substring-before(concat(@xlink:href,'#'), '#')&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;fragment-id&quot;</span>
+			<span class="s1">select</span><span class="s2">=&quot;substring-after(@xlink:href, '#')&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;xsl:processing-instruction </span><span class="s1">name</span><span class="s2">=&quot;DSDL_INCLUDE_START&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;@xlink:href&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;/xsl:processing-instruction&gt;</span>
+		<span class="s0">&lt;xsl:choose&gt;</span>
+			<span class="s0">&lt;xsl:when </span><span class="s1">test</span><span class="s2">=&quot;not( $include-xlink = 'true' )&quot;</span><span class="s0">&gt;</span>
+				<span class="s0">&lt;xslt:copy&gt;</span>
+					<span class="s0">&lt;xslt:copy-of </span><span class="s1">select</span><span class="s2">=&quot;@*&quot; </span><span class="s0">/&gt;</span>
+					<span class="s0">&lt;xslt:apply-templates </span><span class="s1">mode</span><span class="s2">=&quot;dsdl:go&quot; </span><span class="s0">/&gt;</span>
+				<span class="s0">&lt;/xslt:copy&gt;</span>
+			<span class="s0">&lt;/xsl:when&gt;</span>
+			<span class="s0">&lt;xsl:otherwise&gt;</span>
+				<span class="s0">&lt;xsl:choose&gt;</span>
+
+					<span class="s0">&lt;xsl:when</span>
+						<span class="s1">test</span><span class="s2">=&quot;string-length( $document-uri ) = 0 and string-length( $fragment-id ) = 0&quot;</span><span class="s0">&gt;</span>
+						<span class="s0">&lt;xsl:message&gt;</span>
+							<span class="s3">Error: Impossible URL in XLink embedding</span>
+							<span class="s3">link</span>
+						<span class="s0">&lt;/xsl:message&gt;</span>
+					<span class="s0">&lt;/xsl:when&gt;</span>
+
+					<span class="s4">&lt;!-- this case is when there is in embedded schema in the same document elsewhere --&gt;</span>
+					<span class="s0">&lt;xslt:when</span>
+						<span class="s1">test</span><span class="s2">=&quot;string-length( $document-uri ) = 0&quot;</span><span class="s0">&gt;</span>
+						<span class="s0">&lt;xslt:apply-templates </span><span class="s1">mode</span><span class="s2">=&quot;dsdl:go&quot;</span>
+							<span class="s1">select</span><span class="s2">=&quot;//*[@xml:id= $fragment-id ] | id( $fragment-id)  
+                | //*[@id= $fragment-id ]&quot; </span><span class="s0">/&gt;</span>
+					<span class="s0">&lt;/xslt:when&gt;</span>
+
+					<span class="s0">&lt;xsl:when</span>
+						<span class="s1">test</span><span class="s2">=&quot;string-length( $fragment-id ) </span><span class="s5">&amp;gt; </span><span class="s2">0&quot;</span><span class="s0">&gt;</span>
+						<span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;theDocument_1&quot;</span>
+							<span class="s1">select</span><span class="s2">=&quot;document( $document-uri,/ )&quot; </span><span class="s0">/&gt;</span>
+						<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;not($theDocument_1)&quot;</span><span class="s0">&gt;</span>
+							<span class="s0">&lt;xsl:message </span><span class="s1">terminate</span><span class="s2">=&quot;no&quot;</span><span class="s0">&gt;</span>
+								<span class="s0">&lt;xsl:text&gt;</span><span class="s3">Unable to open referenced included file: </span><span class="s0">&lt;/xsl:text&gt;</span>
+								<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;@xlink:href&quot; </span><span class="s0">/&gt;</span>
+							<span class="s0">&lt;/xsl:message&gt;</span>
+						<span class="s0">&lt;/xsl:if&gt;</span>
+						<span class="s4">&lt;!-- use for-each to rebase id() to $theDocument --&gt;</span>
+						<span class="s0">&lt;xsl:for-each </span><span class="s1">select</span><span class="s2">=&quot;$theDocument_1&quot;</span><span class="s0">&gt;</span>
+							<span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;theFragment_1&quot;</span>
+								<span class="s1">select</span><span class="s2">=&quot;$theDocument_1//*[@xml:id= $fragment-id ] 
+               | id( $fragment-id )  
+               | $theDocument_1//*[@id= $fragment-id ]&quot; </span><span class="s0">/&gt;</span>
+							<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;not($theFragment_1)&quot;</span><span class="s0">&gt;</span>
+								<span class="s0">&lt;xsl:message </span><span class="s1">terminate</span><span class="s2">=&quot;no&quot;</span><span class="s0">&gt;</span>
+									<span class="s0">&lt;xsl:text&gt;</span><span class="s3">Unable to locate id attribute: </span><span class="s0">&lt;/xsl:text&gt;</span>
+									<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;@xlink:href&quot; </span><span class="s0">/&gt;</span>
+								<span class="s0">&lt;/xsl:message&gt;</span>
+							<span class="s0">&lt;/xsl:if&gt;</span>
+							<span class="s0">&lt;xsl:apply-templates</span>
+								<span class="s1">select</span><span class="s2">=&quot; $theFragment_1[1]&quot; </span><span class="s1">mode</span><span class="s2">=&quot;dsdl:go&quot; </span><span class="s0">/&gt;</span>
+						<span class="s0">&lt;/xsl:for-each&gt;</span>
+					<span class="s0">&lt;/xsl:when&gt;</span>
+
+					<span class="s0">&lt;xsl:otherwise&gt;</span>
+						<span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;theDocument_2&quot;</span>
+							<span class="s1">select</span><span class="s2">=&quot;document( $document-uri,/ )&quot; </span><span class="s0">/&gt;</span>
+						<span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;theFragment_2&quot;</span>
+							<span class="s1">select</span><span class="s2">=&quot;$theDocument_2/*&quot; </span><span class="s0">/&gt;</span>
+
+						<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;not($theDocument_2)&quot;</span><span class="s0">&gt;</span>
+							<span class="s0">&lt;xsl:message </span><span class="s1">terminate</span><span class="s2">=&quot;no&quot;</span><span class="s0">&gt;</span>
+								<span class="s0">&lt;xsl:text&gt;</span><span class="s3">Unable to open referenced included file: </span><span class="s0">&lt;/xsl:text&gt;</span>
+								<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;@xlink:href&quot; </span><span class="s0">/&gt;</span>
+							<span class="s0">&lt;/xsl:message&gt;</span>
+						<span class="s0">&lt;/xsl:if&gt;</span>
+
+						<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;not($theFragment_2)&quot;</span><span class="s0">&gt;</span>
+							<span class="s0">&lt;xsl:message </span><span class="s1">terminate</span><span class="s2">=&quot;no&quot;</span><span class="s0">&gt;</span>
+								<span class="s0">&lt;xsl:text&gt;</span><span class="s3">Unable to locate id attribute: </span><span class="s0">&lt;/xsl:text&gt;</span>
+								<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;@xlink:href&quot; </span><span class="s0">/&gt;</span>
+							<span class="s0">&lt;/xsl:message&gt;</span>
+						<span class="s0">&lt;/xsl:if&gt;</span>
+						<span class="s0">&lt;xsl:apply-templates </span><span class="s1">select</span><span class="s2">=&quot;$theFragment_2 &quot;</span>
+							<span class="s1">mode</span><span class="s2">=&quot;dsdl:go&quot; </span><span class="s0">/&gt;</span>
+					<span class="s0">&lt;/xsl:otherwise&gt;</span>
+				<span class="s0">&lt;/xsl:choose&gt;</span>
+
+			<span class="s0">&lt;/xsl:otherwise&gt;</span>
+		<span class="s0">&lt;/xsl:choose&gt;</span>
+
+		<span class="s0">&lt;xsl:processing-instruction </span><span class="s1">name</span><span class="s2">=&quot;DSDL_INCLUDE_END&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;@xlink:href&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;/xsl:processing-instruction&gt;</span>
+	<span class="s0">&lt;/xslt:template&gt;</span>
+
+
+<span class="s0">&lt;/xslt:stylesheet&gt;</span></pre>
+</body>
+</html>

@@ -1,0 +1,88 @@
+<html>
+<head>
+<title>xsltlocale.h</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+.s4 { color: #ab51ba;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+xsltlocale.h</font>
+</center></td></tr></table>
+<pre><span class="s0">/* 
+ * Summary: Locale handling 
+ * Description: Interfaces for locale handling. Needed for language dependent 
+ *              sorting. 
+ * 
+ * Copy: See Copyright for the status of this software. 
+ * 
+ * Author: Nick Wellnhofer 
+ */</span>
+
+<span class="s2">#ifndef </span><span class="s1">__XML_XSLTLOCALE_H__</span>
+<span class="s2">#define </span><span class="s1">__XML_XSLTLOCALE_H__</span>
+
+<span class="s2">#include </span><span class="s1">&lt;libxml/xmlstring.h&gt;</span>
+<span class="s2">#include </span><span class="s3">&quot;xsltexports.h&quot;</span>
+
+<span class="s2">#ifdef </span><span class="s1">XSLT_LOCALE_XLOCALE</span>
+
+<span class="s2">#include </span><span class="s1">&lt;locale.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;xlocale.h&gt;</span>
+
+<span class="s2">#ifdef </span><span class="s1">__GLIBC__</span>
+<span class="s0">/*locale_t is defined only if _GNU_SOURCE is defined*/</span>
+<span class="s2">typedef </span><span class="s1">__locale_t xsltLocale;</span>
+<span class="s2">#else</span>
+<span class="s2">typedef </span><span class="s1">locale_t xsltLocale;</span>
+<span class="s2">#endif</span>
+<span class="s2">typedef </span><span class="s1">xmlChar xsltLocaleChar;</span>
+
+<span class="s1">#elif defined(XSLT_LOCALE_WINAPI)</span>
+
+<span class="s2">#include </span><span class="s1">&lt;windows.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;winnls.h&gt;</span>
+
+<span class="s2">typedef </span><span class="s1">LCID xsltLocale;</span>
+<span class="s2">typedef </span><span class="s4">wchar_t </span><span class="s1">xsltLocaleChar;</span>
+
+<span class="s2">#else</span>
+
+<span class="s0">/* 
+ * XSLT_LOCALE_NONE: 
+ * Macro indicating that locale are not supported 
+ */</span>
+<span class="s2">#ifndef </span><span class="s1">XSLT_LOCALE_NONE</span>
+<span class="s2">#define </span><span class="s1">XSLT_LOCALE_NONE</span>
+<span class="s2">#endif</span>
+
+<span class="s2">typedef void </span><span class="s1">*xsltLocale;</span>
+<span class="s2">typedef </span><span class="s1">xmlChar xsltLocaleChar;</span>
+
+<span class="s2">#endif</span>
+
+<span class="s1">XSLTPUBFUN xsltLocale XSLTCALL</span>
+	<span class="s1">xsltNewLocale			(</span><span class="s2">const </span><span class="s1">xmlChar *langName);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+	<span class="s1">xsltFreeLocale			(xsltLocale locale);</span>
+<span class="s1">XSLTPUBFUN xsltLocaleChar * XSLTCALL</span>
+	<span class="s1">xsltStrxfrm			(xsltLocale locale,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *string);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+	<span class="s1">xsltLocaleStrcmp		(xsltLocale locale,</span>
+					 <span class="s2">const </span><span class="s1">xsltLocaleChar *str1,</span>
+					 <span class="s2">const </span><span class="s1">xsltLocaleChar *str2);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+	<span class="s1">xsltFreeLocales			(</span><span class="s2">void</span><span class="s1">);</span>
+
+<span class="s2">#endif </span><span class="s0">/* __XML_XSLTLOCALE_H__ */</span>
+</pre>
+</body>
+</html>

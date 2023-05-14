@@ -1,0 +1,148 @@
+<html>
+<head>
+<title>variables.h</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+.s4 { color: #0f9795;}
+.s5 { color: #6897bb;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+variables.h</font>
+</center></td></tr></table>
+<pre><span class="s0">/* 
+ * Summary: interface for the variable matching and lookup. 
+ * Description: interface for the variable matching and lookup. 
+ * 
+ * Copy: See Copyright for the status of this software. 
+ * 
+ * Author: Daniel Veillard 
+ */</span>
+
+<span class="s2">#ifndef </span><span class="s1">__XML_XSLT_VARIABLES_H__</span>
+<span class="s2">#define </span><span class="s1">__XML_XSLT_VARIABLES_H__</span>
+
+<span class="s2">#include </span><span class="s1">&lt;libxml/xpath.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/xpathInternals.h&gt;</span>
+<span class="s2">#include </span><span class="s3">&quot;xsltexports.h&quot;</span>
+<span class="s2">#include </span><span class="s3">&quot;xsltInternals.h&quot;</span>
+<span class="s2">#include </span><span class="s3">&quot;functions.h&quot;</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s2">extern </span><span class="s3">&quot;C&quot; </span><span class="s1">{</span>
+<span class="s2">#endif</span>
+
+
+<span class="s0">/** 
+ * XSLT_REGISTER_VARIABLE_LOOKUP: 
+ * 
+ * Registering macro, not general purpose at all but used in different modules. 
+ */</span>
+
+<span class="s2">#define </span><span class="s1">XSLT_REGISTER_VARIABLE_LOOKUP(ctxt)			\</span>
+    <span class="s1">xmlXPathRegisterVariableLookup((ctxt)</span><span class="s4">-&gt;</span><span class="s1">xpathCtxt,		\</span>
+	       <span class="s1">xsltXPathVariableLookup,	(</span><span class="s2">void </span><span class="s1">*)(ctxt));	\</span>
+    <span class="s1">xsltRegisterAllFunctions((ctxt)</span><span class="s4">-&gt;</span><span class="s1">xpathCtxt);		\</span>
+    <span class="s1">xsltRegisterAllElement(ctxt);				\</span>
+    <span class="s1">(ctxt)</span><span class="s4">-&gt;</span><span class="s1">xpathCtxt</span><span class="s4">-&gt;</span><span class="s1">extra = ctxt</span>
+
+<span class="s0">/* 
+ * Flags for memory management of RVTs 
+ */</span>
+
+<span class="s0">/** 
+ * XSLT_RVT_LOCAL: 
+ * 
+ * RVT is destroyed after the current instructions ends. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XSLT_RVT_LOCAL       ((</span><span class="s2">void </span><span class="s1">*)</span><span class="s5">1</span><span class="s1">)</span>
+
+<span class="s0">/** 
+ * XSLT_RVT_VARIABLE: 
+ * 
+ * RVT is part of a local variable and destroyed after the variable goes out 
+ * of scope. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XSLT_RVT_VARIABLE    ((</span><span class="s2">void </span><span class="s1">*)</span><span class="s5">2</span><span class="s1">)</span>
+
+<span class="s0">/** 
+ * XSLT_RVT_FUNC_RESULT: 
+ * 
+ * RVT is part of results returned with func:result. The RVT won't be 
+ * destroyed after exiting a template and will be reset to XSLT_RVT_LOCAL or 
+ * XSLT_RVT_VARIABLE in the template that receives the return value. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XSLT_RVT_FUNC_RESULT ((</span><span class="s2">void </span><span class="s1">*)</span><span class="s5">3</span><span class="s1">)</span>
+
+<span class="s0">/** 
+ * XSLT_RVT_GLOBAL: 
+ * 
+ * RVT is part of a global variable. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XSLT_RVT_GLOBAL      ((</span><span class="s2">void </span><span class="s1">*)</span><span class="s5">4</span><span class="s1">)</span>
+
+<span class="s0">/* 
+ * Interfaces for the variable module. 
+ */</span>
+
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltEvalGlobalVariables		(xsltTransformContextPtr ctxt);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltEvalUserParams		(xsltTransformContextPtr ctxt,</span>
+						 <span class="s2">const char </span><span class="s1">**params);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltQuoteUserParams		(xsltTransformContextPtr ctxt,</span>
+						 <span class="s2">const char </span><span class="s1">**params);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltEvalOneUserParam		(xsltTransformContextPtr ctxt,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar * name,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar * value);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltQuoteOneUserParam		(xsltTransformContextPtr ctxt,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar * name,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar * value);</span>
+
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltParseGlobalVariable		(xsltStylesheetPtr style,</span>
+						 <span class="s1">xmlNodePtr cur);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltParseGlobalParam		(xsltStylesheetPtr style,</span>
+						 <span class="s1">xmlNodePtr cur);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltParseStylesheetVariable	(xsltTransformContextPtr ctxt,</span>
+						 <span class="s1">xmlNodePtr cur);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltParseStylesheetParam	(xsltTransformContextPtr ctxt,</span>
+						 <span class="s1">xmlNodePtr cur);</span>
+<span class="s1">XSLTPUBFUN xsltStackElemPtr XSLTCALL</span>
+		<span class="s1">xsltParseStylesheetCallerParam	(xsltTransformContextPtr ctxt,</span>
+						 <span class="s1">xmlNodePtr cur);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltAddStackElemList		(xsltTransformContextPtr ctxt,</span>
+						 <span class="s1">xsltStackElemPtr elems);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltFreeGlobalVariables		(xsltTransformContextPtr ctxt);</span>
+<span class="s1">XSLTPUBFUN xmlXPathObjectPtr XSLTCALL</span>
+		<span class="s1">xsltVariableLookup		(xsltTransformContextPtr ctxt,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *ns_uri);</span>
+<span class="s1">XSLTPUBFUN xmlXPathObjectPtr XSLTCALL</span>
+		<span class="s1">xsltXPathVariableLookup		(</span><span class="s2">void </span><span class="s1">*ctxt,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *ns_uri);</span>
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s1">}</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#endif </span><span class="s0">/* __XML_XSLT_VARIABLES_H__ */</span>
+
+</pre>
+</body>
+</html>

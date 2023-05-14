@@ -1,0 +1,121 @@
+<html>
+<head>
+<title>pattern.h</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+.s4 { color: #6897bb;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+pattern.h</font>
+</center></td></tr></table>
+<pre><span class="s0">/* 
+ * Summary: pattern expression handling 
+ * Description: allows to compile and test pattern expressions for nodes 
+ *              either in a tree or based on a parser state. 
+ * 
+ * Copy: See Copyright for the status of this software. 
+ * 
+ * Author: Daniel Veillard 
+ */</span>
+
+<span class="s2">#ifndef </span><span class="s1">__XML_PATTERN_H__</span>
+<span class="s2">#define </span><span class="s1">__XML_PATTERN_H__</span>
+
+<span class="s2">#include </span><span class="s1">&lt;libxml/xmlversion.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/tree.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/dict.h&gt;</span>
+
+<span class="s2">#ifdef </span><span class="s1">LIBXML_PATTERN_ENABLED</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s2">extern </span><span class="s3">&quot;C&quot; </span><span class="s1">{</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * xmlPattern: 
+ * 
+ * A compiled (XPath based) pattern to select nodes 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xmlPattern xmlPattern;</span>
+<span class="s2">typedef </span><span class="s1">xmlPattern *xmlPatternPtr;</span>
+
+<span class="s0">/** 
+ * xmlPatternFlags: 
+ * 
+ * This is the set of options affecting the behaviour of pattern 
+ * matching with this module 
+ * 
+ */</span>
+<span class="s2">typedef enum </span><span class="s1">{</span>
+    <span class="s1">XML_PATTERN_DEFAULT		= </span><span class="s4">0</span><span class="s1">,	</span><span class="s0">/* simple pattern match */</span>
+    <span class="s1">XML_PATTERN_XPATH		= </span><span class="s4">1</span><span class="s1">&lt;&lt;</span><span class="s4">0</span><span class="s1">,	</span><span class="s0">/* standard XPath pattern */</span>
+    <span class="s1">XML_PATTERN_XSSEL		= </span><span class="s4">1</span><span class="s1">&lt;&lt;</span><span class="s4">1</span><span class="s1">,	</span><span class="s0">/* XPath subset for schema selector */</span>
+    <span class="s1">XML_PATTERN_XSFIELD		= </span><span class="s4">1</span><span class="s1">&lt;&lt;</span><span class="s4">2	</span><span class="s0">/* XPath subset for schema field */</span>
+<span class="s1">} xmlPatternFlags;</span>
+
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlFreePattern		(xmlPatternPtr comp);</span>
+
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlFreePatternList	(xmlPatternPtr comp);</span>
+
+<span class="s1">XMLPUBFUN xmlPatternPtr XMLCALL</span>
+			<span class="s1">xmlPatterncompile	(</span><span class="s2">const </span><span class="s1">xmlChar *pattern,</span>
+						 <span class="s1">xmlDict *dict,</span>
+						 <span class="s2">int </span><span class="s1">flags,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar **namespaces);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlPatternMatch		(xmlPatternPtr comp,</span>
+						 <span class="s1">xmlNodePtr node);</span>
+
+<span class="s0">/* streaming interfaces */</span>
+<span class="s2">typedef struct </span><span class="s1">_xmlStreamCtxt xmlStreamCtxt;</span>
+<span class="s2">typedef </span><span class="s1">xmlStreamCtxt *xmlStreamCtxtPtr;</span>
+
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlPatternStreamable	(xmlPatternPtr comp);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlPatternMaxDepth	(xmlPatternPtr comp);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlPatternMinDepth	(xmlPatternPtr comp);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlPatternFromRoot	(xmlPatternPtr comp);</span>
+<span class="s1">XMLPUBFUN xmlStreamCtxtPtr XMLCALL</span>
+			<span class="s1">xmlPatternGetStreamCtxt	(xmlPatternPtr comp);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlFreeStreamCtxt	(xmlStreamCtxtPtr stream);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlStreamPushNode	(xmlStreamCtxtPtr stream,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *ns,</span>
+						 <span class="s2">int </span><span class="s1">nodeType);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlStreamPush		(xmlStreamCtxtPtr stream,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *ns);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlStreamPushAttr	(xmlStreamCtxtPtr stream,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *ns);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlStreamPop		(xmlStreamCtxtPtr stream);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlStreamWantsAnyNode	(xmlStreamCtxtPtr stream);</span>
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s1">}</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#endif </span><span class="s0">/* LIBXML_PATTERN_ENABLED */</span>
+
+<span class="s2">#endif </span><span class="s0">/* __XML_PATTERN_H__ */</span>
+</pre>
+</body>
+</html>

@@ -1,0 +1,49 @@
+<html>
+<head>
+<title>libexslt.h</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+libexslt.h</font>
+</center></td></tr></table>
+<pre><span class="s0">/* 
+ * libexslt.h: internal header only used during the compilation of libexslt 
+ * 
+ * See COPYRIGHT for the status of this software 
+ * 
+ * Author: daniel@veillard.com 
+ */</span>
+
+<span class="s2">#ifndef </span><span class="s1">__XSLT_LIBEXSLT_H__</span>
+<span class="s2">#define </span><span class="s1">__XSLT_LIBEXSLT_H__</span>
+
+<span class="s2">#if </span><span class="s1">defined(WIN32) &amp;&amp; !defined (__CYGWIN__) &amp;&amp; !defined (__MINGW32__)</span>
+<span class="s2">#include </span><span class="s1">&lt;win32config.h&gt;</span>
+<span class="s2">#else</span>
+<span class="s2">#include </span><span class="s3">&quot;config.h&quot;</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#include </span><span class="s1">&lt;libxslt/xsltconfig.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/xmlversion.h&gt;</span>
+
+<span class="s2">#if </span><span class="s1">!defined LIBEXSLT_PUBLIC</span>
+<span class="s2">#if </span><span class="s1">(defined (__CYGWIN__) || defined _MSC_VER) &amp;&amp; !defined IN_LIBEXSLT &amp;&amp; !defined LIBEXSLT_STATIC</span>
+<span class="s2">#define </span><span class="s1">LIBEXSLT_PUBLIC __declspec(dllimport)</span>
+<span class="s2">#else</span>
+<span class="s2">#define </span><span class="s1">LIBEXSLT_PUBLIC</span>
+<span class="s2">#endif</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#endif </span><span class="s0">/* ! __XSLT_LIBEXSLT_H__ */</span>
+</pre>
+</body>
+</html>

@@ -1,0 +1,138 @@
+<html>
+<head>
+<title>webdriver.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6897bb;}
+.s4 { color: #629755; font-style: italic;}
+.s5 { color: #6a8759;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+webdriver.py</font>
+</center></td></tr></table>
+<pre><span class="s0"># Licensed to the Software Freedom Conservancy (SFC) under one</span>
+<span class="s0"># or more contributor license agreements.  See the NOTICE file</span>
+<span class="s0"># distributed with this work for additional information</span>
+<span class="s0"># regarding copyright ownership.  The SFC licenses this file</span>
+<span class="s0"># to you under the Apache License, Version 2.0 (the</span>
+<span class="s0"># &quot;License&quot;); you may not use this file except in compliance</span>
+<span class="s0"># with the License.  You may obtain a copy of the License at</span>
+<span class="s0">#</span>
+<span class="s0">#   http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="s0">#</span>
+<span class="s0"># Unless required by applicable law or agreed to in writing,</span>
+<span class="s0"># software distributed under the License is distributed on an</span>
+<span class="s0"># &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY</span>
+<span class="s0"># KIND, either express or implied.  See the License for the</span>
+<span class="s0"># specific language governing permissions and limitations</span>
+<span class="s0"># under the License.</span>
+
+<span class="s2">import </span><span class="s1">os</span>
+<span class="s2">import </span><span class="s1">platform</span>
+<span class="s2">import </span><span class="s1">subprocess</span>
+
+<span class="s2">try</span><span class="s1">:</span>
+    <span class="s2">import </span><span class="s1">http.client </span><span class="s2">as </span><span class="s1">http_client</span>
+<span class="s2">except </span><span class="s1">ImportError:</span>
+    <span class="s2">import </span><span class="s1">httplib </span><span class="s2">as </span><span class="s1">http_client</span>
+
+<span class="s2">from </span><span class="s1">selenium.webdriver.remote.webdriver </span><span class="s2">import </span><span class="s1">WebDriver </span><span class="s2">as </span><span class="s1">RemoteWebDriver</span>
+<span class="s2">from </span><span class="s1">selenium.common.exceptions </span><span class="s2">import </span><span class="s1">WebDriverException</span>
+<span class="s2">from </span><span class="s1">selenium.webdriver.support.ui </span><span class="s2">import </span><span class="s1">WebDriverWait</span>
+
+<span class="s1">LOAD_TIMEOUT = </span><span class="s3">5</span>
+
+
+<span class="s2">class </span><span class="s1">WebDriver(RemoteWebDriver):</span>
+    <span class="s4">&quot;&quot;&quot; 
+    Controls the BlackBerry Browser and allows you to drive it. 
+ 
+    :Args: 
+     - device_password - password for the BlackBerry device or emulator you are 
+       trying to drive 
+     - bb_tools_dir path to the blackberry-deploy executable. If the default 
+       is used it assumes it is in the $PATH 
+     - hostip - the ip for the device you are trying to drive. Falls back to 
+       169.254.0.1 which is the default ip used 
+     - port - the port being used for WebDriver on device. defaults to 1338 
+     - desired_capabilities: Dictionary object with non-browser specific 
+       capabilities only, such as &quot;proxy&quot; or &quot;loggingPref&quot;. 
+ 
+    Note: To get blackberry-deploy you will need to install the BlackBerry 
+          WebWorks SDK - the default install will put it in the $PATH for you. 
+          Download at https://developer.blackberry.com/html5/downloads/ 
+    &quot;&quot;&quot;</span>
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">device_password</span><span class="s2">, </span><span class="s1">bb_tools_dir=</span><span class="s2">None,</span>
+                 <span class="s1">hostip=</span><span class="s5">'169.254.0.1'</span><span class="s2">, </span><span class="s1">port=</span><span class="s3">1338</span><span class="s2">, </span><span class="s1">desired_capabilities={}):</span>
+        <span class="s1">remote_addr = </span><span class="s5">'http://{}:{}'</span><span class="s1">.format(hostip</span><span class="s2">, </span><span class="s1">port)</span>
+
+        <span class="s1">filename = </span><span class="s5">'blackberry-deploy'</span>
+        <span class="s2">if </span><span class="s1">platform.system() == </span><span class="s5">&quot;Windows&quot;</span><span class="s1">:</span>
+            <span class="s1">filename += </span><span class="s5">'.bat'</span>
+
+        <span class="s2">if </span><span class="s1">bb_tools_dir </span><span class="s2">is not None</span><span class="s1">:</span>
+            <span class="s2">if </span><span class="s1">os.path.isdir(bb_tools_dir):</span>
+                <span class="s1">bb_deploy_location = os.path.join(bb_tools_dir</span><span class="s2">, </span><span class="s1">filename)</span>
+                <span class="s2">if not </span><span class="s1">os.path.isfile(bb_deploy_location):</span>
+                    <span class="s2">raise </span><span class="s1">WebDriverException(</span><span class="s5">'Invalid blackberry-deploy location: {}'</span><span class="s1">.format(bb_deploy_location))</span>
+            <span class="s2">else</span><span class="s1">:</span>
+                <span class="s2">raise </span><span class="s1">WebDriverException(</span><span class="s5">'Invalid blackberry tools location, must be a directory: {}'</span><span class="s1">.format(bb_tools_dir))</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s1">bb_deploy_location = filename</span>
+
+        <span class="s5">&quot;&quot;&quot; 
+        Now launch the BlackBerry browser before allowing anything else to run. 
+        &quot;&quot;&quot;</span>
+        <span class="s2">try</span><span class="s1">:</span>
+            <span class="s1">launch_args = [bb_deploy_location</span><span class="s2">,</span>
+                           <span class="s5">'-launchApp'</span><span class="s2">,</span>
+                           <span class="s1">str(hostip)</span><span class="s2">,</span>
+                           <span class="s5">'-package-name'</span><span class="s2">, </span><span class="s5">'sys.browser'</span><span class="s2">,</span>
+                           <span class="s5">'-package-id'</span><span class="s2">, </span><span class="s5">'gYABgJYFHAzbeFMPCCpYWBtHAm0'</span><span class="s2">,</span>
+                           <span class="s5">'-password'</span><span class="s2">, </span><span class="s1">str(device_password)]</span>
+
+            <span class="s2">with </span><span class="s1">open(os.devnull</span><span class="s2">, </span><span class="s5">'w'</span><span class="s1">) </span><span class="s2">as </span><span class="s1">fp:</span>
+                <span class="s1">p = subprocess.Popen(launch_args</span><span class="s2">, </span><span class="s1">stdout=fp)</span>
+
+            <span class="s1">returncode = p.wait()</span>
+
+            <span class="s2">if </span><span class="s1">returncode == </span><span class="s3">0</span><span class="s1">:</span>
+                <span class="s0"># wait for the BlackBerry10 browser to load.</span>
+                <span class="s1">is_running_args = [bb_deploy_location</span><span class="s2">,</span>
+                                   <span class="s5">'-isAppRunning'</span><span class="s2">,</span>
+                                   <span class="s1">str(hostip)</span><span class="s2">,</span>
+                                   <span class="s5">'-package-name'</span><span class="s2">, </span><span class="s5">'sys.browser'</span><span class="s2">,</span>
+                                   <span class="s5">'-package-id'</span><span class="s2">, </span><span class="s5">'gYABgJYFHAzbeFMPCCpYWBtHAm0'</span><span class="s2">,</span>
+                                   <span class="s5">'-password'</span><span class="s2">, </span><span class="s1">str(device_password)]</span>
+
+                <span class="s1">WebDriverWait(</span><span class="s2">None, </span><span class="s1">LOAD_TIMEOUT)\</span>
+                    <span class="s1">.until(</span><span class="s2">lambda </span><span class="s1">x: subprocess.check_output(is_running_args)</span>
+                           <span class="s1">.find(</span><span class="s5">'result::true'</span><span class="s1">)</span><span class="s2">,</span>
+                           <span class="s1">message=</span><span class="s5">'waiting for BlackBerry10 browser to load'</span><span class="s1">)</span>
+
+                <span class="s1">RemoteWebDriver.__init__(self</span><span class="s2">,</span>
+                                         <span class="s1">command_executor=remote_addr</span><span class="s2">,</span>
+                                         <span class="s1">desired_capabilities=desired_capabilities)</span>
+            <span class="s2">else</span><span class="s1">:</span>
+                <span class="s2">raise </span><span class="s1">WebDriverException(</span><span class="s5">'blackberry-deploy failed to launch browser'</span><span class="s1">)</span>
+        <span class="s2">except </span><span class="s1">Exception </span><span class="s2">as </span><span class="s1">e:</span>
+            <span class="s2">raise </span><span class="s1">WebDriverException(</span><span class="s5">'Something went wrong launching blackberry-deploy'</span><span class="s2">, </span><span class="s1">stacktrace=getattr(e</span><span class="s2">, </span><span class="s5">'stacktrace'</span><span class="s2">, None</span><span class="s1">))</span>
+
+    <span class="s2">def </span><span class="s1">quit(self):</span>
+        <span class="s4">&quot;&quot;&quot; 
+        Closes the browser and shuts down the 
+        &quot;&quot;&quot;</span>
+        <span class="s2">try</span><span class="s1">:</span>
+            <span class="s1">RemoteWebDriver.quit(self)</span>
+        <span class="s2">except </span><span class="s1">http_client.BadStatusLine:</span>
+            <span class="s2">pass</span>
+</pre>
+</body>
+</html>

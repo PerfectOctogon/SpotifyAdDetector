@@ -1,0 +1,237 @@
+<html>
+<head>
+<title>trio.h</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+.s4 { color: #6897bb;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+trio.h</font>
+</center></td></tr></table>
+<pre><span class="s0">/************************************************************************* 
+ * 
+ * $Id$ 
+ * 
+ * Copyright (C) 1998 Bjorn Reese and Daniel Stenberg. 
+ * 
+ * Permission to use, copy, modify, and distribute this software for any 
+ * purpose with or without fee is hereby granted, provided that the above 
+ * copyright notice and this permission notice appear in all copies. 
+ * 
+ * THIS SOFTWARE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR IMPLIED 
+ * WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTIES OF 
+ * MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE AUTHORS AND 
+ * CONTRIBUTORS ACCEPT NO RESPONSIBILITY IN ANY CONCEIVABLE MANNER. 
+ * 
+ ************************************************************************* 
+ * 
+ * http://ctrio.sourceforge.net/ 
+ * 
+ ************************************************************************/</span>
+
+<span class="s2">#ifndef </span><span class="s1">TRIO_TRIO_H</span>
+<span class="s2">#define </span><span class="s1">TRIO_TRIO_H</span>
+
+<span class="s2">#if </span><span class="s1">!defined(WITHOUT_TRIO)</span>
+
+<span class="s0">/* 
+ * Use autoconf defines if present. Packages using trio must define 
+ * HAVE_CONFIG_H as a compiler option themselves. 
+ */</span>
+<span class="s2">#if </span><span class="s1">defined(HAVE_CONFIG_H)</span>
+<span class="s1"># include &lt;config.h&gt;</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#include </span><span class="s3">&quot;triodef.h&quot;</span>
+
+<span class="s2">#include </span><span class="s1">&lt;stdio.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;stdlib.h&gt;</span>
+<span class="s2">#if </span><span class="s1">defined(TRIO_COMPILER_ANCIENT)</span>
+<span class="s1"># include &lt;varargs.h&gt;</span>
+<span class="s2">#else</span>
+<span class="s1"># include &lt;stdarg.h&gt;</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s2">extern </span><span class="s3">&quot;C&quot; </span><span class="s1">{</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/* 
+ * Error codes. 
+ * 
+ * Remember to add a textual description to trio_strerror. 
+ */</span>
+<span class="s2">enum </span><span class="s1">{</span>
+  <span class="s1">TRIO_EOF      = </span><span class="s4">1</span><span class="s1">,</span>
+  <span class="s1">TRIO_EINVAL   = </span><span class="s4">2</span><span class="s1">,</span>
+  <span class="s1">TRIO_ETOOMANY = </span><span class="s4">3</span><span class="s1">,</span>
+  <span class="s1">TRIO_EDBLREF  = </span><span class="s4">4</span><span class="s1">,</span>
+  <span class="s1">TRIO_EGAP     = </span><span class="s4">5</span><span class="s1">,</span>
+  <span class="s1">TRIO_ENOMEM   = </span><span class="s4">6</span><span class="s1">,</span>
+  <span class="s1">TRIO_ERANGE   = </span><span class="s4">7</span><span class="s1">,</span>
+  <span class="s1">TRIO_ERRNO    = </span><span class="s4">8</span><span class="s1">,</span>
+  <span class="s1">TRIO_ECUSTOM  = </span><span class="s4">9</span>
+<span class="s1">};</span>
+
+<span class="s0">/* Error macros */</span>
+<span class="s2">#define </span><span class="s1">TRIO_ERROR_CODE(x) ((-(x)) &amp; </span><span class="s4">0x00FF</span><span class="s1">)</span>
+<span class="s2">#define </span><span class="s1">TRIO_ERROR_POSITION(x) ((-(x)) &gt;&gt; </span><span class="s4">8</span><span class="s1">)</span>
+<span class="s2">#define </span><span class="s1">TRIO_ERROR_NAME(x) trio_strerror(x)</span>
+
+<span class="s2">typedef int </span><span class="s1">(*trio_outstream_t) TRIO_PROTO((trio_pointer_t, </span><span class="s2">int</span><span class="s1">));</span>
+<span class="s2">typedef int </span><span class="s1">(*trio_instream_t) TRIO_PROTO((trio_pointer_t));</span>
+
+<span class="s1">TRIO_CONST </span><span class="s2">char </span><span class="s1">*trio_strerror TRIO_PROTO((</span><span class="s2">int</span><span class="s1">));</span>
+
+<span class="s0">/************************************************************************* 
+ * Print Functions 
+ */</span>
+
+<span class="s2">int </span><span class="s1">trio_printf TRIO_PROTO((TRIO_CONST </span><span class="s2">char </span><span class="s1">*format, ...));</span>
+<span class="s2">int </span><span class="s1">trio_vprintf TRIO_PROTO((TRIO_CONST </span><span class="s2">char </span><span class="s1">*format, va_list args));</span>
+<span class="s2">int </span><span class="s1">trio_printfv TRIO_PROTO((TRIO_CONST </span><span class="s2">char </span><span class="s1">*format, </span><span class="s2">void </span><span class="s1">**args));</span>
+
+<span class="s2">int </span><span class="s1">trio_fprintf TRIO_PROTO((FILE *file, TRIO_CONST </span><span class="s2">char </span><span class="s1">*format, ...));</span>
+<span class="s2">int </span><span class="s1">trio_vfprintf TRIO_PROTO((FILE *file, TRIO_CONST </span><span class="s2">char </span><span class="s1">*format, va_list args));</span>
+<span class="s2">int </span><span class="s1">trio_fprintfv TRIO_PROTO((FILE *file, TRIO_CONST </span><span class="s2">char </span><span class="s1">*format, </span><span class="s2">void </span><span class="s1">**args));</span>
+
+<span class="s2">int </span><span class="s1">trio_dprintf TRIO_PROTO((</span><span class="s2">int </span><span class="s1">fd, TRIO_CONST </span><span class="s2">char </span><span class="s1">*format, ...));</span>
+<span class="s2">int </span><span class="s1">trio_vdprintf TRIO_PROTO((</span><span class="s2">int </span><span class="s1">fd, TRIO_CONST </span><span class="s2">char </span><span class="s1">*format, va_list args));</span>
+<span class="s2">int </span><span class="s1">trio_dprintfv TRIO_PROTO((</span><span class="s2">int </span><span class="s1">fd, TRIO_CONST </span><span class="s2">char </span><span class="s1">*format, </span><span class="s2">void </span><span class="s1">**args));</span>
+
+<span class="s2">int </span><span class="s1">trio_cprintf TRIO_PROTO((trio_outstream_t stream, trio_pointer_t closure,</span>
+			     <span class="s1">TRIO_CONST </span><span class="s2">char </span><span class="s1">*format, ...));</span>
+<span class="s2">int </span><span class="s1">trio_vcprintf TRIO_PROTO((trio_outstream_t stream, trio_pointer_t closure,</span>
+			      <span class="s1">TRIO_CONST </span><span class="s2">char </span><span class="s1">*format, va_list args));</span>
+<span class="s2">int </span><span class="s1">trio_cprintfv TRIO_PROTO((trio_outstream_t stream, trio_pointer_t closure,</span>
+			      <span class="s1">TRIO_CONST </span><span class="s2">char </span><span class="s1">*format, </span><span class="s2">void </span><span class="s1">**args));</span>
+
+<span class="s2">int </span><span class="s1">trio_sprintf TRIO_PROTO((</span><span class="s2">char </span><span class="s1">*buffer, TRIO_CONST </span><span class="s2">char </span><span class="s1">*format, ...));</span>
+<span class="s2">int </span><span class="s1">trio_vsprintf TRIO_PROTO((</span><span class="s2">char </span><span class="s1">*buffer, TRIO_CONST </span><span class="s2">char </span><span class="s1">*format, va_list args));</span>
+<span class="s2">int </span><span class="s1">trio_sprintfv TRIO_PROTO((</span><span class="s2">char </span><span class="s1">*buffer, TRIO_CONST </span><span class="s2">char </span><span class="s1">*format, </span><span class="s2">void </span><span class="s1">**args));</span>
+
+<span class="s2">int </span><span class="s1">trio_snprintf TRIO_PROTO((</span><span class="s2">char </span><span class="s1">*buffer, size_t max, TRIO_CONST </span><span class="s2">char </span><span class="s1">*format, ...));</span>
+<span class="s2">int </span><span class="s1">trio_vsnprintf TRIO_PROTO((</span><span class="s2">char </span><span class="s1">*buffer, size_t bufferSize, TRIO_CONST </span><span class="s2">char </span><span class="s1">*format,</span>
+		   <span class="s1">va_list args));</span>
+<span class="s2">int </span><span class="s1">trio_snprintfv TRIO_PROTO((</span><span class="s2">char </span><span class="s1">*buffer, size_t bufferSize, TRIO_CONST </span><span class="s2">char </span><span class="s1">*format,</span>
+		   <span class="s2">void </span><span class="s1">**args));</span>
+
+<span class="s2">int </span><span class="s1">trio_snprintfcat TRIO_PROTO((</span><span class="s2">char </span><span class="s1">*buffer, size_t max, TRIO_CONST </span><span class="s2">char </span><span class="s1">*format, ...));</span>
+<span class="s2">int </span><span class="s1">trio_vsnprintfcat TRIO_PROTO((</span><span class="s2">char </span><span class="s1">*buffer, size_t bufferSize, TRIO_CONST </span><span class="s2">char </span><span class="s1">*format,</span>
+                      <span class="s1">va_list args));</span>
+
+<span class="s2">char </span><span class="s1">*trio_aprintf TRIO_PROTO((TRIO_CONST </span><span class="s2">char </span><span class="s1">*format, ...));</span>
+<span class="s2">char </span><span class="s1">*trio_vaprintf TRIO_PROTO((TRIO_CONST </span><span class="s2">char </span><span class="s1">*format, va_list args));</span>
+
+<span class="s2">int </span><span class="s1">trio_asprintf TRIO_PROTO((</span><span class="s2">char </span><span class="s1">**ret, TRIO_CONST </span><span class="s2">char </span><span class="s1">*format, ...));</span>
+<span class="s2">int </span><span class="s1">trio_vasprintf TRIO_PROTO((</span><span class="s2">char </span><span class="s1">**ret, TRIO_CONST </span><span class="s2">char </span><span class="s1">*format, va_list args));</span>
+
+<span class="s0">/************************************************************************* 
+ * Scan Functions 
+ */</span>
+<span class="s2">int </span><span class="s1">trio_scanf TRIO_PROTO((TRIO_CONST </span><span class="s2">char </span><span class="s1">*format, ...));</span>
+<span class="s2">int </span><span class="s1">trio_vscanf TRIO_PROTO((TRIO_CONST </span><span class="s2">char </span><span class="s1">*format, va_list args));</span>
+<span class="s2">int </span><span class="s1">trio_scanfv TRIO_PROTO((TRIO_CONST </span><span class="s2">char </span><span class="s1">*format, </span><span class="s2">void </span><span class="s1">**args));</span>
+
+<span class="s2">int </span><span class="s1">trio_fscanf TRIO_PROTO((FILE *file, TRIO_CONST </span><span class="s2">char </span><span class="s1">*format, ...));</span>
+<span class="s2">int </span><span class="s1">trio_vfscanf TRIO_PROTO((FILE *file, TRIO_CONST </span><span class="s2">char </span><span class="s1">*format, va_list args));</span>
+<span class="s2">int </span><span class="s1">trio_fscanfv TRIO_PROTO((FILE *file, TRIO_CONST </span><span class="s2">char </span><span class="s1">*format, </span><span class="s2">void </span><span class="s1">**args));</span>
+
+<span class="s2">int </span><span class="s1">trio_dscanf TRIO_PROTO((</span><span class="s2">int </span><span class="s1">fd, TRIO_CONST </span><span class="s2">char </span><span class="s1">*format, ...));</span>
+<span class="s2">int </span><span class="s1">trio_vdscanf TRIO_PROTO((</span><span class="s2">int </span><span class="s1">fd, TRIO_CONST </span><span class="s2">char </span><span class="s1">*format, va_list args));</span>
+<span class="s2">int </span><span class="s1">trio_dscanfv TRIO_PROTO((</span><span class="s2">int </span><span class="s1">fd, TRIO_CONST </span><span class="s2">char </span><span class="s1">*format, </span><span class="s2">void </span><span class="s1">**args));</span>
+
+<span class="s2">int </span><span class="s1">trio_cscanf TRIO_PROTO((trio_instream_t stream, trio_pointer_t closure,</span>
+			    <span class="s1">TRIO_CONST </span><span class="s2">char </span><span class="s1">*format, ...));</span>
+<span class="s2">int </span><span class="s1">trio_vcscanf TRIO_PROTO((trio_instream_t stream, trio_pointer_t closure,</span>
+			     <span class="s1">TRIO_CONST </span><span class="s2">char </span><span class="s1">*format, va_list args));</span>
+<span class="s2">int </span><span class="s1">trio_cscanfv TRIO_PROTO((trio_instream_t stream, trio_pointer_t closure,</span>
+			     <span class="s1">TRIO_CONST </span><span class="s2">char </span><span class="s1">*format, </span><span class="s2">void </span><span class="s1">**args));</span>
+
+<span class="s2">int </span><span class="s1">trio_sscanf TRIO_PROTO((TRIO_CONST </span><span class="s2">char </span><span class="s1">*buffer, TRIO_CONST </span><span class="s2">char </span><span class="s1">*format, ...));</span>
+<span class="s2">int </span><span class="s1">trio_vsscanf TRIO_PROTO((TRIO_CONST </span><span class="s2">char </span><span class="s1">*buffer, TRIO_CONST </span><span class="s2">char </span><span class="s1">*format, va_list args));</span>
+<span class="s2">int </span><span class="s1">trio_sscanfv TRIO_PROTO((TRIO_CONST </span><span class="s2">char </span><span class="s1">*buffer, TRIO_CONST </span><span class="s2">char </span><span class="s1">*format, </span><span class="s2">void </span><span class="s1">**args));</span>
+
+<span class="s0">/************************************************************************* 
+ * Locale Functions 
+ */</span>
+<span class="s2">void </span><span class="s1">trio_locale_set_decimal_point TRIO_PROTO((</span><span class="s2">char </span><span class="s1">*decimalPoint));</span>
+<span class="s2">void </span><span class="s1">trio_locale_set_thousand_separator TRIO_PROTO((</span><span class="s2">char </span><span class="s1">*thousandSeparator));</span>
+<span class="s2">void </span><span class="s1">trio_locale_set_grouping TRIO_PROTO((</span><span class="s2">char </span><span class="s1">*grouping));</span>
+
+<span class="s0">/************************************************************************* 
+ * Renaming 
+ */</span>
+<span class="s2">#ifdef </span><span class="s1">TRIO_REPLACE_STDIO</span>
+<span class="s0">/* Replace the &lt;stdio.h&gt; functions */</span>
+<span class="s2">#ifndef </span><span class="s1">HAVE_PRINTF</span>
+<span class="s1"># define printf trio_printf</span>
+<span class="s2">#endif</span>
+<span class="s2">#ifndef </span><span class="s1">HAVE_VPRINTF</span>
+<span class="s1"># define vprintf trio_vprintf</span>
+<span class="s2">#endif</span>
+<span class="s2">#ifndef </span><span class="s1">HAVE_FPRINTF</span>
+<span class="s1"># define fprintf trio_fprintf</span>
+<span class="s2">#endif</span>
+<span class="s2">#ifndef </span><span class="s1">HAVE_VFPRINTF</span>
+<span class="s1"># define vfprintf trio_vfprintf</span>
+<span class="s2">#endif</span>
+<span class="s2">#ifndef </span><span class="s1">HAVE_SPRINTF</span>
+<span class="s1"># define sprintf trio_sprintf</span>
+<span class="s2">#endif</span>
+<span class="s2">#ifndef </span><span class="s1">HAVE_VSPRINTF</span>
+<span class="s1"># define vsprintf trio_vsprintf</span>
+<span class="s2">#endif</span>
+<span class="s2">#ifndef </span><span class="s1">HAVE_SNPRINTF</span>
+<span class="s1"># define snprintf trio_snprintf</span>
+<span class="s2">#endif</span>
+<span class="s2">#ifndef </span><span class="s1">HAVE_VSNPRINTF</span>
+<span class="s1"># define vsnprintf trio_vsnprintf</span>
+<span class="s2">#endif</span>
+<span class="s2">#ifndef </span><span class="s1">HAVE_SCANF</span>
+<span class="s1"># define scanf trio_scanf</span>
+<span class="s2">#endif</span>
+<span class="s2">#ifndef </span><span class="s1">HAVE_VSCANF</span>
+<span class="s1"># define vscanf trio_vscanf</span>
+<span class="s2">#endif</span>
+<span class="s2">#ifndef </span><span class="s1">HAVE_FSCANF</span>
+<span class="s1"># define fscanf trio_fscanf</span>
+<span class="s2">#endif</span>
+<span class="s2">#ifndef </span><span class="s1">HAVE_VFSCANF</span>
+<span class="s1"># define vfscanf trio_vfscanf</span>
+<span class="s2">#endif</span>
+<span class="s2">#ifndef </span><span class="s1">HAVE_SSCANF</span>
+<span class="s1"># define sscanf trio_sscanf</span>
+<span class="s2">#endif</span>
+<span class="s2">#ifndef </span><span class="s1">HAVE_VSSCANF</span>
+<span class="s1"># define vsscanf trio_vsscanf</span>
+<span class="s2">#endif</span>
+<span class="s0">/* These aren't stdio functions, but we make them look similar */</span>
+<span class="s2">#define </span><span class="s1">dprintf trio_dprintf</span>
+<span class="s2">#define </span><span class="s1">vdprintf trio_vdprintf</span>
+<span class="s2">#define </span><span class="s1">aprintf trio_aprintf</span>
+<span class="s2">#define </span><span class="s1">vaprintf trio_vaprintf</span>
+<span class="s2">#define </span><span class="s1">asprintf trio_asprintf</span>
+<span class="s2">#define </span><span class="s1">vasprintf trio_vasprintf</span>
+<span class="s2">#define </span><span class="s1">dscanf trio_dscanf</span>
+<span class="s2">#define </span><span class="s1">vdscanf trio_vdscanf</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s1">} </span><span class="s0">/* extern &quot;C&quot; */</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#endif </span><span class="s0">/* WITHOUT_TRIO */</span>
+
+<span class="s2">#endif </span><span class="s0">/* TRIO_TRIO_H */</span>
+</pre>
+</body>
+</html>

@@ -1,0 +1,114 @@
+<html>
+<head>
+<title>documents.h</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+.s4 { color: #6897bb;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+documents.h</font>
+</center></td></tr></table>
+<pre><span class="s0">/* 
+ * Summary: interface for the document handling 
+ * Description: implements document loading and cache (multiple 
+ *              document() reference for the same resources must 
+ *              be equal. 
+ * 
+ * Copy: See Copyright for the status of this software. 
+ * 
+ * Author: Daniel Veillard 
+ */</span>
+
+<span class="s2">#ifndef </span><span class="s1">__XML_XSLT_DOCUMENTS_H__</span>
+<span class="s2">#define </span><span class="s1">__XML_XSLT_DOCUMENTS_H__</span>
+
+<span class="s2">#include </span><span class="s1">&lt;libxml/tree.h&gt;</span>
+<span class="s2">#include </span><span class="s3">&quot;xsltexports.h&quot;</span>
+<span class="s2">#include </span><span class="s3">&quot;xsltInternals.h&quot;</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s2">extern </span><span class="s3">&quot;C&quot; </span><span class="s1">{</span>
+<span class="s2">#endif</span>
+
+<span class="s1">XSLTPUBFUN xsltDocumentPtr XSLTCALL</span>
+		<span class="s1">xsltNewDocument		(xsltTransformContextPtr ctxt,</span>
+					 <span class="s1">xmlDocPtr doc);</span>
+<span class="s1">XSLTPUBFUN xsltDocumentPtr XSLTCALL</span>
+		<span class="s1">xsltLoadDocument	(xsltTransformContextPtr ctxt,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *URI);</span>
+<span class="s1">XSLTPUBFUN xsltDocumentPtr XSLTCALL</span>
+		<span class="s1">xsltFindDocument	(xsltTransformContextPtr ctxt,</span>
+					 <span class="s1">xmlDocPtr doc);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltFreeDocuments	(xsltTransformContextPtr ctxt);</span>
+
+<span class="s1">XSLTPUBFUN xsltDocumentPtr XSLTCALL</span>
+		<span class="s1">xsltLoadStyleDocument	(xsltStylesheetPtr style,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *URI);</span>
+<span class="s1">XSLTPUBFUN xsltDocumentPtr XSLTCALL</span>
+		<span class="s1">xsltNewStyleDocument	(xsltStylesheetPtr style,</span>
+					 <span class="s1">xmlDocPtr doc);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltFreeStyleDocuments	(xsltStylesheetPtr style);</span>
+
+<span class="s0">/* 
+ * Hooks for document loading 
+ */</span>
+
+<span class="s0">/** 
+ * xsltLoadType: 
+ * 
+ * Enum defining the kind of loader requirement. 
+ */</span>
+<span class="s2">typedef enum </span><span class="s1">{</span>
+    <span class="s1">XSLT_LOAD_START = </span><span class="s4">0</span><span class="s1">,	</span><span class="s0">/* loading for a top stylesheet */</span>
+    <span class="s1">XSLT_LOAD_STYLESHEET = </span><span class="s4">1</span><span class="s1">,	</span><span class="s0">/* loading for a stylesheet include/import */</span>
+    <span class="s1">XSLT_LOAD_DOCUMENT = </span><span class="s4">2	</span><span class="s0">/* loading document at transformation time */</span>
+<span class="s1">} xsltLoadType;</span>
+
+<span class="s0">/** 
+ * xsltDocLoaderFunc: 
+ * @URI: the URI of the document to load 
+ * @dict: the dictionary to use when parsing that document 
+ * @options: parsing options, a set of xmlParserOption 
+ * @ctxt: the context, either a stylesheet or a transformation context 
+ * @type: the xsltLoadType indicating the kind of loading required 
+ * 
+ * An xsltDocLoaderFunc is a signature for a function which can be 
+ * registered to load document not provided by the compilation or 
+ * transformation API themselve, for example when an xsl:import, 
+ * xsl:include is found at compilation time or when a document() 
+ * call is made at runtime. 
+ * 
+ * Returns the pointer to the document (which will be modified and 
+ * freed by the engine later), or NULL in case of error. 
+ */</span>
+<span class="s2">typedef </span><span class="s1">xmlDocPtr (*xsltDocLoaderFunc)		(</span><span class="s2">const </span><span class="s1">xmlChar *URI,</span>
+						 <span class="s1">xmlDictPtr dict,</span>
+						 <span class="s2">int </span><span class="s1">options,</span>
+						 <span class="s2">void </span><span class="s1">*ctxt,</span>
+						 <span class="s1">xsltLoadType type);</span>
+
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltSetLoaderFunc		(xsltDocLoaderFunc f);</span>
+
+<span class="s0">/* the loader may be needed by extension libraries so it is exported */</span>
+<span class="s1">XSLTPUBVAR xsltDocLoaderFunc xsltDocDefaultLoader;</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s1">}</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#endif </span><span class="s0">/* __XML_XSLT_DOCUMENTS_H__ */</span>
+
+</pre>
+</body>
+</html>

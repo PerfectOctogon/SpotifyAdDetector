@@ -1,0 +1,168 @@
+<html>
+<head>
+<title>test_builder_registry.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #629755; font-style: italic;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+.s4 { color: #808080;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+test_builder_registry.py</font>
+</center></td></tr></table>
+<pre><span class="s0">&quot;&quot;&quot;Tests of the builder registry.&quot;&quot;&quot;</span>
+
+<span class="s2">import </span><span class="s1">unittest</span>
+<span class="s2">import </span><span class="s1">warnings</span>
+
+<span class="s2">from </span><span class="s1">bs4 </span><span class="s2">import </span><span class="s1">BeautifulSoup</span>
+<span class="s2">from </span><span class="s1">bs4.builder </span><span class="s2">import </span><span class="s1">(</span>
+    <span class="s1">builder_registry </span><span class="s2">as </span><span class="s1">registry</span><span class="s2">,</span>
+    <span class="s1">HTMLParserTreeBuilder</span><span class="s2">,</span>
+    <span class="s1">TreeBuilderRegistry</span><span class="s2">,</span>
+<span class="s1">)</span>
+
+<span class="s2">try</span><span class="s1">:</span>
+    <span class="s2">from </span><span class="s1">bs4.builder </span><span class="s2">import </span><span class="s1">HTML5TreeBuilder</span>
+    <span class="s1">HTML5LIB_PRESENT = </span><span class="s2">True</span>
+<span class="s2">except </span><span class="s1">ImportError:</span>
+    <span class="s1">HTML5LIB_PRESENT = </span><span class="s2">False</span>
+
+<span class="s2">try</span><span class="s1">:</span>
+    <span class="s2">from </span><span class="s1">bs4.builder </span><span class="s2">import </span><span class="s1">(</span>
+        <span class="s1">LXMLTreeBuilderForXML</span><span class="s2">,</span>
+        <span class="s1">LXMLTreeBuilder</span><span class="s2">,</span>
+        <span class="s1">)</span>
+    <span class="s1">LXML_PRESENT = </span><span class="s2">True</span>
+<span class="s2">except </span><span class="s1">ImportError:</span>
+    <span class="s1">LXML_PRESENT = </span><span class="s2">False</span>
+
+
+<span class="s2">class </span><span class="s1">BuiltInRegistryTest(unittest.TestCase):</span>
+    <span class="s0">&quot;&quot;&quot;Test the built-in registry with the default builders registered.&quot;&quot;&quot;</span>
+
+    <span class="s2">def </span><span class="s1">test_combination(self):</span>
+        <span class="s2">if </span><span class="s1">LXML_PRESENT:</span>
+            <span class="s1">self.assertEqual(registry.lookup(</span><span class="s3">'fast'</span><span class="s2">, </span><span class="s3">'html'</span><span class="s1">)</span><span class="s2">,</span>
+                             <span class="s1">LXMLTreeBuilder)</span>
+
+        <span class="s2">if </span><span class="s1">LXML_PRESENT:</span>
+            <span class="s1">self.assertEqual(registry.lookup(</span><span class="s3">'permissive'</span><span class="s2">, </span><span class="s3">'xml'</span><span class="s1">)</span><span class="s2">,</span>
+                             <span class="s1">LXMLTreeBuilderForXML)</span>
+        <span class="s1">self.assertEqual(registry.lookup(</span><span class="s3">'strict'</span><span class="s2">, </span><span class="s3">'html'</span><span class="s1">)</span><span class="s2">,</span>
+                          <span class="s1">HTMLParserTreeBuilder)</span>
+        <span class="s2">if </span><span class="s1">HTML5LIB_PRESENT:</span>
+            <span class="s1">self.assertEqual(registry.lookup(</span><span class="s3">'html5lib'</span><span class="s2">, </span><span class="s3">'html'</span><span class="s1">)</span><span class="s2">,</span>
+                              <span class="s1">HTML5TreeBuilder)</span>
+
+    <span class="s2">def </span><span class="s1">test_lookup_by_markup_type(self):</span>
+        <span class="s2">if </span><span class="s1">LXML_PRESENT:</span>
+            <span class="s1">self.assertEqual(registry.lookup(</span><span class="s3">'html'</span><span class="s1">)</span><span class="s2">, </span><span class="s1">LXMLTreeBuilder)</span>
+            <span class="s1">self.assertEqual(registry.lookup(</span><span class="s3">'xml'</span><span class="s1">)</span><span class="s2">, </span><span class="s1">LXMLTreeBuilderForXML)</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s1">self.assertEqual(registry.lookup(</span><span class="s3">'xml'</span><span class="s1">)</span><span class="s2">, None</span><span class="s1">)</span>
+            <span class="s2">if </span><span class="s1">HTML5LIB_PRESENT:</span>
+                <span class="s1">self.assertEqual(registry.lookup(</span><span class="s3">'html'</span><span class="s1">)</span><span class="s2">, </span><span class="s1">HTML5TreeBuilder)</span>
+            <span class="s2">else</span><span class="s1">:</span>
+                <span class="s1">self.assertEqual(registry.lookup(</span><span class="s3">'html'</span><span class="s1">)</span><span class="s2">, </span><span class="s1">HTMLParserTreeBuilder)</span>
+
+    <span class="s2">def </span><span class="s1">test_named_library(self):</span>
+        <span class="s2">if </span><span class="s1">LXML_PRESENT:</span>
+            <span class="s1">self.assertEqual(registry.lookup(</span><span class="s3">'lxml'</span><span class="s2">, </span><span class="s3">'xml'</span><span class="s1">)</span><span class="s2">,</span>
+                             <span class="s1">LXMLTreeBuilderForXML)</span>
+            <span class="s1">self.assertEqual(registry.lookup(</span><span class="s3">'lxml'</span><span class="s2">, </span><span class="s3">'html'</span><span class="s1">)</span><span class="s2">,</span>
+                             <span class="s1">LXMLTreeBuilder)</span>
+        <span class="s2">if </span><span class="s1">HTML5LIB_PRESENT:</span>
+            <span class="s1">self.assertEqual(registry.lookup(</span><span class="s3">'html5lib'</span><span class="s1">)</span><span class="s2">,</span>
+                              <span class="s1">HTML5TreeBuilder)</span>
+
+        <span class="s1">self.assertEqual(registry.lookup(</span><span class="s3">'html.parser'</span><span class="s1">)</span><span class="s2">,</span>
+                          <span class="s1">HTMLParserTreeBuilder)</span>
+
+    <span class="s2">def </span><span class="s1">test_beautifulsoup_constructor_does_lookup(self):</span>
+
+        <span class="s2">with </span><span class="s1">warnings.catch_warnings(record=</span><span class="s2">True</span><span class="s1">) </span><span class="s2">as </span><span class="s1">w:</span>
+            <span class="s4"># This will create a warning about not explicitly</span>
+            <span class="s4"># specifying a parser, but we'll ignore it.</span>
+
+            <span class="s4"># You can pass in a string.</span>
+            <span class="s1">BeautifulSoup(</span><span class="s3">&quot;&quot;</span><span class="s2">, </span><span class="s1">features=</span><span class="s3">&quot;html&quot;</span><span class="s1">)</span>
+            <span class="s4"># Or a list of strings.</span>
+            <span class="s1">BeautifulSoup(</span><span class="s3">&quot;&quot;</span><span class="s2">, </span><span class="s1">features=[</span><span class="s3">&quot;html&quot;</span><span class="s2">, </span><span class="s3">&quot;fast&quot;</span><span class="s1">])</span>
+
+        <span class="s4"># You'll get an exception if BS can't find an appropriate</span>
+        <span class="s4"># builder.</span>
+        <span class="s1">self.assertRaises(ValueError</span><span class="s2">, </span><span class="s1">BeautifulSoup</span><span class="s2">,</span>
+                          <span class="s3">&quot;&quot;</span><span class="s2">, </span><span class="s1">features=</span><span class="s3">&quot;no-such-feature&quot;</span><span class="s1">)</span>
+
+<span class="s2">class </span><span class="s1">RegistryTest(unittest.TestCase):</span>
+    <span class="s0">&quot;&quot;&quot;Test the TreeBuilderRegistry class in general.&quot;&quot;&quot;</span>
+
+    <span class="s2">def </span><span class="s1">setUp(self):</span>
+        <span class="s1">self.registry = TreeBuilderRegistry()</span>
+
+    <span class="s2">def </span><span class="s1">builder_for_features(self</span><span class="s2">, </span><span class="s1">*feature_list):</span>
+        <span class="s1">cls = type(</span><span class="s3">'Builder_' </span><span class="s1">+ </span><span class="s3">'_'</span><span class="s1">.join(feature_list)</span><span class="s2">,</span>
+                   <span class="s1">(object</span><span class="s2">,</span><span class="s1">)</span><span class="s2">, </span><span class="s1">{</span><span class="s3">'features' </span><span class="s1">: feature_list})</span>
+
+        <span class="s1">self.registry.register(cls)</span>
+        <span class="s2">return </span><span class="s1">cls</span>
+
+    <span class="s2">def </span><span class="s1">test_register_with_no_features(self):</span>
+        <span class="s1">builder = self.builder_for_features()</span>
+
+        <span class="s4"># Since the builder advertises no features, you can't find it</span>
+        <span class="s4"># by looking up features.</span>
+        <span class="s1">self.assertEqual(self.registry.lookup(</span><span class="s3">'foo'</span><span class="s1">)</span><span class="s2">, None</span><span class="s1">)</span>
+
+        <span class="s4"># But you can find it by doing a lookup with no features, if</span>
+        <span class="s4"># this happens to be the only registered builder.</span>
+        <span class="s1">self.assertEqual(self.registry.lookup()</span><span class="s2">, </span><span class="s1">builder)</span>
+
+    <span class="s2">def </span><span class="s1">test_register_with_features_makes_lookup_succeed(self):</span>
+        <span class="s1">builder = self.builder_for_features(</span><span class="s3">'foo'</span><span class="s2">, </span><span class="s3">'bar'</span><span class="s1">)</span>
+        <span class="s1">self.assertEqual(self.registry.lookup(</span><span class="s3">'foo'</span><span class="s1">)</span><span class="s2">, </span><span class="s1">builder)</span>
+        <span class="s1">self.assertEqual(self.registry.lookup(</span><span class="s3">'bar'</span><span class="s1">)</span><span class="s2">, </span><span class="s1">builder)</span>
+
+    <span class="s2">def </span><span class="s1">test_lookup_fails_when_no_builder_implements_feature(self):</span>
+        <span class="s1">builder = self.builder_for_features(</span><span class="s3">'foo'</span><span class="s2">, </span><span class="s3">'bar'</span><span class="s1">)</span>
+        <span class="s1">self.assertEqual(self.registry.lookup(</span><span class="s3">'baz'</span><span class="s1">)</span><span class="s2">, None</span><span class="s1">)</span>
+
+    <span class="s2">def </span><span class="s1">test_lookup_gets_most_recent_registration_when_no_feature_specified(self):</span>
+        <span class="s1">builder1 = self.builder_for_features(</span><span class="s3">'foo'</span><span class="s1">)</span>
+        <span class="s1">builder2 = self.builder_for_features(</span><span class="s3">'bar'</span><span class="s1">)</span>
+        <span class="s1">self.assertEqual(self.registry.lookup()</span><span class="s2">, </span><span class="s1">builder2)</span>
+
+    <span class="s2">def </span><span class="s1">test_lookup_fails_when_no_tree_builders_registered(self):</span>
+        <span class="s1">self.assertEqual(self.registry.lookup()</span><span class="s2">, None</span><span class="s1">)</span>
+
+    <span class="s2">def </span><span class="s1">test_lookup_gets_most_recent_builder_supporting_all_features(self):</span>
+        <span class="s1">has_one = self.builder_for_features(</span><span class="s3">'foo'</span><span class="s1">)</span>
+        <span class="s1">has_the_other = self.builder_for_features(</span><span class="s3">'bar'</span><span class="s1">)</span>
+        <span class="s1">has_both_early = self.builder_for_features(</span><span class="s3">'foo'</span><span class="s2">, </span><span class="s3">'bar'</span><span class="s2">, </span><span class="s3">'baz'</span><span class="s1">)</span>
+        <span class="s1">has_both_late = self.builder_for_features(</span><span class="s3">'foo'</span><span class="s2">, </span><span class="s3">'bar'</span><span class="s2">, </span><span class="s3">'quux'</span><span class="s1">)</span>
+        <span class="s1">lacks_one = self.builder_for_features(</span><span class="s3">'bar'</span><span class="s1">)</span>
+        <span class="s1">has_the_other = self.builder_for_features(</span><span class="s3">'foo'</span><span class="s1">)</span>
+
+        <span class="s4"># There are two builders featuring 'foo' and 'bar', but</span>
+        <span class="s4"># the one that also features 'quux' was registered later.</span>
+        <span class="s1">self.assertEqual(self.registry.lookup(</span><span class="s3">'foo'</span><span class="s2">, </span><span class="s3">'bar'</span><span class="s1">)</span><span class="s2">,</span>
+                          <span class="s1">has_both_late)</span>
+
+        <span class="s4"># There is only one builder featuring 'foo', 'bar', and 'baz'.</span>
+        <span class="s1">self.assertEqual(self.registry.lookup(</span><span class="s3">'foo'</span><span class="s2">, </span><span class="s3">'bar'</span><span class="s2">, </span><span class="s3">'baz'</span><span class="s1">)</span><span class="s2">,</span>
+                          <span class="s1">has_both_early)</span>
+
+    <span class="s2">def </span><span class="s1">test_lookup_fails_when_cannot_reconcile_requested_features(self):</span>
+        <span class="s1">builder1 = self.builder_for_features(</span><span class="s3">'foo'</span><span class="s2">, </span><span class="s3">'bar'</span><span class="s1">)</span>
+        <span class="s1">builder2 = self.builder_for_features(</span><span class="s3">'foo'</span><span class="s2">, </span><span class="s3">'baz'</span><span class="s1">)</span>
+        <span class="s1">self.assertEqual(self.registry.lookup(</span><span class="s3">'bar'</span><span class="s2">, </span><span class="s3">'baz'</span><span class="s1">)</span><span class="s2">, None</span><span class="s1">)</span>
+</pre>
+</body>
+</html>

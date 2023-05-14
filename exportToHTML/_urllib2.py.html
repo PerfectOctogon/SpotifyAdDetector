@@ -1,0 +1,84 @@
+<html>
+<head>
+<title>_urllib2.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #cc7832;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #808080;}
+.s3 { color: #6a8759;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+_urllib2.py</font>
+</center></td></tr></table>
+<pre><span class="s0">from </span><span class="s1">__future__ </span><span class="s0">import </span><span class="s1">absolute_import</span>
+<span class="s2"># urllib2 work-alike interface</span>
+<span class="s2"># ...from urllib2...</span>
+<span class="s0">from </span><span class="s1">.polyglot </span><span class="s0">import </span><span class="s1">HTTPError</span><span class="s0">, </span><span class="s1">URLError</span>
+
+<span class="s2"># ...and from mechanize</span>
+<span class="s0">from </span><span class="s1">._auth </span><span class="s0">import </span><span class="s1">HTTPProxyPasswordMgr</span><span class="s0">, </span><span class="s1">HTTPSClientCertMgr</span>
+<span class="s0">from </span><span class="s1">._debug </span><span class="s0">import </span><span class="s1">HTTPRedirectDebugProcessor</span><span class="s0">, </span><span class="s1">HTTPResponseDebugProcessor</span>
+<span class="s0">from </span><span class="s1">._http </span><span class="s0">import </span><span class="s1">(HTTPEquivProcessor</span><span class="s0">, </span><span class="s1">HTTPRefererProcessor</span><span class="s0">,</span>
+                    <span class="s1">HTTPRefreshProcessor</span><span class="s0">, </span><span class="s1">HTTPRobotRulesProcessor</span><span class="s0">,</span>
+                    <span class="s1">RobotExclusionError)</span>
+<span class="s0">from </span><span class="s1">._opener </span><span class="s0">import </span><span class="s1">(OpenerDirector</span><span class="s0">, </span><span class="s1">SeekableResponseOpener</span><span class="s0">, </span><span class="s1">build_opener</span><span class="s0">,</span>
+                      <span class="s1">install_opener</span><span class="s0">, </span><span class="s1">urlopen)</span>
+<span class="s0">from </span><span class="s1">._request </span><span class="s0">import </span><span class="s1">Request</span>
+<span class="s2"># crap ATM</span>
+<span class="s2"># from _gzip import \</span>
+<span class="s2"># HTTPGzipProcessor</span>
+<span class="s0">from </span><span class="s1">._urllib2_fork </span><span class="s0">import </span><span class="s1">(</span>
+    <span class="s1">AbstractBasicAuthHandler</span><span class="s0">, </span><span class="s1">AbstractDigestAuthHandler</span><span class="s0">, </span><span class="s1">BaseHandler</span><span class="s0">,</span>
+    <span class="s1">CacheFTPHandler</span><span class="s0">, </span><span class="s1">FileHandler</span><span class="s0">, </span><span class="s1">FTPHandler</span><span class="s0">, </span><span class="s1">HTTPBasicAuthHandler</span><span class="s0">,</span>
+    <span class="s1">HTTPCookieProcessor</span><span class="s0">, </span><span class="s1">HTTPDefaultErrorHandler</span><span class="s0">, </span><span class="s1">HTTPDigestAuthHandler</span><span class="s0">,</span>
+    <span class="s1">HTTPErrorProcessor</span><span class="s0">, </span><span class="s1">HTTPHandler</span><span class="s0">, </span><span class="s1">HTTPPasswordMgr</span><span class="s0">,</span>
+    <span class="s1">HTTPPasswordMgrWithDefaultRealm</span><span class="s0">, </span><span class="s1">HTTPRedirectHandler</span><span class="s0">, </span><span class="s1">HTTPSHandler</span><span class="s0">,</span>
+    <span class="s1">ProxyBasicAuthHandler</span><span class="s0">, </span><span class="s1">ProxyDigestAuthHandler</span><span class="s0">, </span><span class="s1">ProxyHandler</span><span class="s0">,</span>
+    <span class="s1">UnknownHandler)</span>
+<span class="s1">__all__ = [</span>
+    <span class="s3">'URLError'</span><span class="s0">,</span>
+    <span class="s3">'HTTPError'</span><span class="s0">,</span>
+    <span class="s3">'HTTPSClientCertMgr'</span><span class="s0">,</span>
+    <span class="s3">'HTTPProxyPasswordMgr'</span><span class="s0">,</span>
+    <span class="s3">'HTTPRedirectDebugProcessor'</span><span class="s0">,</span>
+    <span class="s3">'HTTPRobotRulesProcessor'</span><span class="s0">,</span>
+    <span class="s3">'HTTPResponseDebugProcessor'</span><span class="s0">,</span>
+    <span class="s3">'HTTPRefreshProcessor'</span><span class="s0">,</span>
+    <span class="s3">'HTTPRefererProcessor'</span><span class="s0">,</span>
+    <span class="s3">'HTTPEquivProcessor'</span><span class="s0">,</span>
+    <span class="s3">'RobotExclusionError'</span><span class="s0">,</span>
+    <span class="s3">'OpenerDirector'</span><span class="s0">,</span>
+    <span class="s3">'build_opener'</span><span class="s0">,</span>
+    <span class="s3">'SeekableResponseOpener'</span><span class="s0">,</span>
+    <span class="s3">'install_opener'</span><span class="s0">,</span>
+    <span class="s3">'urlopen'</span><span class="s0">,</span>
+    <span class="s3">'Request'</span><span class="s0">,</span>
+    <span class="s3">'HTTPHandler'</span><span class="s0">,</span>
+    <span class="s3">'HTTPSHandler'</span><span class="s0">,</span>
+    <span class="s3">'AbstractBasicAuthHandler'</span><span class="s0">,</span>
+    <span class="s3">'ProxyHandler'</span><span class="s0">,</span>
+    <span class="s3">'HTTPDefaultErrorHandler'</span><span class="s0">,</span>
+    <span class="s3">'ProxyDigestAuthHandler'</span><span class="s0">,</span>
+    <span class="s3">'HTTPDigestAuthHandler'</span><span class="s0">,</span>
+    <span class="s3">'FTPHandler'</span><span class="s0">,</span>
+    <span class="s3">'HTTPPasswordMgrWithDefaultRealm'</span><span class="s0">,</span>
+    <span class="s3">'CacheFTPHandler'</span><span class="s0">,</span>
+    <span class="s3">'HTTPErrorProcessor'</span><span class="s0">,</span>
+    <span class="s3">'AbstractDigestAuthHandler'</span><span class="s0">,</span>
+    <span class="s3">'HTTPRedirectHandler'</span><span class="s0">,</span>
+    <span class="s3">'UnknownHandler'</span><span class="s0">,</span>
+    <span class="s3">'HTTPCookieProcessor'</span><span class="s0">,</span>
+    <span class="s3">'BaseHandler'</span><span class="s0">,</span>
+    <span class="s3">'HTTPBasicAuthHandler'</span><span class="s0">,</span>
+    <span class="s3">'ProxyBasicAuthHandler'</span><span class="s0">,</span>
+    <span class="s3">'HTTPPasswordMgr'</span><span class="s0">,</span>
+    <span class="s3">'FileHandler'</span><span class="s0">,</span>
+<span class="s1">]</span>
+</pre>
+</body>
+</html>

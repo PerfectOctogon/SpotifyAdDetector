@@ -1,0 +1,751 @@
+<html>
+<head>
+<title>test_soup.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #629755; font-style: italic;}
+.s3 { color: #cc7832;}
+.s4 { color: #6897bb;}
+.s5 { color: #6a8759;}
+.s6 { color: #a5c261;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+test_soup.py</font>
+</center></td></tr></table>
+<pre><span class="s0"># -*- coding: utf-8 -*-</span>
+<span class="s2">&quot;&quot;&quot;Tests of Beautiful Soup as a whole.&quot;&quot;&quot;</span>
+
+<span class="s3">from </span><span class="s1">pdb </span><span class="s3">import </span><span class="s1">set_trace</span>
+<span class="s3">import </span><span class="s1">logging</span>
+<span class="s3">import </span><span class="s1">unittest</span>
+<span class="s3">import </span><span class="s1">sys</span>
+<span class="s3">import </span><span class="s1">tempfile</span>
+
+<span class="s3">from </span><span class="s1">bs4 </span><span class="s3">import </span><span class="s1">(</span>
+    <span class="s1">BeautifulSoup</span><span class="s3">,</span>
+    <span class="s1">BeautifulStoneSoup</span><span class="s3">,</span>
+    <span class="s1">GuessedAtParserWarning</span><span class="s3">,</span>
+    <span class="s1">MarkupResemblesLocatorWarning</span><span class="s3">,</span>
+<span class="s1">)</span>
+<span class="s3">from </span><span class="s1">bs4.builder </span><span class="s3">import </span><span class="s1">(</span>
+    <span class="s1">TreeBuilder</span><span class="s3">,</span>
+    <span class="s1">ParserRejectedMarkup</span><span class="s3">,</span>
+<span class="s1">)</span>
+<span class="s3">from </span><span class="s1">bs4.element </span><span class="s3">import </span><span class="s1">(</span>
+    <span class="s1">CharsetMetaAttributeValue</span><span class="s3">,</span>
+    <span class="s1">Comment</span><span class="s3">,</span>
+    <span class="s1">ContentMetaAttributeValue</span><span class="s3">,</span>
+    <span class="s1">SoupStrainer</span><span class="s3">,</span>
+    <span class="s1">NamespacedAttribute</span><span class="s3">,</span>
+    <span class="s1">Tag</span><span class="s3">,</span>
+    <span class="s1">NavigableString</span><span class="s3">,</span>
+    <span class="s1">)</span>
+
+<span class="s3">import </span><span class="s1">bs4.dammit</span>
+<span class="s3">from </span><span class="s1">bs4.dammit </span><span class="s3">import </span><span class="s1">(</span>
+    <span class="s1">EntitySubstitution</span><span class="s3">,</span>
+    <span class="s1">UnicodeDammit</span><span class="s3">,</span>
+    <span class="s1">EncodingDetector</span><span class="s3">,</span>
+<span class="s1">)</span>
+<span class="s3">from </span><span class="s1">bs4.testing </span><span class="s3">import </span><span class="s1">(</span>
+    <span class="s1">default_builder</span><span class="s3">,</span>
+    <span class="s1">SoupTest</span><span class="s3">,</span>
+    <span class="s1">skipIf</span><span class="s3">,</span>
+<span class="s1">)</span>
+<span class="s3">import </span><span class="s1">warnings</span>
+
+<span class="s3">try</span><span class="s1">:</span>
+    <span class="s3">from </span><span class="s1">bs4.builder </span><span class="s3">import </span><span class="s1">LXMLTreeBuilder</span><span class="s3">, </span><span class="s1">LXMLTreeBuilderForXML</span>
+    <span class="s1">LXML_PRESENT = </span><span class="s3">True</span>
+<span class="s3">except </span><span class="s1">ImportError </span><span class="s3">as </span><span class="s1">e:</span>
+    <span class="s1">LXML_PRESENT = </span><span class="s3">False</span>
+
+<span class="s1">PYTHON_3_PRE_3_2 = (sys.version_info[</span><span class="s4">0</span><span class="s1">] == </span><span class="s4">3 </span><span class="s3">and </span><span class="s1">sys.version_info &lt; (</span><span class="s4">3</span><span class="s3">,</span><span class="s4">2</span><span class="s1">))</span>
+
+<span class="s3">class </span><span class="s1">TestConstructor(SoupTest):</span>
+
+    <span class="s3">def </span><span class="s1">test_short_unicode_input(self):</span>
+        <span class="s1">data = </span><span class="s5">&quot;&lt;h1&gt;éé&lt;/h1&gt;&quot;</span>
+        <span class="s1">soup = self.soup(data)</span>
+        <span class="s1">self.assertEqual(</span><span class="s5">&quot;éé&quot;</span><span class="s3">, </span><span class="s1">soup.h1.string)</span>
+
+    <span class="s3">def </span><span class="s1">test_embedded_null(self):</span>
+        <span class="s1">data = </span><span class="s5">&quot;&lt;h1&gt;foo</span><span class="s3">\0</span><span class="s5">bar&lt;/h1&gt;&quot;</span>
+        <span class="s1">soup = self.soup(data)</span>
+        <span class="s1">self.assertEqual(</span><span class="s5">&quot;foo</span><span class="s3">\0</span><span class="s5">bar&quot;</span><span class="s3">, </span><span class="s1">soup.h1.string)</span>
+
+    <span class="s3">def </span><span class="s1">test_exclude_encodings(self):</span>
+        <span class="s1">utf8_data = </span><span class="s5">&quot;Räksmörgås&quot;</span><span class="s1">.encode(</span><span class="s5">&quot;utf-8&quot;</span><span class="s1">)</span>
+        <span class="s1">soup = self.soup(utf8_data</span><span class="s3">, </span><span class="s1">exclude_encodings=[</span><span class="s5">&quot;utf-8&quot;</span><span class="s1">])</span>
+        <span class="s1">self.assertEqual(</span><span class="s5">&quot;windows-1252&quot;</span><span class="s3">, </span><span class="s1">soup.original_encoding)</span>
+
+    <span class="s3">def </span><span class="s1">test_custom_builder_class(self):</span>
+        <span class="s0"># Verify that you can pass in a custom Builder class and</span>
+        <span class="s0"># it'll be instantiated with the appropriate keyword arguments.</span>
+        <span class="s3">class </span><span class="s1">Mock(object):</span>
+            <span class="s3">def </span><span class="s1">__init__(self</span><span class="s3">, </span><span class="s1">**kwargs):</span>
+                <span class="s1">self.called_with = kwargs</span>
+                <span class="s1">self.is_xml = </span><span class="s3">True</span>
+                <span class="s1">self.store_line_numbers = </span><span class="s3">False</span>
+                <span class="s1">self.cdata_list_attributes = []</span>
+                <span class="s1">self.preserve_whitespace_tags = []</span>
+                <span class="s1">self.string_containers = {}</span>
+            <span class="s3">def </span><span class="s1">initialize_soup(self</span><span class="s3">, </span><span class="s1">soup):</span>
+                <span class="s3">pass</span>
+            <span class="s3">def </span><span class="s1">feed(self</span><span class="s3">, </span><span class="s1">markup):</span>
+                <span class="s1">self.fed = markup</span>
+            <span class="s3">def </span><span class="s1">reset(self):</span>
+                <span class="s3">pass</span>
+            <span class="s3">def </span><span class="s1">ignore(self</span><span class="s3">, </span><span class="s1">ignore):</span>
+                <span class="s3">pass</span>
+            <span class="s1">set_up_substitutions = can_be_empty_element = ignore</span>
+            <span class="s3">def </span><span class="s1">prepare_markup(self</span><span class="s3">, </span><span class="s1">*args</span><span class="s3">, </span><span class="s1">**kwargs):</span>
+                <span class="s3">yield </span><span class="s5">&quot;prepared markup&quot;</span><span class="s3">, </span><span class="s5">&quot;original encoding&quot;</span><span class="s3">, </span><span class="s5">&quot;declared encoding&quot;</span><span class="s3">, </span><span class="s5">&quot;contains replacement characters&quot;</span>
+                
+        <span class="s1">kwargs = dict(</span>
+            <span class="s1">var=</span><span class="s5">&quot;value&quot;</span><span class="s3">,</span>
+            <span class="s0"># This is a deprecated BS3-era keyword argument, which</span>
+            <span class="s0"># will be stripped out.</span>
+            <span class="s1">convertEntities=</span><span class="s3">True,</span>
+        <span class="s1">)</span>
+        <span class="s3">with </span><span class="s1">warnings.catch_warnings(record=</span><span class="s3">True</span><span class="s1">):</span>
+            <span class="s1">soup = BeautifulSoup(</span><span class="s5">''</span><span class="s3">, </span><span class="s1">builder=Mock</span><span class="s3">, </span><span class="s1">**kwargs)</span>
+        <span class="s3">assert </span><span class="s1">isinstance(soup.builder</span><span class="s3">, </span><span class="s1">Mock)</span>
+        <span class="s1">self.assertEqual(dict(var=</span><span class="s5">&quot;value&quot;</span><span class="s1">)</span><span class="s3">, </span><span class="s1">soup.builder.called_with)</span>
+        <span class="s1">self.assertEqual(</span><span class="s5">&quot;prepared markup&quot;</span><span class="s3">, </span><span class="s1">soup.builder.fed)</span>
+        
+        <span class="s0"># You can also instantiate the TreeBuilder yourself. In this</span>
+        <span class="s0"># case, that specific object is used and any keyword arguments</span>
+        <span class="s0"># to the BeautifulSoup constructor are ignored.</span>
+        <span class="s1">builder = Mock(**kwargs)</span>
+        <span class="s3">with </span><span class="s1">warnings.catch_warnings(record=</span><span class="s3">True</span><span class="s1">) </span><span class="s3">as </span><span class="s1">w:</span>
+            <span class="s1">soup = BeautifulSoup(</span>
+                <span class="s5">''</span><span class="s3">, </span><span class="s1">builder=builder</span><span class="s3">, </span><span class="s1">ignored_value=</span><span class="s3">True,</span>
+            <span class="s1">)</span>
+        <span class="s1">msg = str(w[</span><span class="s4">0</span><span class="s1">].message)</span>
+        <span class="s3">assert </span><span class="s1">msg.startswith(</span><span class="s5">&quot;Keyword arguments to the BeautifulSoup constructor will be ignored.&quot;</span><span class="s1">)</span>
+        <span class="s1">self.assertEqual(builder</span><span class="s3">, </span><span class="s1">soup.builder)</span>
+        <span class="s1">self.assertEqual(kwargs</span><span class="s3">, </span><span class="s1">builder.called_with)</span>
+
+    <span class="s3">def </span><span class="s1">test_parser_markup_rejection(self):</span>
+        <span class="s0"># If markup is completely rejected by the parser, an</span>
+        <span class="s0"># explanatory ParserRejectedMarkup exception is raised.</span>
+        <span class="s3">class </span><span class="s1">Mock(TreeBuilder):</span>
+            <span class="s3">def </span><span class="s1">feed(self</span><span class="s3">, </span><span class="s1">*args</span><span class="s3">, </span><span class="s1">**kwargs):</span>
+                <span class="s3">raise </span><span class="s1">ParserRejectedMarkup(</span><span class="s5">&quot;Nope.&quot;</span><span class="s1">)</span>
+
+        <span class="s3">def </span><span class="s1">prepare_markup(self</span><span class="s3">, </span><span class="s1">*args</span><span class="s3">, </span><span class="s1">**kwargs):</span>
+            <span class="s0"># We're going to try two different ways of preparing this markup,</span>
+            <span class="s0"># but feed() will reject both of them.</span>
+            <span class="s3">yield </span><span class="s1">markup</span><span class="s3">, None, None, False</span>
+            <span class="s3">yield </span><span class="s1">markup</span><span class="s3">, None, None, False</span>
+            
+        <span class="s3">import </span><span class="s1">re</span>
+        <span class="s1">self.assertRaisesRegex(</span>
+            <span class="s1">ParserRejectedMarkup</span><span class="s3">,</span>
+            <span class="s5">&quot;The markup you provided was rejected by the parser. Trying a different parser or a different encoding may help.&quot;</span><span class="s3">,</span>
+            <span class="s1">BeautifulSoup</span><span class="s3">, </span><span class="s5">''</span><span class="s3">, </span><span class="s1">builder=Mock</span><span class="s3">,</span>
+        <span class="s1">)</span>
+        
+    <span class="s3">def </span><span class="s1">test_cdata_list_attributes(self):</span>
+        <span class="s0"># Most attribute values are represented as scalars, but the</span>
+        <span class="s0"># HTML standard says that some attributes, like 'class' have</span>
+        <span class="s0"># space-separated lists as values.</span>
+        <span class="s1">markup = </span><span class="s5">'&lt;a id=&quot; an id &quot; class=&quot; a class &quot;&gt;&lt;/a&gt;'</span>
+        <span class="s1">soup = self.soup(markup)</span>
+
+        <span class="s0"># Note that the spaces are stripped for 'class' but not for 'id'.</span>
+        <span class="s1">a = soup.a</span>
+        <span class="s1">self.assertEqual(</span><span class="s5">&quot; an id &quot;</span><span class="s3">, </span><span class="s1">a[</span><span class="s5">'id'</span><span class="s1">])</span>
+        <span class="s1">self.assertEqual([</span><span class="s5">&quot;a&quot;</span><span class="s3">, </span><span class="s5">&quot;class&quot;</span><span class="s1">]</span><span class="s3">, </span><span class="s1">a[</span><span class="s5">'class'</span><span class="s1">])</span>
+
+        <span class="s0"># TreeBuilder takes an argument called 'mutli_valued_attributes'  which lets</span>
+        <span class="s0"># you customize or disable this. As always, you can customize the TreeBuilder</span>
+        <span class="s0"># by passing in a keyword argument to the BeautifulSoup constructor.</span>
+        <span class="s1">soup = self.soup(markup</span><span class="s3">, </span><span class="s1">builder=default_builder</span><span class="s3">, </span><span class="s1">multi_valued_attributes=</span><span class="s3">None</span><span class="s1">)</span>
+        <span class="s1">self.assertEqual(</span><span class="s5">&quot; a class &quot;</span><span class="s3">, </span><span class="s1">soup.a[</span><span class="s5">'class'</span><span class="s1">])</span>
+
+        <span class="s0"># Here are two ways of saying that `id` is a multi-valued</span>
+        <span class="s0"># attribute in this context, but 'class' is not.</span>
+        <span class="s3">for </span><span class="s1">switcheroo </span><span class="s3">in </span><span class="s1">({</span><span class="s5">'*'</span><span class="s1">: </span><span class="s5">'id'</span><span class="s1">}</span><span class="s3">, </span><span class="s1">{</span><span class="s5">'a'</span><span class="s1">: </span><span class="s5">'id'</span><span class="s1">}):</span>
+            <span class="s3">with </span><span class="s1">warnings.catch_warnings(record=</span><span class="s3">True</span><span class="s1">) </span><span class="s3">as </span><span class="s1">w:</span>
+                <span class="s0"># This will create a warning about not explicitly</span>
+                <span class="s0"># specifying a parser, but we'll ignore it.</span>
+                <span class="s1">soup = self.soup(markup</span><span class="s3">, </span><span class="s1">builder=</span><span class="s3">None, </span><span class="s1">multi_valued_attributes=switcheroo)</span>
+            <span class="s1">a = soup.a</span>
+            <span class="s1">self.assertEqual([</span><span class="s5">&quot;an&quot;</span><span class="s3">, </span><span class="s5">&quot;id&quot;</span><span class="s1">]</span><span class="s3">, </span><span class="s1">a[</span><span class="s5">'id'</span><span class="s1">])</span>
+            <span class="s1">self.assertEqual(</span><span class="s5">&quot; a class &quot;</span><span class="s3">, </span><span class="s1">a[</span><span class="s5">'class'</span><span class="s1">])</span>
+
+    <span class="s3">def </span><span class="s1">test_replacement_classes(self):</span>
+        <span class="s0"># Test the ability to pass in replacements for element classes</span>
+        <span class="s0"># which will be used when building the tree.</span>
+        <span class="s3">class </span><span class="s1">TagPlus(Tag):</span>
+            <span class="s3">pass</span>
+
+        <span class="s3">class </span><span class="s1">StringPlus(NavigableString):</span>
+            <span class="s3">pass</span>
+
+        <span class="s3">class </span><span class="s1">CommentPlus(Comment):</span>
+            <span class="s3">pass</span>
+        
+        <span class="s1">soup = self.soup(</span>
+            <span class="s5">&quot;&lt;a&gt;&lt;b&gt;foo&lt;/b&gt;bar&lt;/a&gt;&lt;!--whee--&gt;&quot;</span><span class="s3">,</span>
+            <span class="s1">element_classes = {</span>
+                <span class="s1">Tag: TagPlus</span><span class="s3">,</span>
+                <span class="s1">NavigableString: StringPlus</span><span class="s3">,</span>
+                <span class="s1">Comment: CommentPlus</span><span class="s3">,</span>
+            <span class="s1">}</span>
+        <span class="s1">)</span>
+
+        <span class="s0"># The tree was built with TagPlus, StringPlus, and CommentPlus objects,</span>
+        <span class="s0"># rather than Tag, String, and Comment objects.</span>
+        <span class="s3">assert </span><span class="s1">all(</span>
+            <span class="s1">isinstance(x</span><span class="s3">, </span><span class="s1">(TagPlus</span><span class="s3">, </span><span class="s1">StringPlus</span><span class="s3">, </span><span class="s1">CommentPlus))</span>
+            <span class="s3">for </span><span class="s1">x </span><span class="s3">in </span><span class="s1">soup.recursiveChildGenerator()</span>
+        <span class="s1">)</span>
+
+    <span class="s3">def </span><span class="s1">test_alternate_string_containers(self):</span>
+        <span class="s0"># Test the ability to customize the string containers for</span>
+        <span class="s0"># different types of tags.</span>
+        <span class="s3">class </span><span class="s1">PString(NavigableString):</span>
+            <span class="s3">pass</span>
+
+        <span class="s3">class </span><span class="s1">BString(NavigableString):</span>
+            <span class="s3">pass</span>
+
+        <span class="s1">soup = self.soup(</span>
+            <span class="s5">&quot;&lt;div&gt;Hello.&lt;p&gt;Here is &lt;b&gt;some &lt;i&gt;bolded&lt;/i&gt;&lt;/b&gt; text&quot;</span><span class="s3">,</span>
+            <span class="s1">string_containers = {</span>
+                <span class="s5">'b'</span><span class="s1">: BString</span><span class="s3">,</span>
+                <span class="s5">'p'</span><span class="s1">: PString</span><span class="s3">,</span>
+            <span class="s1">}</span>
+        <span class="s1">)</span>
+
+        <span class="s0"># The string before the &lt;p&gt; tag is a regular NavigableString.</span>
+        <span class="s3">assert </span><span class="s1">isinstance(soup.div.contents[</span><span class="s4">0</span><span class="s1">]</span><span class="s3">, </span><span class="s1">NavigableString)</span>
+        
+        <span class="s0"># The string inside the &lt;p&gt; tag, but not inside the &lt;i&gt; tag,</span>
+        <span class="s0"># is a PString.</span>
+        <span class="s3">assert </span><span class="s1">isinstance(soup.p.contents[</span><span class="s4">0</span><span class="s1">]</span><span class="s3">, </span><span class="s1">PString)</span>
+
+        <span class="s0"># Every string inside the &lt;b&gt; tag is a BString, even the one that</span>
+        <span class="s0"># was also inside an &lt;i&gt; tag.</span>
+        <span class="s3">for </span><span class="s1">s </span><span class="s3">in </span><span class="s1">soup.b.strings:</span>
+            <span class="s3">assert </span><span class="s1">isinstance(s</span><span class="s3">, </span><span class="s1">BString)</span>
+
+        <span class="s0"># Now that parsing was complete, the string_container_stack</span>
+        <span class="s0"># (where this information was kept) has been cleared out.</span>
+        <span class="s1">self.assertEqual([]</span><span class="s3">, </span><span class="s1">soup.string_container_stack)</span>
+
+
+<span class="s3">class </span><span class="s1">TestWarnings(SoupTest):</span>
+
+    <span class="s3">def </span><span class="s1">_assert_warning(self</span><span class="s3">, </span><span class="s1">warnings</span><span class="s3">, </span><span class="s1">cls):</span>
+        <span class="s3">for </span><span class="s1">w </span><span class="s3">in </span><span class="s1">warnings:</span>
+            <span class="s3">if </span><span class="s1">isinstance(w.message</span><span class="s3">, </span><span class="s1">cls):</span>
+                <span class="s3">return </span><span class="s1">w</span>
+        <span class="s3">raise </span><span class="s1">Exception(</span><span class="s5">&quot;%s warning not found in %r&quot; </span><span class="s1">% cls</span><span class="s3">, </span><span class="s1">warnings)</span>
+    
+    <span class="s3">def </span><span class="s1">_assert_no_parser_specified(self</span><span class="s3">, </span><span class="s1">w):</span>
+        <span class="s1">warning = self._assert_warning(w</span><span class="s3">, </span><span class="s1">GuessedAtParserWarning)</span>
+        <span class="s1">message = str(warning.message)</span>
+        <span class="s1">self.assertTrue(</span>
+            <span class="s1">message.startswith(BeautifulSoup.NO_PARSER_SPECIFIED_WARNING[:</span><span class="s4">60</span><span class="s1">])</span>
+        <span class="s1">)</span>
+
+    <span class="s3">def </span><span class="s1">test_warning_if_no_parser_specified(self):</span>
+        <span class="s3">with </span><span class="s1">warnings.catch_warnings(record=</span><span class="s3">True</span><span class="s1">) </span><span class="s3">as </span><span class="s1">w:</span>
+            <span class="s1">soup = BeautifulSoup(</span><span class="s5">&quot;&lt;a&gt;&lt;b&gt;&lt;/b&gt;&lt;/a&gt;&quot;</span><span class="s1">)</span>
+        <span class="s1">self._assert_no_parser_specified(w)</span>
+
+    <span class="s3">def </span><span class="s1">test_warning_if_parser_specified_too_vague(self):</span>
+        <span class="s3">with </span><span class="s1">warnings.catch_warnings(record=</span><span class="s3">True</span><span class="s1">) </span><span class="s3">as </span><span class="s1">w:</span>
+            <span class="s1">soup = BeautifulSoup(</span><span class="s5">&quot;&lt;a&gt;&lt;b&gt;&lt;/b&gt;&lt;/a&gt;&quot;</span><span class="s3">, </span><span class="s5">&quot;html&quot;</span><span class="s1">)</span>
+        <span class="s1">self._assert_no_parser_specified(w)</span>
+
+    <span class="s3">def </span><span class="s1">test_no_warning_if_explicit_parser_specified(self):</span>
+        <span class="s3">with </span><span class="s1">warnings.catch_warnings(record=</span><span class="s3">True</span><span class="s1">) </span><span class="s3">as </span><span class="s1">w:</span>
+            <span class="s1">soup = BeautifulSoup(</span><span class="s5">&quot;&lt;a&gt;&lt;b&gt;&lt;/b&gt;&lt;/a&gt;&quot;</span><span class="s3">, </span><span class="s5">&quot;html.parser&quot;</span><span class="s1">)</span>
+        <span class="s1">self.assertEqual([]</span><span class="s3">, </span><span class="s1">w)</span>
+
+    <span class="s3">def </span><span class="s1">test_parseOnlyThese_renamed_to_parse_only(self):</span>
+        <span class="s3">with </span><span class="s1">warnings.catch_warnings(record=</span><span class="s3">True</span><span class="s1">) </span><span class="s3">as </span><span class="s1">w:</span>
+            <span class="s1">soup = self.soup(</span><span class="s5">&quot;&lt;a&gt;&lt;b&gt;&lt;/b&gt;&lt;/a&gt;&quot;</span><span class="s3">, </span><span class="s1">parseOnlyThese=SoupStrainer(</span><span class="s5">&quot;b&quot;</span><span class="s1">))</span>
+        <span class="s1">msg = str(w[</span><span class="s4">0</span><span class="s1">].message)</span>
+        <span class="s1">self.assertTrue(</span><span class="s5">&quot;parseOnlyThese&quot; </span><span class="s3">in </span><span class="s1">msg)</span>
+        <span class="s1">self.assertTrue(</span><span class="s5">&quot;parse_only&quot; </span><span class="s3">in </span><span class="s1">msg)</span>
+        <span class="s1">self.assertEqual(</span><span class="s6">b&quot;&lt;b&gt;&lt;/b&gt;&quot;</span><span class="s3">, </span><span class="s1">soup.encode())</span>
+
+    <span class="s3">def </span><span class="s1">test_fromEncoding_renamed_to_from_encoding(self):</span>
+        <span class="s3">with </span><span class="s1">warnings.catch_warnings(record=</span><span class="s3">True</span><span class="s1">) </span><span class="s3">as </span><span class="s1">w:</span>
+            <span class="s1">utf8 = </span><span class="s6">b&quot;</span><span class="s3">\xc3\xa9</span><span class="s6">&quot;</span>
+            <span class="s1">soup = self.soup(utf8</span><span class="s3">, </span><span class="s1">fromEncoding=</span><span class="s5">&quot;utf8&quot;</span><span class="s1">)</span>
+        <span class="s1">msg = str(w[</span><span class="s4">0</span><span class="s1">].message)</span>
+        <span class="s1">self.assertTrue(</span><span class="s5">&quot;fromEncoding&quot; </span><span class="s3">in </span><span class="s1">msg)</span>
+        <span class="s1">self.assertTrue(</span><span class="s5">&quot;from_encoding&quot; </span><span class="s3">in </span><span class="s1">msg)</span>
+        <span class="s1">self.assertEqual(</span><span class="s5">&quot;utf8&quot;</span><span class="s3">, </span><span class="s1">soup.original_encoding)</span>
+
+    <span class="s3">def </span><span class="s1">test_unrecognized_keyword_argument(self):</span>
+        <span class="s1">self.assertRaises(</span>
+            <span class="s1">TypeError</span><span class="s3">, </span><span class="s1">self.soup</span><span class="s3">, </span><span class="s5">&quot;&lt;a&gt;&quot;</span><span class="s3">, </span><span class="s1">no_such_argument=</span><span class="s3">True</span><span class="s1">)</span>
+
+    <span class="s3">def </span><span class="s1">test_disk_file_warning(self):</span>
+        <span class="s1">filehandle = tempfile.NamedTemporaryFile()</span>
+        <span class="s1">filename = filehandle.name</span>
+        <span class="s3">try</span><span class="s1">:</span>
+            <span class="s3">with </span><span class="s1">warnings.catch_warnings(record=</span><span class="s3">True</span><span class="s1">) </span><span class="s3">as </span><span class="s1">w:</span>
+                <span class="s1">soup = self.soup(filename)</span>
+            <span class="s1">warning = self._assert_warning(w</span><span class="s3">, </span><span class="s1">MarkupResemblesLocatorWarning)</span>
+            <span class="s1">self.assertTrue(</span><span class="s5">&quot;looks like a filename&quot; </span><span class="s3">in </span><span class="s1">str(warning.message))</span>
+        <span class="s3">finally</span><span class="s1">:</span>
+            <span class="s1">filehandle.close()</span>
+
+        <span class="s0"># The file no longer exists, so Beautiful Soup will no longer issue the warning.</span>
+        <span class="s3">with </span><span class="s1">warnings.catch_warnings(record=</span><span class="s3">True</span><span class="s1">) </span><span class="s3">as </span><span class="s1">w:</span>
+            <span class="s1">soup = self.soup(filename)</span>
+        <span class="s1">self.assertEqual([]</span><span class="s3">, </span><span class="s1">w)</span>
+
+    <span class="s3">def </span><span class="s1">test_url_warning_with_bytes_url(self):</span>
+        <span class="s3">with </span><span class="s1">warnings.catch_warnings(record=</span><span class="s3">True</span><span class="s1">) </span><span class="s3">as </span><span class="s1">warning_list:</span>
+            <span class="s1">soup = self.soup(</span><span class="s6">b&quot;http://www.crummybytes.com/&quot;</span><span class="s1">)</span>
+        <span class="s1">warning = self._assert_warning(</span>
+            <span class="s1">warning_list</span><span class="s3">, </span><span class="s1">MarkupResemblesLocatorWarning</span>
+        <span class="s1">)</span>
+        <span class="s1">self.assertTrue(</span><span class="s5">&quot;looks like a URL&quot; </span><span class="s3">in </span><span class="s1">str(warning.message))</span>
+
+    <span class="s3">def </span><span class="s1">test_url_warning_with_unicode_url(self):</span>
+        <span class="s3">with </span><span class="s1">warnings.catch_warnings(record=</span><span class="s3">True</span><span class="s1">) </span><span class="s3">as </span><span class="s1">warning_list:</span>
+            <span class="s0"># note - this url must differ from the bytes one otherwise</span>
+            <span class="s0"># python's warnings system swallows the second warning</span>
+            <span class="s1">soup = self.soup(</span><span class="s5">&quot;http://www.crummyunicode.com/&quot;</span><span class="s1">)</span>
+        <span class="s1">warning = self._assert_warning(</span>
+            <span class="s1">warning_list</span><span class="s3">, </span><span class="s1">MarkupResemblesLocatorWarning</span>
+        <span class="s1">)</span>
+        <span class="s1">self.assertTrue(</span><span class="s5">&quot;looks like a URL&quot; </span><span class="s3">in </span><span class="s1">str(warning.message))</span>
+
+    <span class="s3">def </span><span class="s1">test_url_warning_with_bytes_and_space(self):</span>
+        <span class="s0"># Here the markup contains something besides a URL, so no warning</span>
+        <span class="s0"># is issued.</span>
+        <span class="s3">with </span><span class="s1">warnings.catch_warnings(record=</span><span class="s3">True</span><span class="s1">) </span><span class="s3">as </span><span class="s1">warning_list:</span>
+            <span class="s1">soup = self.soup(</span><span class="s6">b&quot;http://www.crummybytes.com/ is great&quot;</span><span class="s1">)</span>
+        <span class="s1">self.assertFalse(any(</span><span class="s5">&quot;looks like a URL&quot; </span><span class="s3">in </span><span class="s1">str(w.message) </span>
+            <span class="s3">for </span><span class="s1">w </span><span class="s3">in </span><span class="s1">warning_list))</span>
+
+    <span class="s3">def </span><span class="s1">test_url_warning_with_unicode_and_space(self):</span>
+        <span class="s3">with </span><span class="s1">warnings.catch_warnings(record=</span><span class="s3">True</span><span class="s1">) </span><span class="s3">as </span><span class="s1">warning_list:</span>
+            <span class="s1">soup = self.soup(</span><span class="s5">&quot;http://www.crummyuncode.com/ is great&quot;</span><span class="s1">)</span>
+        <span class="s1">self.assertFalse(any(</span><span class="s5">&quot;looks like a URL&quot; </span><span class="s3">in </span><span class="s1">str(w.message) </span>
+            <span class="s3">for </span><span class="s1">w </span><span class="s3">in </span><span class="s1">warning_list))</span>
+
+
+<span class="s3">class </span><span class="s1">TestSelectiveParsing(SoupTest):</span>
+
+    <span class="s3">def </span><span class="s1">test_parse_with_soupstrainer(self):</span>
+        <span class="s1">markup = </span><span class="s5">&quot;No&lt;b&gt;Yes&lt;/b&gt;&lt;a&gt;No&lt;b&gt;Yes &lt;c&gt;Yes&lt;/c&gt;&lt;/b&gt;&quot;</span>
+        <span class="s1">strainer = SoupStrainer(</span><span class="s5">&quot;b&quot;</span><span class="s1">)</span>
+        <span class="s1">soup = self.soup(markup</span><span class="s3">, </span><span class="s1">parse_only=strainer)</span>
+        <span class="s1">self.assertEqual(soup.encode()</span><span class="s3">, </span><span class="s6">b&quot;&lt;b&gt;Yes&lt;/b&gt;&lt;b&gt;Yes &lt;c&gt;Yes&lt;/c&gt;&lt;/b&gt;&quot;</span><span class="s1">)</span>
+
+
+<span class="s3">class </span><span class="s1">TestEntitySubstitution(unittest.TestCase):</span>
+    <span class="s2">&quot;&quot;&quot;Standalone tests of the EntitySubstitution class.&quot;&quot;&quot;</span>
+    <span class="s3">def </span><span class="s1">setUp(self):</span>
+        <span class="s1">self.sub = EntitySubstitution</span>
+
+    <span class="s3">def </span><span class="s1">test_simple_html_substitution(self):</span>
+        <span class="s0"># Unicode characters corresponding to named HTML entites</span>
+        <span class="s0"># are substituted, and no others.</span>
+        <span class="s1">s = </span><span class="s5">&quot;foo</span><span class="s3">\u2200\N{SNOWMAN}\u00f5</span><span class="s5">bar&quot;</span>
+        <span class="s1">self.assertEqual(self.sub.substitute_html(s)</span><span class="s3">,</span>
+                          <span class="s5">&quot;foo&amp;forall;</span><span class="s3">\N{SNOWMAN}</span><span class="s5">&amp;otilde;bar&quot;</span><span class="s1">)</span>
+
+    <span class="s3">def </span><span class="s1">test_smart_quote_substitution(self):</span>
+        <span class="s0"># MS smart quotes are a common source of frustration, so we</span>
+        <span class="s0"># give them a special test.</span>
+        <span class="s1">quotes = </span><span class="s6">b&quot;</span><span class="s3">\x91\x92</span><span class="s6">foo</span><span class="s3">\x93\x94</span><span class="s6">&quot;</span>
+        <span class="s1">dammit = UnicodeDammit(quotes)</span>
+        <span class="s1">self.assertEqual(self.sub.substitute_html(dammit.markup)</span><span class="s3">,</span>
+                          <span class="s5">&quot;&amp;lsquo;&amp;rsquo;foo&amp;ldquo;&amp;rdquo;&quot;</span><span class="s1">)</span>
+
+    <span class="s3">def </span><span class="s1">test_xml_converstion_includes_no_quotes_if_make_quoted_attribute_is_false(self):</span>
+        <span class="s1">s = </span><span class="s5">'Welcome to &quot;my bar&quot;'</span>
+        <span class="s1">self.assertEqual(self.sub.substitute_xml(s</span><span class="s3">, False</span><span class="s1">)</span><span class="s3">, </span><span class="s1">s)</span>
+
+    <span class="s3">def </span><span class="s1">test_xml_attribute_quoting_normally_uses_double_quotes(self):</span>
+        <span class="s1">self.assertEqual(self.sub.substitute_xml(</span><span class="s5">&quot;Welcome&quot;</span><span class="s3">, True</span><span class="s1">)</span><span class="s3">,</span>
+                          <span class="s5">'&quot;Welcome&quot;'</span><span class="s1">)</span>
+        <span class="s1">self.assertEqual(self.sub.substitute_xml(</span><span class="s5">&quot;Bob's Bar&quot;</span><span class="s3">, True</span><span class="s1">)</span><span class="s3">,</span>
+                          <span class="s5">'&quot;Bob</span><span class="s3">\'</span><span class="s5">s Bar&quot;'</span><span class="s1">)</span>
+
+    <span class="s3">def </span><span class="s1">test_xml_attribute_quoting_uses_single_quotes_when_value_contains_double_quotes(self):</span>
+        <span class="s1">s = </span><span class="s5">'Welcome to &quot;my bar&quot;'</span>
+        <span class="s1">self.assertEqual(self.sub.substitute_xml(s</span><span class="s3">, True</span><span class="s1">)</span><span class="s3">,</span>
+                          <span class="s5">&quot;'Welcome to </span><span class="s3">\&quot;</span><span class="s5">my bar</span><span class="s3">\&quot;</span><span class="s5">'&quot;</span><span class="s1">)</span>
+
+    <span class="s3">def </span><span class="s1">test_xml_attribute_quoting_escapes_single_quotes_when_value_contains_both_single_and_double_quotes(self):</span>
+        <span class="s1">s = </span><span class="s5">'Welcome to &quot;Bob</span><span class="s3">\'</span><span class="s5">s Bar&quot;'</span>
+        <span class="s1">self.assertEqual(</span>
+            <span class="s1">self.sub.substitute_xml(s</span><span class="s3">, True</span><span class="s1">)</span><span class="s3">,</span>
+            <span class="s5">'&quot;Welcome to &amp;quot;Bob</span><span class="s3">\'</span><span class="s5">s Bar&amp;quot;&quot;'</span><span class="s1">)</span>
+
+    <span class="s3">def </span><span class="s1">test_xml_quotes_arent_escaped_when_value_is_not_being_quoted(self):</span>
+        <span class="s1">quoted = </span><span class="s5">'Welcome to &quot;Bob</span><span class="s3">\'</span><span class="s5">s Bar&quot;'</span>
+        <span class="s1">self.assertEqual(self.sub.substitute_xml(quoted)</span><span class="s3">, </span><span class="s1">quoted)</span>
+
+    <span class="s3">def </span><span class="s1">test_xml_quoting_handles_angle_brackets(self):</span>
+        <span class="s1">self.assertEqual(</span>
+            <span class="s1">self.sub.substitute_xml(</span><span class="s5">&quot;foo&lt;bar&gt;&quot;</span><span class="s1">)</span><span class="s3">,</span>
+            <span class="s5">&quot;foo&amp;lt;bar&amp;gt;&quot;</span><span class="s1">)</span>
+
+    <span class="s3">def </span><span class="s1">test_xml_quoting_handles_ampersands(self):</span>
+        <span class="s1">self.assertEqual(self.sub.substitute_xml(</span><span class="s5">&quot;AT&amp;T&quot;</span><span class="s1">)</span><span class="s3">, </span><span class="s5">&quot;AT&amp;amp;T&quot;</span><span class="s1">)</span>
+
+    <span class="s3">def </span><span class="s1">test_xml_quoting_including_ampersands_when_they_are_part_of_an_entity(self):</span>
+        <span class="s1">self.assertEqual(</span>
+            <span class="s1">self.sub.substitute_xml(</span><span class="s5">&quot;&amp;Aacute;T&amp;T&quot;</span><span class="s1">)</span><span class="s3">,</span>
+            <span class="s5">&quot;&amp;amp;Aacute;T&amp;amp;T&quot;</span><span class="s1">)</span>
+
+    <span class="s3">def </span><span class="s1">test_xml_quoting_ignoring_ampersands_when_they_are_part_of_an_entity(self):</span>
+        <span class="s1">self.assertEqual(</span>
+            <span class="s1">self.sub.substitute_xml_containing_entities(</span><span class="s5">&quot;&amp;Aacute;T&amp;T&quot;</span><span class="s1">)</span><span class="s3">,</span>
+            <span class="s5">&quot;&amp;Aacute;T&amp;amp;T&quot;</span><span class="s1">)</span>
+       
+    <span class="s3">def </span><span class="s1">test_quotes_not_html_substituted(self):</span>
+        <span class="s2">&quot;&quot;&quot;There's no need to do this except inside attribute values.&quot;&quot;&quot;</span>
+        <span class="s1">text = </span><span class="s5">'Bob</span><span class="s3">\'</span><span class="s5">s &quot;bar&quot;'</span>
+        <span class="s1">self.assertEqual(self.sub.substitute_html(text)</span><span class="s3">, </span><span class="s1">text)</span>
+
+
+<span class="s3">class </span><span class="s1">TestEncodingConversion(SoupTest):</span>
+    <span class="s0"># Test Beautiful Soup's ability to decode and encode from various</span>
+    <span class="s0"># encodings.</span>
+
+    <span class="s3">def </span><span class="s1">setUp(self):</span>
+        <span class="s1">super(TestEncodingConversion</span><span class="s3">, </span><span class="s1">self).setUp()</span>
+        <span class="s1">self.unicode_data = </span><span class="s5">'&lt;html&gt;&lt;head&gt;&lt;meta charset=&quot;utf-8&quot;/&gt;&lt;/head&gt;&lt;body&gt;&lt;foo&gt;Sacr</span><span class="s3">\N{LATIN SMALL LETTER E WITH ACUTE} </span><span class="s5">bleu!&lt;/foo&gt;&lt;/body&gt;&lt;/html&gt;'</span>
+        <span class="s1">self.utf8_data = self.unicode_data.encode(</span><span class="s5">&quot;utf-8&quot;</span><span class="s1">)</span>
+        <span class="s0"># Just so you know what it looks like.</span>
+        <span class="s1">self.assertEqual(</span>
+            <span class="s1">self.utf8_data</span><span class="s3">,</span>
+            <span class="s6">b'&lt;html&gt;&lt;head&gt;&lt;meta charset=&quot;utf-8&quot;/&gt;&lt;/head&gt;&lt;body&gt;&lt;foo&gt;Sacr</span><span class="s3">\xc3\xa9 </span><span class="s6">bleu!&lt;/foo&gt;&lt;/body&gt;&lt;/html&gt;'</span><span class="s1">)</span>
+
+    <span class="s3">def </span><span class="s1">test_ascii_in_unicode_out(self):</span>
+        <span class="s0"># ASCII input is converted to Unicode. The original_encoding</span>
+        <span class="s0"># attribute is set to 'utf-8', a superset of ASCII.</span>
+        <span class="s1">chardet = bs4.dammit.chardet_dammit</span>
+        <span class="s1">logging.disable(logging.WARNING)</span>
+        <span class="s3">try</span><span class="s1">:</span>
+            <span class="s3">def </span><span class="s1">noop(str):</span>
+                <span class="s3">return None</span>
+            <span class="s0"># Disable chardet, which will realize that the ASCII is ASCII.</span>
+            <span class="s1">bs4.dammit.chardet_dammit = noop</span>
+            <span class="s1">ascii = </span><span class="s6">b&quot;&lt;foo&gt;a&lt;/foo&gt;&quot;</span>
+            <span class="s1">soup_from_ascii = self.soup(ascii)</span>
+            <span class="s1">unicode_output = soup_from_ascii.decode()</span>
+            <span class="s1">self.assertTrue(isinstance(unicode_output</span><span class="s3">, </span><span class="s1">str))</span>
+            <span class="s1">self.assertEqual(unicode_output</span><span class="s3">, </span><span class="s1">self.document_for(ascii.decode()))</span>
+            <span class="s1">self.assertEqual(soup_from_ascii.original_encoding.lower()</span><span class="s3">, </span><span class="s5">&quot;utf-8&quot;</span><span class="s1">)</span>
+        <span class="s3">finally</span><span class="s1">:</span>
+            <span class="s1">logging.disable(logging.NOTSET)</span>
+            <span class="s1">bs4.dammit.chardet_dammit = chardet</span>
+
+    <span class="s3">def </span><span class="s1">test_unicode_in_unicode_out(self):</span>
+        <span class="s0"># Unicode input is left alone. The original_encoding attribute</span>
+        <span class="s0"># is not set.</span>
+        <span class="s1">soup_from_unicode = self.soup(self.unicode_data)</span>
+        <span class="s1">self.assertEqual(soup_from_unicode.decode()</span><span class="s3">, </span><span class="s1">self.unicode_data)</span>
+        <span class="s1">self.assertEqual(soup_from_unicode.foo.string</span><span class="s3">, </span><span class="s5">'Sacr</span><span class="s3">\xe9 </span><span class="s5">bleu!'</span><span class="s1">)</span>
+        <span class="s1">self.assertEqual(soup_from_unicode.original_encoding</span><span class="s3">, None</span><span class="s1">)</span>
+
+    <span class="s3">def </span><span class="s1">test_utf8_in_unicode_out(self):</span>
+        <span class="s0"># UTF-8 input is converted to Unicode. The original_encoding</span>
+        <span class="s0"># attribute is set.</span>
+        <span class="s1">soup_from_utf8 = self.soup(self.utf8_data)</span>
+        <span class="s1">self.assertEqual(soup_from_utf8.decode()</span><span class="s3">, </span><span class="s1">self.unicode_data)</span>
+        <span class="s1">self.assertEqual(soup_from_utf8.foo.string</span><span class="s3">, </span><span class="s5">'Sacr</span><span class="s3">\xe9 </span><span class="s5">bleu!'</span><span class="s1">)</span>
+
+    <span class="s3">def </span><span class="s1">test_utf8_out(self):</span>
+        <span class="s0"># The internal data structures can be encoded as UTF-8.</span>
+        <span class="s1">soup_from_unicode = self.soup(self.unicode_data)</span>
+        <span class="s1">self.assertEqual(soup_from_unicode.encode(</span><span class="s5">'utf-8'</span><span class="s1">)</span><span class="s3">, </span><span class="s1">self.utf8_data)</span>
+
+    <span class="s1">@skipIf(</span>
+        <span class="s1">PYTHON_3_PRE_3_2</span><span class="s3">,</span>
+        <span class="s5">&quot;Bad HTMLParser detected; skipping test of non-ASCII characters in attribute name.&quot;</span><span class="s1">)</span>
+    <span class="s3">def </span><span class="s1">test_attribute_name_containing_unicode_characters(self):</span>
+        <span class="s1">markup = </span><span class="s5">'&lt;div&gt;&lt;a </span><span class="s3">\N{SNOWMAN}</span><span class="s5">=&quot;snowman&quot;&gt;&lt;/a&gt;&lt;/div&gt;'</span>
+        <span class="s1">self.assertEqual(self.soup(markup).div.encode(</span><span class="s5">&quot;utf8&quot;</span><span class="s1">)</span><span class="s3">, </span><span class="s1">markup.encode(</span><span class="s5">&quot;utf8&quot;</span><span class="s1">))</span>
+
+<span class="s3">class </span><span class="s1">TestUnicodeDammit(unittest.TestCase):</span>
+    <span class="s2">&quot;&quot;&quot;Standalone tests of UnicodeDammit.&quot;&quot;&quot;</span>
+
+    <span class="s3">def </span><span class="s1">test_unicode_input(self):</span>
+        <span class="s1">markup = </span><span class="s5">&quot;I'm already Unicode! </span><span class="s3">\N{SNOWMAN}</span><span class="s5">&quot;</span>
+        <span class="s1">dammit = UnicodeDammit(markup)</span>
+        <span class="s1">self.assertEqual(dammit.unicode_markup</span><span class="s3">, </span><span class="s1">markup)</span>
+
+    <span class="s3">def </span><span class="s1">test_smart_quotes_to_unicode(self):</span>
+        <span class="s1">markup = </span><span class="s6">b&quot;&lt;foo&gt;</span><span class="s3">\x91\x92\x93\x94</span><span class="s6">&lt;/foo&gt;&quot;</span>
+        <span class="s1">dammit = UnicodeDammit(markup)</span>
+        <span class="s1">self.assertEqual(</span>
+            <span class="s1">dammit.unicode_markup</span><span class="s3">, </span><span class="s5">&quot;&lt;foo&gt;</span><span class="s3">\u2018\u2019\u201c\u201d</span><span class="s5">&lt;/foo&gt;&quot;</span><span class="s1">)</span>
+
+    <span class="s3">def </span><span class="s1">test_smart_quotes_to_xml_entities(self):</span>
+        <span class="s1">markup = </span><span class="s6">b&quot;&lt;foo&gt;</span><span class="s3">\x91\x92\x93\x94</span><span class="s6">&lt;/foo&gt;&quot;</span>
+        <span class="s1">dammit = UnicodeDammit(markup</span><span class="s3">, </span><span class="s1">smart_quotes_to=</span><span class="s5">&quot;xml&quot;</span><span class="s1">)</span>
+        <span class="s1">self.assertEqual(</span>
+            <span class="s1">dammit.unicode_markup</span><span class="s3">, </span><span class="s5">&quot;&lt;foo&gt;&amp;#x2018;&amp;#x2019;&amp;#x201C;&amp;#x201D;&lt;/foo&gt;&quot;</span><span class="s1">)</span>
+
+    <span class="s3">def </span><span class="s1">test_smart_quotes_to_html_entities(self):</span>
+        <span class="s1">markup = </span><span class="s6">b&quot;&lt;foo&gt;</span><span class="s3">\x91\x92\x93\x94</span><span class="s6">&lt;/foo&gt;&quot;</span>
+        <span class="s1">dammit = UnicodeDammit(markup</span><span class="s3">, </span><span class="s1">smart_quotes_to=</span><span class="s5">&quot;html&quot;</span><span class="s1">)</span>
+        <span class="s1">self.assertEqual(</span>
+            <span class="s1">dammit.unicode_markup</span><span class="s3">, </span><span class="s5">&quot;&lt;foo&gt;&amp;lsquo;&amp;rsquo;&amp;ldquo;&amp;rdquo;&lt;/foo&gt;&quot;</span><span class="s1">)</span>
+
+    <span class="s3">def </span><span class="s1">test_smart_quotes_to_ascii(self):</span>
+        <span class="s1">markup = </span><span class="s6">b&quot;&lt;foo&gt;</span><span class="s3">\x91\x92\x93\x94</span><span class="s6">&lt;/foo&gt;&quot;</span>
+        <span class="s1">dammit = UnicodeDammit(markup</span><span class="s3">, </span><span class="s1">smart_quotes_to=</span><span class="s5">&quot;ascii&quot;</span><span class="s1">)</span>
+        <span class="s1">self.assertEqual(</span>
+            <span class="s1">dammit.unicode_markup</span><span class="s3">, </span><span class="s5">&quot;&quot;&quot;&lt;foo&gt;''&quot;&quot;&lt;/foo&gt;&quot;&quot;&quot;</span><span class="s1">)</span>
+
+    <span class="s3">def </span><span class="s1">test_detect_utf8(self):</span>
+        <span class="s1">utf8 = </span><span class="s6">b&quot;Sacr</span><span class="s3">\xc3\xa9 </span><span class="s6">bleu! </span><span class="s3">\xe2\x98\x83</span><span class="s6">&quot;</span>
+        <span class="s1">dammit = UnicodeDammit(utf8)</span>
+        <span class="s1">self.assertEqual(dammit.original_encoding.lower()</span><span class="s3">, </span><span class="s5">'utf-8'</span><span class="s1">)</span>
+        <span class="s1">self.assertEqual(dammit.unicode_markup</span><span class="s3">, </span><span class="s5">'Sacr</span><span class="s3">\xe9 </span><span class="s5">bleu! </span><span class="s3">\N{SNOWMAN}</span><span class="s5">'</span><span class="s1">)</span>
+
+
+    <span class="s3">def </span><span class="s1">test_convert_hebrew(self):</span>
+        <span class="s1">hebrew = </span><span class="s6">b&quot;</span><span class="s3">\xed\xe5\xec\xf9</span><span class="s6">&quot;</span>
+        <span class="s1">dammit = UnicodeDammit(hebrew</span><span class="s3">, </span><span class="s1">[</span><span class="s5">&quot;iso-8859-8&quot;</span><span class="s1">])</span>
+        <span class="s1">self.assertEqual(dammit.original_encoding.lower()</span><span class="s3">, </span><span class="s5">'iso-8859-8'</span><span class="s1">)</span>
+        <span class="s1">self.assertEqual(dammit.unicode_markup</span><span class="s3">, </span><span class="s5">'</span><span class="s3">\u05dd\u05d5\u05dc\u05e9</span><span class="s5">'</span><span class="s1">)</span>
+
+    <span class="s3">def </span><span class="s1">test_dont_see_smart_quotes_where_there_are_none(self):</span>
+        <span class="s1">utf_8 = </span><span class="s6">b&quot;</span><span class="s3">\343\202\261\343\203\274\343\202\277\343\202\244 </span><span class="s6">Watch&quot;</span>
+        <span class="s1">dammit = UnicodeDammit(utf_8)</span>
+        <span class="s1">self.assertEqual(dammit.original_encoding.lower()</span><span class="s3">, </span><span class="s5">'utf-8'</span><span class="s1">)</span>
+        <span class="s1">self.assertEqual(dammit.unicode_markup.encode(</span><span class="s5">&quot;utf-8&quot;</span><span class="s1">)</span><span class="s3">, </span><span class="s1">utf_8)</span>
+
+    <span class="s3">def </span><span class="s1">test_ignore_inappropriate_codecs(self):</span>
+        <span class="s1">utf8_data = </span><span class="s5">&quot;Räksmörgås&quot;</span><span class="s1">.encode(</span><span class="s5">&quot;utf-8&quot;</span><span class="s1">)</span>
+        <span class="s1">dammit = UnicodeDammit(utf8_data</span><span class="s3">, </span><span class="s1">[</span><span class="s5">&quot;iso-8859-8&quot;</span><span class="s1">])</span>
+        <span class="s1">self.assertEqual(dammit.original_encoding.lower()</span><span class="s3">, </span><span class="s5">'utf-8'</span><span class="s1">)</span>
+
+    <span class="s3">def </span><span class="s1">test_ignore_invalid_codecs(self):</span>
+        <span class="s1">utf8_data = </span><span class="s5">&quot;Räksmörgås&quot;</span><span class="s1">.encode(</span><span class="s5">&quot;utf-8&quot;</span><span class="s1">)</span>
+        <span class="s3">for </span><span class="s1">bad_encoding </span><span class="s3">in </span><span class="s1">[</span><span class="s5">'.utf8'</span><span class="s3">, </span><span class="s5">'...'</span><span class="s3">, </span><span class="s5">'utF---16.!'</span><span class="s1">]:</span>
+            <span class="s1">dammit = UnicodeDammit(utf8_data</span><span class="s3">, </span><span class="s1">[bad_encoding])</span>
+            <span class="s1">self.assertEqual(dammit.original_encoding.lower()</span><span class="s3">, </span><span class="s5">'utf-8'</span><span class="s1">)</span>
+
+    <span class="s3">def </span><span class="s1">test_exclude_encodings(self):</span>
+        <span class="s0"># This is UTF-8.</span>
+        <span class="s1">utf8_data = </span><span class="s5">&quot;Räksmörgås&quot;</span><span class="s1">.encode(</span><span class="s5">&quot;utf-8&quot;</span><span class="s1">)</span>
+
+        <span class="s0"># But if we exclude UTF-8 from consideration, the guess is</span>
+        <span class="s0"># Windows-1252.</span>
+        <span class="s1">dammit = UnicodeDammit(utf8_data</span><span class="s3">, </span><span class="s1">exclude_encodings=[</span><span class="s5">&quot;utf-8&quot;</span><span class="s1">])</span>
+        <span class="s1">self.assertEqual(dammit.original_encoding.lower()</span><span class="s3">, </span><span class="s5">'windows-1252'</span><span class="s1">)</span>
+
+        <span class="s0"># And if we exclude that, there is no valid guess at all.</span>
+        <span class="s1">dammit = UnicodeDammit(</span>
+            <span class="s1">utf8_data</span><span class="s3">, </span><span class="s1">exclude_encodings=[</span><span class="s5">&quot;utf-8&quot;</span><span class="s3">, </span><span class="s5">&quot;windows-1252&quot;</span><span class="s1">])</span>
+        <span class="s1">self.assertEqual(dammit.original_encoding</span><span class="s3">, None</span><span class="s1">)</span>
+
+    <span class="s3">def </span><span class="s1">test_encoding_detector_replaces_junk_in_encoding_name_with_replacement_character(self):</span>
+        <span class="s1">detected = EncodingDetector(</span>
+            <span class="s6">b'&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-</span><span class="s3">\xdb</span><span class="s6">&quot; ?&gt;'</span><span class="s1">)</span>
+        <span class="s1">encodings = list(detected.encodings)</span>
+        <span class="s3">assert </span><span class="s5">'utf-</span><span class="s3">\N{REPLACEMENT CHARACTER}</span><span class="s5">' </span><span class="s3">in </span><span class="s1">encodings</span>
+
+    <span class="s3">def </span><span class="s1">test_detect_html5_style_meta_tag(self):</span>
+
+        <span class="s3">for </span><span class="s1">data </span><span class="s3">in </span><span class="s1">(</span>
+            <span class="s6">b'&lt;html&gt;&lt;meta charset=&quot;euc-jp&quot; /&gt;&lt;/html&gt;'</span><span class="s3">,</span>
+            <span class="s6">b&quot;&lt;html&gt;&lt;meta charset='euc-jp' /&gt;&lt;/html&gt;&quot;</span><span class="s3">,</span>
+            <span class="s6">b&quot;&lt;html&gt;&lt;meta charset=euc-jp /&gt;&lt;/html&gt;&quot;</span><span class="s3">,</span>
+            <span class="s6">b&quot;&lt;html&gt;&lt;meta charset=euc-jp/&gt;&lt;/html&gt;&quot;</span><span class="s1">):</span>
+            <span class="s1">dammit = UnicodeDammit(data</span><span class="s3">, </span><span class="s1">is_html=</span><span class="s3">True</span><span class="s1">)</span>
+            <span class="s1">self.assertEqual(</span>
+                <span class="s5">&quot;euc-jp&quot;</span><span class="s3">, </span><span class="s1">dammit.original_encoding)</span>
+
+    <span class="s3">def </span><span class="s1">test_last_ditch_entity_replacement(self):</span>
+        <span class="s0"># This is a UTF-8 document that contains bytestrings</span>
+        <span class="s0"># completely incompatible with UTF-8 (ie. encoded with some other</span>
+        <span class="s0"># encoding).</span>
+        <span class="s0">#</span>
+        <span class="s0"># Since there is no consistent encoding for the document,</span>
+        <span class="s0"># Unicode, Dammit will eventually encode the document as UTF-8</span>
+        <span class="s0"># and encode the incompatible characters as REPLACEMENT</span>
+        <span class="s0"># CHARACTER.</span>
+        <span class="s0">#</span>
+        <span class="s0"># If chardet is installed, it will detect that the document</span>
+        <span class="s0"># can be converted into ISO-8859-1 without errors. This happens</span>
+        <span class="s0"># to be the wrong encoding, but it is a consistent encoding, so the</span>
+        <span class="s0"># code we're testing here won't run.</span>
+        <span class="s0">#</span>
+        <span class="s0"># So we temporarily disable chardet if it's present.</span>
+        <span class="s1">doc = </span><span class="s6">b&quot;&quot;&quot;</span><span class="s3">\357\273\277</span><span class="s6">&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt; 
+&lt;html&gt;&lt;b&gt;</span><span class="s3">\330\250\330\252\330\261</span><span class="s6">&lt;/b&gt; 
+&lt;i&gt;</span><span class="s3">\310\322\321\220\312\321\355\344</span><span class="s6">&lt;/i&gt;&lt;/html&gt;&quot;&quot;&quot;</span>
+        <span class="s1">chardet = bs4.dammit.chardet_dammit</span>
+        <span class="s1">logging.disable(logging.WARNING)</span>
+        <span class="s3">try</span><span class="s1">:</span>
+            <span class="s3">def </span><span class="s1">noop(str):</span>
+                <span class="s3">return None</span>
+            <span class="s1">bs4.dammit.chardet_dammit = noop</span>
+            <span class="s1">dammit = UnicodeDammit(doc)</span>
+            <span class="s1">self.assertEqual(</span><span class="s3">True, </span><span class="s1">dammit.contains_replacement_characters)</span>
+            <span class="s1">self.assertTrue(</span><span class="s5">&quot;</span><span class="s3">\ufffd</span><span class="s5">&quot; </span><span class="s3">in </span><span class="s1">dammit.unicode_markup)</span>
+
+            <span class="s1">soup = BeautifulSoup(doc</span><span class="s3">, </span><span class="s5">&quot;html.parser&quot;</span><span class="s1">)</span>
+            <span class="s1">self.assertTrue(soup.contains_replacement_characters)</span>
+        <span class="s3">finally</span><span class="s1">:</span>
+            <span class="s1">logging.disable(logging.NOTSET)</span>
+            <span class="s1">bs4.dammit.chardet_dammit = chardet</span>
+
+    <span class="s3">def </span><span class="s1">test_byte_order_mark_removed(self):</span>
+        <span class="s0"># A document written in UTF-16LE will have its byte order marker stripped.</span>
+        <span class="s1">data = </span><span class="s6">b'</span><span class="s3">\xff\xfe</span><span class="s6">&lt;</span><span class="s3">\x00</span><span class="s6">a</span><span class="s3">\x00</span><span class="s6">&gt;</span><span class="s3">\x00\xe1\x00\xe9\x00</span><span class="s6">&lt;</span><span class="s3">\x00</span><span class="s6">/</span><span class="s3">\x00</span><span class="s6">a</span><span class="s3">\x00</span><span class="s6">&gt;</span><span class="s3">\x00</span><span class="s6">'</span>
+        <span class="s1">dammit = UnicodeDammit(data)</span>
+        <span class="s1">self.assertEqual(</span><span class="s5">&quot;&lt;a&gt;áé&lt;/a&gt;&quot;</span><span class="s3">, </span><span class="s1">dammit.unicode_markup)</span>
+        <span class="s1">self.assertEqual(</span><span class="s5">&quot;utf-16le&quot;</span><span class="s3">, </span><span class="s1">dammit.original_encoding)</span>
+
+    <span class="s3">def </span><span class="s1">test_detwingle(self):</span>
+        <span class="s0"># Here's a UTF8 document.</span>
+        <span class="s1">utf8 = (</span><span class="s5">&quot;</span><span class="s3">\N{SNOWMAN}</span><span class="s5">&quot; </span><span class="s1">* </span><span class="s4">3</span><span class="s1">).encode(</span><span class="s5">&quot;utf8&quot;</span><span class="s1">)</span>
+
+        <span class="s0"># Here's a Windows-1252 document.</span>
+        <span class="s1">windows_1252 = (</span>
+            <span class="s5">&quot;</span><span class="s3">\N{LEFT DOUBLE QUOTATION MARK}</span><span class="s5">Hi, I like Windows!&quot;</span>
+            <span class="s5">&quot;</span><span class="s3">\N{RIGHT DOUBLE QUOTATION MARK}</span><span class="s5">&quot;</span><span class="s1">).encode(</span><span class="s5">&quot;windows_1252&quot;</span><span class="s1">)</span>
+
+        <span class="s0"># Through some unholy alchemy, they've been stuck together.</span>
+        <span class="s1">doc = utf8 + windows_1252 + utf8</span>
+
+        <span class="s0"># The document can't be turned into UTF-8:</span>
+        <span class="s1">self.assertRaises(UnicodeDecodeError</span><span class="s3">, </span><span class="s1">doc.decode</span><span class="s3">, </span><span class="s5">&quot;utf8&quot;</span><span class="s1">)</span>
+
+        <span class="s0"># Unicode, Dammit thinks the whole document is Windows-1252,</span>
+        <span class="s0"># and decodes it into &quot;â˜ƒâ˜ƒâ˜ƒ“Hi, I like Windows!”â˜ƒâ˜ƒâ˜ƒ&quot;</span>
+
+        <span class="s0"># But if we run it through fix_embedded_windows_1252, it's fixed:</span>
+
+        <span class="s1">fixed = UnicodeDammit.detwingle(doc)</span>
+        <span class="s1">self.assertEqual(</span>
+            <span class="s5">&quot;☃☃☃“Hi, I like Windows!”☃☃☃&quot;</span><span class="s3">, </span><span class="s1">fixed.decode(</span><span class="s5">&quot;utf8&quot;</span><span class="s1">))</span>
+
+    <span class="s3">def </span><span class="s1">test_detwingle_ignores_multibyte_characters(self):</span>
+        <span class="s0"># Each of these characters has a UTF-8 representation ending</span>
+        <span class="s0"># in \x93. \x93 is a smart quote if interpreted as</span>
+        <span class="s0"># Windows-1252. But our code knows to skip over multibyte</span>
+        <span class="s0"># UTF-8 characters, so they'll survive the process unscathed.</span>
+        <span class="s3">for </span><span class="s1">tricky_unicode_char </span><span class="s3">in </span><span class="s1">(</span>
+            <span class="s5">&quot;</span><span class="s3">\N{LATIN SMALL LIGATURE OE}</span><span class="s5">&quot;</span><span class="s3">, </span><span class="s0"># 2-byte char '\xc5\x93'</span>
+            <span class="s5">&quot;</span><span class="s3">\N{LATIN SUBSCRIPT SMALL LETTER X}</span><span class="s5">&quot;</span><span class="s3">, </span><span class="s0"># 3-byte char '\xe2\x82\x93'</span>
+            <span class="s5">&quot;</span><span class="s3">\xf0\x90\x90\x93</span><span class="s5">&quot;</span><span class="s3">, </span><span class="s0"># This is a CJK character, not sure which one.</span>
+            <span class="s1">):</span>
+            <span class="s1">input = tricky_unicode_char.encode(</span><span class="s5">&quot;utf8&quot;</span><span class="s1">)</span>
+            <span class="s1">self.assertTrue(input.endswith(</span><span class="s6">b'</span><span class="s3">\x93</span><span class="s6">'</span><span class="s1">))</span>
+            <span class="s1">output = UnicodeDammit.detwingle(input)</span>
+            <span class="s1">self.assertEqual(output</span><span class="s3">, </span><span class="s1">input)</span>
+
+    <span class="s3">def </span><span class="s1">test_find_declared_encoding(self):</span>
+        <span class="s0"># Test our ability to find a declared encoding inside an</span>
+        <span class="s0"># XML or HTML document.</span>
+        <span class="s0">#</span>
+        <span class="s0"># Even if the document comes in as Unicode, it may be</span>
+        <span class="s0"># interesting to know what encoding was claimed</span>
+        <span class="s0"># originally.</span>
+
+        <span class="s1">html_unicode = </span><span class="s5">'&lt;html&gt;&lt;head&gt;&lt;meta charset=&quot;utf-8&quot;&gt;&lt;/head&gt;&lt;/html&gt;'</span>
+        <span class="s1">html_bytes = html_unicode.encode(</span><span class="s5">&quot;ascii&quot;</span><span class="s1">)</span>
+
+        <span class="s1">xml_unicode= </span><span class="s5">'&lt;?xml version=&quot;1.0&quot; encoding=&quot;ISO-8859-1&quot; ?&gt;'</span>
+        <span class="s1">xml_bytes = xml_unicode.encode(</span><span class="s5">&quot;ascii&quot;</span><span class="s1">)</span>
+
+        <span class="s1">m = EncodingDetector.find_declared_encoding</span>
+        <span class="s1">self.assertEqual(</span><span class="s3">None, </span><span class="s1">m(html_unicode</span><span class="s3">, </span><span class="s1">is_html=</span><span class="s3">False</span><span class="s1">))</span>
+        <span class="s1">self.assertEqual(</span><span class="s5">&quot;utf-8&quot;</span><span class="s3">, </span><span class="s1">m(html_unicode</span><span class="s3">, </span><span class="s1">is_html=</span><span class="s3">True</span><span class="s1">))</span>
+        <span class="s1">self.assertEqual(</span><span class="s5">&quot;utf-8&quot;</span><span class="s3">, </span><span class="s1">m(html_bytes</span><span class="s3">, </span><span class="s1">is_html=</span><span class="s3">True</span><span class="s1">))</span>
+
+        <span class="s1">self.assertEqual(</span><span class="s5">&quot;iso-8859-1&quot;</span><span class="s3">, </span><span class="s1">m(xml_unicode))</span>
+        <span class="s1">self.assertEqual(</span><span class="s5">&quot;iso-8859-1&quot;</span><span class="s3">, </span><span class="s1">m(xml_bytes))</span>
+
+        <span class="s0"># Normally, only the first few kilobytes of a document are checked for</span>
+        <span class="s0"># an encoding.</span>
+        <span class="s1">spacer = </span><span class="s6">b' ' </span><span class="s1">* </span><span class="s4">5000</span>
+        <span class="s1">self.assertEqual(</span><span class="s3">None, </span><span class="s1">m(spacer + html_bytes))</span>
+        <span class="s1">self.assertEqual(</span><span class="s3">None, </span><span class="s1">m(spacer + xml_bytes))</span>
+
+        <span class="s0"># But you can tell find_declared_encoding to search an entire</span>
+        <span class="s0"># HTML document.</span>
+        <span class="s1">self.assertEqual(</span>
+            <span class="s5">&quot;utf-8&quot;</span><span class="s3">,</span>
+            <span class="s1">m(spacer + html_bytes</span><span class="s3">, </span><span class="s1">is_html=</span><span class="s3">True, </span><span class="s1">search_entire_document=</span><span class="s3">True</span><span class="s1">)</span>
+        <span class="s1">)</span>
+
+        <span class="s0"># The XML encoding declaration has to be the very first thing</span>
+        <span class="s0"># in the document. We'll allow whitespace before the document</span>
+        <span class="s0"># starts, but nothing else.</span>
+        <span class="s1">self.assertEqual(</span>
+            <span class="s5">&quot;iso-8859-1&quot;</span><span class="s3">,</span>
+            <span class="s1">m(xml_bytes</span><span class="s3">, </span><span class="s1">search_entire_document=</span><span class="s3">True</span><span class="s1">)</span>
+        <span class="s1">)</span>
+        <span class="s1">self.assertEqual(</span>
+            <span class="s3">None, </span><span class="s1">m(</span><span class="s6">b'a' </span><span class="s1">+ xml_bytes</span><span class="s3">, </span><span class="s1">search_entire_document=</span><span class="s3">True</span><span class="s1">)</span>
+        <span class="s1">)</span>
+            
+<span class="s3">class </span><span class="s1">TestNamedspacedAttribute(SoupTest):</span>
+
+    <span class="s3">def </span><span class="s1">test_name_may_be_none_or_missing(self):</span>
+        <span class="s1">a = NamespacedAttribute(</span><span class="s5">&quot;xmlns&quot;</span><span class="s3">, None</span><span class="s1">)</span>
+        <span class="s1">self.assertEqual(a</span><span class="s3">, </span><span class="s5">&quot;xmlns&quot;</span><span class="s1">)</span>
+
+        <span class="s1">a = NamespacedAttribute(</span><span class="s5">&quot;xmlns&quot;</span><span class="s1">)</span>
+        <span class="s1">self.assertEqual(a</span><span class="s3">, </span><span class="s5">&quot;xmlns&quot;</span><span class="s1">)</span>
+        
+    <span class="s3">def </span><span class="s1">test_attribute_is_equivalent_to_colon_separated_string(self):</span>
+        <span class="s1">a = NamespacedAttribute(</span><span class="s5">&quot;a&quot;</span><span class="s3">, </span><span class="s5">&quot;b&quot;</span><span class="s1">)</span>
+        <span class="s1">self.assertEqual(</span><span class="s5">&quot;a:b&quot;</span><span class="s3">, </span><span class="s1">a)</span>
+
+    <span class="s3">def </span><span class="s1">test_attributes_are_equivalent_if_prefix_and_name_identical(self):</span>
+        <span class="s1">a = NamespacedAttribute(</span><span class="s5">&quot;a&quot;</span><span class="s3">, </span><span class="s5">&quot;b&quot;</span><span class="s3">, </span><span class="s5">&quot;c&quot;</span><span class="s1">)</span>
+        <span class="s1">b = NamespacedAttribute(</span><span class="s5">&quot;a&quot;</span><span class="s3">, </span><span class="s5">&quot;b&quot;</span><span class="s3">, </span><span class="s5">&quot;c&quot;</span><span class="s1">)</span>
+        <span class="s1">self.assertEqual(a</span><span class="s3">, </span><span class="s1">b)</span>
+
+        <span class="s0"># The actual namespace is not considered.</span>
+        <span class="s1">c = NamespacedAttribute(</span><span class="s5">&quot;a&quot;</span><span class="s3">, </span><span class="s5">&quot;b&quot;</span><span class="s3">, None</span><span class="s1">)</span>
+        <span class="s1">self.assertEqual(a</span><span class="s3">, </span><span class="s1">c)</span>
+
+        <span class="s0"># But name and prefix are important.</span>
+        <span class="s1">d = NamespacedAttribute(</span><span class="s5">&quot;a&quot;</span><span class="s3">, </span><span class="s5">&quot;z&quot;</span><span class="s3">, </span><span class="s5">&quot;c&quot;</span><span class="s1">)</span>
+        <span class="s1">self.assertNotEqual(a</span><span class="s3">, </span><span class="s1">d)</span>
+
+        <span class="s1">e = NamespacedAttribute(</span><span class="s5">&quot;z&quot;</span><span class="s3">, </span><span class="s5">&quot;b&quot;</span><span class="s3">, </span><span class="s5">&quot;c&quot;</span><span class="s1">)</span>
+        <span class="s1">self.assertNotEqual(a</span><span class="s3">, </span><span class="s1">e)</span>
+
+
+<span class="s3">class </span><span class="s1">TestAttributeValueWithCharsetSubstitution(unittest.TestCase):</span>
+
+    <span class="s3">def </span><span class="s1">test_content_meta_attribute_value(self):</span>
+        <span class="s1">value = CharsetMetaAttributeValue(</span><span class="s5">&quot;euc-jp&quot;</span><span class="s1">)</span>
+        <span class="s1">self.assertEqual(</span><span class="s5">&quot;euc-jp&quot;</span><span class="s3">, </span><span class="s1">value)</span>
+        <span class="s1">self.assertEqual(</span><span class="s5">&quot;euc-jp&quot;</span><span class="s3">, </span><span class="s1">value.original_value)</span>
+        <span class="s1">self.assertEqual(</span><span class="s5">&quot;utf8&quot;</span><span class="s3">, </span><span class="s1">value.encode(</span><span class="s5">&quot;utf8&quot;</span><span class="s1">))</span>
+
+
+    <span class="s3">def </span><span class="s1">test_content_meta_attribute_value(self):</span>
+        <span class="s1">value = ContentMetaAttributeValue(</span><span class="s5">&quot;text/html; charset=euc-jp&quot;</span><span class="s1">)</span>
+        <span class="s1">self.assertEqual(</span><span class="s5">&quot;text/html; charset=euc-jp&quot;</span><span class="s3">, </span><span class="s1">value)</span>
+        <span class="s1">self.assertEqual(</span><span class="s5">&quot;text/html; charset=euc-jp&quot;</span><span class="s3">, </span><span class="s1">value.original_value)</span>
+        <span class="s1">self.assertEqual(</span><span class="s5">&quot;text/html; charset=utf8&quot;</span><span class="s3">, </span><span class="s1">value.encode(</span><span class="s5">&quot;utf8&quot;</span><span class="s1">))</span>
+</pre>
+</body>
+</html>

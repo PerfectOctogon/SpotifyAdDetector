@@ -1,0 +1,172 @@
+<html>
+<head>
+<title>entities.h</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+.s4 { color: #6897bb;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+entities.h</font>
+</center></td></tr></table>
+<pre><span class="s0">/* 
+ * Summary: interface for the XML entities handling 
+ * Description: this module provides some of the entity API needed 
+ *              for the parser and applications. 
+ * 
+ * Copy: See Copyright for the status of this software. 
+ * 
+ * Author: Daniel Veillard 
+ */</span>
+
+<span class="s2">#ifndef </span><span class="s1">__XML_ENTITIES_H__</span>
+<span class="s2">#define </span><span class="s1">__XML_ENTITIES_H__</span>
+
+<span class="s2">#include </span><span class="s1">&lt;libxml/xmlversion.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/tree.h&gt;</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s2">extern </span><span class="s3">&quot;C&quot; </span><span class="s1">{</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/* 
+ * The different valid entity types. 
+ */</span>
+<span class="s2">typedef enum </span><span class="s1">{</span>
+    <span class="s1">XML_INTERNAL_GENERAL_ENTITY = </span><span class="s4">1</span><span class="s1">,</span>
+    <span class="s1">XML_EXTERNAL_GENERAL_PARSED_ENTITY = </span><span class="s4">2</span><span class="s1">,</span>
+    <span class="s1">XML_EXTERNAL_GENERAL_UNPARSED_ENTITY = </span><span class="s4">3</span><span class="s1">,</span>
+    <span class="s1">XML_INTERNAL_PARAMETER_ENTITY = </span><span class="s4">4</span><span class="s1">,</span>
+    <span class="s1">XML_EXTERNAL_PARAMETER_ENTITY = </span><span class="s4">5</span><span class="s1">,</span>
+    <span class="s1">XML_INTERNAL_PREDEFINED_ENTITY = </span><span class="s4">6</span>
+<span class="s1">} xmlEntityType;</span>
+
+<span class="s0">/* 
+ * An unit of storage for an entity, contains the string, the value 
+ * and the linkind data needed for the linking in the hash table. 
+ */</span>
+
+<span class="s2">struct </span><span class="s1">_xmlEntity {</span>
+    <span class="s2">void           </span><span class="s1">*_private;	        </span><span class="s0">/* application data */</span>
+    <span class="s1">xmlElementType          type;       </span><span class="s0">/* XML_ENTITY_DECL, must be second ! */</span>
+    <span class="s2">const </span><span class="s1">xmlChar          *name;	</span><span class="s0">/* Entity name */</span>
+    <span class="s2">struct </span><span class="s1">_xmlNode    *children;	</span><span class="s0">/* First child link */</span>
+    <span class="s2">struct </span><span class="s1">_xmlNode        *last;	</span><span class="s0">/* Last child link */</span>
+    <span class="s2">struct </span><span class="s1">_xmlDtd       *parent;	</span><span class="s0">/* -&gt; DTD */</span>
+    <span class="s2">struct </span><span class="s1">_xmlNode        *next;	</span><span class="s0">/* next sibling link  */</span>
+    <span class="s2">struct </span><span class="s1">_xmlNode        *prev;	</span><span class="s0">/* previous sibling link  */</span>
+    <span class="s2">struct </span><span class="s1">_xmlDoc          *doc;       </span><span class="s0">/* the containing document */</span>
+
+    <span class="s1">xmlChar                *orig;	</span><span class="s0">/* content without ref substitution */</span>
+    <span class="s1">xmlChar             *content;	</span><span class="s0">/* content or ndata if unparsed */</span>
+    <span class="s2">int                   </span><span class="s1">length;	</span><span class="s0">/* the content length */</span>
+    <span class="s1">xmlEntityType          etype;	</span><span class="s0">/* The entity type */</span>
+    <span class="s2">const </span><span class="s1">xmlChar    *ExternalID;	</span><span class="s0">/* External identifier for PUBLIC */</span>
+    <span class="s2">const </span><span class="s1">xmlChar      *SystemID;	</span><span class="s0">/* URI for a SYSTEM or PUBLIC Entity */</span>
+
+    <span class="s2">struct </span><span class="s1">_xmlEntity     *nexte;	</span><span class="s0">/* unused */</span>
+    <span class="s2">const </span><span class="s1">xmlChar           *URI;	</span><span class="s0">/* the full URI as computed */</span>
+    <span class="s2">int                    </span><span class="s1">owner;	</span><span class="s0">/* does the entity own the childrens */</span>
+    <span class="s2">int			 </span><span class="s1">checked;	</span><span class="s0">/* was the entity content checked */</span>
+					<span class="s0">/* this is also used to count entities 
+                     * references done from that entity 
+                     * and if it contains '&lt;' */</span>
+<span class="s1">};</span>
+
+<span class="s0">/* 
+ * All entities are stored in an hash table. 
+ * There is 2 separate hash tables for global and parameter entities. 
+ */</span>
+
+<span class="s2">typedef struct </span><span class="s1">_xmlHashTable xmlEntitiesTable;</span>
+<span class="s2">typedef </span><span class="s1">xmlEntitiesTable *xmlEntitiesTablePtr;</span>
+
+<span class="s0">/* 
+ * External functions: 
+ */</span>
+
+<span class="s2">#ifdef </span><span class="s1">LIBXML_LEGACY_ENABLED</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlInitializePredefinedEntities	(</span><span class="s2">void</span><span class="s1">);</span>
+<span class="s2">#endif </span><span class="s0">/* LIBXML_LEGACY_ENABLED */</span>
+
+<span class="s1">XMLPUBFUN xmlEntityPtr XMLCALL</span>
+			<span class="s1">xmlNewEntity		(xmlDocPtr doc,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+						 <span class="s2">int </span><span class="s1">type,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *ExternalID,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *SystemID,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *content);</span>
+<span class="s1">XMLPUBFUN xmlEntityPtr XMLCALL</span>
+			<span class="s1">xmlAddDocEntity		(xmlDocPtr doc,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+						 <span class="s2">int </span><span class="s1">type,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *ExternalID,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *SystemID,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *content);</span>
+<span class="s1">XMLPUBFUN xmlEntityPtr XMLCALL</span>
+			<span class="s1">xmlAddDtdEntity		(xmlDocPtr doc,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+						 <span class="s2">int </span><span class="s1">type,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *ExternalID,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *SystemID,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *content);</span>
+<span class="s1">XMLPUBFUN xmlEntityPtr XMLCALL</span>
+			<span class="s1">xmlGetPredefinedEntity	(</span><span class="s2">const </span><span class="s1">xmlChar *name);</span>
+<span class="s1">XMLPUBFUN xmlEntityPtr XMLCALL</span>
+			<span class="s1">xmlGetDocEntity		(</span><span class="s2">const </span><span class="s1">xmlDoc *doc,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *name);</span>
+<span class="s1">XMLPUBFUN xmlEntityPtr XMLCALL</span>
+			<span class="s1">xmlGetDtdEntity		(xmlDocPtr doc,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *name);</span>
+<span class="s1">XMLPUBFUN xmlEntityPtr XMLCALL</span>
+			<span class="s1">xmlGetParameterEntity	(xmlDocPtr doc,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *name);</span>
+<span class="s2">#ifdef </span><span class="s1">LIBXML_LEGACY_ENABLED</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">const </span><span class="s1">xmlChar * XMLCALL</span>
+			<span class="s1">xmlEncodeEntities	(xmlDocPtr doc,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *input);</span>
+<span class="s2">#endif </span><span class="s0">/* LIBXML_LEGACY_ENABLED */</span>
+<span class="s1">XMLPUBFUN xmlChar * XMLCALL</span>
+			<span class="s1">xmlEncodeEntitiesReentrant(xmlDocPtr doc,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *input);</span>
+<span class="s1">XMLPUBFUN xmlChar * XMLCALL</span>
+			<span class="s1">xmlEncodeSpecialChars	(</span><span class="s2">const </span><span class="s1">xmlDoc *doc,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *input);</span>
+<span class="s1">XMLPUBFUN xmlEntitiesTablePtr XMLCALL</span>
+			<span class="s1">xmlCreateEntitiesTable	(</span><span class="s2">void</span><span class="s1">);</span>
+<span class="s2">#ifdef </span><span class="s1">LIBXML_TREE_ENABLED</span>
+<span class="s1">XMLPUBFUN xmlEntitiesTablePtr XMLCALL</span>
+			<span class="s1">xmlCopyEntitiesTable	(xmlEntitiesTablePtr table);</span>
+<span class="s2">#endif </span><span class="s0">/* LIBXML_TREE_ENABLED */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlFreeEntitiesTable	(xmlEntitiesTablePtr table);</span>
+<span class="s2">#ifdef </span><span class="s1">LIBXML_OUTPUT_ENABLED</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlDumpEntitiesTable	(xmlBufferPtr buf,</span>
+						 <span class="s1">xmlEntitiesTablePtr table);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlDumpEntityDecl	(xmlBufferPtr buf,</span>
+						 <span class="s1">xmlEntityPtr ent);</span>
+<span class="s2">#endif </span><span class="s0">/* LIBXML_OUTPUT_ENABLED */</span>
+<span class="s2">#ifdef </span><span class="s1">LIBXML_LEGACY_ENABLED</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlCleanupPredefinedEntities(</span><span class="s2">void</span><span class="s1">);</span>
+<span class="s2">#endif </span><span class="s0">/* LIBXML_LEGACY_ENABLED */</span>
+
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s1">}</span>
+<span class="s2">#endif</span>
+
+<span class="s1"># endif </span><span class="s0">/* __XML_ENTITIES_H__ */</span>
+</pre>
+</body>
+</html>

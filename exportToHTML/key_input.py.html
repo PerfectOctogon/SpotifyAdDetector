@@ -1,0 +1,72 @@
+<html>
+<head>
+<title>key_input.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+.s4 { color: #6897bb;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+key_input.py</font>
+</center></td></tr></table>
+<pre><span class="s0"># Licensed to the Software Freedom Conservancy (SFC) under one</span>
+<span class="s0"># or more contributor license agreements.  See the NOTICE file</span>
+<span class="s0"># distributed with this work for additional information</span>
+<span class="s0"># regarding copyright ownership.  The SFC licenses this file</span>
+<span class="s0"># to you under the Apache License, Version 2.0 (the</span>
+<span class="s0"># &quot;License&quot;); you may not use this file except in compliance</span>
+<span class="s0"># with the License.  You may obtain a copy of the License at</span>
+<span class="s0">#</span>
+<span class="s0">#   http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="s0">#</span>
+<span class="s0"># Unless required by applicable law or agreed to in writing,</span>
+<span class="s0"># software distributed under the License is distributed on an</span>
+<span class="s0"># &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY</span>
+<span class="s0"># KIND, either express or implied.  See the License for the</span>
+<span class="s0"># specific language governing permissions and limitations</span>
+<span class="s0"># under the License.</span>
+<span class="s2">from </span><span class="s1">. </span><span class="s2">import </span><span class="s1">interaction</span>
+
+<span class="s2">from </span><span class="s1">.input_device </span><span class="s2">import </span><span class="s1">InputDevice</span>
+<span class="s2">from </span><span class="s1">.interaction </span><span class="s2">import </span><span class="s1">(Interaction</span><span class="s2">,</span>
+                          <span class="s1">Pause)</span>
+
+
+<span class="s2">class </span><span class="s1">KeyInput(InputDevice):</span>
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">name):</span>
+        <span class="s1">super(KeyInput</span><span class="s2">, </span><span class="s1">self).__init__()</span>
+        <span class="s1">self.name = name</span>
+        <span class="s1">self.type = interaction.KEY</span>
+
+    <span class="s2">def </span><span class="s1">encode(self):</span>
+        <span class="s2">return </span><span class="s1">{</span><span class="s3">&quot;type&quot;</span><span class="s1">: self.type</span><span class="s2">, </span><span class="s3">&quot;id&quot;</span><span class="s1">: self.name</span><span class="s2">, </span><span class="s3">&quot;actions&quot;</span><span class="s1">: [acts.encode() </span><span class="s2">for </span><span class="s1">acts </span><span class="s2">in </span><span class="s1">self.actions]}</span>
+
+    <span class="s2">def </span><span class="s1">create_key_down(self</span><span class="s2">, </span><span class="s1">key):</span>
+        <span class="s1">self.add_action(TypingInteraction(self</span><span class="s2">, </span><span class="s3">&quot;keyDown&quot;</span><span class="s2">, </span><span class="s1">key))</span>
+
+    <span class="s2">def </span><span class="s1">create_key_up(self</span><span class="s2">, </span><span class="s1">key):</span>
+        <span class="s1">self.add_action(TypingInteraction(self</span><span class="s2">, </span><span class="s3">&quot;keyUp&quot;</span><span class="s2">, </span><span class="s1">key))</span>
+
+    <span class="s2">def </span><span class="s1">create_pause(self</span><span class="s2">, </span><span class="s1">pause_duration=</span><span class="s4">0</span><span class="s1">):</span>
+        <span class="s1">self.add_action(Pause(self</span><span class="s2">, </span><span class="s1">pause_duration))</span>
+
+
+<span class="s2">class </span><span class="s1">TypingInteraction(Interaction):</span>
+
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">source</span><span class="s2">, </span><span class="s1">type_</span><span class="s2">, </span><span class="s1">key):</span>
+        <span class="s1">super(TypingInteraction</span><span class="s2">, </span><span class="s1">self).__init__(source)</span>
+        <span class="s1">self.type = type_</span>
+        <span class="s1">self.key = key</span>
+
+    <span class="s2">def </span><span class="s1">encode(self):</span>
+        <span class="s2">return </span><span class="s1">{</span><span class="s3">&quot;type&quot;</span><span class="s1">: self.type</span><span class="s2">, </span><span class="s3">&quot;value&quot;</span><span class="s1">: self.key}</span>
+</pre>
+</body>
+</html>

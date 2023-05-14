@@ -1,0 +1,336 @@
+<html>
+<head>
+<title>xsltutils.h</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+.s4 { color: #4646f1;}
+.s5 { color: #0f9795;}
+.s6 { color: #6897bb;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+xsltutils.h</font>
+</center></td></tr></table>
+<pre><span class="s0">/* 
+ * Summary: set of utilities for the XSLT engine 
+ * Description: interfaces for the utilities module of the XSLT engine. 
+ *              things like message handling, profiling, and other 
+ *              generally useful routines. 
+ * 
+ * Copy: See Copyright for the status of this software. 
+ * 
+ * Author: Daniel Veillard 
+ */</span>
+
+<span class="s2">#ifndef </span><span class="s1">__XML_XSLTUTILS_H__</span>
+<span class="s2">#define </span><span class="s1">__XML_XSLTUTILS_H__</span>
+
+<span class="s2">#include </span><span class="s1">&lt;libxslt/xsltconfig.h&gt;</span>
+<span class="s2">#ifdef </span><span class="s1">HAVE_STDARG_H</span>
+<span class="s2">#include </span><span class="s1">&lt;stdarg.h&gt;</span>
+<span class="s2">#endif</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/xpath.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/dict.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/xmlerror.h&gt;</span>
+<span class="s2">#include </span><span class="s3">&quot;xsltexports.h&quot;</span>
+<span class="s2">#include </span><span class="s3">&quot;xsltInternals.h&quot;</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s2">extern </span><span class="s3">&quot;C&quot; </span><span class="s1">{</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * XSLT_TODO: 
+ * 
+ * Macro to flag unimplemented blocks. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XSLT_TODO							\</span>
+    <span class="s1">xsltGenericError(xsltGenericErrorContext,				\</span>
+	    <span class="s3">&quot;Unimplemented block at %s:%d</span><span class="s4">\n</span><span class="s3">&quot;</span><span class="s1">,				\</span>
+            <span class="s1">__FILE__, __LINE__);</span>
+
+<span class="s0">/** 
+ * XSLT_STRANGE: 
+ * 
+ * Macro to flag that a problem was detected internally. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XSLT_STRANGE							\</span>
+    <span class="s1">xsltGenericError(xsltGenericErrorContext,				\</span>
+	    <span class="s3">&quot;Internal error at %s:%d</span><span class="s4">\n</span><span class="s3">&quot;</span><span class="s1">,				\</span>
+            <span class="s1">__FILE__, __LINE__);</span>
+
+<span class="s0">/** 
+ * IS_XSLT_ELEM: 
+ * 
+ * Checks that the element pertains to XSLT namespace. 
+ */</span>
+<span class="s2">#define </span><span class="s1">IS_XSLT_ELEM(n)							\</span>
+    <span class="s1">(((n) != NULL) &amp;&amp; ((n)</span><span class="s5">-&gt;</span><span class="s1">type == XML_ELEMENT_NODE) &amp;&amp;                \</span>
+     <span class="s1">((n)</span><span class="s5">-&gt;</span><span class="s1">ns != NULL) &amp;&amp; (xmlStrEqual((n)</span><span class="s5">-&gt;</span><span class="s1">ns</span><span class="s5">-&gt;</span><span class="s1">href, XSLT_NAMESPACE)))</span>
+
+<span class="s0">/** 
+ * IS_XSLT_NAME: 
+ * 
+ * Checks the value of an element in XSLT namespace. 
+ */</span>
+<span class="s2">#define </span><span class="s1">IS_XSLT_NAME(n, val)						\</span>
+    <span class="s1">(xmlStrEqual((n)</span><span class="s5">-&gt;</span><span class="s1">name, (</span><span class="s2">const </span><span class="s1">xmlChar *) (val)))</span>
+
+<span class="s0">/** 
+ * IS_XSLT_REAL_NODE: 
+ * 
+ * Check that a node is a 'real' one: document, element, text or attribute. 
+ */</span>
+<span class="s2">#define </span><span class="s1">IS_XSLT_REAL_NODE(n)						\</span>
+    <span class="s1">(((n) != NULL) &amp;&amp;							\</span>
+     <span class="s1">(((n)</span><span class="s5">-&gt;</span><span class="s1">type == XML_ELEMENT_NODE) ||				\</span>
+      <span class="s1">((n)</span><span class="s5">-&gt;</span><span class="s1">type == XML_TEXT_NODE) ||					\</span>
+      <span class="s1">((n)</span><span class="s5">-&gt;</span><span class="s1">type == XML_CDATA_SECTION_NODE) ||				\</span>
+      <span class="s1">((n)</span><span class="s5">-&gt;</span><span class="s1">type == XML_ATTRIBUTE_NODE) ||				\</span>
+      <span class="s1">((n)</span><span class="s5">-&gt;</span><span class="s1">type == XML_DOCUMENT_NODE) ||				\</span>
+      <span class="s1">((n)</span><span class="s5">-&gt;</span><span class="s1">type == XML_HTML_DOCUMENT_NODE) ||				\</span>
+      <span class="s1">((n)</span><span class="s5">-&gt;</span><span class="s1">type == XML_COMMENT_NODE) ||				\</span>
+      <span class="s1">((n)</span><span class="s5">-&gt;</span><span class="s1">type == XML_PI_NODE)))</span>
+
+<span class="s0">/* 
+ * Our own version of namespaced atributes lookup. 
+ */</span>
+<span class="s1">XSLTPUBFUN xmlChar * XSLTCALL</span>
+		<span class="s1">xsltGetNsProp	(xmlNodePtr node,</span>
+				 <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+				 <span class="s2">const </span><span class="s1">xmlChar *nameSpace);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">const </span><span class="s1">xmlChar * XSLTCALL</span>
+		<span class="s1">xsltGetCNsProp	(xsltStylesheetPtr style,</span>
+				 <span class="s1">xmlNodePtr node,</span>
+				 <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+				 <span class="s2">const </span><span class="s1">xmlChar *nameSpace);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltGetUTF8Char	(</span><span class="s2">const unsigned char </span><span class="s1">*utf,</span>
+				 <span class="s2">int </span><span class="s1">*len);</span>
+
+<span class="s0">/* 
+ * XSLT Debug Tracing Tracing Types 
+ */</span>
+<span class="s2">typedef enum </span><span class="s1">{</span>
+	<span class="s1">XSLT_TRACE_ALL =		-</span><span class="s6">1</span><span class="s1">,</span>
+	<span class="s1">XSLT_TRACE_NONE =		</span><span class="s6">0</span><span class="s1">,</span>
+	<span class="s1">XSLT_TRACE_COPY_TEXT =		</span><span class="s6">1</span><span class="s1">&lt;&lt;</span><span class="s6">0</span><span class="s1">,</span>
+	<span class="s1">XSLT_TRACE_PROCESS_NODE =	</span><span class="s6">1</span><span class="s1">&lt;&lt;</span><span class="s6">1</span><span class="s1">,</span>
+	<span class="s1">XSLT_TRACE_APPLY_TEMPLATE =	</span><span class="s6">1</span><span class="s1">&lt;&lt;</span><span class="s6">2</span><span class="s1">,</span>
+	<span class="s1">XSLT_TRACE_COPY =		</span><span class="s6">1</span><span class="s1">&lt;&lt;</span><span class="s6">3</span><span class="s1">,</span>
+	<span class="s1">XSLT_TRACE_COMMENT =		</span><span class="s6">1</span><span class="s1">&lt;&lt;</span><span class="s6">4</span><span class="s1">,</span>
+	<span class="s1">XSLT_TRACE_PI =			</span><span class="s6">1</span><span class="s1">&lt;&lt;</span><span class="s6">5</span><span class="s1">,</span>
+	<span class="s1">XSLT_TRACE_COPY_OF =		</span><span class="s6">1</span><span class="s1">&lt;&lt;</span><span class="s6">6</span><span class="s1">,</span>
+	<span class="s1">XSLT_TRACE_VALUE_OF =		</span><span class="s6">1</span><span class="s1">&lt;&lt;</span><span class="s6">7</span><span class="s1">,</span>
+	<span class="s1">XSLT_TRACE_CALL_TEMPLATE =	</span><span class="s6">1</span><span class="s1">&lt;&lt;</span><span class="s6">8</span><span class="s1">,</span>
+	<span class="s1">XSLT_TRACE_APPLY_TEMPLATES =	</span><span class="s6">1</span><span class="s1">&lt;&lt;</span><span class="s6">9</span><span class="s1">,</span>
+	<span class="s1">XSLT_TRACE_CHOOSE =		</span><span class="s6">1</span><span class="s1">&lt;&lt;</span><span class="s6">10</span><span class="s1">,</span>
+	<span class="s1">XSLT_TRACE_IF =			</span><span class="s6">1</span><span class="s1">&lt;&lt;</span><span class="s6">11</span><span class="s1">,</span>
+	<span class="s1">XSLT_TRACE_FOR_EACH =		</span><span class="s6">1</span><span class="s1">&lt;&lt;</span><span class="s6">12</span><span class="s1">,</span>
+	<span class="s1">XSLT_TRACE_STRIP_SPACES =	</span><span class="s6">1</span><span class="s1">&lt;&lt;</span><span class="s6">13</span><span class="s1">,</span>
+	<span class="s1">XSLT_TRACE_TEMPLATES =		</span><span class="s6">1</span><span class="s1">&lt;&lt;</span><span class="s6">14</span><span class="s1">,</span>
+	<span class="s1">XSLT_TRACE_KEYS =		</span><span class="s6">1</span><span class="s1">&lt;&lt;</span><span class="s6">15</span><span class="s1">,</span>
+	<span class="s1">XSLT_TRACE_VARIABLES =		</span><span class="s6">1</span><span class="s1">&lt;&lt;</span><span class="s6">16</span>
+<span class="s1">} xsltDebugTraceCodes;</span>
+
+<span class="s0">/** 
+ * XSLT_TRACE: 
+ * 
+ * Control the type of xsl debugtrace messages emitted. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XSLT_TRACE(ctxt,code,call)	\</span>
+	<span class="s2">if </span><span class="s1">(ctxt</span><span class="s5">-&gt;</span><span class="s1">traceCode &amp;&amp; (*(ctxt</span><span class="s5">-&gt;</span><span class="s1">traceCode) &amp; code)) \</span>
+	    <span class="s1">call</span>
+
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltDebugSetDefaultTrace(xsltDebugTraceCodes val);</span>
+<span class="s1">XSLTPUBFUN xsltDebugTraceCodes XSLTCALL</span>
+		<span class="s1">xsltDebugGetDefaultTrace(</span><span class="s2">void</span><span class="s1">);</span>
+
+<span class="s0">/* 
+ * XSLT specific error and debug reporting functions. 
+ */</span>
+<span class="s1">XSLTPUBVAR xmlGenericErrorFunc xsltGenericError;</span>
+<span class="s1">XSLTPUBVAR </span><span class="s2">void </span><span class="s1">*xsltGenericErrorContext;</span>
+<span class="s1">XSLTPUBVAR xmlGenericErrorFunc xsltGenericDebug;</span>
+<span class="s1">XSLTPUBVAR </span><span class="s2">void </span><span class="s1">*xsltGenericDebugContext;</span>
+
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltPrintErrorContext		(xsltTransformContextPtr ctxt,</span>
+	                                         <span class="s1">xsltStylesheetPtr style,</span>
+						 <span class="s1">xmlNodePtr node);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltMessage			(xsltTransformContextPtr ctxt,</span>
+						 <span class="s1">xmlNodePtr node,</span>
+						 <span class="s1">xmlNodePtr inst);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltSetGenericErrorFunc		(</span><span class="s2">void </span><span class="s1">*ctx,</span>
+						 <span class="s1">xmlGenericErrorFunc handler);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltSetGenericDebugFunc		(</span><span class="s2">void </span><span class="s1">*ctx,</span>
+						 <span class="s1">xmlGenericErrorFunc handler);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltSetTransformErrorFunc	(xsltTransformContextPtr ctxt,</span>
+						 <span class="s2">void </span><span class="s1">*ctx,</span>
+						 <span class="s1">xmlGenericErrorFunc handler);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltTransformError		(xsltTransformContextPtr ctxt,</span>
+						 <span class="s1">xsltStylesheetPtr style,</span>
+						 <span class="s1">xmlNodePtr node,</span>
+						 <span class="s2">const char </span><span class="s1">*msg,</span>
+						 <span class="s1">...) LIBXSLT_ATTR_FORMAT(</span><span class="s6">4</span><span class="s1">,</span><span class="s6">5</span><span class="s1">);</span>
+
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltSetCtxtParseOptions		(xsltTransformContextPtr ctxt,</span>
+						 <span class="s2">int </span><span class="s1">options);</span>
+<span class="s0">/* 
+ * Sorting. 
+ */</span>
+
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltDocumentSortFunction	(xmlNodeSetPtr list);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltSetSortFunc			(xsltSortFunc handler);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltSetCtxtSortFunc		(xsltTransformContextPtr ctxt,</span>
+						 <span class="s1">xsltSortFunc handler);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltDefaultSortFunction		(xsltTransformContextPtr ctxt,</span>
+						 <span class="s1">xmlNodePtr *sorts,</span>
+						 <span class="s2">int </span><span class="s1">nbsorts);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltDoSortFunction		(xsltTransformContextPtr ctxt,</span>
+						 <span class="s1">xmlNodePtr * sorts,</span>
+						 <span class="s2">int </span><span class="s1">nbsorts);</span>
+<span class="s1">XSLTPUBFUN xmlXPathObjectPtr * XSLTCALL</span>
+		<span class="s1">xsltComputeSortResult		(xsltTransformContextPtr ctxt,</span>
+						 <span class="s1">xmlNodePtr sort);</span>
+
+<span class="s0">/* 
+ * QNames handling. 
+ */</span>
+
+<span class="s1">XSLTPUBFUN </span><span class="s2">const </span><span class="s1">xmlChar * XSLTCALL</span>
+		<span class="s1">xsltSplitQName			(xmlDictPtr dict,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar **prefix);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">const </span><span class="s1">xmlChar * XSLTCALL</span>
+		<span class="s1">xsltGetQNameURI			(xmlNodePtr node,</span>
+						 <span class="s1">xmlChar **name);</span>
+
+<span class="s1">XSLTPUBFUN </span><span class="s2">const </span><span class="s1">xmlChar * XSLTCALL</span>
+		<span class="s1">xsltGetQNameURI2		(xsltStylesheetPtr style,</span>
+						 <span class="s1">xmlNodePtr node,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar **name);</span>
+
+<span class="s0">/* 
+ * Output, reuse libxml I/O buffers. 
+ */</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltSaveResultTo		(xmlOutputBufferPtr buf,</span>
+						 <span class="s1">xmlDocPtr result,</span>
+						 <span class="s1">xsltStylesheetPtr style);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltSaveResultToFilename	(</span><span class="s2">const char </span><span class="s1">*URI,</span>
+						 <span class="s1">xmlDocPtr result,</span>
+						 <span class="s1">xsltStylesheetPtr style,</span>
+						 <span class="s2">int </span><span class="s1">compression);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltSaveResultToFile		(FILE *file,</span>
+						 <span class="s1">xmlDocPtr result,</span>
+						 <span class="s1">xsltStylesheetPtr style);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltSaveResultToFd		(</span><span class="s2">int </span><span class="s1">fd,</span>
+						 <span class="s1">xmlDocPtr result,</span>
+						 <span class="s1">xsltStylesheetPtr style);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltSaveResultToString          (xmlChar **doc_txt_ptr,</span>
+                                                 <span class="s2">int </span><span class="s1">* doc_txt_len,</span>
+                                                 <span class="s1">xmlDocPtr result,</span>
+                                                 <span class="s1">xsltStylesheetPtr style);</span>
+
+<span class="s0">/* 
+ * XPath interface 
+ */</span>
+<span class="s1">XSLTPUBFUN xmlXPathCompExprPtr XSLTCALL</span>
+		<span class="s1">xsltXPathCompile		(xsltStylesheetPtr style,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *str);</span>
+<span class="s1">XSLTPUBFUN xmlXPathCompExprPtr XSLTCALL</span>
+		<span class="s1">xsltXPathCompileFlags		(xsltStylesheetPtr style,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *str,</span>
+						 <span class="s2">int </span><span class="s1">flags);</span>
+
+<span class="s0">/* 
+ * Profiling. 
+ */</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltSaveProfiling		(xsltTransformContextPtr ctxt,</span>
+						 <span class="s1">FILE *output);</span>
+<span class="s1">XSLTPUBFUN xmlDocPtr XSLTCALL</span>
+		<span class="s1">xsltGetProfileInformation	(xsltTransformContextPtr ctxt);</span>
+
+<span class="s1">XSLTPUBFUN </span><span class="s2">long </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltTimestamp			(</span><span class="s2">void</span><span class="s1">);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltCalibrateAdjust		(</span><span class="s2">long </span><span class="s1">delta);</span>
+
+<span class="s0">/** 
+ * XSLT_TIMESTAMP_TICS_PER_SEC: 
+ * 
+ * Sampling precision for profiling 
+ */</span>
+<span class="s2">#define </span><span class="s1">XSLT_TIMESTAMP_TICS_PER_SEC </span><span class="s6">100000</span><span class="s1">l</span>
+
+<span class="s0">/* 
+ * Hooks for the debugger. 
+ */</span>
+
+<span class="s2">typedef enum </span><span class="s1">{</span>
+    <span class="s1">XSLT_DEBUG_NONE = </span><span class="s6">0</span><span class="s1">, </span><span class="s0">/* no debugging allowed */</span>
+    <span class="s1">XSLT_DEBUG_INIT,</span>
+    <span class="s1">XSLT_DEBUG_STEP,</span>
+    <span class="s1">XSLT_DEBUG_STEPOUT,</span>
+    <span class="s1">XSLT_DEBUG_NEXT,</span>
+    <span class="s1">XSLT_DEBUG_STOP,</span>
+    <span class="s1">XSLT_DEBUG_CONT,</span>
+    <span class="s1">XSLT_DEBUG_RUN,</span>
+    <span class="s1">XSLT_DEBUG_RUN_RESTART,</span>
+    <span class="s1">XSLT_DEBUG_QUIT</span>
+<span class="s1">} xsltDebugStatusCodes;</span>
+
+<span class="s1">XSLTPUBVAR </span><span class="s2">int </span><span class="s1">xslDebugStatus;</span>
+
+<span class="s2">typedef void </span><span class="s1">(*xsltHandleDebuggerCallback) (xmlNodePtr cur, xmlNodePtr node,</span>
+			<span class="s1">xsltTemplatePtr templ, xsltTransformContextPtr ctxt);</span>
+<span class="s2">typedef int </span><span class="s1">(*xsltAddCallCallback) (xsltTemplatePtr templ, xmlNodePtr source);</span>
+<span class="s2">typedef void </span><span class="s1">(*xsltDropCallCallback) (</span><span class="s2">void</span><span class="s1">);</span>
+
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltSetDebuggerStatus		(</span><span class="s2">int </span><span class="s1">value);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltGetDebuggerStatus		(</span><span class="s2">void</span><span class="s1">);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltSetDebuggerCallbacks	(</span><span class="s2">int </span><span class="s1">no, </span><span class="s2">void </span><span class="s1">*block);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xslAddCall			(xsltTemplatePtr templ,</span>
+						 <span class="s1">xmlNodePtr source);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xslDropCall			(</span><span class="s2">void</span><span class="s1">);</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s1">}</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#endif </span><span class="s0">/* __XML_XSLTUTILS_H__ */</span>
+
+
+</pre>
+</body>
+</html>

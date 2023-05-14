@@ -1,0 +1,57 @@
+<html>
+<head>
+<title>test_docs.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #629755; font-style: italic;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #808080;}
+.s3 { color: #6a8759;}
+.s4 { color: #cc7832;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+test_docs.py</font>
+</center></td></tr></table>
+<pre><span class="s0">&quot;Test harness for doctests.&quot;</span>
+
+<span class="s2"># pylint: disable-msg=E0611,W0142</span>
+
+<span class="s1">__metaclass__ = type</span>
+<span class="s1">__all__ = [</span>
+    <span class="s3">'additional_tests'</span><span class="s4">,</span>
+    <span class="s1">]</span>
+
+<span class="s4">import </span><span class="s1">atexit</span>
+<span class="s4">import </span><span class="s1">doctest</span>
+<span class="s4">import </span><span class="s1">os</span>
+<span class="s2">#from pkg_resources import (</span>
+<span class="s2">#    resource_filename, resource_exists, resource_listdir, cleanup_resources)</span>
+<span class="s4">import </span><span class="s1">unittest</span>
+
+<span class="s1">DOCTEST_FLAGS = (</span>
+    <span class="s1">doctest.ELLIPSIS |</span>
+    <span class="s1">doctest.NORMALIZE_WHITESPACE |</span>
+    <span class="s1">doctest.REPORT_NDIFF)</span>
+
+
+<span class="s2"># def additional_tests():</span>
+<span class="s2">#     &quot;Run the doc tests (README.txt and docs/*, if any exist)&quot;</span>
+<span class="s2">#     doctest_files = [</span>
+<span class="s2">#         os.path.abspath(resource_filename('bs4', 'README.txt'))]</span>
+<span class="s2">#     if resource_exists('bs4', 'docs'):</span>
+<span class="s2">#         for name in resource_listdir('bs4', 'docs'):</span>
+<span class="s2">#             if name.endswith('.txt'):</span>
+<span class="s2">#                 doctest_files.append(</span>
+<span class="s2">#                     os.path.abspath(</span>
+<span class="s2">#                         resource_filename('bs4', 'docs/%s' % name)))</span>
+<span class="s2">#     kwargs = dict(module_relative=False, optionflags=DOCTEST_FLAGS)</span>
+<span class="s2">#     atexit.register(cleanup_resources)</span>
+<span class="s2">#     return unittest.TestSuite((</span>
+<span class="s2">#         doctest.DocFileSuite(*doctest_files, **kwargs)))</span>
+</pre>
+</body>
+</html>

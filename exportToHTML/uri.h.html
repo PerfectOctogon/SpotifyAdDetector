@@ -1,0 +1,114 @@
+<html>
+<head>
+<title>uri.h</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+uri.h</font>
+</center></td></tr></table>
+<pre><span class="s0">/** 
+ * Summary: library of generic URI related routines 
+ * Description: library of generic URI related routines 
+ *              Implements RFC 2396 
+ * 
+ * Copy: See Copyright for the status of this software. 
+ * 
+ * Author: Daniel Veillard 
+ */</span>
+
+<span class="s2">#ifndef </span><span class="s1">__XML_URI_H__</span>
+<span class="s2">#define </span><span class="s1">__XML_URI_H__</span>
+
+<span class="s2">#include </span><span class="s1">&lt;libxml/xmlversion.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/tree.h&gt;</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s2">extern </span><span class="s3">&quot;C&quot; </span><span class="s1">{</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * xmlURI: 
+ * 
+ * A parsed URI reference. This is a struct containing the various fields 
+ * as described in RFC 2396 but separated for further processing. 
+ * 
+ * Note: query is a deprecated field which is incorrectly unescaped. 
+ * query_raw takes precedence over query if the former is set. 
+ * See: http://mail.gnome.org/archives/xml/2007-April/thread.html#00127 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xmlURI xmlURI;</span>
+<span class="s2">typedef </span><span class="s1">xmlURI *xmlURIPtr;</span>
+<span class="s2">struct </span><span class="s1">_xmlURI {</span>
+    <span class="s2">char </span><span class="s1">*scheme;	</span><span class="s0">/* the URI scheme */</span>
+    <span class="s2">char </span><span class="s1">*opaque;	</span><span class="s0">/* opaque part */</span>
+    <span class="s2">char </span><span class="s1">*authority;	</span><span class="s0">/* the authority part */</span>
+    <span class="s2">char </span><span class="s1">*server;	</span><span class="s0">/* the server part */</span>
+    <span class="s2">char </span><span class="s1">*user;		</span><span class="s0">/* the user part */</span>
+    <span class="s2">int </span><span class="s1">port;		</span><span class="s0">/* the port number */</span>
+    <span class="s2">char </span><span class="s1">*path;		</span><span class="s0">/* the path string */</span>
+    <span class="s2">char </span><span class="s1">*query;	</span><span class="s0">/* the query string (deprecated - use with caution) */</span>
+    <span class="s2">char </span><span class="s1">*fragment;	</span><span class="s0">/* the fragment identifier */</span>
+    <span class="s2">int  </span><span class="s1">cleanup;	</span><span class="s0">/* parsing potentially unclean URI */</span>
+    <span class="s2">char </span><span class="s1">*query_raw;	</span><span class="s0">/* the query string (as it appears in the URI) */</span>
+<span class="s1">};</span>
+
+<span class="s0">/* 
+ * This function is in tree.h: 
+ * xmlChar *    xmlNodeGetBase  (xmlDocPtr doc, 
+ *                               xmlNodePtr cur); 
+ */</span>
+<span class="s1">XMLPUBFUN xmlURIPtr XMLCALL</span>
+		<span class="s1">xmlCreateURI		(</span><span class="s2">void</span><span class="s1">);</span>
+<span class="s1">XMLPUBFUN xmlChar * XMLCALL</span>
+		<span class="s1">xmlBuildURI		(</span><span class="s2">const </span><span class="s1">xmlChar *URI,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *base);</span>
+<span class="s1">XMLPUBFUN xmlChar * XMLCALL</span>
+		<span class="s1">xmlBuildRelativeURI	(</span><span class="s2">const </span><span class="s1">xmlChar *URI,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *base);</span>
+<span class="s1">XMLPUBFUN xmlURIPtr XMLCALL</span>
+		<span class="s1">xmlParseURI		(</span><span class="s2">const char </span><span class="s1">*str);</span>
+<span class="s1">XMLPUBFUN xmlURIPtr XMLCALL</span>
+		<span class="s1">xmlParseURIRaw		(</span><span class="s2">const char </span><span class="s1">*str,</span>
+					 <span class="s2">int </span><span class="s1">raw);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlParseURIReference	(xmlURIPtr uri,</span>
+					 <span class="s2">const char </span><span class="s1">*str);</span>
+<span class="s1">XMLPUBFUN xmlChar * XMLCALL</span>
+		<span class="s1">xmlSaveUri		(xmlURIPtr uri);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlPrintURI		(FILE *stream,</span>
+					 <span class="s1">xmlURIPtr uri);</span>
+<span class="s1">XMLPUBFUN xmlChar * XMLCALL</span>
+		<span class="s1">xmlURIEscapeStr         (</span><span class="s2">const </span><span class="s1">xmlChar *str,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *list);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">char </span><span class="s1">* XMLCALL</span>
+		<span class="s1">xmlURIUnescapeString	(</span><span class="s2">const char </span><span class="s1">*str,</span>
+					 <span class="s2">int </span><span class="s1">len,</span>
+					 <span class="s2">char </span><span class="s1">*target);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlNormalizeURIPath	(</span><span class="s2">char </span><span class="s1">*path);</span>
+<span class="s1">XMLPUBFUN xmlChar * XMLCALL</span>
+		<span class="s1">xmlURIEscape		(</span><span class="s2">const </span><span class="s1">xmlChar *str);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlFreeURI		(xmlURIPtr uri);</span>
+<span class="s1">XMLPUBFUN xmlChar* XMLCALL</span>
+		<span class="s1">xmlCanonicPath		(</span><span class="s2">const </span><span class="s1">xmlChar *path);</span>
+<span class="s1">XMLPUBFUN xmlChar* XMLCALL</span>
+		<span class="s1">xmlPathToURI		(</span><span class="s2">const </span><span class="s1">xmlChar *path);</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s1">}</span>
+<span class="s2">#endif</span>
+<span class="s2">#endif </span><span class="s0">/* __XML_URI_H__ */</span>
+</pre>
+</body>
+</html>

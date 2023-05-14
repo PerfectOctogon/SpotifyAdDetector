@@ -1,0 +1,1818 @@
+<html>
+<head>
+<title>iso_schematron_skeleton_for_xslt1.xsl</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #e8bf6a;}
+.s1 { color: #bababa;}
+.s2 { color: #6a8759;}
+.s3 { color: #a9b7c6;}
+.s4 { color: #808080;}
+.s5 { color: #6d9cbe;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+iso_schematron_skeleton_for_xslt1.xsl</font>
+</center></td></tr></table>
+<pre><span class="s0">&lt;?</span><span class="s1">xml version</span><span class="s2">=&quot;1.0&quot;</span><span class="s0">?&gt;&lt;?</span><span class="s1">xar </span><span class="s2">XSLT</span><span class="s0">?&gt;</span>
+
+<span class="s4">&lt;!-- </span>
+   <span class="s4">OVERVIEW 
+    
+   ASCC/Schematron.com Skeleton Module for ISO Schematron (for XSLT1 systems) 
+    
+   ISO Schematron is a language for making assertion about the presence or absence 
+   of patterns in XML documents. It is typically used for as a schema language, or 
+   to augment existing schema languages, and to check business rules. It is very 
+   powerful, yet quite simple: a developer only need know XPath and about five other 
+   elements. 
+    
+   This is an open source implementation of ISO Schematron in XSLT. Although ISO does 
+   not allow reference implementations which might compete with the text of the 
+   standard, this code has been compiled by Rick Jelliffe, inventor of Schematron 
+   and editor of the ISO standard; so developers can certainly use it as an  
+   unofficial reference implementation for clarification.  
+    
+   This implementation is based on one by Oliver Becker. API documentation is  
+   available separately; try www.schematron.com for this. Funding for this 
+   stylesheet over the years has come from Topologi Pty. Ltd., Geotempo Ltd., 
+   and ASCC, Tapei. 
+    
+   There are two versions of this skeleton: one is tailored for XSLT1 processors 
+   and the other is tailored for XSLT2 processors. Future versions of the 
+   XSLT2 skeleton may support more features than that the XSLT 1 skeleton. 
+--&gt;</span>
+<span class="s4">&lt;!--</span>
+   <span class="s4">TIPS 
+       
+   A tip for new users of Schematron: make your assertions contain positive messages 
+   about what is expected, rather than error messages. For example, use the form 
+   &quot;An X should have a Y, because Z&quot;.  
+    
+   Another tip is that Schematron provides an 
+   element &lt;sch:ns&gt; for declaring the namespaces and prefixes used in Xpaths in  
+   attribute values; it does not extend the XML Namespaces mechanism: if a name 
+   in an XPath has a prefix, there must be an &lt;sch:ns&gt; element for that prefix; if 
+   a name in an XPath does not have a prefix, it is always in no namespace. 
+    
+   A tip for implementers of Schematron, either using this API or re-implementing it: 
+   make the value of the diagnostics, flags and richer features available if possible; 
+   Schematron has many of the optional richer features which, if implemented, provide 
+   a compelling alternative approach to validation and business-rules checking compared 
+   to other schema languages and programs.  
+    
+   If you create your own meta-stylesheet to override this one, it is a 
+   good idea to have both in the same directory and to run the stylesheet 
+   from that directory, as many XSLT implementations have ideosyncratic 
+   handling of URLs: keep it simple. 
+--&gt;</span>
+ 
+
+<span class="s4">&lt;!--</span>
+  <span class="s4">INVOCATION INFORMATION 
+   
+  The following parameters are available 
+   
+    phase           NMTOKEN | &quot;#ALL&quot; (default) Select the phase for validation 
+    allow-foreign   &quot;true&quot; | &quot;false&quot; (default)   Pass non-Schematron elements to the generated stylesheet 
+    sch.exslt.imports semi-colon delimited string of filenames for some EXSLT implementations   
+    message-newline &quot;true&quot; (default) | &quot;false&quot;   Generate an extra newline at the end of messages 
+    optimize        &quot;visit-no-attributes&quot;      
+    debug       &quot;true&quot; | &quot;false&quot; (default)  Debug mode lets compilation continue despite problems 
+    attributes &quot;true&quot; | &quot;false&quot;  (Autodetecting) Use only when the schema has no attributes as the context nodes 
+    only-child-elements &quot;true&quot; | &quot;false&quot; (Autodetecting) Use only when the schema has no comments 
+    or PI  as the context nodes 
+     
+  The following parameters can be specified as Schematron variables in diagnostics, assertions and so on. 
+    fileNameParameter string       
+    fileDirParameter string              
+    archiveNameParameter string   In case of ZIP files 
+    archiveDirParameter string    In case of ZIP files   
+    output-encoding               Use when outputting to XML 
+  
+ Experimental: USE AT YOUR OWN RISK    
+    visit-text &quot;true&quot; &quot;false&quot;   Also visist text nodes for context. WARNING: NON_STARDARD. 
+    select-contents '' | 'key' | '//'   Select different implementation strategies 
+  
+ Conventions: Meta-stylesheets that override this may use the following parameters 
+    generate-paths=true|false   generate the @location attribute with XPaths 
+    diagnose= yes | no    Add the diagnostics to the assertion test in reports 
+    terminate= yes | no   Terminate on the first failed assertion or successful report 
+--&gt;</span>
+
+<span class="s4">&lt;!-- </span>
+  <span class="s4">XSLT VERSION SUPPORT 
+ 
+  XSLT 1: 
+     A schema using the standard XSLT 1 query binding will have a /schema/@queryBinding='xslt' or  
+     nothing. 
+ 
+       * Note: XT does not implement key() and will die if given it.  
+       * Add all formal parameters to default templates 
+       * Fix missing apply-templates from process-ns and add params back 
+ 
+  EXSLT:  Experimental support 
+     A schema using the EXSLT query binding will have a /schema/@queryBinding='exslt'. 
+     It is built on XSLT 1. After experience is gained, this binding is expected to be  
+     formalized as part of ISO Schematron, which currently reserves the &quot;exslt&quot; name for this purpose. 
+ 
+     Some EXSLT engines have the extra functions built-in. For these, there is no need to 
+     provide library locations. For engines that require the functions, either hard code 
+     them in this script or provide them on the command-line argument. 
+  
+--&gt;</span>
+<span class="s4">&lt;!--</span>
+   <span class="s4">PROCESS INFORMATION 
+    
+   This stylesheet compiles a Schematron schema (*.sch) into XSLT code (*.xsl).  
+   The generated XSLT code can then be run against an XML file (*.xml, etc) and 
+   will produce validation results. 
+    
+   The output of validation results is performed using named templates (process-*).  
+   These can be overridden easily by making a new XSLT stylesheet that imports this  
+   stylesheet but has its own version of the relevant process-* templates. Several 
+   of these invoking stylesheets are available: &quot;iso_svrl.xsl&quot;, for example generates 
+   ISO Schematron Validation Report Language format results. 
+    
+   In this version of the stylesheet, the ISO feature called &quot;abstract patterns&quot; is 
+   implemented using macro processing: a prior XSLT stage to which converts uses 
+   of abstract patterns into normal patterns. If you do not use abstract patterns, 
+   it is not necessary to preprocess the schema. 
+    
+   To summarize, a basic process flow for some commandline processor is like this: 
+     XSLT -input=xxx.sch  -output=xxx.xsl  -stylesheet=iso_schematron_skeleton.xsl 
+     XSLT -input=document.xml  -output=xxx-document.results  -stylesheet=xxx.xsl 
+    
+   iso_svrl.xslt is an implementation of Schematron that can use this skeleton and 
+   generate ISO SVRL reports. A process flow for some commandline processor would 
+   be like this: 
+     XSLT -input=xxx.sch  -output=xxx.xsl  -stylesheet=iso_svrl.xsl 
+     XSLT -input=document.xml  -output=xxx-document.results  -stylesheet=xxx.xsl 
+      
+   It is not impossible that ultimately a third stage, to handle macro-preprocessing 
+   and inclusion, might be necessary. (The trade-off is in making this XSLT more 
+   complex compared to making the outer process more complex.) 
+              
+  This version has so far been tested with 
+     Saxon 8 
+     MSXML 4 (or 6?)    
+ 
+ Please note that if you are using SAXON and JAXP, then you should use  
+  System.setProperty(&quot;javax.xml.transform.TransformerFactory&quot;, 
+                          &quot;net.sf.saxon.TransformerFactoryImpl&quot;); 
+ rather than  
+  System.setProperty(&quot;javax.xml.xpath.TransformerFactory&quot;, 
+                           &quot;net.sf.saxon.TransformerFactoryImpl&quot;); 
+ which is does not work, at least for the versions of SAXON we tried. 
+--&gt;</span>
+<span class="s4">&lt;!--</span>
+ <span class="s4">LEGAL INFORMATION 
+  
+ Copyright (c) 2000-2008 Rick Jelliffe and Academia Sinica Computing Center, Taiwan 
+ 
+ This software is provided 'as-is', without any express or implied warranty.  
+ In no event will the authors be held liable for any damages arising from  
+ the use of this software. 
+ 
+ Permission is granted to anyone to use this software for any purpose,  
+ including commercial applications, and to alter it and redistribute it freely, 
+ subject to the following restrictions: 
+ 
+ 1. The origin of this software must not be misrepresented; you must not claim 
+ that you wrote the original software. If you use this software in a product,  
+ an acknowledgment in the product documentation would be appreciated but is  
+ not required. 
+ 
+ 2. Altered source versions must be plainly marked as such, and must not be  
+ misrepresented as being the original software. 
+ 
+ 3. This notice may not be removed or altered from any source distribution. 
+--&gt;</span>
+<span class="s4">&lt;!--</span>
+  <span class="s4">NOTE: Compared to the iso_schematron_skeleton_for_saxon.xsl code, this version is currently missing 
+     1) localization 
+     2) properties 
+     3) pattern/@documents 
+ 
+  VERSION INFORMATION  
+   2009-02-25 RJ 
+        * Fix up variable names so none are used twice in same template 
+        * Tested on SAXON 9, Xalan 2.7.1. Partly tested MSXML.   
+   2008-09-19 RJ 
+        * Add mode schematron-select-full-path and param full-path-notation  
+    
+   2008-08-11 
+        * TT report/@flag was missing 
+   2008-08-06 
+        * TT Top-level lets need to be implemented using xsl:param not xsl:variable 
+        * TT xsl:param/@select must have XPath or not be specified 
+         
+    Version: 2008-07-28 
+        * KH schematron-get-full-path-3 has [index] even on top step 
+        * RJ fix schematron-get-full-path to have namespace predicate, I don't know why this was removed 
+         
+   Version: 2008-07-24 
+        * RJ clean out commented out namespace handling code 
+        * RJ add support for experimental non-standard attribute report/@action 
+        and assert/@action, and add parameter not in the published API (should 
+        not break anything, it is XSLT1) 
+        * RJ Remove remaining XSLT2 code for ease of reading 
+         
+   Version: 2008-07-14 minor update for inclusion experiments 
+    * RJ Clean up zero-length fragment test on include 
+    * RJ Add experimental support for include containers  
+    * RJ For path generation, test for //iso:schema not just /iso:schema, for potential embedded Schematron support    
+    * RJ Don't generate double error messages for old namespace elements 
+    * RJ Experimental iso:rule/iso:title just kept as comment (bigger request Uche Ogbuji) 
+    * RJ Remove spurious debug messages 
+    * RJ Fix bug that prevented including patterns in this (report Roger 
+    Costello) 
+   
+   Version: 2007-10-17 
+     From this version on I am forking XSLT2 support to a different version of the script. 
+     This is due to the increasingly horrible state of the namespace handling code as well 
+     as other inconsistencies between the major implementations of different versions. 
+     The intent is that future versions of this will have XSLT2 isms removed and be simplified 
+     to cope with only XSLT1 and EXLST. Note that though this version is called 
+     iso_schematron_skeleton_for_xslt1, the various meta-stylesheets will continue to just call 
+     iso_schematron_skeleton: it is up to you to rename the stylesheet to the one you want to 
+     use. 
+ 
+       * RJ fix FULL-PATH problem with attribute names 
+ 
+ 
+   Version: 2007-07-19 
+     Accept most changes in David Carlisle's fork, but continue as XSLT1 script:  
+        http://dpcarlisle.blogspot.com/search/label/schematron 
+        * DPC Remove &quot;optimize&quot; parameter 
+        * DPC Add autodetecting optimize parameter attribute to skip checking attribute 
+        context 
+        * DPC Add autodetecting optimize parameter only-child-elements turn off checking for  
+        comments and PIs 
+        * DPC (Experimental: NON_STANDARD DANGER!) Add param visit-text to viist text 
+        nodes too for context  
+        * DPC Fix inclusion syntax to allow # 
+        * DPC Priorities count up from 1000 not down from 4000 to allow more rules 
+        * RJ Add new template for titles of schemas, with existing behaviour.   
+        Override process-schema-title for custom processing of title 
+             
+     
+   Version: 2007-04-04 
+    * RJ debug mode param 
+    * RJ alter mixed test to only test mixed branches, so the same document 
+    could have old and new namespaces schemas in it, but each schema must 
+    be distinct, just so as not to overconstrain things. 
+    * KH zero-length include/@href is fatal error, but allow debug mode 
+    * SB add hint on SAXON and JAXP 
+    * DC generate-full-path-1 generates XLST1 code by default 
+   Version: 2007-03-05 
+        * AS Typo for EXSLT randome, improve comment 
+        * KH get-schematron-full-path-2 needs to apply to attributes too 
+        * DP document policy on extensions better 
+        * DC use copy-of not copy for foreign elements 
+        * DC add generate-path-2 
+        * DC don't try to apply templates to attribute axis on attribute nodes, to 
+        stop SAXON warning. 
+        * RJ improve reporting of typos  
+    
+   Version: 2007-02-08 
+        * KH Schematron fullpath implementation: @* handled twice and / missing 
+        * KH Change stylesheetbody from named template to mode to allow implementers more flexibility. 
+          Move process-ns to outside the stylesheet body. 
+        * DP, FG, fix handling of xslt:key 
+        * FG no iso:title/@class 
+        * Experimental optimization 'visit-no-attributes' 
+        * KH Experimental added schematron-get-full-path-2 which gives prefixed version for humans 
+        * DC Move stylesheet/@version generation to after namespace handling 
+        * DC, FG EXSLT namespace handling code 
+        * FG add ref and commented code from FG's page on namespaces 
+        * Start adding normalize-space() to parameter code 
+        * Add a space between diagnostics 
+                  
+   Version: 2007-01-22 
+    * DP change = ($start) to = $start and =($phase) to =$phase  
+    to run under Saxon 8.8j 
+    * FG better title section using ( @id | sch:title)[last()] 
+    * Default query language binding is &quot;xslt&quot; not &quot;xslt1&quot; 
+   
+   Version: 2007-01-19 
+        * Simplify message newline code 
+        * Remove termination and xpath appending to message options:  
+           factor out as  iso_schematron_terminator.xsl 
+        * Comment out XSLT2 namespace fix temporarily 
+   
+   Version: 2007-01-18 (First beta candidate for comment) 
+          * DC remove xml:space=&quot;preserve&quot; 
+          * FG improve comment on import statement 
+          * DC improve comments on invocation section 
+          * Add exploratory support for sch:schema[@queryBinding='xpath'] 
+             by allowing it and warning as lets are found 
+          * Be strict about queryBinding spelling errors 
+          * Extra comments on the different queryBindings 
+          * KH Add option &quot;message-paths&quot; to generate XPath from output  
+          * KH Add option &quot;terminate&quot; to halt with an error after the first assertion 
+          * KH refactor paths in schematron-full-path 
+          * Improve (?) namespace handling: no dummy attributes for prefix &quot;xsl&quot; generated 
+    
+   Version: 2007-01-15 
+          * FG fix for calling templates 
+          * Add formal parameters to default templates: may help XSLT 2 
+          * Fix get-schematron-full-path 
+          * Include skeleton1-6 is commented out by default 
+ 
+   Version:2007-01-12 (Pre-beta release to Schematron-love-in maillist) 
+           * Add many extra parameters to the process-* calls, so that almost 
+           all the information in the schema can be provided to client programs. 
+           Also, rearrange the parameters to fit in with the ISO schema, which 
+           has &quot;rich&quot; and &quot;linkable&quot; attribute groups. 
+           * Warn on diagnostics with no ID once only 
+           * Improved path reporting, to handle for namespaces 
+           * Add process-title dummy template for API 
+           * Add command-line parameter allow-foreign (true|false) to suppress 
+            warnings one foreign elements and pass them through to the generated 
+            stylesheet 
+           * remove legacy templates for the old ASCC namespace and no namespace,  
+              and use an import statement instead. Much cleaner now! 
+           * patterns use @id not @name 
+           * titles can contain sub-elements 
+           * start change sch:rule to allow attributes, PIs and comments  
+           * the default process-* for inline elements add a leading and trailing  
+             space, to reduce the chance of concatenation. 
+           * add comments to make the generated code clearer 
+            
+   Version:2006-11-07 (ISO: first release private to schematron-love-in maillist for review) 
+           * Duplicate pattern templates, for handling ISO namespace 
+           * Add priority onto default and paragraph templates 
+           * Add namespace checks 
+           * Handle key in xsl namespace not iso 
+           * Add include 
+           * Improve namespace handling 
+           * Preliminary XSLT2 and EXSLT support 
+           * Refactor iso:schema for clarity 
+ 
+    Version: 2003-05-26  
+            * Fix bug with key  
+    Version: 2003-04-16 
+           * handle 1.6 let expressions 
+           * make key use XSLT names, and allow anywhere 
+    Version: 2001-06-13 
+           * same skeleton now supports namespace or no namespace 
+           * parameters to handlers updated for all 1.5 attributes  
+           * diagnostic hints supported: command-line option diagnose=yes|no 
+           * phases supported: command-line option phase=#ALL|... 
+           * abstract rules 
+           * compile-time error messages   
+       * add utility routine generate-id-from-path 
+           
+    Contributors: Rick Jelliffe (original), Oliver Becker (architecture, XSLT2),  
+             Miloslav Nic (diagnostic, phase, options), Ludwig Svenonius (abstract) 
+             Uche Ogbuji (misc. bug fixes), Jim Ancona (SAXON workaround), 
+             Francis Norton (generate-id-from-path), Robert Leftwich, Bryan Rasmussen, 
+             Dave Pawson (include, fallback), Florent Georges (namespaces, exslt, attribute 
+             context), Benoit Maisonny (attribute context), John Dumps (process-message newline), 
+             Cliff Stanford (diagnostics and other newlines) 
+ 
+     
+    KNOWN TYPICAL LIMITATIONS: 
+      * Don't use &lt;sch:ns prefix=&quot;xsl&quot; .../&gt; with a namespace other than the standard 
+      XSLT one. This would be a bizarre thing to do anyway.  
+      * Don't use other prefixes for the XSLT namespace either; some implementations will 
+      not handle it correctly. 
+      
+     EXTENSIONS: 
+      ISO Schematron is designed as a framework with some standard query language 
+      bindings. If you need to support other features, please do so safely by making 
+      up your own @queryLanguage name: this makes it clear that your schema requires 
+      special features. For example, default ISO Schematron does not support user 
+      defined functions; so if you want to use the user defined function feature 
+      in XSLT, you need to have a schema with some queryBinding attribute name like 
+      &quot;XSLT-with-my-functions&quot; or whatever. 
+--&gt;</span>
+
+
+
+
+<span class="s0">&lt;xsl:stylesheet </span><span class="s1">version</span><span class="s2">=&quot;1.0&quot; </span>
+	<span class="s1">xmlns:xsl</span><span class="s2">=&quot;http://www.w3.org/1999/XSL/Transform&quot; </span>
+	<span class="s1">xmlns:axsl</span><span class="s2">=&quot;http://www.w3.org/1999/XSL/TransformAlias&quot; </span>
+	<span class="s1">xmlns:sch</span><span class="s2">=&quot;http://www.ascc.net/xml/schematron&quot;</span>
+    <span class="s1">xmlns:iso</span><span class="s2">=&quot;http://purl.oclc.org/dsdl/schematron&quot; </span>
+    <span class="s1">xmlns:exsl</span><span class="s2">=&quot;http://exslt.org/common&quot;</span>
+    <span class="s1">xmlns:msxsl</span><span class="s2">=&quot;urn:schemas-microsoft-com:xslt&quot;</span>
+    <span class="s1">extension-element-prefixes</span><span class="s2">=&quot;exsl  msxsl&quot;</span>
+	 <span class="s0">&gt;</span>
+<span class="s4">&lt;!-- This program implements ISO Schematron, except for abstract patterns which require a preprocess. --&gt;</span>
+  
+
+<span class="s0">&lt;xsl:namespace-alias </span><span class="s1">stylesheet-prefix</span><span class="s2">=&quot;axsl&quot; </span><span class="s1">result-prefix</span><span class="s2">=&quot;xsl&quot;</span><span class="s0">/&gt;</span>
+
+
+<span class="s4">&lt;!-- Category: top-level-element --&gt;</span>
+<span class="s0">&lt;xsl:output </span><span class="s1">method</span><span class="s2">=&quot;xml&quot; </span><span class="s1">omit-xml-declaration</span><span class="s2">=&quot;no&quot; </span><span class="s1">standalone</span><span class="s2">=&quot;yes&quot;  </span><span class="s1">indent</span><span class="s2">=&quot;yes&quot;</span><span class="s0">/&gt;</span>
+
+
+<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;phase&quot;</span><span class="s0">&gt;</span>
+  <span class="s0">&lt;xsl:choose&gt;</span>
+    <span class="s0">&lt;xsl:when </span><span class="s1">test</span><span class="s2">=&quot;//sch:schema/@defaultPhase&quot;</span><span class="s0">&gt;</span>
+      <span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;//sch:schema/@defaultPhase&quot;</span><span class="s0">/&gt;</span>
+    <span class="s0">&lt;/xsl:when&gt;   </span>
+    <span class="s0">&lt;xsl:when </span><span class="s1">test</span><span class="s2">=&quot;//iso:schema/@defaultPhase&quot;</span><span class="s0">&gt;</span>
+      <span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;//iso:schema/@defaultPhase&quot;</span><span class="s0">/&gt;</span>
+    <span class="s0">&lt;/xsl:when&gt;</span>
+    <span class="s0">&lt;xsl:otherwise&gt;</span><span class="s3">#ALL</span><span class="s0">&lt;/xsl:otherwise&gt;</span>
+  <span class="s0">&lt;/xsl:choose&gt;</span>
+<span class="s0">&lt;/xsl:param&gt;</span>
+
+<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;allow-foreign&quot;</span><span class="s0">&gt;</span><span class="s3">false</span><span class="s0">&lt;/xsl:param&gt;</span>
+
+<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;message-newline&quot;</span><span class="s0">&gt;</span><span class="s3">true</span><span class="s0">&lt;/xsl:param&gt;</span>
+
+<span class="s4">&lt;!-- DPC set to true if contexts should be checked on attribute nodes 
+         defaults to true if there is any possibility that a context could match an attribute, 
+         err on the side if caution, a context of *[.='@'] would cause this param to defualt to true 
+         even though @ is in a string 
+--&gt;</span>
+<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;attributes&quot;</span><span class="s0">&gt;</span>
+  <span class="s0">&lt;xsl:choose&gt;</span>
+    <span class="s0">&lt;xsl:when </span><span class="s1">test</span><span class="s2">=&quot;//iso:rule[contains(@context,'@') or contains(@context,'attribute')]&quot;</span><span class="s0">&gt;</span><span class="s3">true</span><span class="s0">&lt;/xsl:when&gt;</span>
+    <span class="s0">&lt;xsl:otherwise&gt;</span><span class="s3">false</span><span class="s0">&lt;/xsl:otherwise&gt;</span>
+  <span class="s0">&lt;/xsl:choose&gt;</span>
+<span class="s0">&lt;/xsl:param&gt;</span>
+
+<span class="s4">&lt;!-- DPC set to true if contexts should be checked on just elements in the child axis 
+         defaults to true if there is any possibility that a context could match an comment or PI 
+         err on the side if caution, a context of *[.='('] would cause this param to defualt to true 
+         even though ( is in a string, but node() comment() and processing-instruction()  all have a ( 
+--&gt;</span>
+<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;only-child-elements&quot;</span><span class="s0">&gt;</span>
+  <span class="s0">&lt;xsl:choose&gt;</span>
+    <span class="s0">&lt;xsl:when </span><span class="s1">test</span><span class="s2">=&quot;//iso:rule[contains(@context,'(')]&quot;</span><span class="s0">&gt;</span><span class="s3">true</span><span class="s0">&lt;/xsl:when&gt;</span>
+    <span class="s0">&lt;xsl:otherwise&gt;</span><span class="s3">false</span><span class="s0">&lt;/xsl:otherwise&gt;</span>
+  <span class="s0">&lt;/xsl:choose&gt;</span>
+<span class="s0">&lt;/xsl:param&gt;</span>
+
+<span class="s4">&lt;!-- DPC set to true if contexts should be checked on text nodes nodes (if only-child-elements is false) 
+         THIS IS NON CONFORMANT BEHAVIOUR JUST FOR DISCUSSION OF A POSSIBLE CHANGE TO THE 
+         SPECIFICATION. THIS PARAM SHOULD GO IF THE FINAL DECISION IS THAT THE SPEC DOES NOT CHANGE. 
+     Always defaults to false 
+--&gt;</span>
+<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;visit-text&quot; </span><span class="s1">select</span><span class="s2">=&quot;'false'&quot;</span><span class="s0">/&gt;</span>
+
+<span class="s4">&lt;!-- DPC 
+  When selecting contexts the specified behaviour is 
+    @*|node()[not(self::text())] 
+    The automatic settings may use 
+      node()[not(self::text())] 
+      @*|* 
+      * 
+  instead for schema for which they are equivalent. 
+  If the params are set explictly the above may be used, and also either if 
+      @* 
+      @*|node() 
+   in all cases the result may not be equivalent, for example if you specify no attributes and the schema  
+   does have attribute contexts they will be silently ignored. 
+ 
+  after testing it turns out that 
+  node()[not(self::text())] is slower in saxon than *|comment()|processing-instruction()  
+  which I find a bit surprising but anyway I'll use the longr faster version. 
+--&gt;</span>
+<span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;context-xpath&quot;</span><span class="s0">&gt;</span>
+  <span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;$attributes='true'&quot;</span><span class="s0">&gt;</span><span class="s3">@*|</span><span class="s0">&lt;/xsl:if&gt;</span>
+  <span class="s0">&lt;xsl:choose&gt;</span>
+    <span class="s0">&lt;xsl:when </span><span class="s1">test</span><span class="s2">=&quot;$only-child-elements='true'&quot;</span><span class="s0">&gt;</span><span class="s3">*</span><span class="s0">&lt;/xsl:when&gt;</span>
+    <span class="s0">&lt;xsl:when </span><span class="s1">test</span><span class="s2">=&quot;$visit-text='true'&quot;</span><span class="s0">&gt;</span><span class="s3">node()</span><span class="s0">&lt;/xsl:when&gt;</span>
+    <span class="s0">&lt;xsl:otherwise&gt;</span><span class="s3">*|comment()|processing-instruction()</span><span class="s0">&lt;/xsl:otherwise&gt;</span>
+  <span class="s0">&lt;/xsl:choose&gt;</span>
+<span class="s0">&lt;/xsl:variable&gt;</span>
+
+<span class="s4">&lt;!-- DPC if this is set to  
+    '' use recursive templates to iterate over document tree, 
+    'key' select  all contexts with a key rather than walking the tree explictly in each mode 
+    '//' select all contexts with // a key rather than walking the tree explictly in each mode (XSLT2 only) 
+--&gt;</span>
+<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;select-contexts&quot; </span><span class="s1">select</span><span class="s2">=&quot;''&quot;</span><span class="s0">/&gt;</span>
+
+
+<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;output-encoding&quot;</span><span class="s0">/&gt;</span>
+<span class="s4">&lt;!-- e.g. saxon file.xml file.xsl &quot;sch.exslt.imports=.../string.xsl;.../math.xsl&quot; --&gt;</span>
+<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;sch.exslt.imports&quot;</span><span class="s0">/&gt;</span>
+
+<span class="s4">&lt;!-- Set the language code for messages --&gt;</span>
+<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;langCode&quot;</span><span class="s0">&gt;</span><span class="s3">default</span><span class="s0">&lt;/xsl:param&gt;</span>
+
+<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;debug&quot;</span><span class="s0">&gt;</span><span class="s3">false</span><span class="s0">&lt;/xsl:param&gt;</span>
+
+
+<span class="s4">&lt;!-- Set the default for schematron-select-full-path, i.e. the notation for svrl's @location--&gt;</span>
+<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;full-path-notation&quot;</span><span class="s0">&gt;</span><span class="s3">1</span><span class="s0">&lt;/xsl:param&gt;</span>
+
+<span class="s4">&lt;!-- Simple namespace check --&gt;</span>
+<span class="s0">&lt;xsl:template </span><span class="s1">match</span><span class="s2">=&quot;/&quot;</span><span class="s0">&gt;</span>
+    <span class="s0">&lt;xsl:if  </span><span class="s1">test</span><span class="s2">=&quot;//sch:*[ancestor::iso:* or descendant::iso:*]&quot;</span><span class="s0">&gt;</span>
+	<span class="s0">&lt;xsl:message&gt;</span><span class="s3">Schema error: Schematron elements in old and new namespaces found</span><span class="s0">&lt;/xsl:message&gt;</span>
+	<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot; $debug = 'false' &quot; </span><span class="s0">/&gt;</span>
+    <span class="s0">&lt;/xsl:if&gt;</span>
+
+    <span class="s0">&lt;xsl:apply-templates /&gt;</span>
+<span class="s0">&lt;/xsl:template&gt;</span>
+
+
+<span class="s4">&lt;!-- ============================================================== --&gt;</span>
+<span class="s4">&lt;!-- ISO SCHEMATRON SCHEMA ELEMENT  --&gt;</span>
+<span class="s4">&lt;!-- Not handled: Abstract patterns. A pre-processor is assumed. --&gt;</span>
+<span class="s4">&lt;!-- ============================================================== --&gt;</span>
+
+<span class="s4">&lt;!-- SCHEMA --&gt;</span>
+<span class="s4">&lt;!-- Default uses XSLT 1 --&gt;</span>
+<span class="s0">&lt;xsl:template </span><span class="s1">match</span><span class="s2">=&quot;iso:schema[not(@queryBinding) or @queryBinding='xslt'  
+     or @queryBinding='xslt1' or @queryBinding='XSLT' or @queryBinding='XSLT1' 
+     or @queryBinding='xpath']&quot;</span><span class="s0">&gt;</span>
+     <span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;</span>
+	     <span class="s2">@queryBinding='xslt1' or @queryBinding='XSLT' or @queryBinding='XSLT1'&quot;</span><span class="s0">&gt;</span>
+	     <span class="s0">&lt;xsl:message&gt;</span><span class="s3">Schema error: in the queryBinding attribute, use 'xslt'</span><span class="s0">&lt;/xsl:message&gt;</span>
+	<span class="s0">&lt;/xsl:if&gt;</span>
+	<span class="s0">&lt;axsl:stylesheet&gt;</span>
+	    <span class="s0">&lt;xsl:apply-templates </span><span class="s1">select</span><span class="s2">=&quot;iso:ns&quot;</span><span class="s0">/&gt;</span>
+	    <span class="s4">&lt;!-- Handle the namespaces before the version attribute: reported to help SAXON --&gt;</span>
+	    <span class="s0">&lt;xsl:attribute </span><span class="s1">name</span><span class="s2">=&quot;version&quot;</span><span class="s0">&gt;</span><span class="s3">1.0</span><span class="s0">&lt;/xsl:attribute&gt;</span>
+	    
+		<span class="s0">&lt;xsl:apply-templates </span><span class="s1">select</span><span class="s2">=&quot;.&quot; </span><span class="s1">mode</span><span class="s2">=&quot;stylesheetbody&quot;</span><span class="s0">/&gt;</span>
+		<span class="s4">&lt;!-- was xsl:call-template name=&quot;stylesheetbody&quot;/ --&gt;</span>
+	<span class="s0">&lt;/axsl:stylesheet&gt;</span>
+<span class="s0">&lt;/xsl:template&gt;</span>
+
+<span class="s4">&lt;!-- Using EXSLT with all modeles (except function module: not applicable) --&gt;</span>
+<span class="s0">&lt;xsl:template </span><span class="s1">match</span><span class="s2">=&quot;iso:schema[@queryBinding='exslt']&quot; </span><span class="s1">priority</span><span class="s2">=&quot;10&quot;</span><span class="s0">&gt;</span>
+    <span class="s0">&lt;xsl:comment&gt;</span><span class="s3">This XSLT was automatically generated from a Schematron schema.</span><span class="s0">&lt;/xsl:comment&gt;</span>
+	<span class="s0">&lt;axsl:stylesheet</span>
+ 	  	<span class="s1">xmlns:date</span><span class="s2">=&quot;http://exslt.org/dates-and-times&quot;</span>
+ 	  	<span class="s1">xmlns:dyn</span><span class="s2">=&quot;http://exslt.org/dynamic&quot;</span>
+		<span class="s1">xmlns:exsl</span><span class="s2">=&quot;http://exslt.org/common&quot;</span>
+		<span class="s1">xmlns:math</span><span class="s2">=&quot;http://exslt.org/math&quot;</span>
+   		<span class="s1">xmlns:random</span><span class="s2">=&quot;http://exslt.org/random&quot;</span>
+  		<span class="s1">xmlns:regexp</span><span class="s2">=&quot;http://exslt.org/regular-expressions&quot;</span>
+   		<span class="s1">xmlns:set</span><span class="s2">=&quot;http://exslt.org/sets&quot;</span>
+   		<span class="s1">xmlns:str</span><span class="s2">=&quot;http://exslt.org/strings&quot;</span>
+   		<span class="s1">extension-element-prefixes</span><span class="s2">=&quot;date dyn exsl math random regexp set str&quot; </span><span class="s0">&gt;</span>
+	
+        <span class="s0">&lt;xsl:apply-templates </span><span class="s1">select</span><span class="s2">=&quot;iso:ns&quot;</span><span class="s0">/&gt;</span>
+	    <span class="s4">&lt;!-- Handle the namespaces before the version attribute: reported to help SAXON --&gt;</span>
+	    <span class="s0">&lt;xsl:attribute </span><span class="s1">name</span><span class="s2">=&quot;version&quot;</span><span class="s0">&gt;</span><span class="s3">1.0</span><span class="s0">&lt;/xsl:attribute&gt;</span>
+	    
+	    <span class="s0">&lt;xsl:apply-templates </span><span class="s1">select</span><span class="s2">=&quot;.&quot; </span><span class="s1">mode</span><span class="s2">=&quot;stylesheetbody&quot;</span><span class="s0">/&gt;</span>
+		<span class="s4">&lt;!-- was xsl:call-template name=&quot;stylesheetbody&quot;/ --&gt;</span>
+	<span class="s0">&lt;/axsl:stylesheet&gt;</span>
+<span class="s0">&lt;/xsl:template&gt;</span>
+
+
+<span class="s4">&lt;!-- Default uses XSLT 1 --&gt;</span>
+<span class="s0">&lt;xsl:template </span><span class="s1">match</span><span class="s2">=&quot;iso:schema&quot; </span><span class="s1">priority</span><span class="s2">=&quot;-1&quot;</span><span class="s0">&gt;</span>
+	<span class="s0">&lt;xsl:message </span><span class="s1">terminate</span><span class="s2">=&quot;yes&quot; </span><span class="s0">&gt;</span><span class="s3">Fail: This implementation of ISO Schematron does not work with </span>
+	<span class="s3">schemas using the &quot;</span><span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;@queryBinding&quot;</span><span class="s0">/&gt;</span><span class="s3">&quot; query language.</span><span class="s0">&lt;/xsl:message&gt;        </span>
+<span class="s0">&lt;/xsl:template&gt;</span>
+
+<span class="s0">&lt;xsl:template </span><span class="s1">match</span><span class="s2">=&quot;*&quot; </span><span class="s1">mode</span><span class="s2">=&quot;stylesheetbody&quot;</span><span class="s0">&gt;</span>
+	<span class="s4">&lt;!--xsl:template name=&quot;stylesheetbody&quot;--&gt;</span>
+    <span class="s0">&lt;xsl:comment&gt;</span><span class="s3">Implementers: please note that overriding process-prolog or process-root is </span>
+    <span class="s3">the preferred method for meta-stylesheets to use where possible. </span><span class="s0">&lt;/xsl:comment&gt;&lt;xsl:text&gt;</span><span class="s5">&amp;#10;</span><span class="s0">&lt;/xsl:text&gt;</span>
+
+   <span class="s4">&lt;!-- These parameters may contain strings with the name and directory of the file being 
+   validated. For convenience, if the caller only has the information in a single string, 
+   that string could be put in fileDirParameter. The archives parameters are available 
+   for ZIP archives. 
+    --&gt;</span>
+
+	<span class="s0">&lt;axsl:param </span><span class="s1">name</span><span class="s2">=&quot;archiveDirParameter&quot; </span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;axsl:param </span><span class="s1">name</span><span class="s2">=&quot;archiveNameParameter&quot; </span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;axsl:param </span><span class="s1">name</span><span class="s2">=&quot;fileNameParameter&quot; </span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;axsl:param </span><span class="s1">name</span><span class="s2">=&quot;fileDirParameter&quot; </span><span class="s0">/&gt;</span>
+
+    <span class="s0">&lt;xsl:call-template </span><span class="s1">name</span><span class="s2">=&quot;iso:exslt.add.imports&quot; </span><span class="s0">/&gt;</span>
+    <span class="s0">&lt;xsl:text&gt;</span><span class="s5">&amp;#10;&amp;#10;</span><span class="s0">&lt;/xsl:text&gt;&lt;xsl:comment&gt;</span><span class="s3">PHASES</span><span class="s0">&lt;/xsl:comment&gt;&lt;xsl:text&gt;</span><span class="s5">&amp;#10;</span><span class="s0">&lt;/xsl:text&gt;</span>
+	<span class="s0">&lt;xsl:call-template </span><span class="s1">name</span><span class="s2">=&quot;handle-phase&quot;</span><span class="s0">/&gt;</span>
+    <span class="s0">&lt;xsl:text&gt;</span><span class="s5">&amp;#10;&amp;#10;</span><span class="s0">&lt;/xsl:text&gt;&lt;xsl:comment&gt;</span><span class="s3">PROLOG</span><span class="s0">&lt;/xsl:comment&gt;&lt;xsl:text&gt;</span><span class="s5">&amp;#10;</span><span class="s0">&lt;/xsl:text&gt;</span>
+	<span class="s0">&lt;xsl:call-template </span><span class="s1">name</span><span class="s2">=&quot;process-prolog&quot;</span><span class="s0">/&gt;</span>
+    <span class="s0">&lt;xsl:text&gt;</span><span class="s5">&amp;#10;&amp;#10;</span><span class="s0">&lt;/xsl:text&gt;&lt;xsl:comment&gt;</span><span class="s3">KEYS</span><span class="s0">&lt;/xsl:comment&gt;&lt;xsl:text&gt;</span><span class="s5">&amp;#10;</span><span class="s0">&lt;/xsl:text&gt;</span>
+	<span class="s0">&lt;xsl:apply-templates </span><span class="s1">mode</span><span class="s2">=&quot;do-keys&quot;   </span><span class="s1">select</span><span class="s2">=&quot;xsl:key  &quot;</span><span class="s0">/&gt;</span>
+    <span class="s0">&lt;xsl:text&gt;</span><span class="s5">&amp;#10;&amp;#10;</span><span class="s0">&lt;/xsl:text&gt;&lt;xsl:comment&gt;</span><span class="s3">DEFAULT RULES</span><span class="s0">&lt;/xsl:comment&gt;&lt;xsl:text&gt;</span><span class="s5">&amp;#10;</span><span class="s0">&lt;/xsl:text&gt;</span>
+    <span class="s0">&lt;xsl:call-template </span><span class="s1">name</span><span class="s2">=&quot;generate-default-rules&quot; </span><span class="s0">/&gt;</span>
+    <span class="s0">&lt;xsl:text&gt;</span><span class="s5">&amp;#10;&amp;#10;</span><span class="s0">&lt;/xsl:text&gt;&lt;xsl:comment&gt;</span><span class="s3">SCHEMA METADATA</span><span class="s0">&lt;/xsl:comment&gt;&lt;xsl:text&gt;</span><span class="s5">&amp;#10;</span><span class="s0">&lt;/xsl:text&gt;</span>
+    <span class="s0">&lt;xsl:call-template </span><span class="s1">name</span><span class="s2">=&quot;handle-root&quot;</span><span class="s0">/&gt;</span>
+    <span class="s0">&lt;xsl:text&gt;</span><span class="s5">&amp;#10;&amp;#10;</span><span class="s0">&lt;/xsl:text&gt;&lt;xsl:comment&gt;</span><span class="s3">SCHEMATRON PATTERNS</span><span class="s0">&lt;/xsl:comment&gt;&lt;xsl:text&gt;</span><span class="s5">&amp;#10;</span><span class="s0">&lt;/xsl:text&gt;</span>
+ 
+	<span class="s0">&lt;xsl:apply-templates </span><span class="s1">select</span><span class="s2">=&quot;*[not(self::iso:ns)] &quot; </span><span class="s0">/&gt;</span>
+<span class="s0">&lt;/xsl:template&gt;</span>
+ 
+    <span class="s0">&lt;xsl:template </span><span class="s1">name</span><span class="s2">=&quot;iso:exslt.add.imports&quot;</span><span class="s0">&gt;</span>
+      <span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;imports&quot; </span><span class="s1">select</span><span class="s2">=&quot;$sch.exslt.imports&quot;</span><span class="s0">/&gt;</span>
+      <span class="s0">&lt;xsl:choose&gt;</span>
+        <span class="s0">&lt;xsl:when </span><span class="s1">test</span><span class="s2">=&quot;contains($imports, ';')&quot;</span><span class="s0">&gt;</span>
+          <span class="s0">&lt;axsl:import </span><span class="s1">href</span><span class="s2">=&quot;{ substring-before($imports, ';') }&quot;</span><span class="s0">/&gt;</span>
+          <span class="s0">&lt;xsl:call-template </span><span class="s1">name</span><span class="s2">=&quot;iso:exslt.add.imports&quot;</span><span class="s0">&gt;</span>
+            <span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;imports&quot;  </span><span class="s1">select</span><span class="s2">=&quot;substring-after($imports, ';')&quot;</span><span class="s0">/&gt;</span>
+          <span class="s0">&lt;/xsl:call-template&gt;</span>
+        <span class="s0">&lt;/xsl:when&gt;</span>
+        <span class="s0">&lt;xsl:when </span><span class="s1">test</span><span class="s2">=&quot;$imports&quot;</span><span class="s0">&gt;</span>
+          <span class="s0">&lt;axsl:import </span><span class="s1">href</span><span class="s2">=&quot;{ $imports }&quot;</span><span class="s0">/&gt;</span>
+        <span class="s0">&lt;/xsl:when&gt;</span>
+      <span class="s0">&lt;/xsl:choose&gt;</span>
+    <span class="s0">&lt;/xsl:template&gt;</span>
+
+<span class="s0">&lt;xsl:template </span><span class="s1">name</span><span class="s2">=&quot;handle-phase&quot; </span><span class="s0">&gt;</span>
+	<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;not(normalize-space( $phase ) = '#ALL')&quot;</span><span class="s0">&gt;</span>
+	  <span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;not(iso:phase[@id = normalize-space( $phase )])&quot;</span><span class="s0">&gt;</span>
+		  <span class="s0">&lt;xsl:message&gt;</span><span class="s3">Phase Error: no phase with name </span><span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;normalize-space( $phase )&quot;</span>
+		  <span class="s0">/&gt; </span><span class="s3">has been defined.</span><span class="s0">&lt;/xsl:message&gt;</span>
+	  <span class="s0">&lt;/xsl:if&gt;</span>
+     <span class="s0">&lt;/xsl:if&gt;</span>
+<span class="s0">&lt;/xsl:template&gt;</span>
+
+<span class="s0">&lt;xsl:template </span><span class="s1">name</span><span class="s2">=&quot;generate-default-rules&quot;</span><span class="s0">&gt;</span>
+		<span class="s0">&lt;xsl:text&gt;</span><span class="s5">&amp;#10;&amp;#10;</span><span class="s0">&lt;/xsl:text&gt;</span>
+		<span class="s0">&lt;xsl:comment&gt;</span><span class="s3">MODE: SCHEMATRON-SELECT-FULL-PATH</span><span class="s0">&lt;/xsl:comment&gt;&lt;xsl:text&gt;</span><span class="s5">&amp;#10;</span><span class="s0">&lt;/xsl:text&gt;</span>
+		<span class="s0">&lt;xsl:comment&gt;</span><span class="s3">This mode can be used to generate an ugly though full XPath for locators</span><span class="s0">&lt;/xsl:comment&gt;&lt;xsl:text&gt;</span><span class="s5">&amp;#10;</span><span class="s0">&lt;/xsl:text&gt;</span>
+   		<span class="s0">&lt;axsl:template </span><span class="s1">match</span><span class="s2">=&quot;*&quot; </span><span class="s1">mode</span><span class="s2">=&quot;schematron-select-full-path&quot;</span><span class="s0">&gt;</span>
+   			<span class="s0">&lt;xsl:choose&gt;</span>
+   				<span class="s0">&lt;xsl:when </span><span class="s1">test</span><span class="s2">=&quot; $full-path-notation = '1' &quot;</span><span class="s0">&gt;</span>
+   					<span class="s4">&lt;!-- Use for computers, but rather unreadable for humans --&gt;</span>
+					<span class="s0">&lt;axsl:apply-templates </span><span class="s1">select</span><span class="s2">=&quot;.&quot; </span><span class="s1">mode</span><span class="s2">=&quot;schematron-get-full-path&quot;</span><span class="s0">/&gt;</span>
+				<span class="s0">&lt;/xsl:when&gt;</span>
+   				<span class="s0">&lt;xsl:when </span><span class="s1">test</span><span class="s2">=&quot; $full-path-notation = '2' &quot;</span><span class="s0">&gt;</span>
+   					<span class="s4">&lt;!-- Use for humans, but no good for paths unless namespaces are known out-of-band --&gt;</span>
+					<span class="s0">&lt;axsl:apply-templates </span><span class="s1">select</span><span class="s2">=&quot;.&quot; </span><span class="s1">mode</span><span class="s2">=&quot;schematron-get-full-path-2&quot;</span><span class="s0">/&gt;</span>
+				<span class="s0">&lt;/xsl:when&gt;</span>
+   				<span class="s0">&lt;xsl:when </span><span class="s1">test</span><span class="s2">=&quot; $full-path-notation = '3' &quot;</span><span class="s0">&gt; </span>
+   					<span class="s4">&lt;!-- Obsolescent. Use for humans, but no good for paths unless namespaces are known out-of-band --&gt;</span>
+					<span class="s0">&lt;axsl:apply-templates </span><span class="s1">select</span><span class="s2">=&quot;.&quot; </span><span class="s1">mode</span><span class="s2">=&quot;schematron-get-full-path-3&quot;</span><span class="s0">/&gt;</span>
+				<span class="s0">&lt;/xsl:when&gt;</span>
+
+                   <span class="s0">&lt;xsl:otherwise &gt;</span>
+                       <span class="s4">&lt;!-- Use for computers, but rather unreadable for humans --&gt;</span>
+                    <span class="s0">&lt;axsl:apply-templates </span><span class="s1">select</span><span class="s2">=&quot;.&quot; </span><span class="s1">mode</span><span class="s2">=&quot;schematron-get-full-path&quot;</span><span class="s0">/&gt;</span>
+                <span class="s0">&lt;/xsl:otherwise&gt;</span>
+			<span class="s0">&lt;/xsl:choose&gt;</span>
+		<span class="s0">&lt;/axsl:template&gt;</span>
+	
+
+		<span class="s0">&lt;xsl:text&gt;</span><span class="s5">&amp;#10;&amp;#10;</span><span class="s0">&lt;/xsl:text&gt;</span>
+		<span class="s0">&lt;xsl:comment&gt;</span><span class="s3">MODE: SCHEMATRON-FULL-PATH</span><span class="s0">&lt;/xsl:comment&gt;&lt;xsl:text&gt;</span><span class="s5">&amp;#10;</span><span class="s0">&lt;/xsl:text&gt;</span>
+		<span class="s0">&lt;xsl:comment&gt;</span><span class="s3">This mode can be used to generate an ugly though full XPath for locators</span><span class="s0">&lt;/xsl:comment&gt;&lt;xsl:text&gt;</span><span class="s5">&amp;#10;</span><span class="s0">&lt;/xsl:text&gt;</span>
+   		<span class="s0">&lt;axsl:template </span><span class="s1">match</span><span class="s2">=&quot;*&quot; </span><span class="s1">mode</span><span class="s2">=&quot;schematron-get-full-path&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;axsl:apply-templates </span><span class="s1">select</span><span class="s2">=&quot;parent::*&quot; </span><span class="s1">mode</span><span class="s2">=&quot;schematron-get-full-path&quot;</span><span class="s0">/&gt;</span>
+			
+			<span class="s4">&lt;!-- XSLT1 syntax --&gt;</span>
+
+			<span class="s0">&lt;axsl:text&gt;</span><span class="s3">/</span><span class="s0">&lt;/axsl:text&gt;</span>
+			<span class="s0">&lt;axsl:choose&gt;</span>
+			<span class="s0">&lt;axsl:when </span><span class="s1">test</span><span class="s2">=&quot;namespace-uri()=''&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;axsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;name()&quot;</span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;axsl:variable </span><span class="s1">name</span><span class="s2">=&quot;p_1&quot; </span><span class="s1">select</span><span class="s2">=&quot;1+ 
+            count(preceding-sibling::*[name()=name(current())])&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;axsl:if </span><span class="s1">test</span><span class="s2">=&quot;$p_1</span><span class="s5">&amp;gt;</span><span class="s2">1 or following-sibling::*[name()=name(current())]&quot;</span><span class="s0">&gt;</span>
+		  <span class="s0">&lt;xsl:text/&gt;</span><span class="s3">[</span><span class="s0">&lt;axsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;$p_1&quot;</span><span class="s0">/&gt;</span><span class="s3">]</span><span class="s0">&lt;xsl:text/&gt;</span>
+		<span class="s0">&lt;/axsl:if&gt;</span>
+		<span class="s0">&lt;/axsl:when&gt;</span>
+		<span class="s0">&lt;axsl:otherwise&gt;</span>
+		<span class="s0">&lt;axsl:text&gt;</span><span class="s3">*[local-name()='</span><span class="s0">&lt;/axsl:text&gt;</span>
+		<span class="s0">&lt;axsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;local-name()&quot;</span><span class="s0">/&gt;&lt;axsl:text&gt;</span><span class="s3">' and namespace-uri()='</span><span class="s0">&lt;/axsl:text&gt;</span>
+		<span class="s0">&lt;axsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;namespace-uri()&quot;</span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;axsl:text&gt;</span><span class="s3">']</span><span class="s0">&lt;/axsl:text&gt;</span>
+		<span class="s0">&lt;axsl:variable </span><span class="s1">name</span><span class="s2">=&quot;p_2&quot; </span><span class="s1">select</span><span class="s2">=&quot;1+ 
+        count(preceding-sibling::*[local-name()=local-name(current())])&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;axsl:if </span><span class="s1">test</span><span class="s2">=&quot;$p_2</span><span class="s5">&amp;gt;</span><span class="s2">1 or following-sibling::*[local-name()=local-name(current())]&quot;</span><span class="s0">&gt;</span>
+		  <span class="s0">&lt;xsl:text/&gt;</span><span class="s3">[</span><span class="s0">&lt;axsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;$p_2&quot;</span><span class="s0">/&gt;</span><span class="s3">]</span><span class="s0">&lt;xsl:text/&gt;</span>
+		<span class="s0">&lt;/axsl:if&gt;</span>
+		<span class="s0">&lt;/axsl:otherwise&gt;</span>
+		<span class="s0">&lt;/axsl:choose&gt; </span>
+       	 	<span class="s0">&lt;/axsl:template&gt;</span>
+       	 	
+       	 	
+		<span class="s0">&lt;axsl:template </span><span class="s1">match</span><span class="s2">=&quot;@*&quot; </span><span class="s1">mode</span><span class="s2">=&quot;schematron-get-full-path&quot;</span><span class="s0">&gt;</span>
+		
+			<span class="s4">&lt;!-- XSLT1 syntax --&gt;</span>
+		<span class="s0">&lt;axsl:text&gt;</span><span class="s3">/</span><span class="s0">&lt;/axsl:text&gt;</span>
+		<span class="s0">&lt;axsl:choose&gt;</span>
+		<span class="s0">&lt;axsl:when </span><span class="s1">test</span><span class="s2">=&quot;namespace-uri()=''&quot;</span><span class="s0">&gt;</span><span class="s3">@</span><span class="s0">&lt;axsl:value-of</span>
+		<span class="s1">select</span><span class="s2">=&quot;name()&quot;</span><span class="s0">/&gt;&lt;/axsl:when&gt;</span>
+		<span class="s0">&lt;axsl:otherwise&gt;</span>
+		<span class="s0">&lt;axsl:text&gt;</span><span class="s3">@*[local-name()='</span><span class="s0">&lt;/axsl:text&gt;</span>
+		<span class="s0">&lt;axsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;local-name()&quot;</span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;axsl:text&gt;</span><span class="s3">' and namespace-uri()='</span><span class="s0">&lt;/axsl:text&gt;</span>
+		<span class="s0">&lt;axsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;namespace-uri()&quot;</span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;axsl:text&gt;</span><span class="s3">']</span><span class="s0">&lt;/axsl:text&gt;</span>
+		<span class="s0">&lt;/axsl:otherwise&gt;</span>
+		<span class="s0">&lt;/axsl:choose&gt;   </span>
+
+		<span class="s0">&lt;/axsl:template&gt;</span>
+	
+	
+	<span class="s0">&lt;xsl:text&gt;</span><span class="s5">&amp;#10;&amp;#10;</span><span class="s0">&lt;/xsl:text&gt;</span>
+	
+	<span class="s0">&lt;xsl:comment&gt;</span><span class="s3">MODE: SCHEMATRON-FULL-PATH-2</span><span class="s0">&lt;/xsl:comment&gt;</span>
+	<span class="s0">&lt;xsl:text&gt;</span><span class="s5">&amp;#10;</span><span class="s0">&lt;/xsl:text&gt;</span>
+	<span class="s0">&lt;xsl:comment&gt;</span><span class="s3">This mode can be used to generate prefixed XPath for humans</span><span class="s0">&lt;/xsl:comment&gt;</span>
+	<span class="s0">&lt;xsl:text&gt;</span><span class="s5">&amp;#10;</span><span class="s0">&lt;/xsl:text&gt;</span>
+	<span class="s4">&lt;!--simplify the error messages by using the namespace prefixes of the 
+     instance rather than the generic namespace-uri-styled qualification--&gt;</span>
+	<span class="s0">&lt;axsl:template </span><span class="s1">match</span><span class="s2">=&quot;node() | @*&quot; </span><span class="s1">mode</span><span class="s2">=&quot;schematron-get-full-path-2&quot;</span><span class="s0">&gt;</span>
+	<span class="s4">&lt;!--report the element hierarchy--&gt;</span>
+		<span class="s0">&lt;axsl:for-each </span><span class="s1">select</span><span class="s2">=&quot;ancestor-or-self::*&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;axsl:text&gt;</span><span class="s3">/</span><span class="s0">&lt;/axsl:text&gt;</span>
+			<span class="s0">&lt;axsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;name(.)&quot;</span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;axsl:if </span><span class="s1">test</span><span class="s2">=&quot;preceding-sibling::*[name(.)=name(current())]&quot;</span><span class="s0">&gt;</span>
+				<span class="s0">&lt;axsl:text&gt;</span><span class="s3">[</span><span class="s0">&lt;/axsl:text&gt;</span>
+				<span class="s0">&lt;axsl:value-of</span>
+					<span class="s1">select</span><span class="s2">=&quot;count(preceding-sibling::*[name(.)=name(current())])+1&quot;</span><span class="s0">/&gt;</span>
+				<span class="s0">&lt;axsl:text&gt;</span><span class="s3">]</span><span class="s0">&lt;/axsl:text&gt;</span>
+			<span class="s0">&lt;/axsl:if&gt;</span>
+		<span class="s0">&lt;/axsl:for-each&gt;</span>
+		<span class="s4">&lt;!--report the attribute--&gt;</span>
+		<span class="s0">&lt;axsl:if </span><span class="s1">test</span><span class="s2">=&quot;not(self::*)&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;axsl:text/&gt;</span><span class="s3">/@</span><span class="s0">&lt;axsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;name(.)&quot;</span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;/axsl:if&gt;</span>
+	<span class="s0">&lt;/axsl:template&gt;</span>
+
+		<span class="s0">&lt;xsl:text&gt;</span><span class="s5">&amp;#10;&amp;#10;</span><span class="s0">&lt;/xsl:text&gt;</span>
+		<span class="s0">&lt;xsl:comment&gt;</span><span class="s3">MODE: GENERATE-ID-FROM-PATH </span><span class="s0">&lt;/xsl:comment&gt;&lt;xsl:text&gt;</span><span class="s5">&amp;#10;</span><span class="s0">&lt;/xsl:text&gt;</span>
+		<span class="s4">&lt;!-- repeatable-id maker derived from Francis Norton's. --&gt;</span>
+		<span class="s4">&lt;!-- use this if you need generate ids in separate passes, 
+             because generate-id() is not guaranteed to produce the same 
+             results each time. These ids are not XML names but closer to paths. --&gt;</span>
+		<span class="s0">&lt;axsl:template </span><span class="s1">match</span><span class="s2">=&quot;/&quot; </span><span class="s1">mode</span><span class="s2">=&quot;generate-id-from-path&quot;</span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;axsl:template </span><span class="s1">match</span><span class="s2">=&quot;text()&quot; </span><span class="s1">mode</span><span class="s2">=&quot;generate-id-from-path&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;axsl:apply-templates </span><span class="s1">select</span><span class="s2">=&quot;parent::*&quot; </span><span class="s1">mode</span><span class="s2">=&quot;generate-id-from-path&quot;</span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;axsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;concat('.text-', 1+count(preceding-sibling::text()), '-')&quot;</span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;/axsl:template&gt;</span>
+		<span class="s0">&lt;axsl:template </span><span class="s1">match</span><span class="s2">=&quot;comment()&quot; </span><span class="s1">mode</span><span class="s2">=&quot;generate-id-from-path&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;axsl:apply-templates </span><span class="s1">select</span><span class="s2">=&quot;parent::*&quot; </span><span class="s1">mode</span><span class="s2">=&quot;generate-id-from-path&quot;</span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;axsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;concat('.comment-', 1+count(preceding-sibling::comment()), '-')&quot;</span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;/axsl:template&gt;</span>
+		<span class="s0">&lt;axsl:template </span><span class="s1">match</span><span class="s2">=&quot;processing-instruction()&quot; </span><span class="s1">mode</span><span class="s2">=&quot;generate-id-from-path&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;axsl:apply-templates </span><span class="s1">select</span><span class="s2">=&quot;parent::*&quot; </span><span class="s1">mode</span><span class="s2">=&quot;generate-id-from-path&quot;</span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;axsl:value-of </span>
+			<span class="s1">select</span><span class="s2">=&quot;concat('.processing-instruction-', 1+count(preceding-sibling::processing-instruction()), '-')&quot;</span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;/axsl:template&gt;</span>
+		<span class="s0">&lt;axsl:template </span><span class="s1">match</span><span class="s2">=&quot;@*&quot; </span><span class="s1">mode</span><span class="s2">=&quot;generate-id-from-path&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;axsl:apply-templates </span><span class="s1">select</span><span class="s2">=&quot;parent::*&quot; </span><span class="s1">mode</span><span class="s2">=&quot;generate-id-from-path&quot;</span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;axsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;concat('.@', name())&quot;</span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;/axsl:template&gt;</span>
+		<span class="s0">&lt;axsl:template </span><span class="s1">match</span><span class="s2">=&quot;*&quot; </span><span class="s1">mode</span><span class="s2">=&quot;generate-id-from-path&quot; </span><span class="s1">priority</span><span class="s2">=&quot;-0.5&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;axsl:apply-templates </span><span class="s1">select</span><span class="s2">=&quot;parent::*&quot; </span><span class="s1">mode</span><span class="s2">=&quot;generate-id-from-path&quot;</span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;axsl:text&gt;</span><span class="s3">.</span><span class="s0">&lt;/axsl:text&gt;</span>
+<span class="s4">&lt;!--</span>
+			<span class="s4">&lt;axsl:choose&gt; 
+                &lt;axsl:when test=&quot;count(. | ../namespace::*) = count(../namespace::*)&quot;&gt; 
+                    &lt;axsl:value-of select=&quot;concat('.namespace::-',1+count(namespace::*),'-')&quot;/&gt; 
+                &lt;/axsl:when&gt; 
+                &lt;axsl:otherwise&gt; 
+--&gt;</span>
+				<span class="s0">&lt;axsl:value-of </span>
+				<span class="s1">select</span><span class="s2">=&quot;concat('.',name(),'-',1+count(preceding-sibling::*[name()=name(current())]),'-')&quot;</span><span class="s0">/&gt;</span>
+<span class="s4">&lt;!--</span>
+				<span class="s4">&lt;/axsl:otherwise&gt; 
+            &lt;/axsl:choose&gt; 
+--&gt;</span>
+		<span class="s0">&lt;/axsl:template&gt;</span>
+		
+		
+	<span class="s0">&lt;xsl:comment&gt;</span><span class="s3">MODE: SCHEMATRON-FULL-PATH-3</span><span class="s0">&lt;/xsl:comment&gt;</span>
+	
+	<span class="s0">&lt;xsl:text&gt;</span><span class="s5">&amp;#10;</span><span class="s0">&lt;/xsl:text&gt;</span>
+	<span class="s0">&lt;xsl:comment&gt;</span><span class="s3">This mode can be used to generate prefixed XPath for humans </span>
+	<span class="s3">(Top-level element has index)</span><span class="s0">&lt;/xsl:comment&gt;</span>
+	<span class="s0">&lt;xsl:text&gt;</span><span class="s5">&amp;#10;</span><span class="s0">&lt;/xsl:text&gt;</span>
+	<span class="s4">&lt;!--simplify the error messages by using the namespace prefixes of the 
+     instance rather than the generic namespace-uri-styled qualification--&gt;</span>
+	<span class="s0">&lt;axsl:template </span><span class="s1">match</span><span class="s2">=&quot;node() | @*&quot; </span><span class="s1">mode</span><span class="s2">=&quot;schematron-get-full-path-3&quot;</span><span class="s0">&gt;</span>
+	<span class="s4">&lt;!--report the element hierarchy--&gt;</span>
+		<span class="s0">&lt;axsl:for-each </span><span class="s1">select</span><span class="s2">=&quot;ancestor-or-self::*&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;axsl:text&gt;</span><span class="s3">/</span><span class="s0">&lt;/axsl:text&gt;</span>
+			<span class="s0">&lt;axsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;name(.)&quot;</span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;axsl:if </span><span class="s1">test</span><span class="s2">=&quot;parent::*&quot;</span><span class="s0">&gt;</span>
+				<span class="s0">&lt;axsl:text&gt;</span><span class="s3">[</span><span class="s0">&lt;/axsl:text&gt;</span>
+				<span class="s0">&lt;axsl:value-of</span>
+					<span class="s1">select</span><span class="s2">=&quot;count(preceding-sibling::*[name(.)=name(current())])+1&quot;</span><span class="s0">/&gt;</span>
+				<span class="s0">&lt;axsl:text&gt;</span><span class="s3">]</span><span class="s0">&lt;/axsl:text&gt;</span>
+			<span class="s0">&lt;/axsl:if&gt;</span>
+		<span class="s0">&lt;/axsl:for-each&gt;</span>
+		<span class="s4">&lt;!--report the attribute--&gt;</span>
+		<span class="s0">&lt;axsl:if </span><span class="s1">test</span><span class="s2">=&quot;not(self::*)&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;axsl:text/&gt;</span><span class="s3">/@</span><span class="s0">&lt;axsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;name(.)&quot;</span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;/axsl:if&gt;</span>
+	<span class="s0">&lt;/axsl:template&gt;</span>
+
+		<span class="s0">&lt;xsl:text&gt;</span><span class="s5">&amp;#10;&amp;#10;</span><span class="s0">&lt;/xsl:text&gt;</span>
+		<span class="s0">&lt;xsl:comment&gt;</span><span class="s3">MODE: GENERATE-ID-2 </span><span class="s0">&lt;/xsl:comment&gt;&lt;xsl:text&gt;</span><span class="s5">&amp;#10;</span><span class="s0">&lt;/xsl:text&gt;</span>
+		<span class="s4">&lt;!-- repeatable-id maker from David Carlisle. --&gt;</span>
+		<span class="s4">&lt;!-- use this if you need generate IDs in separate passes, 
+             because generate-id() is not guaranteed to produce the same 
+             results each time. These IDs are well-formed XML NMTOKENS --&gt;</span>
+	<span class="s0">&lt;axsl:template </span><span class="s1">match</span><span class="s2">=&quot;/&quot; </span><span class="s1">mode</span><span class="s2">=&quot;generate-id-2&quot;</span><span class="s0">&gt;</span><span class="s3">U</span><span class="s0">&lt;/axsl:template&gt;</span>
+
+	<span class="s0">&lt;axsl:template </span><span class="s1">match</span><span class="s2">=&quot;*&quot; </span><span class="s1">mode</span><span class="s2">=&quot;generate-id-2&quot; </span><span class="s1">priority</span><span class="s2">=&quot;2&quot;</span><span class="s0">&gt;</span>
+		<span class="s0">&lt;axsl:text&gt;</span><span class="s3">U</span><span class="s0">&lt;/axsl:text&gt;</span>
+		<span class="s0">&lt;axsl:number </span><span class="s1">level</span><span class="s2">=&quot;multiple&quot; </span><span class="s1">count</span><span class="s2">=&quot;*&quot;</span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;/axsl:template&gt;</span>
+
+	<span class="s0">&lt;axsl:template </span><span class="s1">match</span><span class="s2">=&quot;node()&quot; </span><span class="s1">mode</span><span class="s2">=&quot;generate-id-2&quot;</span><span class="s0">&gt;</span>
+		<span class="s0">&lt;axsl:text&gt;</span><span class="s3">U.</span><span class="s0">&lt;/axsl:text&gt;</span>
+		<span class="s0">&lt;axsl:number </span><span class="s1">level</span><span class="s2">=&quot;multiple&quot; </span><span class="s1">count</span><span class="s2">=&quot;*&quot;</span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;axsl:text&gt;</span><span class="s3">n</span><span class="s0">&lt;/axsl:text&gt;</span>
+		<span class="s0">&lt;axsl:number </span><span class="s1">count</span><span class="s2">=&quot;node()&quot;</span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;/axsl:template&gt;</span>
+
+	<span class="s0">&lt;axsl:template </span><span class="s1">match</span><span class="s2">=&quot;@*&quot; </span><span class="s1">mode</span><span class="s2">=&quot;generate-id-2&quot;</span><span class="s0">&gt;</span>
+		<span class="s0">&lt;axsl:text&gt;</span><span class="s3">U.</span><span class="s0">&lt;/axsl:text&gt;</span>
+		<span class="s0">&lt;axsl:number </span><span class="s1">level</span><span class="s2">=&quot;multiple&quot; </span><span class="s1">count</span><span class="s2">=&quot;*&quot;</span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;axsl:text&gt;</span><span class="s3">_</span><span class="s0">&lt;/axsl:text&gt;</span>
+		<span class="s0">&lt;axsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;string-length(local-name(.))&quot;</span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;axsl:text&gt;</span><span class="s3">_</span><span class="s0">&lt;/axsl:text&gt;</span>
+		<span class="s0">&lt;axsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;translate(name(),':','.')&quot;</span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;/axsl:template&gt; </span>
+
+
+		<span class="s0">&lt;xsl:comment&gt;</span><span class="s3">Strip characters</span><span class="s0">&lt;/xsl:comment&gt;</span>
+		<span class="s0">&lt;axsl:template </span><span class="s1">match</span><span class="s2">=&quot;text()&quot; </span><span class="s1">priority</span><span class="s2">=&quot;-1&quot; </span><span class="s0">/&gt;</span>
+			
+  <span class="s0">&lt;/xsl:template&gt;</span>
+
+ <span class="s0">&lt;xsl:template </span><span class="s1">name</span><span class="s2">=&quot;handle-root&quot;</span><span class="s0">&gt;</span>
+		<span class="s4">&lt;!-- Process the top-level element --&gt;</span>
+		<span class="s0">&lt;axsl:template </span><span class="s1">match</span><span class="s2">=&quot;/&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;xsl:call-template </span><span class="s1">name</span><span class="s2">=&quot;process-root&quot;</span><span class="s0">&gt;</span>
+				<span class="s0">&lt;xsl:with-param 	</span>
+				<span class="s1">name</span><span class="s2">=&quot;title&quot; </span><span class="s1">select</span><span class="s2">=&quot;(@id | iso:title)[last()]&quot;</span><span class="s0">/&gt;</span>
+				<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;version&quot; </span><span class="s1">select</span><span class="s2">=&quot;'iso'&quot; </span><span class="s0">/&gt;</span>
+				<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;schemaVersion&quot; </span><span class="s1">select</span><span class="s2">=&quot;@schemaVersion&quot; </span><span class="s0">/&gt;</span>
+				<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;queryBinding&quot; </span><span class="s1">select</span><span class="s2">=&quot;@queryBinding&quot; </span><span class="s0">/&gt;</span>
+				<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;contents&quot;</span><span class="s0">&gt;</span>
+					<span class="s0">&lt;xsl:apply-templates </span><span class="s1">mode</span><span class="s2">=&quot;do-all-patterns&quot;</span><span class="s0">/&gt;</span>
+				<span class="s0">&lt;/xsl:with-param&gt;</span>
+				
+				<span class="s4">&lt;!-- &quot;Rich&quot; properties --&gt;</span>
+				<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;fpi&quot; </span><span class="s1">select</span><span class="s2">=&quot;@fpi&quot;</span><span class="s0">/&gt;</span>
+				<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;icon&quot; </span><span class="s1">select</span><span class="s2">=&quot;@icon&quot;</span><span class="s0">/&gt;</span>
+				<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;id&quot; </span><span class="s1">select</span><span class="s2">=&quot;@id&quot;</span><span class="s0">/&gt;</span>
+				<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;lang&quot; </span><span class="s1">select</span><span class="s2">=&quot;@xml:lang&quot;</span><span class="s0">/&gt;</span>
+				<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;see&quot; </span><span class="s1">select</span><span class="s2">=&quot;@see&quot; </span><span class="s0">/&gt;</span>
+				<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;space&quot; </span><span class="s1">select</span><span class="s2">=&quot;@xml:space&quot; </span><span class="s0">/&gt;</span>
+				
+				
+				<span class="s4">&lt;!-- Non-standard extensions not part of the API yet --&gt;</span>
+				<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;action&quot; </span><span class="s1">select</span><span class="s2">=&quot;@action&quot; </span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;/xsl:call-template&gt;</span>
+		<span class="s0">&lt;/axsl:template&gt;</span>
+ 
+      
+<span class="s0">&lt;/xsl:template&gt;</span>
+
+<span class="s4">&lt;!-- ============================================================== --&gt;</span>
+<span class="s4">&lt;!-- ISO SCHEMATRON ELEMENTS --&gt;</span>
+<span class="s4">&lt;!-- ============================================================== --&gt;</span>
+
+	<span class="s4">&lt;!-- ISO ACTIVE --&gt;</span>
+	<span class="s0">&lt;xsl:template </span><span class="s1">match</span><span class="s2">=&quot;iso:active&quot;</span><span class="s0">&gt;</span>
+                <span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;not(@pattern)&quot;</span><span class="s0">&gt;</span>
+                    <span class="s0">&lt;xsl:message&gt;</span><span class="s3">Markup Error: no pattern attribute in </span><span class="s5">&amp;lt;</span><span class="s3">active&gt;</span><span class="s0">&lt;/xsl:message&gt;</span>
+                <span class="s0">&lt;/xsl:if&gt;</span>
+
+                <span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;not(../../iso:pattern[@id = current()/@pattern]) 
+                and not(../../iso:include)&quot;</span><span class="s0">&gt;</span>
+                           <span class="s0">&lt;xsl:message&gt;</span><span class="s3">Reference Error: the pattern  &quot;</span><span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;@pattern&quot;</span>
+						   <span class="s0">/&gt;</span><span class="s3">&quot; has been activated but is not declared</span><span class="s0">&lt;/xsl:message&gt;</span>
+                <span class="s0">&lt;/xsl:if&gt;</span>
+        <span class="s0">&lt;/xsl:template&gt;</span>
+
+	<span class="s4">&lt;!-- ISO ASSERT and REPORT --&gt;</span>
+	<span class="s0">&lt;xsl:template </span><span class="s1">match</span><span class="s2">=&quot;iso:assert&quot;</span><span class="s0">&gt;</span>
+  
+                <span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;not(@test)&quot;</span><span class="s0">&gt;</span>
+                    <span class="s0">&lt;xsl:message&gt;</span><span class="s3">Markup Error: no test attribute in </span><span class="s5">&amp;lt;</span><span class="s3">assert</span><span class="s0">&lt;/xsl:message&gt;</span>
+                <span class="s0">&lt;/xsl:if&gt;</span>
+        <span class="s0">&lt;xsl:text&gt;</span><span class="s5">&amp;#10;&amp;#10;		</span><span class="s0">&lt;/xsl:text&gt;</span>
+		<span class="s0">&lt;xsl:comment&gt;</span><span class="s3">ASSERT </span><span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;@role&quot; </span><span class="s0">/&gt; &lt;/xsl:comment&gt;&lt;xsl:text&gt;</span><span class="s5">&amp;#10;</span><span class="s0">&lt;/xsl:text&gt;      </span>
+	
+		<span class="s0">&lt;axsl:choose&gt;</span>
+			<span class="s0">&lt;axsl:when </span><span class="s1">test</span><span class="s2">=&quot;{@test}&quot;</span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;axsl:otherwise&gt;</span>
+				<span class="s0">&lt;xsl:call-template </span><span class="s1">name</span><span class="s2">=&quot;process-assert&quot;</span><span class="s0">&gt;</span>
+					<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;test&quot; </span><span class="s1">select</span><span class="s2">=&quot;normalize-space(@test)&quot; </span><span class="s0">/&gt;</span>
+					<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;diagnostics&quot; </span><span class="s1">select</span><span class="s2">=&quot;@diagnostics&quot;</span><span class="s0">/&gt;</span>
+					<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;flag&quot; </span><span class="s1">select</span><span class="s2">=&quot;@flag&quot;</span><span class="s0">/&gt;</span>
+					
+					<span class="s4">&lt;!-- &quot;Rich&quot; properties --&gt;</span>
+					<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;fpi&quot; </span><span class="s1">select</span><span class="s2">=&quot;@fpi&quot;</span><span class="s0">/&gt;</span>
+					<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;icon&quot; </span><span class="s1">select</span><span class="s2">=&quot;@icon&quot;</span><span class="s0">/&gt;</span>
+					<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;id&quot; </span><span class="s1">select</span><span class="s2">=&quot;@id&quot;</span><span class="s0">/&gt;</span>
+					<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;lang&quot; </span><span class="s1">select</span><span class="s2">=&quot;@xml:lang&quot;</span><span class="s0">/&gt;</span>
+					<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;see&quot; </span><span class="s1">select</span><span class="s2">=&quot;@see&quot; </span><span class="s0">/&gt;</span>
+					<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;space&quot; </span><span class="s1">select</span><span class="s2">=&quot;@xml:space&quot; </span><span class="s0">/&gt;</span>
+					
+					<span class="s4">&lt;!-- &quot;Linking&quot; properties --&gt;</span>
+					<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;role&quot; </span><span class="s1">select</span><span class="s2">=&quot;@role&quot; </span><span class="s0">/&gt;</span>
+					<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;subject&quot; </span><span class="s1">select</span><span class="s2">=&quot;@subject&quot; </span><span class="s0">/&gt;</span>
+				<span class="s0">&lt;/xsl:call-template&gt;</span>
+ 			
+			<span class="s0">&lt;/axsl:otherwise&gt;</span>
+		<span class="s0">&lt;/axsl:choose&gt;</span>
+	<span class="s0">&lt;/xsl:template&gt;</span>
+	<span class="s0">&lt;xsl:template </span><span class="s1">match</span><span class="s2">=&quot;iso:report&quot;</span><span class="s0">&gt;</span>
+		 
+                <span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;not(@test)&quot;</span><span class="s0">&gt;</span>
+                    <span class="s0">&lt;xsl:message&gt;</span><span class="s3">Markup Error: no test attribute in </span><span class="s5">&amp;lt;</span><span class="s3">report&gt;</span><span class="s0">&lt;/xsl:message&gt;</span>
+                <span class="s0">&lt;/xsl:if&gt;</span>
+                
+        <span class="s0">&lt;xsl:text&gt;</span><span class="s5">&amp;#10;&amp;#10;		</span><span class="s0">&lt;/xsl:text&gt;</span>
+		<span class="s0">&lt;xsl:comment&gt;</span><span class="s3">REPORT </span><span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;@role&quot; </span><span class="s0">/&gt; &lt;/xsl:comment&gt;&lt;xsl:text&gt;</span><span class="s5">&amp;#10;</span><span class="s0">&lt;/xsl:text&gt;      </span>
+	
+		<span class="s0">&lt;axsl:if </span><span class="s1">test</span><span class="s2">=&quot;{@test}&quot;</span><span class="s0">&gt;</span>
+		
+			<span class="s0">&lt;xsl:call-template </span><span class="s1">name</span><span class="s2">=&quot;process-report&quot;</span><span class="s0">&gt;</span>
+				<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;test&quot; </span><span class="s1">select</span><span class="s2">=&quot;normalize-space(@test)&quot; </span><span class="s0">/&gt;</span>
+				<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;diagnostics&quot; </span><span class="s1">select</span><span class="s2">=&quot;@diagnostics&quot;</span><span class="s0">/&gt;</span>
+					<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;flag&quot; </span><span class="s1">select</span><span class="s2">=&quot;@flag&quot;</span><span class="s0">/&gt;</span>
+					
+					<span class="s4">&lt;!-- &quot;Rich&quot; properties --&gt;</span>
+					<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;fpi&quot; </span><span class="s1">select</span><span class="s2">=&quot;@fpi&quot;</span><span class="s0">/&gt;</span>
+					<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;icon&quot; </span><span class="s1">select</span><span class="s2">=&quot;@icon&quot;</span><span class="s0">/&gt;</span>
+					<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;id&quot; </span><span class="s1">select</span><span class="s2">=&quot;@id&quot;</span><span class="s0">/&gt;</span>
+					<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;lang&quot; </span><span class="s1">select</span><span class="s2">=&quot;@xml:lang&quot;</span><span class="s0">/&gt;</span>
+					<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;see&quot; </span><span class="s1">select</span><span class="s2">=&quot;@see&quot; </span><span class="s0">/&gt;</span>
+					<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;space&quot; </span><span class="s1">select</span><span class="s2">=&quot;@xml:space&quot; </span><span class="s0">/&gt;</span>
+					
+					<span class="s4">&lt;!-- &quot;Linking&quot; properties --&gt;</span>
+					<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;role&quot; </span><span class="s1">select</span><span class="s2">=&quot;@role&quot; </span><span class="s0">/&gt;</span>
+					<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;subject&quot; </span><span class="s1">select</span><span class="s2">=&quot;@subject&quot; </span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;/xsl:call-template&gt;</span>
+				
+		<span class="s0">&lt;/axsl:if&gt;</span>
+	<span class="s0">&lt;/xsl:template&gt;</span>
+
+
+	<span class="s4">&lt;!-- ISO DIAGNOSTIC --&gt;</span>
+	<span class="s4">&lt;!-- We use a mode here to maintain backwards compatability, instead of adding it 
+         to the other mode. 
+    --&gt;</span>
+	<span class="s0">&lt;xsl:template </span><span class="s1">match</span><span class="s2">=&quot;iso:diagnostic&quot; </span><span class="s1">mode</span><span class="s2">=&quot;check-diagnostics&quot;</span><span class="s0">&gt;</span>
+              <span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;not(@id)&quot;</span><span class="s0">&gt;</span>
+                    <span class="s0">&lt;xsl:message&gt;</span><span class="s3">Markup Error: no id attribute in </span><span class="s5">&amp;lt;</span><span class="s3">diagnostic&gt;</span><span class="s0">&lt;/xsl:message&gt;</span>
+               <span class="s0">&lt;/xsl:if&gt;</span>
+    <span class="s0">&lt;/xsl:template&gt;</span>
+    
+    <span class="s0">&lt;xsl:template </span><span class="s1">match</span><span class="s2">=&quot;iso:diagnostic&quot;  </span><span class="s0">&gt;</span>
+                <span class="s0">&lt;xsl:call-template </span><span class="s1">name</span><span class="s2">=&quot;process-diagnostic&quot;</span><span class="s0">&gt;</span>
+                
+					<span class="s4">&lt;!-- &quot;Rich&quot; properties --&gt;</span>
+					<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;fpi&quot; </span><span class="s1">select</span><span class="s2">=&quot;@fpi&quot;</span><span class="s0">/&gt;</span>
+					<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;icon&quot; </span><span class="s1">select</span><span class="s2">=&quot;@icon&quot;</span><span class="s0">/&gt;</span>
+					<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;id&quot; </span><span class="s1">select</span><span class="s2">=&quot;@id&quot;</span><span class="s0">/&gt;</span>
+					<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;lang&quot; </span><span class="s1">select</span><span class="s2">=&quot;@xml:lang&quot;</span><span class="s0">/&gt;</span>
+					<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;see&quot; </span><span class="s1">select</span><span class="s2">=&quot;@see&quot; </span><span class="s0">/&gt;</span>
+					<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;space&quot; </span><span class="s1">select</span><span class="s2">=&quot;@xml:space&quot; </span><span class="s0">/&gt;</span>
+               <span class="s0">&lt;/xsl:call-template&gt;</span>
+        <span class="s0">&lt;/xsl:template&gt;</span>
+
+	<span class="s4">&lt;!-- ISO DIAGNOSTICS --&gt;</span>
+	<span class="s0">&lt;xsl:template </span><span class="s1">match</span><span class="s2">=&quot;iso:diagnostics&quot; </span><span class="s0">&gt;</span>
+		<span class="s0">&lt;xsl:apply-templates </span><span class="s1">mode</span><span class="s2">=&quot;check-diagnostics&quot; </span><span class="s1">select</span><span class="s2">=&quot;*&quot; </span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;/xsl:template&gt;</span>
+
+	<span class="s4">&lt;!-- ISO DIR --&gt;</span>
+	<span class="s0">&lt;xsl:template </span><span class="s1">match</span><span class="s2">=&quot;iso:dir&quot;  </span><span class="s1">mode</span><span class="s2">=&quot;text&quot; </span><span class="s0">&gt;</span>
+		<span class="s0">&lt;xsl:call-template </span><span class="s1">name</span><span class="s2">=&quot;process-dir&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;value&quot; </span><span class="s1">select</span><span class="s2">=&quot;@value&quot;</span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;/xsl:call-template&gt;</span>
+	<span class="s0">&lt;/xsl:template&gt;</span>
+
+	<span class="s4">&lt;!-- ISO EMPH --&gt;</span>
+	<span class="s0">&lt;xsl:template </span><span class="s1">match</span><span class="s2">=&quot;iso:emph&quot;  </span><span class="s1">mode</span><span class="s2">=&quot;text&quot;</span><span class="s0">&gt;</span>
+	 
+		<span class="s0">&lt;xsl:call-template </span><span class="s1">name</span><span class="s2">=&quot;process-emph&quot;</span><span class="s0">/&gt; </span>
+
+	<span class="s0">&lt;/xsl:template&gt;</span>
+
+	<span class="s4">&lt;!-- ISO EXTENDS --&gt;</span>
+	<span class="s0">&lt;xsl:template </span><span class="s1">match</span><span class="s2">=&quot;iso:extends&quot;</span><span class="s0">&gt;</span>
+		<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;not(@rule)&quot;</span><span class="s0">&gt;</span>
+                   <span class="s0">&lt;xsl:message&gt;</span><span class="s3">Markup Error: no rule attribute in </span><span class="s5">&amp;lt;</span><span class="s3">extends&gt;</span><span class="s0">&lt;/xsl:message&gt;</span>
+                <span class="s0">&lt;/xsl:if&gt;</span>
+     		<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;not(//iso:rule[@abstract='true'][@id= current()/@rule] )&quot;</span><span class="s0">&gt;</span>
+                    <span class="s0">&lt;xsl:message&gt;</span><span class="s3">Reference Error: the abstract rule  &quot;</span><span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;@rule&quot;</span>
+					<span class="s0">/&gt;</span><span class="s3">&quot; has been referenced but is not declared</span><span class="s0">&lt;/xsl:message&gt;</span>
+                <span class="s0">&lt;/xsl:if&gt;</span>
+	        <span class="s0">&lt;xsl:call-template </span><span class="s1">name</span><span class="s2">=&quot;IamEmpty&quot; </span><span class="s0">/&gt;</span>
+
+  		<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;//iso:rule[@id=current()/@rule]&quot;</span><span class="s0">&gt;</span>
+    			<span class="s0">&lt;xsl:apply-templates </span><span class="s1">select</span><span class="s2">=&quot;//iso:rule[@id=current()/@rule]&quot;</span>
+				<span class="s1">mode</span><span class="s2">=&quot;extends&quot;</span><span class="s0">/&gt;</span>
+  		<span class="s0">&lt;/xsl:if&gt;</span>
+
+	<span class="s0">&lt;/xsl:template&gt;</span>
+
+	<span class="s4">&lt;!-- KEY: ISO has no KEY --&gt;</span>
+	<span class="s4">&lt;!-- NOTE:  
+         Key has had a checkered history. Schematron 1.0 allowed it in certain places, but 
+         users came up with a different location, which has now been adopted.  
+          
+         XT, the early XSLT processor, did not implement key and died when it was present.  
+         So there are some versions of the Schematron skeleton for XT that strip out all 
+         key elements. 
+          
+         Xalan (e.g. Xalan4C 1.0 and a Xalan4J) also had a funny. A fix involved making  
+         a top-level parameter called $hiddenKey and then using that instead of matching 
+         &quot;key&quot;. This has been removed. 
+    --&gt;</span>
+	<span class="s0">&lt;xsl:template  </span><span class="s1">match</span><span class="s2">=&quot;xsl:key&quot; </span><span class="s1">mode</span><span class="s2">=&quot;do-keys&quot; </span><span class="s0">&gt;</span>
+	     <span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;not(@name)&quot;</span><span class="s0">&gt;</span>
+              <span class="s0">&lt;xsl:message&gt;</span><span class="s3">Markup Error: no name attribute in </span><span class="s5">&amp;lt;</span><span class="s3">key&gt;</span><span class="s0">&lt;/xsl:message&gt;</span>
+         <span class="s0">&lt;/xsl:if&gt;</span>
+                <span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;not(@path) and not(@use)&quot;</span><span class="s0">&gt;</span>
+                    <span class="s0">&lt;xsl:message&gt;</span><span class="s3">Markup Error: no path or use attribute in </span><span class="s5">&amp;lt;</span><span class="s3">key&gt;</span><span class="s0">&lt;/xsl:message&gt;</span>
+                <span class="s0">&lt;/xsl:if&gt;         </span>
+	     <span class="s0">&lt;xsl:choose&gt;</span>
+	     	<span class="s0">&lt;xsl:when </span><span class="s1">test</span><span class="s2">=&quot;parent::iso:rule &quot;</span><span class="s0">&gt;</span>
+	        <span class="s0">&lt;xsl:call-template </span><span class="s1">name</span><span class="s2">=&quot;IamEmpty&quot; </span><span class="s0">/&gt;</span>
+	       <span class="s0">&lt;xsl:choose&gt;</span>
+	       	<span class="s0">&lt;xsl:when </span><span class="s1">test</span><span class="s2">=&quot;@path&quot;</span><span class="s0">&gt;</span>
+				<span class="s0">&lt;axsl:key </span><span class="s1">match</span><span class="s2">=&quot;{../@context}&quot; </span><span class="s1">name</span><span class="s2">=&quot;{@name}&quot; </span><span class="s1">use</span><span class="s2">=&quot;{@path}&quot;</span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;/xsl:when&gt;</span>
+			<span class="s0">&lt;xsl:otherwise&gt;</span>
+							<span class="s0">&lt;axsl:key </span><span class="s1">match</span><span class="s2">=&quot;{../@context}&quot; </span><span class="s1">name</span><span class="s2">=&quot;{@name}&quot; </span><span class="s1">use</span><span class="s2">=&quot;{@use}&quot;</span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;/xsl:otherwise&gt;</span>
+			<span class="s0">&lt;/xsl:choose&gt;	</span>
+		<span class="s0">&lt;/xsl:when&gt;</span>
+		<span class="s0">&lt;xsl:otherwise&gt;</span>
+                <span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;not(@match) &quot;</span><span class="s0">&gt;</span>
+                    <span class="s0">&lt;xsl:message&gt;</span><span class="s3">Markup Error: no path or use attribute in </span><span class="s5">&amp;lt;</span><span class="s3">key&gt;</span><span class="s0">&lt;/xsl:message&gt;</span>
+                <span class="s0">&lt;/xsl:if&gt;   		</span>
+			<span class="s0">&lt;axsl:key&gt;</span>
+      			<span class="s0">&lt;xsl:copy-of </span><span class="s1">select</span><span class="s2">=&quot;@*&quot;</span><span class="s0">/&gt;</span>
+    		<span class="s0">&lt;/axsl:key&gt;	</span>
+		<span class="s0">&lt;/xsl:otherwise&gt;</span>
+		<span class="s0">&lt;/xsl:choose&gt;</span>
+	<span class="s0">&lt;/xsl:template&gt;</span>
+
+	<span class="s0">&lt;xsl:template </span><span class="s1">match</span><span class="s2">=&quot;xsl:key &quot;  </span><span class="s0">/&gt;</span><span class="s4">&lt;!-- swallow --&gt;</span>
+
+	<span class="s0">&lt;xsl:template </span><span class="s1">match</span><span class="s2">=&quot;iso:key &quot;  </span><span class="s0">&gt;</span>
+		<span class="s0">&lt;xsl:message&gt;</span><span class="s3">Schema error: The key element is not in the ISO Schematron namespace. Use the XSLT namespace.</span><span class="s0">&lt;/xsl:message&gt;</span>
+    <span class="s0">&lt;/xsl:template&gt;</span>
+
+   <span class="s4">&lt;!-- ISO INCLUDE --&gt;</span>
+   <span class="s4">&lt;!-- This is only a fallback. Include really needs to have been done before this as a separate pass.--&gt;</span>
+
+   <span class="s0">&lt;xsl:template </span><span class="s1">match</span><span class="s2">=&quot;iso:include[not(normalize-space(@href))]&quot;</span>
+	   <span class="s1">priority</span><span class="s2">=&quot;1&quot;</span><span class="s0">&gt;</span>
+	<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot; $debug = 'false' &quot;</span><span class="s0">&gt;</span>
+		<span class="s0">&lt;xsl:message </span><span class="s1">terminate</span><span class="s2">=&quot;yes&quot;</span><span class="s0">&gt;</span><span class="s3">Schema error: Empty href= attribute for include directive.</span><span class="s0">&lt;/xsl:message&gt;</span>
+	<span class="s0">&lt;/xsl:if&gt;</span>
+
+   <span class="s0">&lt;/xsl:template&gt;</span>
+
+   <span class="s4">&lt;!-- Extend the URI syntax to allow # refererences --&gt;</span>
+   <span class="s4">&lt;!-- Add experimental support for simple containers like  /xxx:xxx/iso:pattern to allow better includes --&gt;</span>
+   <span class="s0">&lt;xsl:template </span><span class="s1">match</span><span class="s2">=&quot;iso:include&quot;</span><span class="s0">&gt;</span>
+       <span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;document-uri&quot; </span><span class="s1">select</span><span class="s2">=&quot;substring-before(concat(@href,'#'), '#')&quot;</span><span class="s0">/&gt;</span>
+       <span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;fragment-id&quot; </span><span class="s1">select</span><span class="s2">=&quot;substring-after(@href, '#')&quot;</span><span class="s0">/&gt;</span>
+       
+       <span class="s0">&lt;xsl:choose&gt; </span>
+          
+          <span class="s0">&lt;xsl:when </span><span class="s1">test</span><span class="s2">=&quot;string-length( $document-uri ) = 0 and string-length( $fragment-id ) = 0&quot; </span><span class="s0">&gt;</span>
+          	<span class="s0">&lt;xsl:message&gt;</span><span class="s3">Error: Impossible URL in Schematron include</span><span class="s0">&lt;/xsl:message&gt;</span>
+          <span class="s0">&lt;/xsl:when&gt; </span>
+          
+          <span class="s0">&lt;xsl:when </span><span class="s1">test</span><span class="s2">=&quot;string-length( $fragment-id ) </span><span class="s5">&amp;gt; </span><span class="s2">0&quot;</span><span class="s0">&gt;</span>
+              <span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;theDocument_1&quot; </span><span class="s1">select</span><span class="s2">=&quot;document( $document-uri,/ )&quot; </span><span class="s0">/&gt;</span>
+              <span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;theFragment_1&quot; </span><span class="s1">select</span><span class="s2">=&quot;$theDocument_1//iso:*[@id= $fragment-id ]&quot; </span><span class="s0">/&gt;</span>
+              <span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot; $theFragment_1/self::iso:schema &quot;</span><span class="s0">&gt;</span>
+                 <span class="s0">&lt;xsl:message&gt;</span><span class="s3">Schema error: Use include to include fragments, not a whole schema</span><span class="s0">&lt;/xsl:message&gt;</span>
+              <span class="s0">&lt;/xsl:if&gt;</span>
+              <span class="s0">&lt;xsl:apply-templates </span><span class="s1">select</span><span class="s2">=&quot; $theFragment_1&quot;</span><span class="s0">/&gt;</span>
+		   <span class="s0">&lt;/xsl:when&gt;</span>
+		  
+		   <span class="s0">&lt;xsl:otherwise&gt;</span>
+              <span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;theDocument_2&quot; </span><span class="s1">select</span><span class="s2">=&quot;document( $document-uri,/ )&quot; </span><span class="s0">/&gt;</span>
+              <span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;theFragment_2&quot; </span><span class="s1">select</span><span class="s2">=&quot;$theDocument_2/iso:*&quot; </span><span class="s0">/&gt;</span>
+              <span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;theContainedFragments&quot; </span><span class="s1">select</span><span class="s2">=&quot;$theDocument_2/*/iso:*&quot; </span><span class="s0">/&gt;</span>
+              <span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot; $theFragment_2/self::iso:schema or $theContainedFragments/self::iso:schema&quot;</span><span class="s0">&gt;</span>
+                 <span class="s0">&lt;xsl:message&gt;</span><span class="s3">Schema error: Use include to include fragments, not a whole schema</span><span class="s0">&lt;/xsl:message&gt;</span>
+              <span class="s0">&lt;/xsl:if&gt;</span>
+       		<span class="s0">&lt;xsl:apply-templates </span><span class="s1">select</span><span class="s2">=&quot;$theFragment_2 | $theContainedFragments &quot;</span><span class="s0">/&gt;</span>
+       	   <span class="s0">&lt;/xsl:otherwise&gt;</span>
+       <span class="s0">&lt;/xsl:choose&gt;</span>
+   <span class="s0">&lt;/xsl:template&gt;</span>
+
+   <span class="s4">&lt;!-- This is to handle the particular case of including patterns --&gt;  </span>
+   <span class="s0">&lt;xsl:template </span><span class="s1">match</span><span class="s2">=&quot;iso:include&quot; </span><span class="s1">mode</span><span class="s2">=&quot;do-all-patterns&quot;</span><span class="s0">&gt;</span>
+       <span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;document-uri&quot; </span><span class="s1">select</span><span class="s2">=&quot;substring-before(concat(@href,'#'), '#')&quot;</span><span class="s0">/&gt;</span>
+       <span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;fragment-id&quot; </span><span class="s1">select</span><span class="s2">=&quot;substring-after(@href, '#')&quot;</span><span class="s0">/&gt;</span>
+ 
+       <span class="s0">&lt;xsl:choose&gt; </span>
+          
+          <span class="s0">&lt;xsl:when </span><span class="s1">test</span><span class="s2">=&quot;string-length( $document-uri ) = 0 and string-length( $fragment-id ) = 0&quot; </span><span class="s0">&gt;</span>
+          	<span class="s0">&lt;xsl:message&gt;</span><span class="s3">Error: Impossible URL in Schematron include</span><span class="s0">&lt;/xsl:message&gt;</span>
+          <span class="s0">&lt;/xsl:when&gt; </span>
+          
+          <span class="s0">&lt;xsl:when </span><span class="s1">test</span><span class="s2">=&quot;string-length( $fragment-id ) </span><span class="s5">&amp;gt; </span><span class="s2">0&quot;</span><span class="s0">&gt;</span>
+              <span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;theDocument_1&quot; </span><span class="s1">select</span><span class="s2">=&quot;document( $document-uri,/ )&quot; </span><span class="s0">/&gt;</span>
+              <span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;theFragment_1&quot; </span><span class="s1">select</span><span class="s2">=&quot;$theDocument_1//iso:*[@id= $fragment-id ]&quot; </span><span class="s0">/&gt;</span>
+              <span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot; $theFragment_1/self::iso:schema &quot;</span><span class="s0">&gt;</span>
+                 <span class="s0">&lt;xsl:message&gt;</span><span class="s3">Schema error: Use include to include fragments, not a whole schema</span><span class="s0">&lt;/xsl:message&gt;</span>
+              <span class="s0">&lt;/xsl:if&gt;</span>
+              <span class="s0">&lt;xsl:apply-templates </span><span class="s1">select</span><span class="s2">=&quot; $theFragment_1&quot; </span><span class="s1">mode</span><span class="s2">=&quot;do-all-patterns&quot;</span><span class="s0">/&gt;</span>
+		   <span class="s0">&lt;/xsl:when&gt;</span>
+		  
+		   <span class="s0">&lt;xsl:otherwise&gt;</span>
+		   	  <span class="s4">&lt;!-- Import the top-level element if it is in schematron namespace, 
+              or its children otherwise, to allow a simple containment mechanism. --&gt;</span>
+              <span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;theDocument_2&quot; </span><span class="s1">select</span><span class="s2">=&quot;document( $document-uri,/ )&quot; </span><span class="s0">/&gt;</span>
+              <span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;theFragment_2&quot; </span><span class="s1">select</span><span class="s2">=&quot;$theDocument_2/iso:*&quot; </span><span class="s0">/&gt;</span>
+              <span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;theContainedFragments&quot; </span><span class="s1">select</span><span class="s2">=&quot;$theDocument_2/*/iso:*&quot; </span><span class="s0">/&gt;</span>
+              <span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot; $theFragment_2/self::iso:schema or $theContainedFragments/self::iso:schema&quot;</span><span class="s0">&gt;</span>
+                 <span class="s0">&lt;xsl:message&gt;</span><span class="s3">Schema error: Use include to include fragments, not a whole schema</span><span class="s0">&lt;/xsl:message&gt;</span>
+              <span class="s0">&lt;/xsl:if&gt;</span>
+       		<span class="s0">&lt;xsl:apply-templates </span><span class="s1">select</span><span class="s2">=&quot;$theFragment_2 | $theContainedFragments &quot;</span>
+       		<span class="s1">mode</span><span class="s2">=&quot;do-all-patterns&quot; </span><span class="s0">/&gt;</span>
+       	   <span class="s0">&lt;/xsl:otherwise&gt;</span>
+       <span class="s0">&lt;/xsl:choose&gt;</span>
+   <span class="s0">&lt;/xsl:template&gt;</span>
+   
+	<span class="s4">&lt;!-- ISO LET --&gt;</span>
+	<span class="s0">&lt;xsl:template </span><span class="s1">match</span><span class="s2">=&quot;iso:let&quot; </span><span class="s0">&gt;</span>
+	  <span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;ancestor::iso:schema[@queryBinding='xpath']&quot;</span><span class="s0">&gt;</span>
+                    <span class="s0">&lt;xsl:message&gt;</span><span class="s3">Warning: Variables should not be used with the &quot;xpath&quot; query language binding.</span><span class="s0">&lt;/xsl:message&gt;</span>
+       <span class="s0">&lt;/xsl:if&gt;</span>
+		
+       <span class="s4">&lt;!-- lets at the top-level are implemented as parameters --&gt;</span>
+ 
+       	<span class="s0">&lt;xsl:choose&gt;</span>
+       		<span class="s0">&lt;xsl:when </span><span class="s1">test</span><span class="s2">=&quot;parent::iso:schema&quot;</span><span class="s0">&gt;</span>
+       			<span class="s4">&lt;!-- it is an error to have an empty param/@select because an XPath is expected --&gt;</span>
+	      		 <span class="s0">&lt;axsl:param </span><span class="s1">name</span><span class="s2">=&quot;{@name}&quot; </span><span class="s1">select</span><span class="s2">=&quot;{@value}&quot;</span><span class="s0">&gt;</span>
+	      		 		<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;string-length(@value) </span><span class="s5">&amp;gt; </span><span class="s2">0&quot;</span><span class="s0">&gt;</span>
+	      		 			<span class="s0">&lt;xsl:attribute </span><span class="s1">name</span><span class="s2">=&quot;select&quot;</span><span class="s0">&gt;&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;@value&quot;</span><span class="s0">/&gt;&lt;/xsl:attribute&gt;</span>
+	      		 		<span class="s0">&lt;/xsl:if&gt;</span>
+	      		 <span class="s0">&lt;/axsl:param&gt; </span>
+       		<span class="s0">&lt;/xsl:when&gt;</span>
+       		<span class="s0">&lt;xsl:otherwise&gt;</span>
+				<span class="s0">&lt;axsl:variable </span><span class="s1">name</span><span class="s2">=&quot;{@name}&quot; </span><span class="s1">select</span><span class="s2">=&quot;{@value}&quot;</span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;/xsl:otherwise&gt;</span>
+		<span class="s0">&lt;/xsl:choose&gt;</span>
+		  
+	<span class="s0">&lt;/xsl:template&gt;	</span>
+
+	<span class="s4">&lt;!-- ISO NAME --&gt;</span>
+	<span class="s0">&lt;xsl:template </span><span class="s1">match</span><span class="s2">=&quot;iso:name&quot; </span><span class="s1">mode</span><span class="s2">=&quot;text&quot;</span><span class="s0">&gt;</span>
+	
+		<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;@path&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;xsl:call-template </span><span class="s1">name</span><span class="s2">=&quot;process-name&quot;</span><span class="s0">&gt;</span>
+				<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;name&quot; </span><span class="s1">select</span><span class="s2">=&quot;concat('name(',@path,')')&quot;</span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;/xsl:call-template&gt;</span>
+		<span class="s0">&lt;/xsl:if&gt;</span>
+		<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;not(@path)&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;xsl:call-template </span><span class="s1">name</span><span class="s2">=&quot;process-name&quot;</span><span class="s0">&gt;</span>
+				<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;name&quot; </span><span class="s1">select</span><span class="s2">=&quot;'name(.)'&quot;</span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;/xsl:call-template&gt;</span>
+		<span class="s0">&lt;/xsl:if&gt;</span>
+	    <span class="s0">&lt;xsl:call-template </span><span class="s1">name</span><span class="s2">=&quot;IamEmpty&quot; </span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;/xsl:template&gt;</span>
+
+	<span class="s4">&lt;!-- ISO NS --&gt;</span>
+	<span class="s4">&lt;!-- Namespace handling is XSLT is quite tricky and implementation dependent --&gt;</span>
+	<span class="s0">&lt;xsl:template </span><span class="s1">match</span><span class="s2">=&quot;iso:ns&quot;</span><span class="s0">&gt;</span>
+ 		<span class="s0">&lt;xsl:call-template </span><span class="s1">name</span><span class="s2">=&quot;handle-namespace&quot; </span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;/xsl:template&gt;</span>
+
+    <span class="s4">&lt;!-- This template is just to provide the API hook --&gt;</span>
+	<span class="s0">&lt;xsl:template </span><span class="s1">match</span><span class="s2">=&quot;iso:ns&quot;  </span><span class="s1">mode</span><span class="s2">=&quot;do-all-patterns&quot; </span><span class="s0">&gt;</span>
+               <span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;not(@uri)&quot;</span><span class="s0">&gt;</span>
+                    <span class="s0">&lt;xsl:message&gt;</span><span class="s3">Markup Error: no uri attribute in </span><span class="s5">&amp;lt;</span><span class="s3">ns&gt;</span><span class="s0">&lt;/xsl:message&gt;</span>
+                <span class="s0">&lt;/xsl:if&gt;</span>
+               <span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;not(@prefix)&quot;</span><span class="s0">&gt;</span>
+                    <span class="s0">&lt;xsl:message&gt;</span><span class="s3">Markup Error: no prefix attribute in </span><span class="s5">&amp;lt;</span><span class="s3">ns&gt;</span><span class="s0">&lt;/xsl:message&gt;</span>
+                <span class="s0">&lt;/xsl:if&gt;</span>
+	        <span class="s0">&lt;xsl:call-template </span><span class="s1">name</span><span class="s2">=&quot;IamEmpty&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;xsl:call-template </span><span class="s1">name</span><span class="s2">=&quot;process-ns&quot; </span><span class="s0">&gt;</span>
+			<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;prefix&quot; </span><span class="s1">select</span><span class="s2">=&quot;@prefix&quot;</span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;uri&quot; </span><span class="s1">select</span><span class="s2">=&quot;@uri&quot;</span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;/xsl:call-template&gt;</span>
+	<span class="s0">&lt;/xsl:template&gt;</span>
+
+	<span class="s4">&lt;!-- ISO P --&gt;</span>
+	<span class="s0">&lt;xsl:template </span><span class="s1">match</span><span class="s2">=&quot;iso:schema/iso:p &quot; </span><span class="s1">mode</span><span class="s2">=&quot;do-schema-p&quot; </span><span class="s0">&gt;</span>
+		<span class="s0">&lt;xsl:call-template </span><span class="s1">name</span><span class="s2">=&quot;process-p&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;class&quot; </span><span class="s1">select</span><span class="s2">=&quot;@class&quot;</span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;icon&quot; </span><span class="s1">select</span><span class="s2">=&quot;@icon&quot;</span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;id&quot; </span><span class="s1">select</span><span class="s2">=&quot;@id&quot;</span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;lang&quot; </span><span class="s1">select</span><span class="s2">=&quot;@xml:lang&quot;</span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;/xsl:call-template&gt;</span>
+	<span class="s0">&lt;/xsl:template&gt;</span>
+	<span class="s0">&lt;xsl:template </span><span class="s1">match</span><span class="s2">=&quot;iso:pattern/iso:p &quot; </span><span class="s1">mode</span><span class="s2">=&quot;do-pattern-p&quot; </span><span class="s0">&gt;</span>
+		<span class="s0">&lt;xsl:call-template </span><span class="s1">name</span><span class="s2">=&quot;process-p&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;class&quot; </span><span class="s1">select</span><span class="s2">=&quot;@class&quot;</span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;icon&quot; </span><span class="s1">select</span><span class="s2">=&quot;@icon&quot;</span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;id&quot; </span><span class="s1">select</span><span class="s2">=&quot;@id&quot;</span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;lang&quot; </span><span class="s1">select</span><span class="s2">=&quot;@xml:lang&quot;</span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;/xsl:call-template&gt;</span>
+	<span class="s0">&lt;/xsl:template&gt;</span>
+	
+    <span class="s4">&lt;!-- Currently, iso:p in other position are not passed through to the API --&gt;</span>
+	<span class="s0">&lt;xsl:template </span><span class="s1">match</span><span class="s2">=&quot;iso:phase/iso:p&quot; </span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;xsl:template </span><span class="s1">match</span><span class="s2">=&quot;iso:p &quot; </span><span class="s1">priority</span><span class="s2">=&quot;-1&quot; </span><span class="s0">/&gt;</span>
+
+	<span class="s4">&lt;!-- ISO PATTERN --&gt;</span>
+	<span class="s0">&lt;xsl:template </span><span class="s1">match</span><span class="s2">=&quot;iso:pattern&quot; </span><span class="s1">mode</span><span class="s2">=&quot;do-all-patterns&quot;</span><span class="s0">&gt;</span>
+	<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;($phase = '#ALL')  
+    or (../iso:phase[@id= $phase]/iso:active[@pattern= current()/@id])&quot;</span><span class="s0">&gt;</span>
+		<span class="s0">&lt;xsl:call-template </span><span class="s1">name</span><span class="s2">=&quot;process-pattern&quot;</span><span class="s0">&gt;</span>
+			<span class="s4">&lt;!-- the following select statement assumes that 
+            @id | sch:title returns node-set in document order: 
+            we want the title if it is there, otherwise the @id attribute --&gt;</span>
+			<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;name&quot; </span><span class="s1">select</span><span class="s2">=&quot;(@id | iso:title )[last()]&quot;</span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;is-a&quot; </span><span class="s1">select</span><span class="s2">=&quot;''&quot;</span><span class="s0">/&gt;</span>
+			
+					<span class="s4">&lt;!-- &quot;Rich&quot; properties --&gt;</span>
+					<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;fpi&quot; </span><span class="s1">select</span><span class="s2">=&quot;@fpi&quot;</span><span class="s0">/&gt;</span>
+					<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;icon&quot; </span><span class="s1">select</span><span class="s2">=&quot;@icon&quot;</span><span class="s0">/&gt;</span>
+					<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;id&quot; </span><span class="s1">select</span><span class="s2">=&quot;@id&quot;</span><span class="s0">/&gt;</span>
+					<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;lang&quot; </span><span class="s1">select</span><span class="s2">=&quot;@xml:lang&quot;</span><span class="s0">/&gt;</span>
+					<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;see&quot; </span><span class="s1">select</span><span class="s2">=&quot;@see&quot; </span><span class="s0">/&gt;</span>
+					<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;space&quot; </span><span class="s1">select</span><span class="s2">=&quot;@xml:space&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;/xsl:call-template&gt;</span>
+		<span class="s0">&lt;xsl:choose&gt;</span>
+		  <span class="s0">&lt;xsl:when </span><span class="s1">test</span><span class="s2">=&quot;$select-contexts='key'&quot;</span><span class="s0">&gt;</span>
+		    <span class="s0">&lt;axsl:apply-templates </span><span class="s1">select</span><span class="s2">=&quot;key('M','M{count(preceding-sibling::*)}')&quot; </span><span class="s1">mode</span><span class="s2">=&quot;M{count(preceding-sibling::*)}&quot;</span><span class="s0">/&gt;</span>
+		  <span class="s0">&lt;/xsl:when&gt;</span>
+		  <span class="s0">&lt;xsl:when </span><span class="s1">test</span><span class="s2">=&quot;$select-contexts='//'&quot;</span><span class="s0">&gt;</span>
+		    <span class="s0">&lt;axsl:apply-templates </span><span class="s1">mode</span><span class="s2">=&quot;M{count(preceding-sibling::*)}&quot;</span><span class="s0">&gt;</span>
+		      <span class="s0">&lt;xsl:attribute </span><span class="s1">name</span><span class="s2">=&quot;select&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;xsl:text&gt;</span><span class="s3">//(</span><span class="s0">&lt;/xsl:text&gt;</span>
+			<span class="s0">&lt;xsl:for-each </span><span class="s1">select</span><span class="s2">=&quot;iso:rule/@context&quot;</span><span class="s0">&gt;</span>
+			  <span class="s0">&lt;xsl:text&gt;</span><span class="s3">(</span><span class="s0">&lt;/xsl:text&gt;</span>
+			  <span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;.&quot;</span><span class="s0">/&gt;</span>
+			  <span class="s0">&lt;xsl:text&gt;</span><span class="s3">)</span><span class="s0">&lt;/xsl:text&gt;</span>
+			  <span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;position()!=last()&quot;</span><span class="s0">&gt;</span><span class="s3">|</span><span class="s0">&lt;/xsl:if&gt;</span>
+			<span class="s0">&lt;/xsl:for-each&gt;</span>
+			<span class="s0">&lt;xsl:text&gt;</span><span class="s3">)</span><span class="s0">&lt;/xsl:text&gt;</span>
+			<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;$visit-text='false'&quot;</span><span class="s0">&gt;</span><span class="s3">[not(self::text())]</span><span class="s0">&lt;/xsl:if&gt;</span>
+		      <span class="s0">&lt;/xsl:attribute&gt;</span>
+		    <span class="s0">&lt;/axsl:apply-templates&gt;</span>
+		  <span class="s0">&lt;/xsl:when&gt;</span>
+		  <span class="s0">&lt;xsl:otherwise&gt;</span>
+		    <span class="s0">&lt;axsl:apply-templates </span><span class="s1">select</span><span class="s2">=&quot;/&quot; </span><span class="s1">mode</span><span class="s2">=&quot;M{count(preceding-sibling::*)}&quot;</span><span class="s0">/&gt;</span>
+		  <span class="s0">&lt;/xsl:otherwise&gt;</span>
+		<span class="s0">&lt;/xsl:choose&gt;</span>
+        <span class="s0">&lt;/xsl:if&gt;</span>
+	<span class="s0">&lt;/xsl:template&gt;</span>
+	
+	<span class="s0">&lt;xsl:template </span><span class="s1">match</span><span class="s2">=&quot;iso:pattern[@abstract='true']&quot;</span><span class="s0">&gt;</span>
+    
+             <span class="s0">&lt;xsl:message&gt;</span><span class="s3">Schema implementation error: This schema has abstract patterns, yet they are supposed to be preprocessed out already</span>
+             <span class="s0">&lt;/xsl:message&gt;</span>
+    <span class="s0">&lt;/xsl:template&gt;</span>
+
+    <span class="s4">&lt;!-- Here is the template for the normal case of patterns --&gt;</span>
+	<span class="s0">&lt;xsl:template </span><span class="s1">match</span><span class="s2">=&quot;iso:pattern[not(@abstract='true')]&quot;</span><span class="s0">&gt;</span>
+     
+      <span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;($phase = '#ALL')  
+              or (../iso:phase[@id= $phase]/iso:active[@pattern= current()/@id])&quot;</span><span class="s0">&gt;</span>
+ 
+		<span class="s0">&lt;xsl:text&gt;</span><span class="s5">&amp;#10;&amp;#10;</span><span class="s0">&lt;/xsl:text&gt;</span>
+		<span class="s0">&lt;xsl:comment&gt;</span><span class="s3">PATTERN </span><span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;@id&quot; </span><span class="s0">/&gt; &lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;iso:title&quot; </span><span class="s0">/&gt; &lt;/xsl:comment&gt;&lt;xsl:text&gt;</span><span class="s5">&amp;#10;</span><span class="s0">&lt;/xsl:text&gt;      </span>
+		<span class="s0">&lt;xsl:apply-templates /&gt;</span>
+		
+		<span class="s4">&lt;!-- DPC select-contexts test --&gt;</span>
+		<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;not($select-contexts)&quot;</span><span class="s0">&gt;</span>
+		  <span class="s0">&lt;axsl:template </span><span class="s1">match</span><span class="s2">=&quot;text()&quot; </span><span class="s1">priority</span><span class="s2">=&quot;-1&quot; </span><span class="s1">mode</span><span class="s2">=&quot;M{count(preceding-sibling::*)}&quot;</span><span class="s0">&gt;</span>
+		    <span class="s4">&lt;!-- strip characters --&gt;</span>
+		  <span class="s0">&lt;/axsl:template&gt;</span>
+		  
+		  <span class="s4">&lt;!-- DPC introduce context-xpath variable --&gt;</span>
+		  <span class="s0">&lt;axsl:template </span><span class="s1">match</span><span class="s2">=&quot;@*|node()&quot;</span>
+				 <span class="s1">priority</span><span class="s2">=&quot;-2&quot;</span>
+				 <span class="s1">mode</span><span class="s2">=&quot;M{ count(preceding-sibling::*) }&quot;</span><span class="s0">&gt;</span>
+		    <span class="s0">&lt;axsl:apply-templates </span><span class="s1">select</span><span class="s2">=&quot;{$context-xpath}&quot; </span><span class="s1">mode</span><span class="s2">=&quot;M{count(preceding-sibling::*)}&quot;</span><span class="s0">/&gt;</span>
+		  <span class="s0">&lt;/axsl:template&gt;</span>
+		<span class="s0">&lt;/xsl:if&gt;</span>
+      <span class="s0">&lt;/xsl:if&gt;</span>
+	<span class="s0">&lt;/xsl:template&gt;</span>
+
+	<span class="s4">&lt;!-- ISO PHASE --&gt;</span>
+	<span class="s0">&lt;xsl:template </span><span class="s1">match</span><span class="s2">=&quot;iso:phase&quot; </span><span class="s0">&gt;</span>
+                <span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;not(@id)&quot;</span><span class="s0">&gt;</span>
+                    <span class="s0">&lt;xsl:message&gt;</span><span class="s3">Markup Error: no id attribute in </span><span class="s5">&amp;lt;</span><span class="s3">phase&gt;</span><span class="s0">&lt;/xsl:message&gt;</span>
+                <span class="s0">&lt;/xsl:if&gt;</span>
+		  <span class="s0">&lt;xsl:apply-templates/&gt;</span>
+	<span class="s0">&lt;/xsl:template&gt;</span>
+
+	<span class="s4">&lt;!-- ISO RULE --&gt;</span>
+	<span class="s0">&lt;xsl:template </span><span class="s1">match</span><span class="s2">=&quot;iso:rule[not(@abstract='true')] &quot;</span><span class="s0">&gt;</span>
+                <span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;not(@context)&quot;</span><span class="s0">&gt;</span>
+                    <span class="s0">&lt;xsl:message&gt;</span><span class="s3">Markup Error: no context attribute in </span><span class="s5">&amp;lt;</span><span class="s3">rule&gt;</span><span class="s0">&lt;/xsl:message&gt;</span>
+                <span class="s0">&lt;/xsl:if&gt;</span>
+        <span class="s0">&lt;xsl:text&gt;</span><span class="s5">&amp;#10;&amp;#10;	</span><span class="s0">&lt;/xsl:text&gt;</span>
+		<span class="s0">&lt;xsl:comment&gt;</span><span class="s3">RULE </span><span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;@id&quot; </span><span class="s0">/&gt; &lt;/xsl:comment&gt;&lt;xsl:text&gt;</span><span class="s5">&amp;#10;</span><span class="s0">&lt;/xsl:text&gt;   </span>
+        <span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;iso:title&quot;</span><span class="s0">&gt;</span>
+		    <span class="s0">&lt;xsl:comment&gt;&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;iso:title&quot; </span><span class="s0">/&gt;&lt;/xsl:comment&gt;</span>
+		  <span class="s0">&lt;/xsl:if&gt;</span>
+		<span class="s4">&lt;!-- DPC select-contexts --&gt;</span>
+		<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;$select-contexts='key'&quot;</span><span class="s0">&gt;</span>
+		    <span class="s0">&lt;axsl:key </span><span class="s1">name</span><span class="s2">=&quot;M&quot;</span>
+			      <span class="s1">match</span><span class="s2">=&quot;{@context}&quot; </span>
+			      <span class="s1">use</span><span class="s2">=&quot;'M{count(../preceding-sibling::*)}'&quot;</span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;/xsl:if&gt;</span>
+   
+	
+<span class="s4">&lt;!-- DPC priorities count up from 1000 not down from 4000 (templates in same priority order as before) --&gt;</span>
+		<span class="s0">&lt;axsl:template </span><span class="s1">match</span><span class="s2">=&quot;{@context}&quot;</span>
+		<span class="s1">priority</span><span class="s2">=&quot;{1000 + count(following-sibling::*)}&quot; </span><span class="s1">mode</span><span class="s2">=&quot;M{count(../preceding-sibling::*)}&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;xsl:call-template </span><span class="s1">name</span><span class="s2">=&quot;process-rule&quot;</span><span class="s0">&gt;</span>
+				<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;context&quot; </span><span class="s1">select</span><span class="s2">=&quot;@context&quot;</span><span class="s0">/&gt;</span>
+				
+					<span class="s4">&lt;!-- &quot;Rich&quot; properties --&gt;</span>
+					<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;fpi&quot; </span><span class="s1">select</span><span class="s2">=&quot;@fpi&quot;</span><span class="s0">/&gt;</span>
+					<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;icon&quot; </span><span class="s1">select</span><span class="s2">=&quot;@icon&quot;</span><span class="s0">/&gt;</span>
+					<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;id&quot; </span><span class="s1">select</span><span class="s2">=&quot;@id&quot;</span><span class="s0">/&gt;</span>
+					<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;lang&quot; </span><span class="s1">select</span><span class="s2">=&quot;@xml:lang&quot;</span><span class="s0">/&gt;</span>
+					<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;see&quot; </span><span class="s1">select</span><span class="s2">=&quot;@see&quot; </span><span class="s0">/&gt;</span>
+					<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;space&quot; </span><span class="s1">select</span><span class="s2">=&quot;@xml:space&quot; </span><span class="s0">/&gt;</span>
+					
+					<span class="s4">&lt;!-- &quot;Linking&quot; properties --&gt;</span>
+					<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;role&quot; </span><span class="s1">select</span><span class="s2">=&quot;@role&quot; </span><span class="s0">/&gt;</span>
+					<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;subject&quot; </span><span class="s1">select</span><span class="s2">=&quot;@subject&quot; </span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;/xsl:call-template&gt;</span>
+			<span class="s0">&lt;xsl:apply-templates/&gt;</span>
+			<span class="s4">&lt;!-- DPC introduce context-xpath and select-contexts variables --&gt;</span>
+			<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;not($select-contexts)&quot;</span><span class="s0">&gt;</span>
+			  <span class="s0">&lt;axsl:apply-templates </span><span class="s1">select</span><span class="s2">=&quot;{$context-xpath}&quot; </span><span class="s1">mode</span><span class="s2">=&quot;M{count(../preceding-sibling::*)}&quot;</span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;/xsl:if&gt;</span>
+		<span class="s0">&lt;/axsl:template&gt;</span>
+	<span class="s0">&lt;/xsl:template&gt;</span>
+
+
+	<span class="s4">&lt;!-- ISO ABSTRACT RULE --&gt;</span>
+	<span class="s0">&lt;xsl:template </span><span class="s1">match</span><span class="s2">=&quot;iso:rule[@abstract='true'] &quot; </span><span class="s0">&gt;</span>
+		<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot; not(@id)&quot;</span><span class="s0">&gt;</span>
+                    <span class="s0">&lt;xsl:message&gt;</span><span class="s3">Markup Error: no id attribute on abstract </span><span class="s5">&amp;lt;</span><span class="s3">rule&gt;</span><span class="s0">&lt;/xsl:message&gt;</span>
+                <span class="s0">&lt;/xsl:if&gt;</span>
+ 		<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;@context&quot;</span><span class="s0">&gt;</span>
+                    <span class="s0">&lt;xsl:message&gt;</span><span class="s3">Markup Error: (2) context attribute on abstract </span><span class="s5">&amp;lt;</span><span class="s3">rule&gt;</span><span class="s0">&lt;/xsl:message&gt;</span>
+                <span class="s0">&lt;/xsl:if&gt;</span>
+	<span class="s0">&lt;/xsl:template&gt;</span>
+
+	<span class="s0">&lt;xsl:template </span><span class="s1">match</span><span class="s2">=&quot;iso:rule[@abstract='true']&quot;</span>
+		<span class="s1">mode</span><span class="s2">=&quot;extends&quot; </span><span class="s0">&gt;</span>
+                <span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;@context&quot;</span><span class="s0">&gt;</span>
+                    <span class="s0">&lt;xsl:message&gt;</span><span class="s3">Markup Error: context attribute on abstract </span><span class="s5">&amp;lt;</span><span class="s3">rule&gt;</span><span class="s0">&lt;/xsl:message&gt;</span>
+                <span class="s0">&lt;/xsl:if&gt;</span>
+			<span class="s0">&lt;xsl:apply-templates/&gt;</span>
+	<span class="s0">&lt;/xsl:template&gt;</span>
+
+	<span class="s4">&lt;!-- ISO SPAN --&gt;</span>
+	<span class="s0">&lt;xsl:template </span><span class="s1">match</span><span class="s2">=&quot;iso:span&quot; </span><span class="s1">mode</span><span class="s2">=&quot;text&quot;</span><span class="s0">&gt;</span>
+		<span class="s0">&lt;xsl:call-template </span><span class="s1">name</span><span class="s2">=&quot;process-span&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;class&quot; </span><span class="s1">select</span><span class="s2">=&quot;@class&quot;</span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;/xsl:call-template&gt;</span>
+	<span class="s0">&lt;/xsl:template&gt;</span>
+
+	<span class="s4">&lt;!-- ISO TITLE --&gt;</span>
+	
+	<span class="s0">&lt;xsl:template </span><span class="s1">match</span><span class="s2">=&quot;iso:schema/iso:title&quot;  </span><span class="s1">priority</span><span class="s2">=&quot;1&quot;</span><span class="s0">&gt;</span>
+	     <span class="s0">&lt;xsl:call-template </span><span class="s1">name</span><span class="s2">=&quot;process-schema-title&quot; </span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;/xsl:template&gt;</span>
+ 
+	
+	<span class="s0">&lt;xsl:template </span><span class="s1">match</span><span class="s2">=&quot;iso:title&quot; </span><span class="s0">&gt;</span>
+	     <span class="s0">&lt;xsl:call-template </span><span class="s1">name</span><span class="s2">=&quot;process-title&quot; </span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;/xsl:template&gt;</span>
+ 
+
+	<span class="s4">&lt;!-- ISO VALUE-OF --&gt;</span>
+	<span class="s0">&lt;xsl:template </span><span class="s1">match</span><span class="s2">=&quot;iso:value-of&quot; </span><span class="s1">mode</span><span class="s2">=&quot;text&quot; </span><span class="s0">&gt;</span>
+        <span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;not(@select)&quot;</span><span class="s0">&gt;</span>
+            <span class="s0">&lt;xsl:message&gt;</span><span class="s3">Markup Error: no select attribute in </span><span class="s5">&amp;lt;</span><span class="s3">value-of&gt;</span><span class="s0">&lt;/xsl:message&gt;</span>
+        <span class="s0">&lt;/xsl:if&gt;</span>
+	    <span class="s0">&lt;xsl:call-template </span><span class="s1">name</span><span class="s2">=&quot;IamEmpty&quot; </span><span class="s0">/&gt;</span>
+	         
+		<span class="s0">&lt;xsl:choose&gt;</span>
+			<span class="s0">&lt;xsl:when </span><span class="s1">test</span><span class="s2">=&quot;@select&quot;</span><span class="s0">&gt;</span>
+				<span class="s0">&lt;xsl:call-template </span><span class="s1">name</span><span class="s2">=&quot;process-value-of&quot;</span><span class="s0">&gt;</span>
+					<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;select&quot; </span><span class="s1">select</span><span class="s2">=&quot;@select&quot;</span><span class="s0">/&gt;  </span>
+				<span class="s0">&lt;/xsl:call-template&gt;</span>
+			<span class="s0">&lt;/xsl:when&gt;</span>
+			<span class="s0">&lt;xsl:otherwise &gt;</span>
+				<span class="s0">&lt;xsl:call-template </span><span class="s1">name</span><span class="s2">=&quot;process-value-of&quot;</span><span class="s0">&gt;</span>
+					<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;select&quot; </span><span class="s1">select</span><span class="s2">=&quot;'.'&quot;</span><span class="s0">/&gt;</span>
+				<span class="s0">&lt;/xsl:call-template&gt;</span>
+			<span class="s0">&lt;/xsl:otherwise&gt;</span>
+        <span class="s0">&lt;/xsl:choose&gt; </span>
+        
+	<span class="s0">&lt;/xsl:template&gt;</span>
+
+
+<span class="s4">&lt;!-- ============================================================== --&gt;</span>
+<span class="s4">&lt;!-- DEFAULT TEXT HANDLING  --&gt;</span>
+<span class="s4">&lt;!-- ============================================================== --&gt;</span>
+	<span class="s0">&lt;xsl:template </span><span class="s1">match</span><span class="s2">=&quot;text()&quot; </span><span class="s1">priority</span><span class="s2">=&quot;-1&quot; </span><span class="s1">mode</span><span class="s2">=&quot;do-keys&quot;</span><span class="s0">&gt;</span>
+		<span class="s4">&lt;!-- strip characters --&gt;</span>
+	<span class="s0">&lt;/xsl:template&gt;</span>
+	<span class="s0">&lt;xsl:template </span><span class="s1">match</span><span class="s2">=&quot;text()&quot; </span><span class="s1">priority</span><span class="s2">=&quot;-1&quot; </span><span class="s1">mode</span><span class="s2">=&quot;do-all-patterns&quot;</span><span class="s0">&gt;</span>
+		<span class="s4">&lt;!-- strip characters --&gt;</span>
+	<span class="s0">&lt;/xsl:template&gt;</span>
+        <span class="s0">&lt;xsl:template </span><span class="s1">match</span><span class="s2">=&quot;text()&quot; </span><span class="s1">priority</span><span class="s2">=&quot;-1&quot; </span><span class="s1">mode</span><span class="s2">=&quot;do-schema-p&quot;</span><span class="s0">&gt;</span>
+		<span class="s4">&lt;!-- strip characters --&gt;</span>
+	<span class="s0">&lt;/xsl:template&gt;</span>
+        <span class="s0">&lt;xsl:template </span><span class="s1">match</span><span class="s2">=&quot;text()&quot; </span><span class="s1">priority</span><span class="s2">=&quot;-1&quot; </span><span class="s1">mode</span><span class="s2">=&quot;do-pattern-p&quot;</span><span class="s0">&gt;</span>
+		<span class="s4">&lt;!-- strip characters --&gt;</span>
+	<span class="s0">&lt;/xsl:template&gt;</span>
+	
+	<span class="s0">&lt;xsl:template </span><span class="s1">match</span><span class="s2">=&quot;text()&quot; </span><span class="s1">priority</span><span class="s2">=&quot;-1&quot;</span><span class="s0">&gt;</span>
+		<span class="s4">&lt;!-- Strip characters --&gt;</span>
+	<span class="s0">&lt;/xsl:template&gt;</span>
+	
+	<span class="s0">&lt;xsl:template </span><span class="s1">match</span><span class="s2">=&quot;text()&quot; </span><span class="s1">mode</span><span class="s2">=&quot;text&quot;</span><span class="s0">&gt;</span>
+		<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;.&quot;</span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;/xsl:template&gt;</span>
+
+	<span class="s0">&lt;xsl:template </span><span class="s1">match</span><span class="s2">=&quot;text()&quot; </span><span class="s1">mode</span><span class="s2">=&quot;inline-text&quot;</span><span class="s0">&gt;</span>
+		<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;.&quot;</span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;/xsl:template&gt;</span>
+
+<span class="s4">&lt;!-- ============================================================== --&gt;</span>
+<span class="s4">&lt;!-- UTILITY TEMPLATES --&gt;</span>
+<span class="s4">&lt;!-- ============================================================== --&gt;</span>
+<span class="s0">&lt;xsl:template </span><span class="s1">name</span><span class="s2">=&quot;IamEmpty&quot;</span><span class="s0">&gt;</span>
+	<span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;count( * )&quot;</span><span class="s0">&gt;</span>
+		<span class="s0">&lt;xsl:message&gt;</span>
+			<span class="s0">&lt;xsl:text&gt;</span><span class="s3">Warning: </span><span class="s0">&lt;/xsl:text&gt;</span>
+			<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;name(.)&quot;</span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;xsl:text&gt; </span><span class="s3">must not contain any child elements</span><span class="s0">&lt;/xsl:text&gt;</span>
+		<span class="s0">&lt;/xsl:message&gt;</span>
+	<span class="s0">&lt;/xsl:if&gt;</span>
+<span class="s0">&lt;/xsl:template&gt;</span>
+
+<span class="s0">&lt;xsl:template </span><span class="s1">name</span><span class="s2">=&quot;diagnosticsSplit&quot;</span><span class="s0">&gt;</span>
+  <span class="s4">&lt;!-- Process at the current point the first of the &lt;diagnostic&gt; elements 
+       referred to parameter str, and then recurse --&gt;</span>
+  <span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;str&quot;</span><span class="s0">/&gt;</span>
+  <span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;start&quot;</span><span class="s0">&gt;</span>
+    <span class="s0">&lt;xsl:choose&gt;</span>
+      <span class="s0">&lt;xsl:when </span><span class="s1">test</span><span class="s2">=&quot;contains($str,' ')&quot;</span><span class="s0">&gt;</span>
+	<span class="s0">&lt;xsl:value-of  </span><span class="s1">select</span><span class="s2">=&quot;substring-before($str,' ')&quot;</span><span class="s0">/&gt;</span>
+      <span class="s0">&lt;/xsl:when&gt;</span>
+      <span class="s0">&lt;xsl:otherwise&gt;&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;$str&quot;</span><span class="s0">/&gt;&lt;/xsl:otherwise&gt;</span>
+    <span class="s0">&lt;/xsl:choose&gt;</span>
+  <span class="s0">&lt;/xsl:variable&gt;</span>
+
+  <span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;end&quot;</span><span class="s0">&gt;</span>
+    <span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;contains($str,' ')&quot;</span><span class="s0">&gt;</span>
+      <span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;substring-after($str,' ')&quot;</span><span class="s0">/&gt;</span>
+    <span class="s0">&lt;/xsl:if&gt;</span>
+  <span class="s0">&lt;/xsl:variable&gt;</span>
+
+  <span class="s4">&lt;!-- This works with all namespaces --&gt;</span>
+  <span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;not(string-length(normalize-space($start)) = 0) 
+        and not(//iso:diagnostic[@id = $start]) 
+        and not(//sch:diagnostic[@id = $start])  
+        and not(//diagnostic[@id = $start])&quot;</span><span class="s0">&gt;</span>
+	<span class="s0">&lt;xsl:message&gt;</span><span class="s3">Reference error: A diagnostic &quot;</span><span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;string($start)&quot;</span>
+	<span class="s0">/&gt;</span><span class="s3">&quot; has been referenced but is not declared</span><span class="s0">&lt;/xsl:message&gt;</span>
+  <span class="s0">&lt;/xsl:if&gt;</span>
+
+  <span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;string-length(normalize-space($start)) &gt; 0&quot;</span><span class="s0">&gt;</span>
+     <span class="s0">&lt;xsl:text&gt; &lt;/xsl:text&gt;</span>
+     <span class="s0">&lt;xsl:apply-templates </span>
+        <span class="s1">select</span><span class="s2">=&quot;//iso:diagnostic[@id = $start ] 
+            | //sch:diagnostic[@id = $start ]  
+            | //diagnostic[@id= $start ]&quot;</span><span class="s0">/&gt;</span>
+  <span class="s0">&lt;/xsl:if&gt;</span>
+
+  <span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot;not($end='')&quot;</span><span class="s0">&gt;</span>
+    <span class="s0">&lt;xsl:call-template </span><span class="s1">name</span><span class="s2">=&quot;diagnosticsSplit&quot;</span><span class="s0">&gt;</span>
+      <span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;str&quot; </span><span class="s1">select</span><span class="s2">=&quot;$end&quot;</span><span class="s0">/&gt;</span>
+    <span class="s0">&lt;/xsl:call-template&gt;</span>
+  <span class="s0">&lt;/xsl:if&gt;</span>
+<span class="s0">&lt;/xsl:template&gt;</span>
+
+<span class="s4">&lt;!-- It would be nice to use this but xsl:namespace does not 
+  allow a fallback --&gt;</span>
+<span class="s4">&lt;!--xsl:template name=&quot;handle-namespace&quot; version=&quot;2.0&quot;&gt; 
+   &lt;xsl:namespace name=&quot;{@prefix}&quot; select=&quot;@uri&quot;&gt; 
+&lt;/xsl:template--&gt;</span>
+
+<span class="s0">&lt;xsl:template </span><span class="s1">name</span><span class="s2">=&quot;handle-namespace&quot;</span><span class="s0">&gt;</span>
+       <span class="s4">&lt;!-- experimental code from http://eccnet.eccnet.com/pipermail/schematron-love-in/2006-June/000104.html --&gt;</span>
+       <span class="s4">&lt;!-- Handle namespaces differently for exslt systems, msxml, and default, only using XSLT1 syntax --&gt;</span>
+       <span class="s4">&lt;!-- For more info see  http://fgeorges.blogspot.com/2007/01/creating-namespace-nodes-in-xslt-10.html --&gt;</span>
+       <span class="s0">&lt;xsl:choose&gt;</span>
+          <span class="s4">&lt;!-- The following code works for XSLT1 --&gt;</span>
+        <span class="s0">&lt;xsl:when </span><span class="s1">test</span><span class="s2">=&quot;function-available('exsl:node-set')&quot;</span><span class="s0">&gt;</span>
+           <span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;ns-dummy-elements&quot;</span><span class="s0">&gt;</span>
+             <span class="s0">&lt;xsl:element </span><span class="s1">name</span><span class="s2">=&quot;{@prefix}:dummy&quot; </span><span class="s1">namespace</span><span class="s2">=&quot;{@uri}&quot;</span><span class="s0">/&gt;</span>
+           <span class="s0">&lt;/xsl:variable&gt;</span>
+       	   <span class="s0">&lt;xsl:variable </span><span class="s1">name</span><span class="s2">=&quot;p&quot; </span><span class="s1">select</span><span class="s2">=&quot;@prefix&quot;</span><span class="s0">/&gt;</span>
+           <span class="s0">&lt;xsl:copy-of </span><span class="s1">select</span><span class="s2">=&quot;exsl:node-set($ns-dummy-elements) 
+                                  /*/namespace::*[local-name()=$p]&quot;</span><span class="s0">/&gt;</span>
+         <span class="s0">&lt;/xsl:when&gt;        </span>
+
+   			<span class="s4">&lt;!-- End XSLT1  code --&gt;</span>
+  
+        <span class="s4">&lt;!-- Not tested yet        
+        &lt;xsl:when test=&quot;function-available('msxsl:node-set')&quot;&gt; 
+            &lt;xsl:variable name=&quot;ns-dummy-elements&quot;&gt; 
+                &lt;xsl:element name=&quot;{ $prefix }:e&quot; namespace=&quot;{ $uri }&quot;/&gt; 
+            &lt;/xsl:variable&gt; 
+            &lt;xsl:copy-of select=&quot;msxsl:node-set($ns-dummy-elements)/*/namespace::*&quot;/&gt; 
+        &lt;/xsl:when&gt; 
+        --&gt;</span>
+        
+        <span class="s0">&lt;xsl:when </span><span class="s1">test</span><span class="s2">=&quot;@prefix = 'xsl' &quot;</span><span class="s0">&gt;</span>
+           <span class="s4">&lt;!-- Do not generate dummy attributes with the xsl: prefix, as these 
+                are errors against XSLT, because we presume that the output 
+                stylesheet uses the xsl prefix. In any case, there would already 
+                be a namespace declaration for the XSLT namespace generated 
+                automatically, presumably using &quot;xsl:&quot;. 
+           --&gt;</span>
+        <span class="s0">&lt;/xsl:when&gt;</span>
+        
+        <span class="s0">&lt;xsl:when </span><span class="s1">test</span><span class="s2">=&quot;@uri = 'http://www.w3.org/1999/XSL/Transform'&quot;</span><span class="s0">&gt;</span>
+          <span class="s0">&lt;xsl:message </span><span class="s1">terminate</span><span class="s2">=&quot;yes&quot;</span><span class="s0">&gt;</span>
+            <span class="s0">&lt;xsl:text&gt;</span><span class="s3">Using the XSLT namespace with a prefix other than &quot;xsl&quot; in </span><span class="s0">&lt;/xsl:text&gt;</span>
+            <span class="s0">&lt;xsl:text&gt;</span><span class="s3">Schematron rules is not supported </span><span class="s0">&lt;/xsl:text&gt;</span>
+            <span class="s0">&lt;xsl:text&gt;</span><span class="s3">in this processor: </span><span class="s0">&lt;/xsl:text&gt;</span>
+            <span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;system-property('xsl:vendor')&quot;</span><span class="s0">/&gt;</span>
+          <span class="s0">&lt;/xsl:message&gt;</span>
+        <span class="s0">&lt;/xsl:when&gt;</span>
+
+        <span class="s0">&lt;xsl:otherwise&gt;</span>
+          <span class="s0">&lt;xsl:attribute </span><span class="s1">name</span><span class="s2">=&quot;{concat(@prefix,':dummy-for-xmlns')}&quot; </span><span class="s1">namespace</span><span class="s2">=&quot;{@uri}&quot; </span><span class="s0">/&gt;</span>
+           
+        <span class="s0">&lt;/xsl:otherwise&gt;</span>
+      <span class="s0">&lt;/xsl:choose&gt;</span>
+
+
+<span class="s0">&lt;/xsl:template&gt;</span>
+
+<span class="s4">&lt;!-- ============================================================== --&gt;</span>
+<span class="s4">&lt;!-- UNEXPECTED ELEMENTS --&gt;</span>
+<span class="s4">&lt;!-- ============================================================== --&gt;</span>
+
+	<span class="s0">&lt;xsl:template </span><span class="s1">match</span><span class="s2">=&quot;iso:*&quot;  </span><span class="s1">priority</span><span class="s2">=&quot;-2&quot;</span><span class="s0">&gt;</span>
+	   <span class="s0">&lt;xsl:message&gt;</span>
+			<span class="s0">&lt;xsl:text&gt;</span><span class="s3">Error: unrecognized element in ISO Schematron namespace: check spelling</span>
+			<span class="s3">and capitalization</span><span class="s0">&lt;/xsl:text&gt;</span>
+			<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;name(.)&quot;</span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;/xsl:message&gt;</span>
+	<span class="s0">&lt;/xsl:template&gt;</span>
+	
+	
+	<span class="s4">&lt;!-- Swallow old namespace elements: there is an upfront test for them elsewhere --&gt;</span>
+	<span class="s0">&lt;xsl:template </span><span class="s1">match</span><span class="s2">=&quot;sch:*&quot;  </span><span class="s1">priority</span><span class="s2">=&quot;-2&quot; </span><span class="s0">/&gt;</span>
+	
+	<span class="s0">&lt;xsl:template </span><span class="s1">match</span><span class="s2">=&quot;*&quot;  </span><span class="s1">priority</span><span class="s2">=&quot;-3&quot;</span><span class="s0">&gt;</span>
+	    <span class="s0">&lt;xsl:choose&gt;</span>
+	       <span class="s0">&lt;xsl:when </span><span class="s1">test</span><span class="s2">=&quot; $allow-foreign = 'false' &quot;</span><span class="s0">&gt;</span>
+				<span class="s0">&lt;xsl:message&gt;</span>
+					<span class="s0">&lt;xsl:text&gt;</span><span class="s3">Warning: unrecognized element </span><span class="s0">&lt;/xsl:text&gt;</span>
+					<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;name(.)&quot;</span><span class="s0">/&gt;</span>
+				<span class="s0">&lt;/xsl:message&gt;</span>
+			<span class="s0">&lt;/xsl:when&gt;</span>
+			<span class="s0">&lt;xsl:otherwise&gt;</span>
+				<span class="s0">&lt;xsl:copy-of </span><span class="s1">select</span><span class="s2">=&quot;.&quot; </span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;/xsl:otherwise&gt;</span>
+		<span class="s0">&lt;/xsl:choose&gt;</span>
+	<span class="s0">&lt;/xsl:template&gt;</span>
+	
+	<span class="s0">&lt;xsl:template </span><span class="s1">match</span><span class="s2">=&quot;iso:*&quot; </span><span class="s1">mode</span><span class="s2">=&quot;text&quot; </span><span class="s1">priority</span><span class="s2">=&quot;-2&quot; </span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;xsl:template </span><span class="s1">match</span><span class="s2">=&quot;*&quot; </span><span class="s1">mode</span><span class="s2">=&quot;text&quot; </span><span class="s1">priority</span><span class="s2">=&quot;-3&quot;</span><span class="s0">&gt;</span>
+	    <span class="s0">&lt;xsl:choose&gt;</span>
+	       <span class="s0">&lt;xsl:when </span><span class="s1">test</span><span class="s2">=&quot; $allow-foreign = 'false' &quot;</span><span class="s0">&gt;</span>
+				<span class="s0">&lt;xsl:message&gt;</span>
+					<span class="s0">&lt;xsl:text&gt;</span><span class="s3">Warning: unrecognized element </span><span class="s0">&lt;/xsl:text&gt;</span>
+					<span class="s0">&lt;xsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;name(.)&quot;</span><span class="s0">/&gt;</span>
+				<span class="s0">&lt;/xsl:message&gt;</span>
+			<span class="s0">&lt;/xsl:when&gt;</span>
+			<span class="s0">&lt;xsl:otherwise&gt;</span>
+				<span class="s0">&lt;xsl:copy-of </span><span class="s1">select</span><span class="s2">=&quot;.&quot; </span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;/xsl:otherwise&gt;</span>
+		<span class="s0">&lt;/xsl:choose&gt;</span>
+	<span class="s0">&lt;/xsl:template&gt;</span>
+
+<span class="s4">&lt;!-- ============================================================== --&gt;</span>
+<span class="s4">&lt;!-- DEFAULT NAMED TEMPLATES --&gt;</span>
+<span class="s4">&lt;!-- These are the actions that are performed unless overridden --&gt;</span>
+<span class="s4">&lt;!-- ============================================================== --&gt;</span>
+ 
+	<span class="s0">&lt;xsl:template </span><span class="s1">name</span><span class="s2">=&quot;process-prolog&quot;</span><span class="s0">/&gt;</span>
+	<span class="s4">&lt;!-- no params --&gt;</span>
+
+	<span class="s0">&lt;xsl:template </span><span class="s1">name</span><span class="s2">=&quot;process-root&quot;</span><span class="s0">&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;contents&quot;</span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;id&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;version&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;schemaVersion&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;queryBinding&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;title&quot; </span><span class="s0">/&gt;</span>
+
+
+		<span class="s4">&lt;!-- &quot;Rich&quot; parameters --&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;fpi&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;icon&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;lang&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;see&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;space&quot; </span><span class="s0">/&gt;</span>
+
+		<span class="s0">&lt;xsl:copy-of </span><span class="s1">select</span><span class="s2">=&quot;$contents&quot;</span><span class="s0">/&gt;</span>
+	<span class="s0">&lt;/xsl:template&gt;</span>
+
+	<span class="s0">&lt;xsl:template </span><span class="s1">name</span><span class="s2">=&quot;process-assert&quot;</span><span class="s0">&gt;</span>
+
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;test&quot;</span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;diagnostics&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;id&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;flag&quot; </span><span class="s0">/&gt;</span>
+
+           	<span class="s4">&lt;!-- &quot;Linkable&quot; parameters --&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;role&quot;</span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;subject&quot;</span><span class="s0">/&gt;</span>
+
+		<span class="s4">&lt;!-- &quot;Rich&quot; parameters --&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;fpi&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;icon&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;lang&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;see&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;space&quot; </span><span class="s0">/&gt;</span>
+
+
+		<span class="s0">&lt;xsl:call-template </span><span class="s1">name</span><span class="s2">=&quot;process-message&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;pattern&quot; </span><span class="s1">select</span><span class="s2">=&quot;$test&quot;</span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;role&quot; </span><span class="s1">select</span><span class="s2">=&quot;$role&quot;</span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;/xsl:call-template&gt;</span>
+		
+		
+	<span class="s0">&lt;/xsl:template&gt;</span>
+
+	<span class="s0">&lt;xsl:template </span><span class="s1">name</span><span class="s2">=&quot;process-report&quot;</span><span class="s0">&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;test&quot;</span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;diagnostics&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;id&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;flag&quot; </span><span class="s0">/&gt;</span>
+
+           	<span class="s4">&lt;!-- &quot;Linkable&quot; parameters --&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;role&quot;</span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;subject&quot;</span><span class="s0">/&gt;</span>
+
+		<span class="s4">&lt;!-- &quot;Rich&quot; parameters --&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;fpi&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;icon&quot; </span><span class="s0">/&gt; </span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;lang&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;see&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;space&quot; </span><span class="s0">/&gt;</span>
+
+		<span class="s0">&lt;xsl:call-template </span><span class="s1">name</span><span class="s2">=&quot;process-message&quot;</span><span class="s0">&gt;</span>
+			<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;pattern&quot; </span><span class="s1">select</span><span class="s2">=&quot;$test&quot;</span><span class="s0">/&gt;</span>
+			<span class="s0">&lt;xsl:with-param </span><span class="s1">name</span><span class="s2">=&quot;role&quot; </span><span class="s1">select</span><span class="s2">=&quot;$role&quot;</span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;/xsl:call-template&gt;</span>
+	<span class="s0">&lt;/xsl:template&gt;</span>
+
+	<span class="s0">&lt;xsl:template </span><span class="s1">name</span><span class="s2">=&quot;process-diagnostic&quot;</span><span class="s0">&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;id&quot; </span><span class="s0">/&gt;</span>
+
+		<span class="s4">&lt;!-- &quot;Rich&quot; parameters --&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;fpi&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;icon&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;lang&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;see&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;space&quot; </span><span class="s0">/&gt;</span>
+		
+	    <span class="s4">&lt;!-- We generate too much whitespace rather than risking concatenation --&gt;</span>
+		<span class="s0">&lt;axsl:text&gt; &lt;/axsl:text&gt;</span>
+		<span class="s0">&lt;xsl:apply-templates </span><span class="s1">mode</span><span class="s2">=&quot;text&quot;</span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;axsl:text&gt; &lt;/axsl:text&gt;</span>
+	<span class="s0">&lt;/xsl:template&gt;</span>
+
+	<span class="s0">&lt;xsl:template </span><span class="s1">name</span><span class="s2">=&quot;process-dir&quot;</span><span class="s0">&gt;</span>
+      	<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;value&quot; </span><span class="s0">/&gt;</span>
+
+	    <span class="s4">&lt;!-- We generate too much whitespace rather than risking concatenation --&gt;</span>
+		<span class="s0">&lt;axsl:text&gt; &lt;/axsl:text&gt;</span>
+		<span class="s0">&lt;xsl:apply-templates </span><span class="s1">mode</span><span class="s2">=&quot;inline-text&quot;</span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;axsl:text&gt; &lt;/axsl:text&gt;</span>
+	<span class="s0">&lt;/xsl:template&gt;</span>
+
+	<span class="s0">&lt;xsl:template </span><span class="s1">name</span><span class="s2">=&quot;process-emph&quot;</span><span class="s0">&gt; </span>
+	    <span class="s4">&lt;!-- We generate too much whitespace rather than risking concatenation --&gt;</span>
+		<span class="s0">&lt;axsl:text&gt; &lt;/axsl:text&gt;</span>
+		<span class="s0">&lt;xsl:apply-templates </span><span class="s1">mode</span><span class="s2">=&quot;inline-text&quot;</span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;axsl:text&gt; &lt;/axsl:text&gt;</span>
+	<span class="s0">&lt;/xsl:template&gt;</span>
+	
+	<span class="s0">&lt;xsl:template </span><span class="s1">name</span><span class="s2">=&quot;process-name&quot;</span><span class="s0">&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;name&quot;</span><span class="s0">/&gt;</span>
+		
+		<span class="s4">&lt;!-- We generate too much whitespace rather than risking concatenation --&gt;</span>
+		<span class="s0">&lt;axsl:text&gt; &lt;/axsl:text&gt;</span>
+		<span class="s0">&lt;axsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;{$name}&quot;</span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;axsl:text&gt; &lt;/axsl:text&gt;</span>
+		
+    <span class="s0">&lt;/xsl:template&gt;</span>
+
+	<span class="s0">&lt;xsl:template </span><span class="s1">name</span><span class="s2">=&quot;process-ns&quot; </span><span class="s0">&gt;</span>
+	<span class="s4">&lt;!-- Note that process-ns is for reporting. The sch:ns elements are  
+         independently used in the sch:schema template to provide namespace bindings --&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;prefix&quot;</span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;uri&quot; </span><span class="s0">/&gt;</span>
+      <span class="s0">&lt;/xsl:template&gt;</span>
+
+	<span class="s0">&lt;xsl:template </span><span class="s1">name</span><span class="s2">=&quot;process-p&quot;</span><span class="s0">&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;id&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;class&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;icon&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;lang&quot; </span><span class="s0">/&gt;</span>
+      <span class="s0">&lt;/xsl:template&gt;</span>
+
+	<span class="s0">&lt;xsl:template </span><span class="s1">name</span><span class="s2">=&quot;process-pattern&quot;</span><span class="s0">&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;id&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;name&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;is-a&quot; </span><span class="s0">/&gt;</span>
+
+		<span class="s4">&lt;!-- &quot;Rich&quot; parameters --&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;fpi&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;icon&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;lang&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;see&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;space&quot; </span><span class="s0">/&gt;</span>
+      <span class="s0">&lt;/xsl:template&gt;</span>
+      
+
+	<span class="s0">&lt;xsl:template </span><span class="s1">name</span><span class="s2">=&quot;process-rule&quot;</span><span class="s0">&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;context&quot; </span><span class="s0">/&gt;</span>
+
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;id&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;flag&quot; </span><span class="s0">/&gt;</span>
+
+           	<span class="s4">&lt;!-- &quot;Linkable&quot; parameters --&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;role&quot;</span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;subject&quot;</span><span class="s0">/&gt;</span>
+  
+		<span class="s4">&lt;!-- &quot;Rich&quot; parameters --&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;fpi&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;icon&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;lang&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;see&quot; </span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;space&quot; </span><span class="s0">/&gt;</span>
+      <span class="s0">&lt;/xsl:template&gt;</span>
+
+	<span class="s0">&lt;xsl:template </span><span class="s1">name</span><span class="s2">=&quot;process-span&quot; </span><span class="s0">&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;class&quot; </span><span class="s0">/&gt;</span>
+
+	    <span class="s4">&lt;!-- We generate too much whitespace rather than risking concatenation --&gt;</span>
+		<span class="s0">&lt;axsl:text&gt; &lt;/axsl:text&gt;</span>
+		<span class="s0">&lt;xsl:apply-templates </span><span class="s1">mode</span><span class="s2">=&quot;inline-text&quot;</span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;axsl:text&gt; &lt;/axsl:text&gt;		</span>
+	<span class="s0">&lt;/xsl:template&gt;</span>
+
+	<span class="s0">&lt;xsl:template </span><span class="s1">name</span><span class="s2">=&quot;process-title&quot; </span><span class="s0">&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;class&quot; </span><span class="s0">/&gt;</span>
+	   <span class="s0">&lt;xsl:call-template </span><span class="s1">name</span><span class="s2">=&quot;process-p&quot;</span><span class="s0">&gt;</span>
+	      <span class="s0">&lt;xsl:with-param  </span><span class="s1">name</span><span class="s2">=&quot;class&quot;</span><span class="s0">&gt;</span><span class="s3">title</span><span class="s0">&lt;/xsl:with-param&gt;</span>
+	   <span class="s0">&lt;/xsl:call-template&gt;</span>
+	<span class="s0">&lt;/xsl:template&gt;</span>
+		
+	<span class="s0">&lt;xsl:template </span><span class="s1">name</span><span class="s2">=&quot;process-schema-title&quot; </span><span class="s0">&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;class&quot; </span><span class="s0">/&gt;</span>
+	   <span class="s0">&lt;xsl:call-template </span><span class="s1">name</span><span class="s2">=&quot;process-title&quot;</span><span class="s0">&gt;</span>
+	      <span class="s0">&lt;xsl:with-param  </span><span class="s1">name</span><span class="s2">=&quot;class&quot;</span><span class="s0">&gt;</span><span class="s3">schema-title</span><span class="s0">&lt;/xsl:with-param&gt;</span>
+	   <span class="s0">&lt;/xsl:call-template&gt;</span>
+	<span class="s0">&lt;/xsl:template&gt;</span>
+
+	<span class="s0">&lt;xsl:template </span><span class="s1">name</span><span class="s2">=&quot;process-value-of&quot;</span><span class="s0">&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;select&quot;</span><span class="s0">/&gt;</span>
+		
+	    <span class="s4">&lt;!-- We generate too much whitespace rather than risking concatenation --&gt;</span>
+		<span class="s0">&lt;axsl:text&gt; &lt;/axsl:text&gt;</span>
+		<span class="s0">&lt;axsl:value-of </span><span class="s1">select</span><span class="s2">=&quot;{$select}&quot;</span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;axsl:text&gt; &lt;/axsl:text&gt;</span>
+	<span class="s0">&lt;/xsl:template&gt;</span>
+
+	<span class="s4">&lt;!-- default output action: the simplest customization is to just override this --&gt;</span>
+	<span class="s0">&lt;xsl:template </span><span class="s1">name</span><span class="s2">=&quot;process-message&quot;</span><span class="s0">&gt;</span>
+		<span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;pattern&quot; </span><span class="s0">/&gt;</span>
+            <span class="s0">&lt;xsl:param </span><span class="s1">name</span><span class="s2">=&quot;role&quot; </span><span class="s0">/&gt;</span>
+
+		<span class="s0">&lt;xsl:apply-templates </span><span class="s1">mode</span><span class="s2">=&quot;text&quot;</span><span class="s0">/&gt;	</span>
+		 <span class="s0">&lt;xsl:if </span><span class="s1">test</span><span class="s2">=&quot; $message-newline = 'true'&quot; </span><span class="s0">&gt;</span>
+			<span class="s0">&lt;axsl:value-of  </span><span class="s1">select</span><span class="s2">=&quot;string('</span><span class="s5">&amp;#10;</span><span class="s2">')&quot;</span><span class="s0">/&gt;</span>
+		<span class="s0">&lt;/xsl:if&gt;</span>
+		
+	<span class="s0">&lt;/xsl:template&gt;</span>
+<span class="s0">&lt;/xsl:stylesheet&gt;</span>
+
+
+
+</pre>
+</body>
+</html>

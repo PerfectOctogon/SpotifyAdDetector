@@ -1,0 +1,254 @@
+<html>
+<head>
+<title>etreepublic.pxd</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #a9b7c6;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+etreepublic.pxd</font>
+</center></td></tr></table>
+<pre><span class="s0"># public Cython/C interface to lxml.etree</span>
+
+<span class="s0">from lxml.includes cimport tree</span>
+<span class="s0">from lxml.includes.tree cimport const_xmlChar</span>
+
+<span class="s0">cdef extern from &quot;lxml-version.h&quot;:</span>
+    <span class="s0">cdef char* LXML_VERSION_STRING</span>
+
+<span class="s0">cdef extern from &quot;etree_defs.h&quot;:</span>
+    <span class="s0"># test if c_node is considered an Element (i.e. Element, Comment, etc.)</span>
+    <span class="s0">cdef bint _isElement(tree.xmlNode* c_node) nogil</span>
+
+    <span class="s0"># return the namespace URI of the node or NULL</span>
+    <span class="s0">cdef const_xmlChar* _getNs(tree.xmlNode* node) nogil</span>
+
+    <span class="s0"># pair of macros for tree traversal</span>
+    <span class="s0">cdef void BEGIN_FOR_EACH_ELEMENT_FROM(tree.xmlNode* tree_top,</span>
+                                          <span class="s0">tree.xmlNode* start_node,</span>
+                                          <span class="s0">int start_node_inclusive) nogil</span>
+    <span class="s0">cdef void END_FOR_EACH_ELEMENT_FROM(tree.xmlNode* start_node) nogil</span>
+
+<span class="s0">cdef extern from &quot;etree_api.h&quot;:</span>
+
+    <span class="s0"># first function to call!</span>
+    <span class="s0">cdef int import_lxml__etree() except -1</span>
+
+    <span class="s0">##########################################################################</span>
+    <span class="s0"># public ElementTree API classes</span>
+
+    <span class="s0">cdef class lxml.etree._Document [ object LxmlDocument ]:</span>
+        <span class="s0">cdef tree.xmlDoc* _c_doc</span>
+
+    <span class="s0">cdef class lxml.etree._Element [ object LxmlElement ]:</span>
+        <span class="s0">cdef _Document _doc</span>
+        <span class="s0">cdef tree.xmlNode* _c_node</span>
+
+    <span class="s0">cdef class lxml.etree.ElementBase(_Element) [ object LxmlElementBase ]:</span>
+        <span class="s0">pass</span>
+
+    <span class="s0">cdef class lxml.etree._ElementTree [ object LxmlElementTree ]:</span>
+        <span class="s0">cdef _Document _doc</span>
+        <span class="s0">cdef _Element  _context_node</span>
+
+    <span class="s0">cdef class lxml.etree.ElementClassLookup [ object LxmlElementClassLookup ]:</span>
+        <span class="s0">cdef object (*_lookup_function)(object, _Document, tree.xmlNode*)</span>
+
+    <span class="s0">cdef class lxml.etree.FallbackElementClassLookup(ElementClassLookup) \</span>
+             <span class="s0">[ object LxmlFallbackElementClassLookup ]:</span>
+        <span class="s0">cdef ElementClassLookup fallback</span>
+        <span class="s0">cdef object (*_fallback_function)(object, _Document, tree.xmlNode*)</span>
+
+    <span class="s0">##########################################################################</span>
+    <span class="s0"># creating Element objects</span>
+
+    <span class="s0"># create an Element for a C-node in the Document</span>
+    <span class="s0">cdef _Element elementFactory(_Document doc, tree.xmlNode* c_node)</span>
+
+    <span class="s0"># create an ElementTree for an Element</span>
+    <span class="s0">cdef _ElementTree elementTreeFactory(_Element context_node)</span>
+
+    <span class="s0"># create an ElementTree subclass for an Element</span>
+    <span class="s0">cdef _ElementTree newElementTree(_Element context_node, object subclass)</span>
+
+    <span class="s0"># create an ElementTree from an external document</span>
+    <span class="s0">cdef _ElementTree adoptExternalDocument(tree.xmlDoc* c_doc, parser, bint is_owned)</span>
+
+    <span class="s0"># create a new Element for an existing or new document (doc = None)</span>
+    <span class="s0"># builds Python object after setting text, tail, namespaces and attributes</span>
+    <span class="s0">cdef _Element makeElement(tag, _Document doc, parser,</span>
+                              <span class="s0">text, tail, attrib, nsmap)</span>
+
+    <span class="s0"># create a new SubElement for an existing parent</span>
+    <span class="s0"># builds Python object after setting text, tail, namespaces and attributes</span>
+    <span class="s0">cdef _Element makeSubElement(_Element parent, tag, text, tail,</span>
+                                 <span class="s0">attrib, nsmap)</span>
+
+    <span class="s0"># deep copy a node to include it in the Document</span>
+    <span class="s0">cdef _Element deepcopyNodeToDocument(_Document doc, tree.xmlNode* c_root)</span>
+
+    <span class="s0"># set the internal lookup function for Element/Comment/PI classes</span>
+    <span class="s0"># use setElementClassLookupFunction(NULL, None) to reset it</span>
+    <span class="s0"># note that the lookup function *must always* return an _Element subclass!</span>
+    <span class="s0">cdef void setElementClassLookupFunction(</span>
+         <span class="s0">object (*function)(object, _Document, tree.xmlNode*), object state)</span>
+
+    <span class="s0"># lookup function that always returns the default Element class</span>
+    <span class="s0"># note that the first argument is expected to be None!</span>
+    <span class="s0">cdef object lookupDefaultElementClass(_1, _Document _2,</span>
+                                          <span class="s0">tree.xmlNode* c_node)</span>
+
+    <span class="s0"># lookup function for namespace/tag specific Element classes</span>
+    <span class="s0"># note that the first argument is expected to be None!</span>
+    <span class="s0">cdef object lookupNamespaceElementClass(_1, _Document _2,</span>
+                                            <span class="s0">tree.xmlNode* c_node)</span>
+
+    <span class="s0"># call the fallback lookup function of a FallbackElementClassLookup</span>
+    <span class="s0">cdef object callLookupFallback(FallbackElementClassLookup lookup,</span>
+                                   <span class="s0">_Document doc, tree.xmlNode* c_node)</span>
+
+    <span class="s0">##########################################################################</span>
+    <span class="s0"># XML attribute access</span>
+
+    <span class="s0"># return an attribute value for a C attribute on a C element node</span>
+    <span class="s0">cdef object attributeValue(tree.xmlNode* c_element,</span>
+                               <span class="s0">tree.xmlAttr* c_attrib_node)</span>
+
+    <span class="s0"># return the value of the attribute with 'ns' and 'name' (or None)</span>
+    <span class="s0">cdef object attributeValueFromNsName(tree.xmlNode* c_element,</span>
+                                         <span class="s0">const_xmlChar* c_ns, const_xmlChar* c_name)</span>
+
+    <span class="s0"># return the value of attribute &quot;{ns}name&quot;, or the default value</span>
+    <span class="s0">cdef object getAttributeValue(_Element element, key, default)</span>
+
+    <span class="s0"># return an iterator over attribute names (1), values (2) or items (3)</span>
+    <span class="s0"># attributes must not be removed during iteration!</span>
+    <span class="s0">cdef object iterattributes(_Element element, int keysvalues)</span>
+
+    <span class="s0"># return the list of all attribute names (1), values (2) or items (3)</span>
+    <span class="s0">cdef list collectAttributes(tree.xmlNode* c_element, int keysvalues)</span>
+
+    <span class="s0"># set an attribute value on an element</span>
+    <span class="s0"># on failure, sets an exception and returns -1</span>
+    <span class="s0">cdef int setAttributeValue(_Element element, key, value) except -1</span>
+
+    <span class="s0"># delete an attribute</span>
+    <span class="s0"># on failure, sets an exception and returns -1</span>
+    <span class="s0">cdef int delAttribute(_Element element, key) except -1</span>
+
+    <span class="s0"># delete an attribute based on name and namespace URI</span>
+    <span class="s0"># returns -1 if the attribute was not found (no exception)</span>
+    <span class="s0">cdef int delAttributeFromNsName(tree.xmlNode* c_element,</span>
+                                    <span class="s0">const_xmlChar* c_href, const_xmlChar* c_name)</span>
+
+    <span class="s0">##########################################################################</span>
+    <span class="s0"># XML node helper functions</span>
+
+    <span class="s0"># check if the element has at least one child</span>
+    <span class="s0">cdef bint hasChild(tree.xmlNode* c_node) nogil</span>
+
+    <span class="s0"># find child element number 'index' (supports negative indexes)</span>
+    <span class="s0">cdef tree.xmlNode* findChild(tree.xmlNode* c_node,</span>
+                                 <span class="s0">Py_ssize_t index) nogil</span>
+
+    <span class="s0"># find child element number 'index' starting at first one</span>
+    <span class="s0">cdef tree.xmlNode* findChildForwards(tree.xmlNode* c_node,</span>
+                                         <span class="s0">Py_ssize_t index) nogil</span>
+
+    <span class="s0"># find child element number 'index' starting at last one</span>
+    <span class="s0">cdef tree.xmlNode* findChildBackwards(tree.xmlNode* c_node,</span>
+                                          <span class="s0">Py_ssize_t index) nogil</span>
+
+    <span class="s0"># return next/previous sibling element of the node</span>
+    <span class="s0">cdef tree.xmlNode* nextElement(tree.xmlNode* c_node) nogil</span>
+    <span class="s0">cdef tree.xmlNode* previousElement(tree.xmlNode* c_node) nogil</span>
+
+    <span class="s0">##########################################################################</span>
+    <span class="s0"># iterators (DEPRECATED API, don't use in new code!)</span>
+
+    <span class="s0">cdef class lxml.etree._ElementTagMatcher [ object LxmlElementTagMatcher ]:</span>
+        <span class="s0">cdef char* _href</span>
+        <span class="s0">cdef char* _name</span>
+
+    <span class="s0"># store &quot;{ns}tag&quot; (or None) filter for this matcher or element iterator</span>
+    <span class="s0"># ** unless _href *and* _name are set up 'by hand', this function *must*</span>
+    <span class="s0"># ** be called when subclassing the iterator below!</span>
+    <span class="s0">cdef void initTagMatch(_ElementTagMatcher matcher, tag)</span>
+
+    <span class="s0">cdef class lxml.etree._ElementIterator(_ElementTagMatcher) [</span>
+        <span class="s0">object LxmlElementIterator ]:</span>
+        <span class="s0">cdef _Element _node</span>
+        <span class="s0">cdef tree.xmlNode* (*_next_element)(tree.xmlNode*)</span>
+
+    <span class="s0"># store the initial node of the iterator if it matches the required tag</span>
+    <span class="s0"># or its next matching sibling if not</span>
+    <span class="s0">cdef void iteratorStoreNext(_ElementIterator iterator, _Element node)</span>
+
+    <span class="s0">##########################################################################</span>
+    <span class="s0"># other helper functions</span>
+
+    <span class="s0"># check if a C node matches a tag name and namespace</span>
+    <span class="s0"># (NULL allowed for each =&gt; always matches)</span>
+    <span class="s0">cdef int tagMatches(tree.xmlNode* c_node, const_xmlChar* c_href, const_xmlChar* c_name)</span>
+
+    <span class="s0"># convert a UTF-8 char* to a Python string or unicode string</span>
+    <span class="s0">cdef object pyunicode(const_xmlChar* s)</span>
+
+    <span class="s0"># convert the string to UTF-8 using the normal lxml.etree semantics</span>
+    <span class="s0">cdef bytes utf8(object s)</span>
+
+    <span class="s0"># split a tag into a (URI, name) tuple, return None as URI for '{}tag'</span>
+    <span class="s0">cdef tuple getNsTag(object tag)</span>
+
+    <span class="s0"># split a tag into a (URI, name) tuple, return b'' as URI for '{}tag'</span>
+    <span class="s0">cdef tuple getNsTagWithEmptyNs(object tag)</span>
+
+    <span class="s0"># get the &quot;{ns}tag&quot; string for a C node</span>
+    <span class="s0">cdef object namespacedName(tree.xmlNode* c_node)</span>
+
+    <span class="s0"># get the &quot;{ns}tag&quot; string for a href/tagname pair (c_ns may be NULL)</span>
+    <span class="s0">cdef object namespacedNameFromNsName(const_xmlChar* c_ns, const_xmlChar* c_tag)</span>
+
+    <span class="s0"># check if the node has a text value (which may be '')</span>
+    <span class="s0">cdef bint hasText(tree.xmlNode* c_node) nogil</span>
+
+    <span class="s0"># check if the node has a tail value (which may be '')</span>
+    <span class="s0">cdef bint hasTail(tree.xmlNode* c_node) nogil</span>
+
+    <span class="s0"># get the text content of an element (or None)</span>
+    <span class="s0">cdef object textOf(tree.xmlNode* c_node)</span>
+
+    <span class="s0"># get the tail content of an element (or None)</span>
+    <span class="s0">cdef object tailOf(tree.xmlNode* c_node)</span>
+
+    <span class="s0"># set the text value of an element</span>
+    <span class="s0">cdef int setNodeText(tree.xmlNode* c_node, text) except -1</span>
+
+    <span class="s0"># set the tail text value of an element</span>
+    <span class="s0">cdef int setTailText(tree.xmlNode* c_node, text) except -1</span>
+
+    <span class="s0"># append an element to the children of a parent element</span>
+    <span class="s0"># deprecated: don't use, does not propagate exceptions!</span>
+    <span class="s0"># use appendChildToElement() instead</span>
+    <span class="s0">cdef void appendChild(_Element parent, _Element child)</span>
+
+    <span class="s0"># added in lxml 3.3 as a safe replacement for appendChild()</span>
+    <span class="s0"># return -1 for exception, 0 for ok</span>
+    <span class="s0">cdef int appendChildToElement(_Element parent, _Element child) except -1</span>
+
+    <span class="s0"># recursively lookup a namespace in element or ancestors, or create it</span>
+    <span class="s0">cdef tree.xmlNs* findOrBuildNodeNsPrefix(</span>
+        <span class="s0">_Document doc, tree.xmlNode* c_node, const_xmlChar* href, const_xmlChar* prefix)</span>
+
+    <span class="s0"># find the Document of an Element, ElementTree or Document (itself!)</span>
+    <span class="s0">cdef _Document documentOrRaise(object input)</span>
+
+    <span class="s0"># find the root Element of an Element (itself!), ElementTree or Document</span>
+    <span class="s0">cdef _Element rootNodeOrRaise(object input)</span>
+</pre>
+</body>
+</html>

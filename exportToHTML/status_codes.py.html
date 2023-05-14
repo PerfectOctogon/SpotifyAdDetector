@@ -1,0 +1,145 @@
+<html>
+<head>
+<title>status_codes.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #629755; font-style: italic;}
+.s3 { color: #cc7832;}
+.s4 { color: #6897bb;}
+.s5 { color: #6a8759;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+status_codes.py</font>
+</center></td></tr></table>
+<pre><span class="s0"># -*- coding: utf-8 -*-</span>
+
+<span class="s2">r&quot;&quot;&quot; 
+The ``codes`` object defines a mapping from common names for HTTP statuses 
+to their numerical codes, accessible either as attributes or as dictionary 
+items. 
+ 
+Example:: 
+ 
+    &gt;&gt;&gt; import requests 
+    &gt;&gt;&gt; requests.codes['temporary_redirect'] 
+    307 
+    &gt;&gt;&gt; requests.codes.teapot 
+    418 
+    &gt;&gt;&gt; requests.codes['\o/'] 
+    200 
+ 
+Some codes have multiple names, and both upper- and lower-case versions of 
+the names are allowed. For example, ``codes.ok``, ``codes.OK``, and 
+``codes.okay`` all correspond to the HTTP status code 200. 
+&quot;&quot;&quot;</span>
+
+<span class="s3">from </span><span class="s1">.structures </span><span class="s3">import </span><span class="s1">LookupDict</span>
+
+<span class="s1">_codes = {</span>
+
+    <span class="s0"># Informational.</span>
+    <span class="s4">100</span><span class="s1">: (</span><span class="s5">'continue'</span><span class="s3">,</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">101</span><span class="s1">: (</span><span class="s5">'switching_protocols'</span><span class="s3">,</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">102</span><span class="s1">: (</span><span class="s5">'processing'</span><span class="s3">,</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">103</span><span class="s1">: (</span><span class="s5">'checkpoint'</span><span class="s3">,</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">122</span><span class="s1">: (</span><span class="s5">'uri_too_long'</span><span class="s3">, </span><span class="s5">'request_uri_too_long'</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">200</span><span class="s1">: (</span><span class="s5">'ok'</span><span class="s3">, </span><span class="s5">'okay'</span><span class="s3">, </span><span class="s5">'all_ok'</span><span class="s3">, </span><span class="s5">'all_okay'</span><span class="s3">, </span><span class="s5">'all_good'</span><span class="s3">, </span><span class="s5">'</span><span class="s3">\\</span><span class="s5">o/'</span><span class="s3">, </span><span class="s5">'✓'</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">201</span><span class="s1">: (</span><span class="s5">'created'</span><span class="s3">,</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">202</span><span class="s1">: (</span><span class="s5">'accepted'</span><span class="s3">,</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">203</span><span class="s1">: (</span><span class="s5">'non_authoritative_info'</span><span class="s3">, </span><span class="s5">'non_authoritative_information'</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">204</span><span class="s1">: (</span><span class="s5">'no_content'</span><span class="s3">,</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">205</span><span class="s1">: (</span><span class="s5">'reset_content'</span><span class="s3">, </span><span class="s5">'reset'</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">206</span><span class="s1">: (</span><span class="s5">'partial_content'</span><span class="s3">, </span><span class="s5">'partial'</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">207</span><span class="s1">: (</span><span class="s5">'multi_status'</span><span class="s3">, </span><span class="s5">'multiple_status'</span><span class="s3">, </span><span class="s5">'multi_stati'</span><span class="s3">, </span><span class="s5">'multiple_stati'</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">208</span><span class="s1">: (</span><span class="s5">'already_reported'</span><span class="s3">,</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">226</span><span class="s1">: (</span><span class="s5">'im_used'</span><span class="s3">,</span><span class="s1">)</span><span class="s3">,</span>
+
+    <span class="s0"># Redirection.</span>
+    <span class="s4">300</span><span class="s1">: (</span><span class="s5">'multiple_choices'</span><span class="s3">,</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">301</span><span class="s1">: (</span><span class="s5">'moved_permanently'</span><span class="s3">, </span><span class="s5">'moved'</span><span class="s3">, </span><span class="s5">'</span><span class="s3">\\</span><span class="s5">o-'</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">302</span><span class="s1">: (</span><span class="s5">'found'</span><span class="s3">,</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">303</span><span class="s1">: (</span><span class="s5">'see_other'</span><span class="s3">, </span><span class="s5">'other'</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">304</span><span class="s1">: (</span><span class="s5">'not_modified'</span><span class="s3">,</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">305</span><span class="s1">: (</span><span class="s5">'use_proxy'</span><span class="s3">,</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">306</span><span class="s1">: (</span><span class="s5">'switch_proxy'</span><span class="s3">,</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">307</span><span class="s1">: (</span><span class="s5">'temporary_redirect'</span><span class="s3">, </span><span class="s5">'temporary_moved'</span><span class="s3">, </span><span class="s5">'temporary'</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">308</span><span class="s1">: (</span><span class="s5">'permanent_redirect'</span><span class="s3">,</span>
+          <span class="s5">'resume_incomplete'</span><span class="s3">, </span><span class="s5">'resume'</span><span class="s3">,</span><span class="s1">)</span><span class="s3">,  </span><span class="s0"># These 2 to be removed in 3.0</span>
+
+    <span class="s0"># Client Error.</span>
+    <span class="s4">400</span><span class="s1">: (</span><span class="s5">'bad_request'</span><span class="s3">, </span><span class="s5">'bad'</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">401</span><span class="s1">: (</span><span class="s5">'unauthorized'</span><span class="s3">,</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">402</span><span class="s1">: (</span><span class="s5">'payment_required'</span><span class="s3">, </span><span class="s5">'payment'</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">403</span><span class="s1">: (</span><span class="s5">'forbidden'</span><span class="s3">,</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">404</span><span class="s1">: (</span><span class="s5">'not_found'</span><span class="s3">, </span><span class="s5">'-o-'</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">405</span><span class="s1">: (</span><span class="s5">'method_not_allowed'</span><span class="s3">, </span><span class="s5">'not_allowed'</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">406</span><span class="s1">: (</span><span class="s5">'not_acceptable'</span><span class="s3">,</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">407</span><span class="s1">: (</span><span class="s5">'proxy_authentication_required'</span><span class="s3">, </span><span class="s5">'proxy_auth'</span><span class="s3">, </span><span class="s5">'proxy_authentication'</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">408</span><span class="s1">: (</span><span class="s5">'request_timeout'</span><span class="s3">, </span><span class="s5">'timeout'</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">409</span><span class="s1">: (</span><span class="s5">'conflict'</span><span class="s3">,</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">410</span><span class="s1">: (</span><span class="s5">'gone'</span><span class="s3">,</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">411</span><span class="s1">: (</span><span class="s5">'length_required'</span><span class="s3">,</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">412</span><span class="s1">: (</span><span class="s5">'precondition_failed'</span><span class="s3">, </span><span class="s5">'precondition'</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">413</span><span class="s1">: (</span><span class="s5">'request_entity_too_large'</span><span class="s3">,</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">414</span><span class="s1">: (</span><span class="s5">'request_uri_too_large'</span><span class="s3">,</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">415</span><span class="s1">: (</span><span class="s5">'unsupported_media_type'</span><span class="s3">, </span><span class="s5">'unsupported_media'</span><span class="s3">, </span><span class="s5">'media_type'</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">416</span><span class="s1">: (</span><span class="s5">'requested_range_not_satisfiable'</span><span class="s3">, </span><span class="s5">'requested_range'</span><span class="s3">, </span><span class="s5">'range_not_satisfiable'</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">417</span><span class="s1">: (</span><span class="s5">'expectation_failed'</span><span class="s3">,</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">418</span><span class="s1">: (</span><span class="s5">'im_a_teapot'</span><span class="s3">, </span><span class="s5">'teapot'</span><span class="s3">, </span><span class="s5">'i_am_a_teapot'</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">421</span><span class="s1">: (</span><span class="s5">'misdirected_request'</span><span class="s3">,</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">422</span><span class="s1">: (</span><span class="s5">'unprocessable_entity'</span><span class="s3">, </span><span class="s5">'unprocessable'</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">423</span><span class="s1">: (</span><span class="s5">'locked'</span><span class="s3">,</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">424</span><span class="s1">: (</span><span class="s5">'failed_dependency'</span><span class="s3">, </span><span class="s5">'dependency'</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">425</span><span class="s1">: (</span><span class="s5">'unordered_collection'</span><span class="s3">, </span><span class="s5">'unordered'</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">426</span><span class="s1">: (</span><span class="s5">'upgrade_required'</span><span class="s3">, </span><span class="s5">'upgrade'</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">428</span><span class="s1">: (</span><span class="s5">'precondition_required'</span><span class="s3">, </span><span class="s5">'precondition'</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">429</span><span class="s1">: (</span><span class="s5">'too_many_requests'</span><span class="s3">, </span><span class="s5">'too_many'</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">431</span><span class="s1">: (</span><span class="s5">'header_fields_too_large'</span><span class="s3">, </span><span class="s5">'fields_too_large'</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">444</span><span class="s1">: (</span><span class="s5">'no_response'</span><span class="s3">, </span><span class="s5">'none'</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">449</span><span class="s1">: (</span><span class="s5">'retry_with'</span><span class="s3">, </span><span class="s5">'retry'</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">450</span><span class="s1">: (</span><span class="s5">'blocked_by_windows_parental_controls'</span><span class="s3">, </span><span class="s5">'parental_controls'</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">451</span><span class="s1">: (</span><span class="s5">'unavailable_for_legal_reasons'</span><span class="s3">, </span><span class="s5">'legal_reasons'</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">499</span><span class="s1">: (</span><span class="s5">'client_closed_request'</span><span class="s3">,</span><span class="s1">)</span><span class="s3">,</span>
+
+    <span class="s0"># Server Error.</span>
+    <span class="s4">500</span><span class="s1">: (</span><span class="s5">'internal_server_error'</span><span class="s3">, </span><span class="s5">'server_error'</span><span class="s3">, </span><span class="s5">'/o</span><span class="s3">\\</span><span class="s5">'</span><span class="s3">, </span><span class="s5">'✗'</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">501</span><span class="s1">: (</span><span class="s5">'not_implemented'</span><span class="s3">,</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">502</span><span class="s1">: (</span><span class="s5">'bad_gateway'</span><span class="s3">,</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">503</span><span class="s1">: (</span><span class="s5">'service_unavailable'</span><span class="s3">, </span><span class="s5">'unavailable'</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">504</span><span class="s1">: (</span><span class="s5">'gateway_timeout'</span><span class="s3">,</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">505</span><span class="s1">: (</span><span class="s5">'http_version_not_supported'</span><span class="s3">, </span><span class="s5">'http_version'</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">506</span><span class="s1">: (</span><span class="s5">'variant_also_negotiates'</span><span class="s3">,</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">507</span><span class="s1">: (</span><span class="s5">'insufficient_storage'</span><span class="s3">,</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">509</span><span class="s1">: (</span><span class="s5">'bandwidth_limit_exceeded'</span><span class="s3">, </span><span class="s5">'bandwidth'</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">510</span><span class="s1">: (</span><span class="s5">'not_extended'</span><span class="s3">,</span><span class="s1">)</span><span class="s3">,</span>
+    <span class="s4">511</span><span class="s1">: (</span><span class="s5">'network_authentication_required'</span><span class="s3">, </span><span class="s5">'network_auth'</span><span class="s3">, </span><span class="s5">'network_authentication'</span><span class="s1">)</span><span class="s3">,</span>
+<span class="s1">}</span>
+
+<span class="s1">codes = LookupDict(name=</span><span class="s5">'status_codes'</span><span class="s1">)</span>
+
+<span class="s3">def </span><span class="s1">_init():</span>
+    <span class="s3">for </span><span class="s1">code</span><span class="s3">, </span><span class="s1">titles </span><span class="s3">in </span><span class="s1">_codes.items():</span>
+        <span class="s3">for </span><span class="s1">title </span><span class="s3">in </span><span class="s1">titles:</span>
+            <span class="s1">setattr(codes</span><span class="s3">, </span><span class="s1">title</span><span class="s3">, </span><span class="s1">code)</span>
+            <span class="s3">if not </span><span class="s1">title.startswith((</span><span class="s5">'</span><span class="s3">\\</span><span class="s5">'</span><span class="s3">, </span><span class="s5">'/'</span><span class="s1">)):</span>
+                <span class="s1">setattr(codes</span><span class="s3">, </span><span class="s1">title.upper()</span><span class="s3">, </span><span class="s1">code)</span>
+
+    <span class="s3">def </span><span class="s1">doc(code):</span>
+        <span class="s1">names = </span><span class="s5">', '</span><span class="s1">.join(</span><span class="s5">'``%s``' </span><span class="s1">% n </span><span class="s3">for </span><span class="s1">n </span><span class="s3">in </span><span class="s1">_codes[code])</span>
+        <span class="s3">return </span><span class="s5">'* %d: %s' </span><span class="s1">% (code</span><span class="s3">, </span><span class="s1">names)</span>
+
+    <span class="s3">global </span><span class="s1">__doc__</span>
+    <span class="s1">__doc__ = (__doc__ + </span><span class="s5">'</span><span class="s3">\n</span><span class="s5">' </span><span class="s1">+</span>
+               <span class="s5">'</span><span class="s3">\n</span><span class="s5">'</span><span class="s1">.join(doc(code) </span><span class="s3">for </span><span class="s1">code </span><span class="s3">in </span><span class="s1">sorted(_codes))</span>
+               <span class="s3">if </span><span class="s1">__doc__ </span><span class="s3">is not None else None</span><span class="s1">)</span>
+
+<span class="s1">_init()</span>
+</pre>
+</body>
+</html>

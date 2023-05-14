@@ -1,0 +1,47 @@
+<html>
+<head>
+<title>DESCRIPTION.rst</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #6897bb;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #6a8759;}
+.s3 { color: #a9b7c6;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+DESCRIPTION.rst</font>
+</center></td></tr></table>
+<pre><span class="s0">python-webencodings 
+=================== 
+</span>
+<span class="s1">This is a Python implementation of the </span><span class="s2">`WHATWG Encoding standard 
+&lt;http://encoding.spec.whatwg.org/&gt;`_</span><span class="s1">.</span>
+
+<span class="s1">* Latest documentation: </span><span class="s2">http://packages.python.org/webencodings/</span>
+<span class="s1">* Source code and issue tracker:</span>
+  <span class="s2">https://github.com/gsnedders/python-webencodings</span>
+<span class="s1">* PyPI releases: </span><span class="s2">http://pypi.python.org/pypi/webencodings</span>
+<span class="s1">* License: BSD</span>
+<span class="s1">* Python 2.6+ and 3.3+</span>
+
+<span class="s1">In order to be compatible with legacy web content</span>
+<span class="s1">when interpreting something like </span><span class="s3">``Content-Type: text/html; charset=latin1``</span><span class="s1">,</span>
+<span class="s1">tools need to use a particular set of aliases for encoding labels</span>
+<span class="s1">as well as some overriding rules.</span>
+<span class="s1">For example, </span><span class="s3">``US-ASCII`` </span><span class="s1">and </span><span class="s3">``iso-8859-1`` </span><span class="s1">on the web are actually</span>
+<span class="s1">aliases for </span><span class="s3">``windows-1252``</span><span class="s1">, and an UTF-8 or UTF-16 BOM takes precedence</span>
+<span class="s1">over any other encoding declaration.</span>
+<span class="s1">The Encoding standard defines all such details so that implementations do</span>
+<span class="s1">not have to reverse-engineer each other.</span>
+
+<span class="s1">This module has encoding labels and BOM detection,</span>
+<span class="s1">but the actual implementation for encoders and decoders is Python’s.</span>
+
+
+</pre>
+</body>
+</html>

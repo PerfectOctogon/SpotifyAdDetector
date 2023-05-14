@@ -1,0 +1,267 @@
+<html>
+<head>
+<title>xmlschemas.h</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+.s4 { color: #6897bb;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+xmlschemas.h</font>
+</center></td></tr></table>
+<pre><span class="s0">/* 
+ * Summary: incomplete XML Schemas structure implementation 
+ * Description: interface to the XML Schemas handling and schema validity 
+ *              checking, it is incomplete right now. 
+ * 
+ * Copy: See Copyright for the status of this software. 
+ * 
+ * Author: Daniel Veillard 
+ */</span>
+
+
+<span class="s2">#ifndef </span><span class="s1">__XML_SCHEMA_H__</span>
+<span class="s2">#define </span><span class="s1">__XML_SCHEMA_H__</span>
+
+<span class="s2">#include </span><span class="s1">&lt;libxml/xmlversion.h&gt;</span>
+
+<span class="s2">#ifdef </span><span class="s1">LIBXML_SCHEMAS_ENABLED</span>
+
+<span class="s2">#include </span><span class="s1">&lt;libxml/tree.h&gt;</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s2">extern </span><span class="s3">&quot;C&quot; </span><span class="s1">{</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * This error codes are obsolete; not used any more. 
+ */</span>
+<span class="s2">typedef enum </span><span class="s1">{</span>
+    <span class="s1">XML_SCHEMAS_ERR_OK		= </span><span class="s4">0</span><span class="s1">,</span>
+    <span class="s1">XML_SCHEMAS_ERR_NOROOT	= </span><span class="s4">1</span><span class="s1">,</span>
+    <span class="s1">XML_SCHEMAS_ERR_UNDECLAREDELEM,</span>
+    <span class="s1">XML_SCHEMAS_ERR_NOTTOPLEVEL,</span>
+    <span class="s1">XML_SCHEMAS_ERR_MISSING,</span>
+    <span class="s1">XML_SCHEMAS_ERR_WRONGELEM,</span>
+    <span class="s1">XML_SCHEMAS_ERR_NOTYPE,</span>
+    <span class="s1">XML_SCHEMAS_ERR_NOROLLBACK,</span>
+    <span class="s1">XML_SCHEMAS_ERR_ISABSTRACT,</span>
+    <span class="s1">XML_SCHEMAS_ERR_NOTEMPTY,</span>
+    <span class="s1">XML_SCHEMAS_ERR_ELEMCONT,</span>
+    <span class="s1">XML_SCHEMAS_ERR_HAVEDEFAULT,</span>
+    <span class="s1">XML_SCHEMAS_ERR_NOTNILLABLE,</span>
+    <span class="s1">XML_SCHEMAS_ERR_EXTRACONTENT,</span>
+    <span class="s1">XML_SCHEMAS_ERR_INVALIDATTR,</span>
+    <span class="s1">XML_SCHEMAS_ERR_INVALIDELEM,</span>
+    <span class="s1">XML_SCHEMAS_ERR_NOTDETERMINIST,</span>
+    <span class="s1">XML_SCHEMAS_ERR_CONSTRUCT,</span>
+    <span class="s1">XML_SCHEMAS_ERR_INTERNAL,</span>
+    <span class="s1">XML_SCHEMAS_ERR_NOTSIMPLE,</span>
+    <span class="s1">XML_SCHEMAS_ERR_ATTRUNKNOWN,</span>
+    <span class="s1">XML_SCHEMAS_ERR_ATTRINVALID,</span>
+    <span class="s1">XML_SCHEMAS_ERR_VALUE,</span>
+    <span class="s1">XML_SCHEMAS_ERR_FACET,</span>
+    <span class="s1">XML_SCHEMAS_ERR_,</span>
+    <span class="s1">XML_SCHEMAS_ERR_XXX</span>
+<span class="s1">} xmlSchemaValidError;</span>
+
+<span class="s0">/* 
+* ATTENTION: Change xmlSchemaSetValidOptions's check 
+* for invalid values, if adding to the validation 
+* options below. 
+*/</span>
+<span class="s0">/** 
+ * xmlSchemaValidOption: 
+ * 
+ * This is the set of XML Schema validation options. 
+ */</span>
+<span class="s2">typedef enum </span><span class="s1">{</span>
+    <span class="s1">XML_SCHEMA_VAL_VC_I_CREATE			= </span><span class="s4">1</span><span class="s1">&lt;&lt;</span><span class="s4">0</span>
+	<span class="s0">/* Default/fixed: create an attribute node 
+    * or an element's text node on the instance. 
+    */</span>
+<span class="s1">} xmlSchemaValidOption;</span>
+
+<span class="s0">/* 
+    XML_SCHEMA_VAL_XSI_ASSEMBLE         = 1&lt;&lt;1, 
+    * assemble schemata using 
+    * xsi:schemaLocation and 
+    * xsi:noNamespaceSchemaLocation 
+*/</span>
+
+<span class="s0">/** 
+ * The schemas related types are kept internal 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xmlSchema xmlSchema;</span>
+<span class="s2">typedef </span><span class="s1">xmlSchema *xmlSchemaPtr;</span>
+
+<span class="s0">/** 
+ * xmlSchemaValidityErrorFunc: 
+ * @ctx: the validation context 
+ * @msg: the message 
+ * @...: extra arguments 
+ * 
+ * Signature of an error callback from an XSD validation 
+ */</span>
+<span class="s2">typedef void </span><span class="s1">(XMLCDECL *xmlSchemaValidityErrorFunc)</span>
+                 <span class="s1">(</span><span class="s2">void </span><span class="s1">*ctx, </span><span class="s2">const char </span><span class="s1">*msg, ...) LIBXML_ATTR_FORMAT(</span><span class="s4">2</span><span class="s1">,</span><span class="s4">3</span><span class="s1">);</span>
+
+<span class="s0">/** 
+ * xmlSchemaValidityWarningFunc: 
+ * @ctx: the validation context 
+ * @msg: the message 
+ * @...: extra arguments 
+ * 
+ * Signature of a warning callback from an XSD validation 
+ */</span>
+<span class="s2">typedef void </span><span class="s1">(XMLCDECL *xmlSchemaValidityWarningFunc)</span>
+                 <span class="s1">(</span><span class="s2">void </span><span class="s1">*ctx, </span><span class="s2">const char </span><span class="s1">*msg, ...) LIBXML_ATTR_FORMAT(</span><span class="s4">2</span><span class="s1">,</span><span class="s4">3</span><span class="s1">);</span>
+
+<span class="s0">/** 
+ * A schemas validation context 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xmlSchemaParserCtxt xmlSchemaParserCtxt;</span>
+<span class="s2">typedef </span><span class="s1">xmlSchemaParserCtxt *xmlSchemaParserCtxtPtr;</span>
+
+<span class="s2">typedef struct </span><span class="s1">_xmlSchemaValidCtxt xmlSchemaValidCtxt;</span>
+<span class="s2">typedef </span><span class="s1">xmlSchemaValidCtxt *xmlSchemaValidCtxtPtr;</span>
+
+<span class="s0">/** 
+ * xmlSchemaValidityLocatorFunc: 
+ * @ctx: user provided context 
+ * @file: returned file information 
+ * @line: returned line information 
+ * 
+ * A schemas validation locator, a callback called by the validator. 
+ * This is used when file or node informations are not available 
+ * to find out what file and line number are affected 
+ * 
+ * Returns: 0 in case of success and -1 in case of error 
+ */</span>
+
+<span class="s2">typedef int </span><span class="s1">(XMLCDECL *xmlSchemaValidityLocatorFunc) (</span><span class="s2">void </span><span class="s1">*ctx,</span>
+                           <span class="s2">const char </span><span class="s1">**file, </span><span class="s2">unsigned long </span><span class="s1">*line);</span>
+
+<span class="s0">/* 
+ * Interfaces for parsing. 
+ */</span>
+<span class="s1">XMLPUBFUN xmlSchemaParserCtxtPtr XMLCALL</span>
+	    <span class="s1">xmlSchemaNewParserCtxt	(</span><span class="s2">const char </span><span class="s1">*URL);</span>
+<span class="s1">XMLPUBFUN xmlSchemaParserCtxtPtr XMLCALL</span>
+	    <span class="s1">xmlSchemaNewMemParserCtxt	(</span><span class="s2">const char </span><span class="s1">*buffer,</span>
+					 <span class="s2">int </span><span class="s1">size);</span>
+<span class="s1">XMLPUBFUN xmlSchemaParserCtxtPtr XMLCALL</span>
+	    <span class="s1">xmlSchemaNewDocParserCtxt	(xmlDocPtr doc);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+	    <span class="s1">xmlSchemaFreeParserCtxt	(xmlSchemaParserCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+	    <span class="s1">xmlSchemaSetParserErrors	(xmlSchemaParserCtxtPtr ctxt,</span>
+					 <span class="s1">xmlSchemaValidityErrorFunc err,</span>
+					 <span class="s1">xmlSchemaValidityWarningFunc warn,</span>
+					 <span class="s2">void </span><span class="s1">*ctx);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+	    <span class="s1">xmlSchemaSetParserStructuredErrors(xmlSchemaParserCtxtPtr ctxt,</span>
+					 <span class="s1">xmlStructuredErrorFunc serror,</span>
+					 <span class="s2">void </span><span class="s1">*ctx);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSchemaGetParserErrors(xmlSchemaParserCtxtPtr ctxt,</span>
+					<span class="s1">xmlSchemaValidityErrorFunc * err,</span>
+					<span class="s1">xmlSchemaValidityWarningFunc * warn,</span>
+					<span class="s2">void </span><span class="s1">**ctx);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlSchemaIsValid	(xmlSchemaValidCtxtPtr ctxt);</span>
+
+<span class="s1">XMLPUBFUN xmlSchemaPtr XMLCALL</span>
+	    <span class="s1">xmlSchemaParse		(xmlSchemaParserCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+	    <span class="s1">xmlSchemaFree		(xmlSchemaPtr schema);</span>
+<span class="s2">#ifdef </span><span class="s1">LIBXML_OUTPUT_ENABLED</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+	    <span class="s1">xmlSchemaDump		(FILE *output,</span>
+					 <span class="s1">xmlSchemaPtr schema);</span>
+<span class="s2">#endif </span><span class="s0">/* LIBXML_OUTPUT_ENABLED */</span>
+<span class="s0">/* 
+ * Interfaces for validating 
+ */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+	    <span class="s1">xmlSchemaSetValidErrors	(xmlSchemaValidCtxtPtr ctxt,</span>
+					 <span class="s1">xmlSchemaValidityErrorFunc err,</span>
+					 <span class="s1">xmlSchemaValidityWarningFunc warn,</span>
+					 <span class="s2">void </span><span class="s1">*ctx);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+	    <span class="s1">xmlSchemaSetValidStructuredErrors(xmlSchemaValidCtxtPtr ctxt,</span>
+					 <span class="s1">xmlStructuredErrorFunc serror,</span>
+					 <span class="s2">void </span><span class="s1">*ctx);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	    <span class="s1">xmlSchemaGetValidErrors	(xmlSchemaValidCtxtPtr ctxt,</span>
+					 <span class="s1">xmlSchemaValidityErrorFunc *err,</span>
+					 <span class="s1">xmlSchemaValidityWarningFunc *warn,</span>
+					 <span class="s2">void </span><span class="s1">**ctx);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	    <span class="s1">xmlSchemaSetValidOptions	(xmlSchemaValidCtxtPtr ctxt,</span>
+					 <span class="s2">int </span><span class="s1">options);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+            <span class="s1">xmlSchemaValidateSetFilename(xmlSchemaValidCtxtPtr vctxt,</span>
+	                                 <span class="s2">const char </span><span class="s1">*filename);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	    <span class="s1">xmlSchemaValidCtxtGetOptions(xmlSchemaValidCtxtPtr ctxt);</span>
+
+<span class="s1">XMLPUBFUN xmlSchemaValidCtxtPtr XMLCALL</span>
+	    <span class="s1">xmlSchemaNewValidCtxt	(xmlSchemaPtr schema);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+	    <span class="s1">xmlSchemaFreeValidCtxt	(xmlSchemaValidCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	    <span class="s1">xmlSchemaValidateDoc	(xmlSchemaValidCtxtPtr ctxt,</span>
+					 <span class="s1">xmlDocPtr instance);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+            <span class="s1">xmlSchemaValidateOneElement (xmlSchemaValidCtxtPtr ctxt,</span>
+			                 <span class="s1">xmlNodePtr elem);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	    <span class="s1">xmlSchemaValidateStream	(xmlSchemaValidCtxtPtr ctxt,</span>
+					 <span class="s1">xmlParserInputBufferPtr input,</span>
+					 <span class="s1">xmlCharEncoding enc,</span>
+					 <span class="s1">xmlSAXHandlerPtr sax,</span>
+					 <span class="s2">void </span><span class="s1">*user_data);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	    <span class="s1">xmlSchemaValidateFile	(xmlSchemaValidCtxtPtr ctxt,</span>
+					 <span class="s2">const char </span><span class="s1">* filename,</span>
+					 <span class="s2">int </span><span class="s1">options);</span>
+
+<span class="s1">XMLPUBFUN xmlParserCtxtPtr XMLCALL</span>
+	    <span class="s1">xmlSchemaValidCtxtGetParserCtxt(xmlSchemaValidCtxtPtr ctxt);</span>
+
+<span class="s0">/* 
+ * Interface to insert Schemas SAX validation in a SAX stream 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xmlSchemaSAXPlug xmlSchemaSAXPlugStruct;</span>
+<span class="s2">typedef </span><span class="s1">xmlSchemaSAXPlugStruct *xmlSchemaSAXPlugPtr;</span>
+
+<span class="s1">XMLPUBFUN xmlSchemaSAXPlugPtr XMLCALL</span>
+            <span class="s1">xmlSchemaSAXPlug		(xmlSchemaValidCtxtPtr ctxt,</span>
+					 <span class="s1">xmlSAXHandlerPtr *sax,</span>
+					 <span class="s2">void </span><span class="s1">**user_data);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+            <span class="s1">xmlSchemaSAXUnplug		(xmlSchemaSAXPlugPtr plug);</span>
+
+
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+            <span class="s1">xmlSchemaValidateSetLocator	(xmlSchemaValidCtxtPtr vctxt,</span>
+					 <span class="s1">xmlSchemaValidityLocatorFunc f,</span>
+					 <span class="s2">void </span><span class="s1">*ctxt);</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s1">}</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#endif </span><span class="s0">/* LIBXML_SCHEMAS_ENABLED */</span>
+<span class="s2">#endif </span><span class="s0">/* __XML_SCHEMA_H__ */</span>
+</pre>
+</body>
+</html>

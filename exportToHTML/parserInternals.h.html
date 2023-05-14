@@ -1,0 +1,665 @@
+<html>
+<head>
+<title>parserInternals.h</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+.s4 { color: #6897bb;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+parserInternals.h</font>
+</center></td></tr></table>
+<pre><span class="s0">/* 
+ * Summary: internals routines and limits exported by the parser. 
+ * Description: this module exports a number of internal parsing routines 
+ *              they are not really all intended for applications but 
+ *              can prove useful doing low level processing. 
+ * 
+ * Copy: See Copyright for the status of this software. 
+ * 
+ * Author: Daniel Veillard 
+ */</span>
+
+<span class="s2">#ifndef </span><span class="s1">__XML_PARSER_INTERNALS_H__</span>
+<span class="s2">#define </span><span class="s1">__XML_PARSER_INTERNALS_H__</span>
+
+<span class="s2">#include </span><span class="s1">&lt;libxml/xmlversion.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/parser.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/HTMLparser.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/chvalid.h&gt;</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s2">extern </span><span class="s3">&quot;C&quot; </span><span class="s1">{</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * xmlParserMaxDepth: 
+ * 
+ * arbitrary depth limit for the XML documents that we allow to 
+ * process. This is not a limitation of the parser but a safety 
+ * boundary feature, use XML_PARSE_HUGE option to override it. 
+ */</span>
+<span class="s1">XMLPUBVAR </span><span class="s2">unsigned int </span><span class="s1">xmlParserMaxDepth;</span>
+
+<span class="s0">/** 
+ * XML_MAX_TEXT_LENGTH: 
+ * 
+ * Maximum size allowed for a single text node when building a tree. 
+ * This is not a limitation of the parser but a safety boundary feature, 
+ * use XML_PARSE_HUGE option to override it. 
+ * Introduced in 2.9.0 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_MAX_TEXT_LENGTH </span><span class="s4">10000000</span>
+
+<span class="s0">/** 
+ * XML_MAX_NAME_LENGTH: 
+ * 
+ * Maximum size allowed for a markup identitier 
+ * This is not a limitation of the parser but a safety boundary feature, 
+ * use XML_PARSE_HUGE option to override it. 
+ * Note that with the use of parsing dictionaries overriding the limit 
+ * may result in more runtime memory usage in face of &quot;unfriendly' content 
+ * Introduced in 2.9.0 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_MAX_NAME_LENGTH </span><span class="s4">50000</span>
+
+<span class="s0">/** 
+ * XML_MAX_DICTIONARY_LIMIT: 
+ * 
+ * Maximum size allowed by the parser for a dictionary by default 
+ * This is not a limitation of the parser but a safety boundary feature, 
+ * use XML_PARSE_HUGE option to override it. 
+ * Introduced in 2.9.0 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_MAX_DICTIONARY_LIMIT </span><span class="s4">10000000</span>
+
+<span class="s0">/** 
+ * XML_MAX_LOOKUP_LIMIT: 
+ * 
+ * Maximum size allowed by the parser for ahead lookup 
+ * This is an upper boundary enforced by the parser to avoid bad 
+ * behaviour on &quot;unfriendly' content 
+ * Introduced in 2.9.0 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_MAX_LOOKUP_LIMIT </span><span class="s4">10000000</span>
+
+<span class="s0">/** 
+ * XML_MAX_NAMELEN: 
+ * 
+ * Identifiers can be longer, but this will be more costly 
+ * at runtime. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_MAX_NAMELEN </span><span class="s4">100</span>
+
+<span class="s0">/** 
+ * INPUT_CHUNK: 
+ * 
+ * The parser tries to always have that amount of input ready. 
+ * One of the point is providing context when reporting errors. 
+ */</span>
+<span class="s2">#define </span><span class="s1">INPUT_CHUNK	</span><span class="s4">250</span>
+
+<span class="s0">/************************************************************************ 
+ *                                  * 
+ * UNICODE version of the macros.                   * 
+ *                                  * 
+ ************************************************************************/</span>
+<span class="s0">/** 
+ * IS_BYTE_CHAR: 
+ * @c:  an byte value (int) 
+ * 
+ * Macro to check the following production in the XML spec: 
+ * 
+ * [2] Char ::= #x9 | #xA | #xD | [#x20...] 
+ * any byte character in the accepted range 
+ */</span>
+<span class="s2">#define </span><span class="s1">IS_BYTE_CHAR(c)	 xmlIsChar_ch(c)</span>
+
+<span class="s0">/** 
+ * IS_CHAR: 
+ * @c:  an UNICODE value (int) 
+ * 
+ * Macro to check the following production in the XML spec: 
+ * 
+ * [2] Char ::= #x9 | #xA | #xD | [#x20-#xD7FF] | [#xE000-#xFFFD] 
+ *                  | [#x10000-#x10FFFF] 
+ * any Unicode character, excluding the surrogate blocks, FFFE, and FFFF. 
+ */</span>
+<span class="s2">#define </span><span class="s1">IS_CHAR(c)   xmlIsCharQ(c)</span>
+
+<span class="s0">/** 
+ * IS_CHAR_CH: 
+ * @c: an xmlChar (usually an unsigned char) 
+ * 
+ * Behaves like IS_CHAR on single-byte value 
+ */</span>
+<span class="s2">#define </span><span class="s1">IS_CHAR_CH(c)  xmlIsChar_ch(c)</span>
+
+<span class="s0">/** 
+ * IS_BLANK: 
+ * @c:  an UNICODE value (int) 
+ * 
+ * Macro to check the following production in the XML spec: 
+ * 
+ * [3] S ::= (#x20 | #x9 | #xD | #xA)+ 
+ */</span>
+<span class="s2">#define </span><span class="s1">IS_BLANK(c)  xmlIsBlankQ(c)</span>
+
+<span class="s0">/** 
+ * IS_BLANK_CH: 
+ * @c:  an xmlChar value (normally unsigned char) 
+ * 
+ * Behaviour same as IS_BLANK 
+ */</span>
+<span class="s2">#define </span><span class="s1">IS_BLANK_CH(c)  xmlIsBlank_ch(c)</span>
+
+<span class="s0">/** 
+ * IS_BASECHAR: 
+ * @c:  an UNICODE value (int) 
+ * 
+ * Macro to check the following production in the XML spec: 
+ * 
+ * [85] BaseChar ::= ... long list see REC ... 
+ */</span>
+<span class="s2">#define </span><span class="s1">IS_BASECHAR(c) xmlIsBaseCharQ(c)</span>
+
+<span class="s0">/** 
+ * IS_DIGIT: 
+ * @c:  an UNICODE value (int) 
+ * 
+ * Macro to check the following production in the XML spec: 
+ * 
+ * [88] Digit ::= ... long list see REC ... 
+ */</span>
+<span class="s2">#define </span><span class="s1">IS_DIGIT(c) xmlIsDigitQ(c)</span>
+
+<span class="s0">/** 
+ * IS_DIGIT_CH: 
+ * @c:  an xmlChar value (usually an unsigned char) 
+ * 
+ * Behaves like IS_DIGIT but with a single byte argument 
+ */</span>
+<span class="s2">#define </span><span class="s1">IS_DIGIT_CH(c)  xmlIsDigit_ch(c)</span>
+
+<span class="s0">/** 
+ * IS_COMBINING: 
+ * @c:  an UNICODE value (int) 
+ * 
+ * Macro to check the following production in the XML spec: 
+ * 
+ * [87] CombiningChar ::= ... long list see REC ... 
+ */</span>
+<span class="s2">#define </span><span class="s1">IS_COMBINING(c) xmlIsCombiningQ(c)</span>
+
+<span class="s0">/** 
+ * IS_COMBINING_CH: 
+ * @c:  an xmlChar (usually an unsigned char) 
+ * 
+ * Always false (all combining chars &gt; 0xff) 
+ */</span>
+<span class="s2">#define </span><span class="s1">IS_COMBINING_CH(c) </span><span class="s4">0</span>
+
+<span class="s0">/** 
+ * IS_EXTENDER: 
+ * @c:  an UNICODE value (int) 
+ * 
+ * Macro to check the following production in the XML spec: 
+ * 
+ * 
+ * [89] Extender ::= #x00B7 | #x02D0 | #x02D1 | #x0387 | #x0640 | 
+ *                   #x0E46 | #x0EC6 | #x3005 | [#x3031-#x3035] | 
+ *                   [#x309D-#x309E] | [#x30FC-#x30FE] 
+ */</span>
+<span class="s2">#define </span><span class="s1">IS_EXTENDER(c) xmlIsExtenderQ(c)</span>
+
+<span class="s0">/** 
+ * IS_EXTENDER_CH: 
+ * @c:  an xmlChar value (usually an unsigned char) 
+ * 
+ * Behaves like IS_EXTENDER but with a single-byte argument 
+ */</span>
+<span class="s2">#define </span><span class="s1">IS_EXTENDER_CH(c)  xmlIsExtender_ch(c)</span>
+
+<span class="s0">/** 
+ * IS_IDEOGRAPHIC: 
+ * @c:  an UNICODE value (int) 
+ * 
+ * Macro to check the following production in the XML spec: 
+ * 
+ * 
+ * [86] Ideographic ::= [#x4E00-#x9FA5] | #x3007 | [#x3021-#x3029] 
+ */</span>
+<span class="s2">#define </span><span class="s1">IS_IDEOGRAPHIC(c) xmlIsIdeographicQ(c)</span>
+
+<span class="s0">/** 
+ * IS_LETTER: 
+ * @c:  an UNICODE value (int) 
+ * 
+ * Macro to check the following production in the XML spec: 
+ * 
+ * 
+ * [84] Letter ::= BaseChar | Ideographic 
+ */</span>
+<span class="s2">#define </span><span class="s1">IS_LETTER(c) (IS_BASECHAR(c) || IS_IDEOGRAPHIC(c))</span>
+
+<span class="s0">/** 
+ * IS_LETTER_CH: 
+ * @c:  an xmlChar value (normally unsigned char) 
+ * 
+ * Macro behaves like IS_LETTER, but only check base chars 
+ * 
+ */</span>
+<span class="s2">#define </span><span class="s1">IS_LETTER_CH(c) xmlIsBaseChar_ch(c)</span>
+
+<span class="s0">/** 
+ * IS_ASCII_LETTER: 
+ * @c: an xmlChar value 
+ * 
+ * Macro to check [a-zA-Z] 
+ * 
+ */</span>
+<span class="s2">#define </span><span class="s1">IS_ASCII_LETTER(c)	(((</span><span class="s4">0x41 </span><span class="s1">&lt;= (c)) &amp;&amp; ((c) &lt;= </span><span class="s4">0x5a</span><span class="s1">)) || \</span>
+				 <span class="s1">((</span><span class="s4">0x61 </span><span class="s1">&lt;= (c)) &amp;&amp; ((c) &lt;= </span><span class="s4">0x7a</span><span class="s1">)))</span>
+
+<span class="s0">/** 
+ * IS_ASCII_DIGIT: 
+ * @c: an xmlChar value 
+ * 
+ * Macro to check [0-9] 
+ * 
+ */</span>
+<span class="s2">#define </span><span class="s1">IS_ASCII_DIGIT(c)	((</span><span class="s4">0x30 </span><span class="s1">&lt;= (c)) &amp;&amp; ((c) &lt;= </span><span class="s4">0x39</span><span class="s1">))</span>
+
+<span class="s0">/** 
+ * IS_PUBIDCHAR: 
+ * @c:  an UNICODE value (int) 
+ * 
+ * Macro to check the following production in the XML spec: 
+ * 
+ * 
+ * [13] PubidChar ::= #x20 | #xD | #xA | [a-zA-Z0-9] | [-'()+,./:=?;!*#@$_%] 
+ */</span>
+<span class="s2">#define </span><span class="s1">IS_PUBIDCHAR(c)	xmlIsPubidCharQ(c)</span>
+
+<span class="s0">/** 
+ * IS_PUBIDCHAR_CH: 
+ * @c:  an xmlChar value (normally unsigned char) 
+ * 
+ * Same as IS_PUBIDCHAR but for single-byte value 
+ */</span>
+<span class="s2">#define </span><span class="s1">IS_PUBIDCHAR_CH(c) xmlIsPubidChar_ch(c)</span>
+
+<span class="s0">/** 
+ * SKIP_EOL: 
+ * @p:  and UTF8 string pointer 
+ * 
+ * Skips the end of line chars. 
+ */</span>
+<span class="s2">#define </span><span class="s1">SKIP_EOL(p)							\</span>
+    <span class="s2">if </span><span class="s1">(*(p) == </span><span class="s4">0x13</span><span class="s1">) { p++ ; </span><span class="s2">if </span><span class="s1">(*(p) == </span><span class="s4">0x10</span><span class="s1">) p++; }			\</span>
+    <span class="s2">if </span><span class="s1">(*(p) == </span><span class="s4">0x10</span><span class="s1">) { p++ ; </span><span class="s2">if </span><span class="s1">(*(p) == </span><span class="s4">0x13</span><span class="s1">) p++; }</span>
+
+<span class="s0">/** 
+ * MOVETO_ENDTAG: 
+ * @p:  and UTF8 string pointer 
+ * 
+ * Skips to the next '&gt;' char. 
+ */</span>
+<span class="s2">#define </span><span class="s1">MOVETO_ENDTAG(p)						\</span>
+    <span class="s2">while </span><span class="s1">((*p) &amp;&amp; (*(p) != </span><span class="s3">'&gt;'</span><span class="s1">)) (p)++</span>
+
+<span class="s0">/** 
+ * MOVETO_STARTTAG: 
+ * @p:  and UTF8 string pointer 
+ * 
+ * Skips to the next '&lt;' char. 
+ */</span>
+<span class="s2">#define </span><span class="s1">MOVETO_STARTTAG(p)						\</span>
+    <span class="s2">while </span><span class="s1">((*p) &amp;&amp; (*(p) != </span><span class="s3">'&lt;'</span><span class="s1">)) (p)++</span>
+
+<span class="s0">/** 
+ * Global variables used for predefined strings. 
+ */</span>
+<span class="s1">XMLPUBVAR </span><span class="s2">const </span><span class="s1">xmlChar xmlStringText[];</span>
+<span class="s1">XMLPUBVAR </span><span class="s2">const </span><span class="s1">xmlChar xmlStringTextNoenc[];</span>
+<span class="s1">XMLPUBVAR </span><span class="s2">const </span><span class="s1">xmlChar xmlStringComment[];</span>
+
+<span class="s0">/* 
+ * Function to finish the work of the macros where needed. 
+ */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL                   xmlIsLetter     (</span><span class="s2">int </span><span class="s1">c);</span>
+
+<span class="s0">/** 
+ * Parser context. 
+ */</span>
+<span class="s1">XMLPUBFUN xmlParserCtxtPtr XMLCALL</span>
+			<span class="s1">xmlCreateFileParserCtxt	(</span><span class="s2">const char </span><span class="s1">*filename);</span>
+<span class="s1">XMLPUBFUN xmlParserCtxtPtr XMLCALL</span>
+			<span class="s1">xmlCreateURLParserCtxt	(</span><span class="s2">const char </span><span class="s1">*filename,</span>
+						 <span class="s2">int </span><span class="s1">options);</span>
+<span class="s1">XMLPUBFUN xmlParserCtxtPtr XMLCALL</span>
+			<span class="s1">xmlCreateMemoryParserCtxt(</span><span class="s2">const char </span><span class="s1">*buffer,</span>
+						 <span class="s2">int </span><span class="s1">size);</span>
+<span class="s1">XMLPUBFUN xmlParserCtxtPtr XMLCALL</span>
+			<span class="s1">xmlCreateEntityParserCtxt(</span><span class="s2">const </span><span class="s1">xmlChar *URL,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *ID,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *base);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlSwitchEncoding	(xmlParserCtxtPtr ctxt,</span>
+						 <span class="s1">xmlCharEncoding enc);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlSwitchToEncoding	(xmlParserCtxtPtr ctxt,</span>
+					 <span class="s1">xmlCharEncodingHandlerPtr handler);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlSwitchInputEncoding	(xmlParserCtxtPtr ctxt,</span>
+						 <span class="s1">xmlParserInputPtr input,</span>
+					 <span class="s1">xmlCharEncodingHandlerPtr handler);</span>
+
+<span class="s2">#ifdef </span><span class="s1">IN_LIBXML</span>
+<span class="s0">/* internal error reporting */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+			<span class="s1">__xmlErrEncoding	(xmlParserCtxtPtr ctxt,</span>
+						 <span class="s1">xmlParserErrors xmlerr,</span>
+						 <span class="s2">const char </span><span class="s1">*msg,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar * str1,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar * str2) LIBXML_ATTR_FORMAT(</span><span class="s4">3</span><span class="s1">,</span><span class="s4">0</span><span class="s1">);</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * Input Streams. 
+ */</span>
+<span class="s1">XMLPUBFUN xmlParserInputPtr XMLCALL</span>
+			<span class="s1">xmlNewStringInputStream	(xmlParserCtxtPtr ctxt,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *buffer);</span>
+<span class="s1">XMLPUBFUN xmlParserInputPtr XMLCALL</span>
+			<span class="s1">xmlNewEntityInputStream	(xmlParserCtxtPtr ctxt,</span>
+						 <span class="s1">xmlEntityPtr entity);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlPushInput		(xmlParserCtxtPtr ctxt,</span>
+						 <span class="s1">xmlParserInputPtr input);</span>
+<span class="s1">XMLPUBFUN xmlChar XMLCALL</span>
+			<span class="s1">xmlPopInput		(xmlParserCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlFreeInputStream	(xmlParserInputPtr input);</span>
+<span class="s1">XMLPUBFUN xmlParserInputPtr XMLCALL</span>
+			<span class="s1">xmlNewInputFromFile	(xmlParserCtxtPtr ctxt,</span>
+						 <span class="s2">const char </span><span class="s1">*filename);</span>
+<span class="s1">XMLPUBFUN xmlParserInputPtr XMLCALL</span>
+			<span class="s1">xmlNewInputStream	(xmlParserCtxtPtr ctxt);</span>
+
+<span class="s0">/** 
+ * Namespaces. 
+ */</span>
+<span class="s1">XMLPUBFUN xmlChar * XMLCALL</span>
+			<span class="s1">xmlSplitQName		(xmlParserCtxtPtr ctxt,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+						 <span class="s1">xmlChar **prefix);</span>
+
+<span class="s0">/** 
+ * Generic production rules. 
+ */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">const </span><span class="s1">xmlChar * XMLCALL</span>
+			<span class="s1">xmlParseName		(xmlParserCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN xmlChar * XMLCALL</span>
+			<span class="s1">xmlParseNmtoken		(xmlParserCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN xmlChar * XMLCALL</span>
+			<span class="s1">xmlParseEntityValue	(xmlParserCtxtPtr ctxt,</span>
+						 <span class="s1">xmlChar **orig);</span>
+<span class="s1">XMLPUBFUN xmlChar * XMLCALL</span>
+			<span class="s1">xmlParseAttValue	(xmlParserCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN xmlChar * XMLCALL</span>
+			<span class="s1">xmlParseSystemLiteral	(xmlParserCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN xmlChar * XMLCALL</span>
+			<span class="s1">xmlParsePubidLiteral	(xmlParserCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlParseCharData	(xmlParserCtxtPtr ctxt,</span>
+						 <span class="s2">int </span><span class="s1">cdata);</span>
+<span class="s1">XMLPUBFUN xmlChar * XMLCALL</span>
+			<span class="s1">xmlParseExternalID	(xmlParserCtxtPtr ctxt,</span>
+						 <span class="s1">xmlChar **publicID,</span>
+						 <span class="s2">int </span><span class="s1">strict);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlParseComment		(xmlParserCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">const </span><span class="s1">xmlChar * XMLCALL</span>
+			<span class="s1">xmlParsePITarget	(xmlParserCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlParsePI		(xmlParserCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlParseNotationDecl	(xmlParserCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlParseEntityDecl	(xmlParserCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlParseDefaultDecl	(xmlParserCtxtPtr ctxt,</span>
+						 <span class="s1">xmlChar **value);</span>
+<span class="s1">XMLPUBFUN xmlEnumerationPtr XMLCALL</span>
+			<span class="s1">xmlParseNotationType	(xmlParserCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN xmlEnumerationPtr XMLCALL</span>
+			<span class="s1">xmlParseEnumerationType	(xmlParserCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlParseEnumeratedType	(xmlParserCtxtPtr ctxt,</span>
+						 <span class="s1">xmlEnumerationPtr *tree);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlParseAttributeType	(xmlParserCtxtPtr ctxt,</span>
+						 <span class="s1">xmlEnumerationPtr *tree);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlParseAttributeListDecl(xmlParserCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN xmlElementContentPtr XMLCALL</span>
+			<span class="s1">xmlParseElementMixedContentDecl</span>
+						<span class="s1">(xmlParserCtxtPtr ctxt,</span>
+						 <span class="s2">int </span><span class="s1">inputchk);</span>
+<span class="s1">XMLPUBFUN xmlElementContentPtr XMLCALL</span>
+			<span class="s1">xmlParseElementChildrenContentDecl</span>
+						<span class="s1">(xmlParserCtxtPtr ctxt,</span>
+						 <span class="s2">int </span><span class="s1">inputchk);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlParseElementContentDecl(xmlParserCtxtPtr ctxt,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+						 <span class="s1">xmlElementContentPtr *result);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlParseElementDecl	(xmlParserCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlParseMarkupDecl	(xmlParserCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlParseCharRef		(xmlParserCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN xmlEntityPtr XMLCALL</span>
+			<span class="s1">xmlParseEntityRef	(xmlParserCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlParseReference	(xmlParserCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlParsePEReference	(xmlParserCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlParseDocTypeDecl	(xmlParserCtxtPtr ctxt);</span>
+<span class="s2">#ifdef </span><span class="s1">LIBXML_SAX1_ENABLED</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">const </span><span class="s1">xmlChar * XMLCALL</span>
+			<span class="s1">xmlParseAttribute	(xmlParserCtxtPtr ctxt,</span>
+						 <span class="s1">xmlChar **value);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">const </span><span class="s1">xmlChar * XMLCALL</span>
+			<span class="s1">xmlParseStartTag	(xmlParserCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlParseEndTag		(xmlParserCtxtPtr ctxt);</span>
+<span class="s2">#endif </span><span class="s0">/* LIBXML_SAX1_ENABLED */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlParseCDSect		(xmlParserCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlParseContent		(xmlParserCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlParseElement		(xmlParserCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN xmlChar * XMLCALL</span>
+			<span class="s1">xmlParseVersionNum	(xmlParserCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN xmlChar * XMLCALL</span>
+			<span class="s1">xmlParseVersionInfo	(xmlParserCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN xmlChar * XMLCALL</span>
+			<span class="s1">xmlParseEncName		(xmlParserCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">const </span><span class="s1">xmlChar * XMLCALL</span>
+			<span class="s1">xmlParseEncodingDecl	(xmlParserCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlParseSDDecl		(xmlParserCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlParseXMLDecl		(xmlParserCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlParseTextDecl	(xmlParserCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlParseMisc		(xmlParserCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlParseExternalSubset	(xmlParserCtxtPtr ctxt,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *ExternalID,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *SystemID);</span>
+<span class="s0">/** 
+ * XML_SUBSTITUTE_NONE: 
+ * 
+ * If no entities need to be substituted. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SUBSTITUTE_NONE	</span><span class="s4">0</span>
+<span class="s0">/** 
+ * XML_SUBSTITUTE_REF: 
+ * 
+ * Whether general entities need to be substituted. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SUBSTITUTE_REF	</span><span class="s4">1</span>
+<span class="s0">/** 
+ * XML_SUBSTITUTE_PEREF: 
+ * 
+ * Whether parameter entities need to be substituted. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SUBSTITUTE_PEREF	</span><span class="s4">2</span>
+<span class="s0">/** 
+ * XML_SUBSTITUTE_BOTH: 
+ * 
+ * Both general and parameter entities need to be substituted. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_SUBSTITUTE_BOTH	</span><span class="s4">3</span>
+
+<span class="s1">XMLPUBFUN xmlChar * XMLCALL</span>
+		<span class="s1">xmlStringDecodeEntities		(xmlParserCtxtPtr ctxt,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *str,</span>
+						 <span class="s2">int </span><span class="s1">what,</span>
+						 <span class="s1">xmlChar end,</span>
+						 <span class="s1">xmlChar  end2,</span>
+						 <span class="s1">xmlChar end3);</span>
+<span class="s1">XMLPUBFUN xmlChar * XMLCALL</span>
+		<span class="s1">xmlStringLenDecodeEntities	(xmlParserCtxtPtr ctxt,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *str,</span>
+						 <span class="s2">int </span><span class="s1">len,</span>
+						 <span class="s2">int </span><span class="s1">what,</span>
+						 <span class="s1">xmlChar end,</span>
+						 <span class="s1">xmlChar  end2,</span>
+						 <span class="s1">xmlChar end3);</span>
+
+<span class="s0">/* 
+ * Generated by MACROS on top of parser.c c.f. PUSH_AND_POP. 
+ */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL			nodePush		(xmlParserCtxtPtr ctxt,</span>
+						 <span class="s1">xmlNodePtr value);</span>
+<span class="s1">XMLPUBFUN xmlNodePtr XMLCALL		nodePop			(xmlParserCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL			inputPush		(xmlParserCtxtPtr ctxt,</span>
+						 <span class="s1">xmlParserInputPtr value);</span>
+<span class="s1">XMLPUBFUN xmlParserInputPtr XMLCALL	inputPop		(xmlParserCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">const </span><span class="s1">xmlChar * XMLCALL	namePop			(xmlParserCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL			namePush		(xmlParserCtxtPtr ctxt,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *value);</span>
+
+<span class="s0">/* 
+ * other commodities shared between parser.c and parserInternals. 
+ */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL			xmlSkipBlankChars	(xmlParserCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL			xmlStringCurrentChar	(xmlParserCtxtPtr ctxt,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *cur,</span>
+						 <span class="s2">int </span><span class="s1">*len);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL			xmlParserHandlePEReference(xmlParserCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL			xmlCheckLanguageID	(</span><span class="s2">const </span><span class="s1">xmlChar *lang);</span>
+
+<span class="s0">/* 
+ * Really core function shared with HTML parser. 
+ */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL			xmlCurrentChar		(xmlParserCtxtPtr ctxt,</span>
+						 <span class="s2">int </span><span class="s1">*len);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL		xmlCopyCharMultiByte	(xmlChar *out,</span>
+						 <span class="s2">int </span><span class="s1">val);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL			xmlCopyChar		(</span><span class="s2">int </span><span class="s1">len,</span>
+						 <span class="s1">xmlChar *out,</span>
+						 <span class="s2">int </span><span class="s1">val);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL			xmlNextChar		(xmlParserCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL			xmlParserInputShrink	(xmlParserInputPtr in);</span>
+
+<span class="s2">#ifdef </span><span class="s1">LIBXML_HTML_ENABLED</span>
+<span class="s0">/* 
+ * Actually comes from the HTML parser but launched from the init stuff. 
+ */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL			htmlInitAutoClose	(</span><span class="s2">void</span><span class="s1">);</span>
+<span class="s1">XMLPUBFUN htmlParserCtxtPtr XMLCALL	htmlCreateFileParserCtxt(</span><span class="s2">const char </span><span class="s1">*filename,</span>
+	                                         <span class="s2">const char </span><span class="s1">*encoding);</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/* 
+ * Specific function to keep track of entities references 
+ * and used by the XSLT debugger. 
+ */</span>
+<span class="s2">#ifdef </span><span class="s1">LIBXML_LEGACY_ENABLED</span>
+<span class="s0">/** 
+ * xmlEntityReferenceFunc: 
+ * @ent: the entity 
+ * @firstNode:  the fist node in the chunk 
+ * @lastNode:  the last nod in the chunk 
+ * 
+ * Callback function used when one needs to be able to track back the 
+ * provenance of a chunk of nodes inherited from an entity replacement. 
+ */</span>
+<span class="s2">typedef	void	</span><span class="s1">(*xmlEntityReferenceFunc)	(xmlEntityPtr ent,</span>
+						 <span class="s1">xmlNodePtr firstNode,</span>
+						 <span class="s1">xmlNodePtr lastNode);</span>
+
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL		xmlSetEntityReferenceFunc	(xmlEntityReferenceFunc func);</span>
+
+<span class="s1">XMLPUBFUN xmlChar * XMLCALL</span>
+			<span class="s1">xmlParseQuotedString	(xmlParserCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+                        <span class="s1">xmlParseNamespace       (xmlParserCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN xmlChar * XMLCALL</span>
+			<span class="s1">xmlNamespaceParseNSDef	(xmlParserCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN xmlChar * XMLCALL</span>
+			<span class="s1">xmlScanName		(xmlParserCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN xmlChar * XMLCALL</span>
+			<span class="s1">xmlNamespaceParseNCName	(xmlParserCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL	xmlParserHandleReference(xmlParserCtxtPtr ctxt);</span>
+<span class="s1">XMLPUBFUN xmlChar * XMLCALL</span>
+			<span class="s1">xmlNamespaceParseQName	(xmlParserCtxtPtr ctxt,</span>
+						 <span class="s1">xmlChar **prefix);</span>
+<span class="s0">/** 
+ * Entities 
+ */</span>
+<span class="s1">XMLPUBFUN xmlChar * XMLCALL</span>
+		<span class="s1">xmlDecodeEntities		(xmlParserCtxtPtr ctxt,</span>
+						 <span class="s2">int </span><span class="s1">len,</span>
+						 <span class="s2">int </span><span class="s1">what,</span>
+						 <span class="s1">xmlChar end,</span>
+						 <span class="s1">xmlChar  end2,</span>
+						 <span class="s1">xmlChar end3);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+			<span class="s1">xmlHandleEntity		(xmlParserCtxtPtr ctxt,</span>
+						 <span class="s1">xmlEntityPtr entity);</span>
+
+<span class="s2">#endif </span><span class="s0">/* LIBXML_LEGACY_ENABLED */</span>
+
+<span class="s2">#ifdef </span><span class="s1">IN_LIBXML</span>
+<span class="s0">/* 
+ * internal only 
+ */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlErrMemory		(xmlParserCtxtPtr ctxt,</span>
+				 <span class="s2">const char </span><span class="s1">*extra);</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s1">}</span>
+<span class="s2">#endif</span>
+<span class="s2">#endif </span><span class="s0">/* __XML_PARSER_INTERNALS_H__ */</span>
+</pre>
+</body>
+</html>

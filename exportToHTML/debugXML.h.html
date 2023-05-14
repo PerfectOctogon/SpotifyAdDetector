@@ -1,0 +1,237 @@
+<html>
+<head>
+<title>debugXML.h</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+debugXML.h</font>
+</center></td></tr></table>
+<pre><span class="s0">/* 
+ * Summary: Tree debugging APIs 
+ * Description: Interfaces to a set of routines used for debugging the tree 
+ *              produced by the XML parser. 
+ * 
+ * Copy: See Copyright for the status of this software. 
+ * 
+ * Author: Daniel Veillard 
+ */</span>
+
+<span class="s2">#ifndef </span><span class="s1">__DEBUG_XML__</span>
+<span class="s2">#define </span><span class="s1">__DEBUG_XML__</span>
+<span class="s2">#include </span><span class="s1">&lt;stdio.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/xmlversion.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/tree.h&gt;</span>
+
+<span class="s2">#ifdef </span><span class="s1">LIBXML_DEBUG_ENABLED</span>
+
+<span class="s2">#include </span><span class="s1">&lt;libxml/xpath.h&gt;</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s2">extern </span><span class="s3">&quot;C&quot; </span><span class="s1">{</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/* 
+ * The standard Dump routines. 
+ */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlDebugDumpString	(FILE *output,</span>
+				 <span class="s2">const </span><span class="s1">xmlChar *str);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlDebugDumpAttr	(FILE *output,</span>
+				 <span class="s1">xmlAttrPtr attr,</span>
+				 <span class="s2">int </span><span class="s1">depth);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlDebugDumpAttrList	(FILE *output,</span>
+				 <span class="s1">xmlAttrPtr attr,</span>
+				 <span class="s2">int </span><span class="s1">depth);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlDebugDumpOneNode	(FILE *output,</span>
+				 <span class="s1">xmlNodePtr node,</span>
+				 <span class="s2">int </span><span class="s1">depth);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlDebugDumpNode	(FILE *output,</span>
+				 <span class="s1">xmlNodePtr node,</span>
+				 <span class="s2">int </span><span class="s1">depth);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlDebugDumpNodeList	(FILE *output,</span>
+				 <span class="s1">xmlNodePtr node,</span>
+				 <span class="s2">int </span><span class="s1">depth);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlDebugDumpDocumentHead(FILE *output,</span>
+				 <span class="s1">xmlDocPtr doc);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlDebugDumpDocument	(FILE *output,</span>
+				 <span class="s1">xmlDocPtr doc);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlDebugDumpDTD		(FILE *output,</span>
+				 <span class="s1">xmlDtdPtr dtd);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlDebugDumpEntities	(FILE *output,</span>
+				 <span class="s1">xmlDocPtr doc);</span>
+
+<span class="s0">/**************************************************************** 
+ *                              * 
+ *          Checking routines           * 
+ *                              * 
+ ****************************************************************/</span>
+
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlDebugCheckDocument	(FILE * output,</span>
+				 <span class="s1">xmlDocPtr doc);</span>
+
+<span class="s0">/**************************************************************** 
+ *                              * 
+ *          XML shell helpers           * 
+ *                              * 
+ ****************************************************************/</span>
+
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlLsOneNode		(FILE *output, xmlNodePtr node);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlLsCountNode		(xmlNodePtr node);</span>
+
+<span class="s1">XMLPUBFUN </span><span class="s2">const char </span><span class="s1">* XMLCALL</span>
+	<span class="s1">xmlBoolToText		(</span><span class="s2">int </span><span class="s1">boolval);</span>
+
+<span class="s0">/**************************************************************** 
+ *                              * 
+ *   The XML shell related structures and functions     * 
+ *                              * 
+ ****************************************************************/</span>
+
+<span class="s2">#ifdef </span><span class="s1">LIBXML_XPATH_ENABLED</span>
+<span class="s0">/** 
+ * xmlShellReadlineFunc: 
+ * @prompt:  a string prompt 
+ * 
+ * This is a generic signature for the XML shell input function. 
+ * 
+ * Returns a string which will be freed by the Shell. 
+ */</span>
+<span class="s2">typedef char </span><span class="s1">* (* xmlShellReadlineFunc)(</span><span class="s2">char </span><span class="s1">*prompt);</span>
+
+<span class="s0">/** 
+ * xmlShellCtxt: 
+ * 
+ * A debugging shell context. 
+ * TODO: add the defined function tables. 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xmlShellCtxt xmlShellCtxt;</span>
+<span class="s2">typedef </span><span class="s1">xmlShellCtxt *xmlShellCtxtPtr;</span>
+<span class="s2">struct </span><span class="s1">_xmlShellCtxt {</span>
+    <span class="s2">char </span><span class="s1">*filename;</span>
+    <span class="s1">xmlDocPtr doc;</span>
+    <span class="s1">xmlNodePtr node;</span>
+    <span class="s1">xmlXPathContextPtr pctxt;</span>
+    <span class="s2">int </span><span class="s1">loaded;</span>
+    <span class="s1">FILE *output;</span>
+    <span class="s1">xmlShellReadlineFunc input;</span>
+<span class="s1">};</span>
+
+<span class="s0">/** 
+ * xmlShellCmd: 
+ * @ctxt:  a shell context 
+ * @arg:  a string argument 
+ * @node:  a first node 
+ * @node2:  a second node 
+ * 
+ * This is a generic signature for the XML shell functions. 
+ * 
+ * Returns an int, negative returns indicating errors. 
+ */</span>
+<span class="s2">typedef int </span><span class="s1">(* xmlShellCmd) (xmlShellCtxtPtr ctxt,</span>
+                             <span class="s2">char </span><span class="s1">*arg,</span>
+			     <span class="s1">xmlNodePtr node,</span>
+			     <span class="s1">xmlNodePtr node2);</span>
+
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlShellPrintXPathError	(</span><span class="s2">int </span><span class="s1">errorType,</span>
+				 <span class="s2">const char </span><span class="s1">*arg);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlShellPrintXPathResult(xmlXPathObjectPtr list);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlShellList		(xmlShellCtxtPtr ctxt,</span>
+				 <span class="s2">char </span><span class="s1">*arg,</span>
+				 <span class="s1">xmlNodePtr node,</span>
+				 <span class="s1">xmlNodePtr node2);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlShellBase		(xmlShellCtxtPtr ctxt,</span>
+				 <span class="s2">char </span><span class="s1">*arg,</span>
+				 <span class="s1">xmlNodePtr node,</span>
+				 <span class="s1">xmlNodePtr node2);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlShellDir		(xmlShellCtxtPtr ctxt,</span>
+				 <span class="s2">char </span><span class="s1">*arg,</span>
+				 <span class="s1">xmlNodePtr node,</span>
+				 <span class="s1">xmlNodePtr node2);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlShellLoad		(xmlShellCtxtPtr ctxt,</span>
+				 <span class="s2">char </span><span class="s1">*filename,</span>
+				 <span class="s1">xmlNodePtr node,</span>
+				 <span class="s1">xmlNodePtr node2);</span>
+<span class="s2">#ifdef </span><span class="s1">LIBXML_OUTPUT_ENABLED</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlShellPrintNode	(xmlNodePtr node);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlShellCat		(xmlShellCtxtPtr ctxt,</span>
+				 <span class="s2">char </span><span class="s1">*arg,</span>
+				 <span class="s1">xmlNodePtr node,</span>
+				 <span class="s1">xmlNodePtr node2);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlShellWrite		(xmlShellCtxtPtr ctxt,</span>
+				 <span class="s2">char </span><span class="s1">*filename,</span>
+				 <span class="s1">xmlNodePtr node,</span>
+				 <span class="s1">xmlNodePtr node2);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlShellSave		(xmlShellCtxtPtr ctxt,</span>
+				 <span class="s2">char </span><span class="s1">*filename,</span>
+				 <span class="s1">xmlNodePtr node,</span>
+				 <span class="s1">xmlNodePtr node2);</span>
+<span class="s2">#endif </span><span class="s0">/* LIBXML_OUTPUT_ENABLED */</span>
+<span class="s2">#ifdef </span><span class="s1">LIBXML_VALID_ENABLED</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlShellValidate	(xmlShellCtxtPtr ctxt,</span>
+				 <span class="s2">char </span><span class="s1">*dtd,</span>
+				 <span class="s1">xmlNodePtr node,</span>
+				 <span class="s1">xmlNodePtr node2);</span>
+<span class="s2">#endif </span><span class="s0">/* LIBXML_VALID_ENABLED */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlShellDu		(xmlShellCtxtPtr ctxt,</span>
+				 <span class="s2">char </span><span class="s1">*arg,</span>
+				 <span class="s1">xmlNodePtr tree,</span>
+				 <span class="s1">xmlNodePtr node2);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlShellPwd		(xmlShellCtxtPtr ctxt,</span>
+				 <span class="s2">char </span><span class="s1">*buffer,</span>
+				 <span class="s1">xmlNodePtr node,</span>
+				 <span class="s1">xmlNodePtr node2);</span>
+
+<span class="s0">/* 
+ * The Shell interface. 
+ */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+	<span class="s1">xmlShell		(xmlDocPtr doc,</span>
+				 <span class="s2">char </span><span class="s1">*filename,</span>
+				 <span class="s1">xmlShellReadlineFunc input,</span>
+				 <span class="s1">FILE *output);</span>
+
+<span class="s2">#endif </span><span class="s0">/* LIBXML_XPATH_ENABLED */</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s1">}</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#endif </span><span class="s0">/* LIBXML_DEBUG_ENABLED */</span>
+<span class="s2">#endif </span><span class="s0">/* __DEBUG_XML__ */</span>
+</pre>
+</body>
+</html>

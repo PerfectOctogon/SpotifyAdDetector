@@ -1,0 +1,101 @@
+<html>
+<head>
+<title>_request.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #629755; font-style: italic;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+.s4 { color: #808080;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+_request.py</font>
+</center></td></tr></table>
+<pre><span class="s0">&quot;&quot;&quot;Integration with Python standard library module urllib2: Request class. 
+ 
+Copyright 2004-2006 John J Lee &lt;jjl@pobox.com&gt; 
+ 
+This code is free software; you can redistribute it and/or modify it 
+under the terms of the BSD or ZPL 2.1 licenses (see the file 
+LICENSE included with the distribution). 
+ 
+&quot;&quot;&quot;</span>
+
+<span class="s2">from </span><span class="s1">__future__ </span><span class="s2">import </span><span class="s1">absolute_import</span>
+<span class="s2">import </span><span class="s1">logging</span>
+
+<span class="s2">from </span><span class="s1">. </span><span class="s2">import </span><span class="s1">_rfc3986</span>
+<span class="s2">from </span><span class="s1">. </span><span class="s2">import </span><span class="s1">_sockettimeout</span>
+<span class="s2">from </span><span class="s1">. </span><span class="s2">import </span><span class="s1">_urllib2_fork</span>
+<span class="s2">from </span><span class="s1">.polyglot </span><span class="s2">import </span><span class="s1">urlencode</span><span class="s2">, </span><span class="s1">is_string</span><span class="s2">, </span><span class="s1">unicode_type</span><span class="s2">, </span><span class="s1">iteritems</span>
+
+<span class="s1">warn = logging.getLogger(</span><span class="s3">&quot;mechanize&quot;</span><span class="s1">).warning</span>
+
+
+<span class="s2">def </span><span class="s1">as_utf8(x):</span>
+    <span class="s2">if </span><span class="s1">isinstance(x</span><span class="s2">, </span><span class="s1">bytes):</span>
+        <span class="s2">return </span><span class="s1">x</span>
+    <span class="s2">if not </span><span class="s1">is_string(x):</span>
+        <span class="s1">x = unicode_type(x)</span>
+    <span class="s2">if </span><span class="s1">isinstance(x</span><span class="s2">, </span><span class="s1">unicode_type):</span>
+        <span class="s1">x = x.encode(</span><span class="s3">'utf-8'</span><span class="s1">)</span>
+    <span class="s2">return </span><span class="s1">x</span>
+
+
+<span class="s2">class </span><span class="s1">Request(_urllib2_fork.Request):</span>
+
+    <span class="s0">''' 
+    A request for some network resource. Note that if you specify the method as 
+    'GET' and the data as a dict, then it will be automatically appended to the 
+    URL. If you leave method as None, then the method will be auto-set to 
+    POST and the data will become part of the POST request. 
+ 
+    :arg str url: The URL to request 
+    :arg data: Data to send with this request. Can be either a dictionary 
+        which will be encoded and sent as application/x-www-form-urlencoded 
+        data or a bytestring which will be sent as is. If you use a bytestring 
+        you should also set the Content-Type header appropriately. 
+    :arg dict headers: Headers to send with this request 
+    :arg str method: Method to use for HTTP requests. If not specified 
+        mechanize will choose GET or POST automatically as appropriate. 
+    :arg float timeout: Timeout in seconds 
+ 
+    The remaining arguments are for internal use. 
+    '''</span>
+
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">url</span><span class="s2">, </span><span class="s1">data=</span><span class="s2">None, </span><span class="s1">headers={}</span><span class="s2">,</span>
+                 <span class="s1">origin_req_host=</span><span class="s2">None, </span><span class="s1">unverifiable=</span><span class="s2">False, </span><span class="s1">visit=</span><span class="s2">None,</span>
+                 <span class="s1">timeout=_sockettimeout._GLOBAL_DEFAULT_TIMEOUT</span><span class="s2">,</span>
+                 <span class="s1">method=</span><span class="s2">None</span><span class="s1">):</span>
+        <span class="s4"># In mechanize 0.2, the interpretation of a unicode url argument will</span>
+        <span class="s4"># change: A unicode url argument will be interpreted as an IRI, and a</span>
+        <span class="s4"># bytestring as a URI. For now, we accept unicode or bytestring.  We</span>
+        <span class="s4"># don't insist that the value is always a URI (specifically, must only</span>
+        <span class="s4"># contain characters which are legal), because that might break working</span>
+        <span class="s4"># code (who knows what bytes some servers want to see, especially with</span>
+        <span class="s4"># browser plugins for internationalised URIs).</span>
+        <span class="s2">if not </span><span class="s1">_rfc3986.is_clean_uri(url):</span>
+            <span class="s1">warn(</span><span class="s3">&quot;url argument is not a URI &quot;</span>
+                 <span class="s3">&quot;(contains illegal characters) %r&quot; </span><span class="s1">% url)</span>
+        <span class="s2">if </span><span class="s1">isinstance(data</span><span class="s2">, </span><span class="s1">dict):</span>
+            <span class="s1">data = {as_utf8(k): as_utf8(v) </span><span class="s2">for </span><span class="s1">k</span><span class="s2">, </span><span class="s1">v </span><span class="s2">in </span><span class="s1">iteritems(data)}</span>
+            <span class="s1">data = urlencode(data)</span>
+            <span class="s1">data = data </span><span class="s2">or None</span>
+            <span class="s2">if </span><span class="s1">data </span><span class="s2">and </span><span class="s1">method == </span><span class="s3">'GET'</span><span class="s1">:</span>
+                <span class="s1">url += (</span><span class="s3">'&amp;' </span><span class="s2">if </span><span class="s3">'?' </span><span class="s2">in </span><span class="s1">url </span><span class="s2">else </span><span class="s3">'?'</span><span class="s1">) + data</span>
+                <span class="s1">data = </span><span class="s2">None</span>
+        <span class="s1">_urllib2_fork.Request.__init__(self</span><span class="s2">, </span><span class="s1">url</span><span class="s2">, </span><span class="s1">data</span><span class="s2">, </span><span class="s1">headers</span><span class="s2">, </span><span class="s1">method=method)</span>
+        <span class="s1">self.selector = </span><span class="s2">None</span>
+        <span class="s1">self.visit = visit</span>
+        <span class="s1">self.timeout = timeout</span>
+
+    <span class="s2">def </span><span class="s1">__str__(self):</span>
+        <span class="s2">return </span><span class="s3">&quot;&lt;Request for %s&gt;&quot; </span><span class="s1">% self.get_full_url()</span>
+</pre>
+</body>
+</html>

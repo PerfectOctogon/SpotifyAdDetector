@@ -1,0 +1,875 @@
+<html>
+<head>
+<title>_mechanize.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #629755; font-style: italic;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+.s4 { color: #6897bb;}
+.s5 { color: #808080;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+_mechanize.py</font>
+</center></td></tr></table>
+<pre><span class="s0">&quot;&quot;&quot;Stateful programmatic WWW navigation, after Perl's WWW::Mechanize. 
+ 
+Copyright 2003-2006 John J. Lee &lt;jjl@pobox.com&gt; 
+Copyright 2003 Andy Lester (original Perl code) 
+ 
+This code is free software; you can redistribute it and/or modify it 
+under the terms of the BSD or ZPL 2.1 licenses (see the file LICENSE 
+included with the distribution). 
+ 
+&quot;&quot;&quot;</span>
+<span class="s2">from </span><span class="s1">__future__ </span><span class="s2">import </span><span class="s1">absolute_import</span>
+
+<span class="s2">import </span><span class="s1">copy</span>
+<span class="s2">import </span><span class="s1">os</span>
+<span class="s2">import </span><span class="s1">re</span>
+
+<span class="s2">from </span><span class="s1">. </span><span class="s2">import </span><span class="s1">_request</span><span class="s2">, </span><span class="s1">_response</span><span class="s2">, </span><span class="s1">_rfc3986</span><span class="s2">, </span><span class="s1">_sockettimeout</span><span class="s2">, </span><span class="s1">_urllib2_fork</span>
+<span class="s2">from </span><span class="s1">._clientcookie </span><span class="s2">import </span><span class="s1">Cookie</span>
+<span class="s2">from </span><span class="s1">._headersutil </span><span class="s2">import </span><span class="s1">normalize_header_name</span>
+<span class="s2">from </span><span class="s1">._html </span><span class="s2">import </span><span class="s1">Factory</span>
+<span class="s2">from </span><span class="s1">._useragent </span><span class="s2">import </span><span class="s1">UserAgentBase</span>
+<span class="s2">from </span><span class="s1">.polyglot </span><span class="s2">import </span><span class="s1">pathname2url</span><span class="s2">, </span><span class="s1">HTTPError</span><span class="s2">, </span><span class="s1">is_string</span><span class="s2">, </span><span class="s1">iteritems</span>
+<span class="s2">from </span><span class="s1">._response </span><span class="s2">import </span><span class="s1">make_response</span>
+
+
+<span class="s2">class </span><span class="s1">BrowserStateError(Exception):</span>
+    <span class="s2">pass</span>
+
+
+<span class="s2">class </span><span class="s1">LinkNotFoundError(Exception):</span>
+    <span class="s2">pass</span>
+
+
+<span class="s2">class </span><span class="s1">FormNotFoundError(Exception):</span>
+    <span class="s2">pass</span>
+
+
+<span class="s2">def </span><span class="s1">sanepathname2url(path):</span>
+    <span class="s1">urlpath = pathname2url(path)</span>
+    <span class="s2">if </span><span class="s1">os.name == </span><span class="s3">&quot;nt&quot; </span><span class="s2">and </span><span class="s1">urlpath.startswith(</span><span class="s3">&quot;///&quot;</span><span class="s1">):</span>
+        <span class="s1">urlpath = urlpath[</span><span class="s4">2</span><span class="s1">:]</span>
+    <span class="s5"># XXX don't ask me about the mac...</span>
+    <span class="s2">return </span><span class="s1">urlpath</span>
+
+
+<span class="s2">class </span><span class="s1">History:</span>
+    <span class="s0">&quot;&quot;&quot; 
+ 
+    Though this will become public, the implied interface is not yet stable. 
+ 
+    &quot;&quot;&quot;</span>
+
+    <span class="s2">def </span><span class="s1">__init__(self):</span>
+        <span class="s1">self._history = []  </span><span class="s5"># LIFO</span>
+
+    <span class="s2">def </span><span class="s1">add(self</span><span class="s2">, </span><span class="s1">request</span><span class="s2">, </span><span class="s1">response):</span>
+        <span class="s1">self._history.append((request</span><span class="s2">, </span><span class="s1">response))</span>
+
+    <span class="s2">def </span><span class="s1">back(self</span><span class="s2">, </span><span class="s1">n</span><span class="s2">, </span><span class="s1">_response):</span>
+        <span class="s1">response = _response  </span><span class="s5"># XXX move Browser._response into this class?</span>
+        <span class="s2">while </span><span class="s1">n &gt; </span><span class="s4">0 </span><span class="s2">or </span><span class="s1">response </span><span class="s2">is None</span><span class="s1">:</span>
+            <span class="s2">try</span><span class="s1">:</span>
+                <span class="s1">request</span><span class="s2">, </span><span class="s1">response = self._history.pop()</span>
+            <span class="s2">except </span><span class="s1">IndexError:</span>
+                <span class="s2">raise </span><span class="s1">BrowserStateError(</span><span class="s3">&quot;already at start of history&quot;</span><span class="s1">)</span>
+            <span class="s1">n -= </span><span class="s4">1</span>
+        <span class="s2">return </span><span class="s1">request</span><span class="s2">, </span><span class="s1">response</span>
+
+    <span class="s2">def </span><span class="s1">clear(self):</span>
+        <span class="s2">del </span><span class="s1">self._history[:]</span>
+
+    <span class="s2">def </span><span class="s1">close(self):</span>
+        <span class="s2">for </span><span class="s1">request</span><span class="s2">, </span><span class="s1">response </span><span class="s2">in </span><span class="s1">self._history:</span>
+            <span class="s2">if </span><span class="s1">response </span><span class="s2">is not None</span><span class="s1">:</span>
+                <span class="s1">response.close()</span>
+        <span class="s2">del </span><span class="s1">self._history[:]</span>
+
+    <span class="s2">def </span><span class="s1">__copy__(self):</span>
+        <span class="s1">ans = self.__class__()</span>
+        <span class="s1">ans._history = self._history[:]</span>
+        <span class="s2">return </span><span class="s1">ans</span>
+
+
+<span class="s2">class </span><span class="s1">HTTPRefererProcessor(_urllib2_fork.BaseHandler):</span>
+    <span class="s2">def </span><span class="s1">http_request(self</span><span class="s2">, </span><span class="s1">request):</span>
+        <span class="s5"># See RFC 2616 14.36.  The only times we know the source of the</span>
+        <span class="s5"># request URI has a URI associated with it are redirect, and</span>
+        <span class="s5"># Browser.click() / Browser.submit() / Browser.follow_link().</span>
+        <span class="s5"># Otherwise, it's the user's job to add any Referer header before</span>
+        <span class="s5"># .open()ing.</span>
+        <span class="s2">if </span><span class="s1">hasattr(request</span><span class="s2">, </span><span class="s3">&quot;redirect_dict&quot;</span><span class="s1">):</span>
+            <span class="s1">request = self.parent._add_referer_header(</span>
+                <span class="s1">request</span><span class="s2">, </span><span class="s1">origin_request=</span><span class="s2">False</span><span class="s1">)</span>
+        <span class="s2">return </span><span class="s1">request</span>
+
+    <span class="s1">https_request = http_request</span>
+
+
+<span class="s2">class </span><span class="s1">Browser(UserAgentBase):</span>
+    <span class="s0">&quot;&quot;&quot;Browser-like class with support for history, forms and links. 
+ 
+    :class:`BrowserStateError` is raised whenever the browser is in the wrong 
+    state to complete the requested operation - e.g., when :meth:`back()` is 
+    called when the browser history is empty, or when :meth:`follow_link()` is 
+    called when the current response does not contain HTML data. 
+ 
+    Public attributes: 
+ 
+    request: current request (:class:`mechanize.Request`) 
+ 
+    form: currently selected form (see :meth:`select_form()`) 
+ 
+    :param history: object implementing the :class:`mechanize.History` 
+                    interface.  Note this interface is still experimental 
+                    and may change in future. This object is owned 
+                    by the browser instance and must not be shared 
+                    among browsers. 
+    :param request_class: Request class to use. Defaults to 
+                            :class:`mechanize.Request` 
+    :param content_parser: A function that is responsible for parsing 
+        received html/xhtml content. See the builtin 
+        :func:`mechanize._html.content_parser()` function for details 
+        on the interface this function must support. 
+    :param factory_class: HTML Factory class to use. Defaults to 
+                            :class:`mechanize.Factory` 
+ 
+    &quot;&quot;&quot;</span>
+
+    <span class="s1">handler_classes = copy.copy(UserAgentBase.handler_classes)</span>
+    <span class="s1">handler_classes[</span><span class="s3">&quot;_referer&quot;</span><span class="s1">] = HTTPRefererProcessor</span>
+    <span class="s1">default_features = copy.copy(UserAgentBase.default_features)</span>
+    <span class="s1">default_features.append(</span><span class="s3">&quot;_referer&quot;</span><span class="s1">)</span>
+
+    <span class="s2">def </span><span class="s1">__init__(</span>
+            <span class="s1">self</span><span class="s2">,</span>
+            <span class="s1">history=</span><span class="s2">None,</span>
+            <span class="s1">request_class=</span><span class="s2">None,</span>
+            <span class="s1">content_parser=</span><span class="s2">None,</span>
+            <span class="s1">factory_class=Factory</span><span class="s2">,</span>
+            <span class="s1">allow_xhtml=</span><span class="s2">False, </span><span class="s1">):</span>
+        <span class="s0">&quot;&quot;&quot; 
+        Only named arguments should be passed to this constructor. 
+ 
+        &quot;&quot;&quot;</span>
+        <span class="s1">self._handle_referer = </span><span class="s2">True</span>
+
+        <span class="s2">if </span><span class="s1">history </span><span class="s2">is None</span><span class="s1">:</span>
+            <span class="s1">history = History()</span>
+        <span class="s1">self._history = history</span>
+
+        <span class="s2">if </span><span class="s1">request_class </span><span class="s2">is None</span><span class="s1">:</span>
+            <span class="s1">request_class = _request.Request</span>
+
+        <span class="s1">factory = factory_class(allow_xhtml=allow_xhtml)</span>
+        <span class="s1">factory.set_request_class(request_class)</span>
+        <span class="s2">if </span><span class="s1">content_parser </span><span class="s2">is not None</span><span class="s1">:</span>
+            <span class="s1">factory.set_content_parser(content_parser)</span>
+        <span class="s1">self._factory = factory</span>
+        <span class="s1">self.request_class = request_class</span>
+
+        <span class="s1">self.request = </span><span class="s2">None</span>
+        <span class="s1">self._set_response(</span><span class="s2">None, False</span><span class="s1">)</span>
+
+        <span class="s5"># do this last to avoid __getattr__ problems</span>
+        <span class="s1">UserAgentBase.__init__(self)</span>
+
+    <span class="s2">def </span><span class="s1">__copy__(self):</span>
+        <span class="s0">''' 
+        Clone this browser instance. The clone will share the same, thread-safe 
+        cookie jar, and have all the same handlers/settings, but will not share 
+        any other state, making it safe to use in another thread. 
+        '''</span>
+        <span class="s1">ans = self.__class__()</span>
+        <span class="s1">self._copy_state(ans)</span>
+        <span class="s1">ans._handle_referer = self._handle_referer</span>
+        <span class="s2">for </span><span class="s1">attr </span><span class="s2">in </span><span class="s1">(</span><span class="s3">'_response_type_finder'</span><span class="s2">, </span><span class="s3">'_encoding_finder'</span><span class="s2">,</span>
+                     <span class="s3">'_content_parser'</span><span class="s1">):</span>
+            <span class="s1">setattr(ans._factory</span><span class="s2">, </span><span class="s1">attr</span><span class="s2">, </span><span class="s1">getattr(self._factory</span><span class="s2">, </span><span class="s1">attr))</span>
+        <span class="s1">ans.request_class = self.request_class</span>
+        <span class="s1">ans._history = copy.copy(self._history)</span>
+        <span class="s2">return </span><span class="s1">ans</span>
+
+    <span class="s2">def </span><span class="s1">close(self):</span>
+        <span class="s1">UserAgentBase.close(self)</span>
+        <span class="s2">if </span><span class="s1">self._response </span><span class="s2">is not None</span><span class="s1">:</span>
+            <span class="s1">self._response.close()</span>
+        <span class="s2">if </span><span class="s1">self._history </span><span class="s2">is not None</span><span class="s1">:</span>
+            <span class="s1">self._history.close()</span>
+            <span class="s1">self._history = </span><span class="s2">None</span>
+
+        <span class="s5"># make use after .close easy to spot</span>
+        <span class="s1">self.form = </span><span class="s2">None</span>
+        <span class="s1">self.request = self._response = </span><span class="s2">None</span>
+        <span class="s1">self.request = self.response = self.set_response = </span><span class="s2">None</span>
+        <span class="s1">self.geturl = self.reload = self.back = </span><span class="s2">None</span>
+        <span class="s1">self.clear_history = self.set_cookie = self.links = self.forms = </span><span class="s2">None</span>
+        <span class="s1">self.viewing_html = self.encoding = self.title = </span><span class="s2">None</span>
+        <span class="s1">self.select_form = self.click = self.submit = self.click_link = </span><span class="s2">None</span>
+        <span class="s1">self.follow_link = self.find_link = </span><span class="s2">None</span>
+
+    <span class="s2">def </span><span class="s1">set_handle_referer(self</span><span class="s2">, </span><span class="s1">handle):</span>
+        <span class="s0">&quot;&quot;&quot;Set whether to add Referer header to each request.&quot;&quot;&quot;</span>
+        <span class="s1">self._set_handler(</span><span class="s3">&quot;_referer&quot;</span><span class="s2">, </span><span class="s1">handle)</span>
+        <span class="s1">self._handle_referer = bool(handle)</span>
+
+    <span class="s2">def </span><span class="s1">_add_referer_header(self</span><span class="s2">, </span><span class="s1">request</span><span class="s2">, </span><span class="s1">origin_request=</span><span class="s2">True</span><span class="s1">):</span>
+        <span class="s2">if </span><span class="s1">self.request </span><span class="s2">is None</span><span class="s1">:</span>
+            <span class="s2">return </span><span class="s1">request</span>
+        <span class="s1">scheme = request.get_type()</span>
+        <span class="s1">original_scheme = self.request.get_type()</span>
+        <span class="s2">if </span><span class="s1">scheme </span><span class="s2">not in </span><span class="s1">[</span><span class="s3">&quot;http&quot;</span><span class="s2">, </span><span class="s3">&quot;https&quot;</span><span class="s1">]:</span>
+            <span class="s2">return </span><span class="s1">request</span>
+        <span class="s2">if not </span><span class="s1">origin_request </span><span class="s2">and not </span><span class="s1">self.request.has_header(</span><span class="s3">&quot;Referer&quot;</span><span class="s1">):</span>
+            <span class="s2">return </span><span class="s1">request</span>
+
+        <span class="s2">if </span><span class="s1">(self._handle_referer </span><span class="s2">and </span><span class="s1">original_scheme </span><span class="s2">in </span><span class="s1">[</span><span class="s3">&quot;http&quot;</span><span class="s2">, </span><span class="s3">&quot;https&quot;</span><span class="s1">] </span><span class="s2">and</span>
+                <span class="s2">not </span><span class="s1">(original_scheme == </span><span class="s3">&quot;https&quot; </span><span class="s2">and </span><span class="s1">scheme != </span><span class="s3">&quot;https&quot;</span><span class="s1">)):</span>
+            <span class="s5"># strip URL fragment (RFC 2616 14.36)</span>
+            <span class="s1">parts = _rfc3986.urlsplit(self.request.get_full_url())</span>
+            <span class="s1">parts = parts[:-</span><span class="s4">1</span><span class="s1">] + (</span><span class="s2">None, </span><span class="s1">)</span>
+            <span class="s1">referer = _rfc3986.urlunsplit(parts)</span>
+            <span class="s1">request.add_unredirected_header(</span><span class="s3">&quot;Referer&quot;</span><span class="s2">, </span><span class="s1">referer)</span>
+        <span class="s2">return </span><span class="s1">request</span>
+
+    <span class="s2">def </span><span class="s1">open_novisit(self</span><span class="s2">,</span>
+                     <span class="s1">url_or_request</span><span class="s2">,</span>
+                     <span class="s1">data=</span><span class="s2">None,</span>
+                     <span class="s1">timeout=_sockettimeout._GLOBAL_DEFAULT_TIMEOUT):</span>
+        <span class="s0">&quot;&quot;&quot;Open a URL without visiting it. 
+ 
+        Browser state (including request, response, history, forms and links) 
+        is left unchanged by calling this function. 
+ 
+        The interface is the same as for :meth:`open()`. 
+ 
+        This is useful for things like fetching images. 
+ 
+        See also :meth:`retrieve()` 
+ 
+        &quot;&quot;&quot;</span>
+        <span class="s2">return </span><span class="s1">self._mech_open(</span>
+            <span class="s1">url_or_request</span><span class="s2">, </span><span class="s1">data</span><span class="s2">, </span><span class="s1">visit=</span><span class="s2">False, </span><span class="s1">timeout=timeout)</span>
+
+    <span class="s2">def </span><span class="s1">open(self</span><span class="s2">,</span>
+             <span class="s1">url_or_request</span><span class="s2">,</span>
+             <span class="s1">data=</span><span class="s2">None,</span>
+             <span class="s1">timeout=_sockettimeout._GLOBAL_DEFAULT_TIMEOUT):</span>
+        <span class="s0">''' 
+        Open a URL. Loads the page so that you can subsequently use 
+        :meth:`forms()`, :meth:`links()`, etc. on it. 
+ 
+        :param url_or_request: Either a URL or a :class:`mechanize.Request` 
+        :param dict data: data to send with a POST request 
+        :param timeout: Timeout in seconds 
+        :return: A :class:`mechanize.Response` object 
+        '''</span>
+        <span class="s2">return </span><span class="s1">self._mech_open(url_or_request</span><span class="s2">, </span><span class="s1">data</span><span class="s2">, </span><span class="s1">timeout=timeout)</span>
+
+    <span class="s2">def </span><span class="s1">_mech_open(self</span><span class="s2">,</span>
+                   <span class="s1">url</span><span class="s2">,</span>
+                   <span class="s1">data=</span><span class="s2">None,</span>
+                   <span class="s1">update_history=</span><span class="s2">True,</span>
+                   <span class="s1">visit=</span><span class="s2">None,</span>
+                   <span class="s1">timeout=_sockettimeout._GLOBAL_DEFAULT_TIMEOUT):</span>
+        <span class="s2">try</span><span class="s1">:</span>
+            <span class="s1">url.get_full_url</span>
+        <span class="s2">except </span><span class="s1">AttributeError:</span>
+            <span class="s5"># string URL -- convert to absolute URL if required</span>
+            <span class="s1">scheme</span><span class="s2">, </span><span class="s1">authority = _rfc3986.urlsplit(url)[:</span><span class="s4">2</span><span class="s1">]</span>
+            <span class="s2">if </span><span class="s1">scheme </span><span class="s2">is None</span><span class="s1">:</span>
+                <span class="s5"># relative URL</span>
+                <span class="s2">if </span><span class="s1">self._response </span><span class="s2">is None</span><span class="s1">:</span>
+                    <span class="s2">raise </span><span class="s1">BrowserStateError(</span><span class="s3">&quot;can't fetch relative reference: &quot;</span>
+                                            <span class="s3">&quot;not viewing any document&quot;</span><span class="s1">)</span>
+                <span class="s1">url = _rfc3986.urljoin(self._response.geturl()</span><span class="s2">, </span><span class="s1">url)</span>
+
+        <span class="s1">request = self._request(url</span><span class="s2">, </span><span class="s1">data</span><span class="s2">, </span><span class="s1">visit</span><span class="s2">, </span><span class="s1">timeout)</span>
+        <span class="s1">visit = request.visit</span>
+        <span class="s2">if </span><span class="s1">visit </span><span class="s2">is None</span><span class="s1">:</span>
+            <span class="s1">visit = </span><span class="s2">True</span>
+
+        <span class="s2">if </span><span class="s1">visit:</span>
+            <span class="s1">self._visit_request(request</span><span class="s2">, </span><span class="s1">update_history)</span>
+
+        <span class="s1">success = </span><span class="s2">True</span>
+        <span class="s2">try</span><span class="s1">:</span>
+            <span class="s1">response = UserAgentBase.open(self</span><span class="s2">, </span><span class="s1">request</span><span class="s2">, </span><span class="s1">data)</span>
+        <span class="s2">except </span><span class="s1">HTTPError </span><span class="s2">as </span><span class="s1">error:</span>
+            <span class="s1">success = </span><span class="s2">False</span>
+            <span class="s2">if </span><span class="s1">error.fp </span><span class="s2">is None</span><span class="s1">:  </span><span class="s5"># not a response</span>
+                <span class="s2">raise</span>
+            <span class="s1">response = error</span>
+
+<span class="s5">#         except (IOError, socket.error, OSError) as error:</span>
+<span class="s5">#             Yes, urllib2 really does raise all these :-((</span>
+<span class="s5">#             See test_urllib2.py for examples of socket.gaierror and OSError,</span>
+<span class="s5">#             plus note that FTPHandler raises IOError.</span>
+<span class="s5">#             XXX I don't seem to have an example of exactly socket.error being</span>
+<span class="s5">#              raised, only socket.gaierror...</span>
+<span class="s5">#             I don't want to start fixing these here, though, since this is a</span>
+<span class="s5">#             subclass of OpenerDirector, and it would break old code.  Even in</span>
+<span class="s5">#             Python core, a fix would need some backwards-compat. hack to be</span>
+<span class="s5">#             acceptable.</span>
+<span class="s5">#             raise</span>
+
+        <span class="s2">if </span><span class="s1">visit:</span>
+            <span class="s1">self._set_response(response</span><span class="s2">, False</span><span class="s1">)</span>
+            <span class="s1">response = copy.copy(self._response)</span>
+        <span class="s2">elif </span><span class="s1">response </span><span class="s2">is not None</span><span class="s1">:</span>
+            <span class="s1">response = _response.upgrade_response(response)</span>
+
+        <span class="s2">if not </span><span class="s1">success:</span>
+            <span class="s2">raise </span><span class="s1">response</span>
+        <span class="s2">return </span><span class="s1">response</span>
+
+    <span class="s2">def </span><span class="s1">__str__(self):</span>
+        <span class="s1">text = []</span>
+        <span class="s1">text.append(</span><span class="s3">&quot;&lt;%s &quot; </span><span class="s1">% self.__class__.__name__)</span>
+        <span class="s2">if </span><span class="s1">self._response:</span>
+            <span class="s1">text.append(</span><span class="s3">&quot;visiting %s&quot; </span><span class="s1">% self._response.geturl())</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s1">text.append(</span><span class="s3">&quot;(not visiting a URL)&quot;</span><span class="s1">)</span>
+        <span class="s2">if </span><span class="s1">self.form:</span>
+            <span class="s1">text.append(</span><span class="s3">&quot;</span><span class="s2">\n </span><span class="s3">selected form:</span><span class="s2">\n </span><span class="s3">%s</span><span class="s2">\n</span><span class="s3">&quot; </span><span class="s1">% str(self.form))</span>
+        <span class="s1">text.append(</span><span class="s3">&quot;&gt;&quot;</span><span class="s1">)</span>
+        <span class="s2">return </span><span class="s3">&quot;&quot;</span><span class="s1">.join(text)</span>
+
+    <span class="s2">def </span><span class="s1">response(self):</span>
+        <span class="s0">&quot;&quot;&quot;Return a copy of the current response. 
+ 
+        The returned object has the same interface as the object returned by 
+        :meth:`.open()` 
+ 
+        &quot;&quot;&quot;</span>
+        <span class="s2">return </span><span class="s1">copy.copy(self._response)</span>
+
+    <span class="s2">def </span><span class="s1">open_local_file(self</span><span class="s2">, </span><span class="s1">filename):</span>
+        <span class="s1">path = sanepathname2url(os.path.abspath(filename))</span>
+        <span class="s1">url = </span><span class="s3">'file://' </span><span class="s1">+ path</span>
+        <span class="s2">return </span><span class="s1">self.open(url)</span>
+
+    <span class="s2">def </span><span class="s1">set_response(self</span><span class="s2">, </span><span class="s1">response):</span>
+        <span class="s0">&quot;&quot;&quot;Replace current response with (a copy of) response. 
+ 
+        response may be None. 
+ 
+        This is intended mostly for HTML-preprocessing. 
+        &quot;&quot;&quot;</span>
+        <span class="s1">self._set_response(response</span><span class="s2">, True</span><span class="s1">)</span>
+
+    <span class="s2">def </span><span class="s1">_set_response(self</span><span class="s2">, </span><span class="s1">response</span><span class="s2">, </span><span class="s1">close_current):</span>
+        <span class="s5"># sanity check, necessary but far from sufficient</span>
+        <span class="s2">if not </span><span class="s1">(response </span><span class="s2">is None or</span>
+                <span class="s1">(hasattr(response</span><span class="s2">, </span><span class="s3">&quot;info&quot;</span><span class="s1">) </span><span class="s2">and </span><span class="s1">hasattr(response</span><span class="s2">, </span><span class="s3">&quot;geturl&quot;</span><span class="s1">) </span><span class="s2">and</span>
+                 <span class="s1">hasattr(response</span><span class="s2">, </span><span class="s3">&quot;read&quot;</span><span class="s1">))):</span>
+            <span class="s2">raise </span><span class="s1">ValueError(</span><span class="s3">&quot;not a response object&quot;</span><span class="s1">)</span>
+
+        <span class="s1">self.form = </span><span class="s2">None</span>
+        <span class="s2">if </span><span class="s1">response </span><span class="s2">is not None</span><span class="s1">:</span>
+            <span class="s1">response = _response.upgrade_response(response)</span>
+        <span class="s2">if </span><span class="s1">close_current </span><span class="s2">and </span><span class="s1">self._response </span><span class="s2">is not None</span><span class="s1">:</span>
+            <span class="s1">self._response.close()</span>
+        <span class="s1">self._response = response</span>
+        <span class="s1">self._factory.set_response(response)</span>
+
+    <span class="s2">def </span><span class="s1">visit_response(self</span><span class="s2">, </span><span class="s1">response</span><span class="s2">, </span><span class="s1">request=</span><span class="s2">None</span><span class="s1">):</span>
+        <span class="s0">&quot;&quot;&quot;Visit the response, as if it had been :meth:`open()` ed. 
+ 
+        Unlike :meth:`set_response()`, this updates history rather than 
+        replacing the current response. 
+        &quot;&quot;&quot;</span>
+        <span class="s2">if </span><span class="s1">request </span><span class="s2">is None</span><span class="s1">:</span>
+            <span class="s1">request = _request.Request(response.geturl())</span>
+        <span class="s1">self._visit_request(request</span><span class="s2">, True</span><span class="s1">)</span>
+        <span class="s1">self._set_response(response</span><span class="s2">, False</span><span class="s1">)</span>
+
+    <span class="s2">def </span><span class="s1">_visit_request(self</span><span class="s2">, </span><span class="s1">request</span><span class="s2">, </span><span class="s1">update_history):</span>
+        <span class="s2">if </span><span class="s1">self._response </span><span class="s2">is not None</span><span class="s1">:</span>
+            <span class="s1">self._response.close()</span>
+        <span class="s2">if </span><span class="s1">self.request </span><span class="s2">is not None and </span><span class="s1">update_history:</span>
+            <span class="s1">self._history.add(self.request</span><span class="s2">, </span><span class="s1">self._response)</span>
+        <span class="s1">self._response = </span><span class="s2">None</span>
+        <span class="s5"># we want self.request to be assigned even if UserAgentBase.open</span>
+        <span class="s5"># fails</span>
+        <span class="s1">self.request = request</span>
+
+    <span class="s2">def </span><span class="s1">set_html(self</span><span class="s2">, </span><span class="s1">html</span><span class="s2">, </span><span class="s1">url=</span><span class="s3">&quot;http://example.com/&quot;</span><span class="s1">):</span>
+        <span class="s0">&quot;&quot;&quot;Set the response to dummy with given HTML, and URL if given. 
+ 
+        Allows you to then parse that HTML, especially to extract forms 
+        information. If no URL was given then the default is &quot;example.com&quot;. 
+        &quot;&quot;&quot;</span>
+        <span class="s1">response = make_response(html</span><span class="s2">, </span><span class="s1">[(</span><span class="s3">&quot;Content-type&quot;</span><span class="s2">, </span><span class="s3">&quot;text/html&quot;</span><span class="s1">)]</span><span class="s2">, </span><span class="s1">url)</span>
+        <span class="s1">self._set_response(response</span><span class="s2">, True</span><span class="s1">)</span>
+
+    <span class="s2">def </span><span class="s1">geturl(self):</span>
+        <span class="s0">&quot;&quot;&quot;Get URL of current document.&quot;&quot;&quot;</span>
+        <span class="s2">if </span><span class="s1">self._response </span><span class="s2">is None</span><span class="s1">:</span>
+            <span class="s2">raise </span><span class="s1">BrowserStateError(</span><span class="s3">&quot;not viewing any document&quot;</span><span class="s1">)</span>
+        <span class="s2">return </span><span class="s1">self._response.geturl()</span>
+
+    <span class="s2">def </span><span class="s1">reload(self):</span>
+        <span class="s0">&quot;&quot;&quot;Reload current document, and return response object.&quot;&quot;&quot;</span>
+        <span class="s2">if </span><span class="s1">self.request </span><span class="s2">is None</span><span class="s1">:</span>
+            <span class="s2">raise </span><span class="s1">BrowserStateError(</span><span class="s3">&quot;no URL has yet been .open()ed&quot;</span><span class="s1">)</span>
+        <span class="s2">if </span><span class="s1">self._response </span><span class="s2">is not None</span><span class="s1">:</span>
+            <span class="s1">self._response.close()</span>
+        <span class="s2">return </span><span class="s1">self._mech_open(self.request</span><span class="s2">, </span><span class="s1">update_history=</span><span class="s2">False</span><span class="s1">)</span>
+
+    <span class="s2">def </span><span class="s1">back(self</span><span class="s2">, </span><span class="s1">n=</span><span class="s4">1</span><span class="s1">):</span>
+        <span class="s0">&quot;&quot;&quot;Go back n steps in history, and return response object. 
+ 
+        n: go back this number of steps (default 1 step) 
+ 
+        &quot;&quot;&quot;</span>
+        <span class="s2">if </span><span class="s1">self._response </span><span class="s2">is not None</span><span class="s1">:</span>
+            <span class="s1">self._response.close()</span>
+        <span class="s1">self.request</span><span class="s2">, </span><span class="s1">response = self._history.back(n</span><span class="s2">, </span><span class="s1">self._response)</span>
+        <span class="s1">self.set_response(response)</span>
+        <span class="s2">if not </span><span class="s1">response.read_complete:</span>
+            <span class="s2">return </span><span class="s1">self.reload()</span>
+        <span class="s2">return </span><span class="s1">copy.copy(response)</span>
+
+    <span class="s2">def </span><span class="s1">clear_history(self):</span>
+        <span class="s1">self._history.clear()</span>
+
+    <span class="s2">def </span><span class="s1">set_cookie(self</span><span class="s2">, </span><span class="s1">cookie_string):</span>
+        <span class="s0">&quot;&quot;&quot;Set a cookie. 
+ 
+        Note that it is NOT necessary to call this method under ordinary 
+        circumstances: cookie handling is normally entirely automatic.  The 
+        intended use case is rather to simulate the setting of a cookie by 
+        client script in a web page (e.g. JavaScript).  In that case, use of 
+        this method is necessary because mechanize currently does not support 
+        JavaScript, VBScript, etc. 
+ 
+        The cookie is added in the same way as if it had arrived with the 
+        current response, as a result of the current request.  This means that, 
+        for example, if it is not appropriate to set the cookie based on the 
+        current request, no cookie will be set. 
+ 
+        The cookie will be returned automatically with subsequent responses 
+        made by the Browser instance whenever that's appropriate. 
+ 
+        cookie_string should be a valid value of the Set-Cookie header. 
+ 
+        For example: 
+ 
+        .. code-block:: python 
+ 
+            browser.set_cookie( 
+                &quot;sid=abcdef; expires=Wednesday, 09-Nov-06 23:12:40 GMT&quot;) 
+ 
+        Currently, this method does not allow for adding RFC 2986 cookies. 
+        This limitation will be lifted if anybody requests it. 
+ 
+        See also :meth:`set_simple_cookie()` for an easier way to set cookies 
+        without needing to create a Set-Cookie header string. 
+        &quot;&quot;&quot;</span>
+        <span class="s2">if </span><span class="s1">self._response </span><span class="s2">is None</span><span class="s1">:</span>
+            <span class="s2">raise </span><span class="s1">BrowserStateError(</span><span class="s3">&quot;not viewing any document&quot;</span><span class="s1">)</span>
+        <span class="s2">if </span><span class="s1">self.request.get_type() </span><span class="s2">not in </span><span class="s1">[</span><span class="s3">&quot;http&quot;</span><span class="s2">, </span><span class="s3">&quot;https&quot;</span><span class="s1">]:</span>
+            <span class="s2">raise </span><span class="s1">BrowserStateError(</span><span class="s3">&quot;can't set cookie for non-HTTP/HTTPS &quot;</span>
+                                    <span class="s3">&quot;transactions&quot;</span><span class="s1">)</span>
+        <span class="s1">cookiejar = self._ua_handlers[</span><span class="s3">&quot;_cookies&quot;</span><span class="s1">].cookiejar</span>
+        <span class="s1">response = self.response()  </span><span class="s5"># copy</span>
+        <span class="s1">headers = response.info()</span>
+        <span class="s1">headers[</span><span class="s3">&quot;Set-cookie&quot;</span><span class="s1">] = cookie_string</span>
+        <span class="s1">cookiejar.extract_cookies(response</span><span class="s2">, </span><span class="s1">self.request)</span>
+
+    <span class="s2">def </span><span class="s1">set_simple_cookie(self</span><span class="s2">, </span><span class="s1">name</span><span class="s2">, </span><span class="s1">value</span><span class="s2">, </span><span class="s1">domain</span><span class="s2">, </span><span class="s1">path=</span><span class="s3">'/'</span><span class="s1">):</span>
+        <span class="s0">''' 
+        Similar to :meth:`set_cookie()` except that instead of using a 
+        cookie string, you simply specify the `name`, `value`, `domain` 
+        and optionally the `path`. 
+        The created cookie will never expire. For example: 
+ 
+        .. code-block:: python 
+ 
+            browser.set_simple_cookie('some_key', 'some_value', '.example.com', 
+                                      path='/some-page') 
+        '''</span>
+        <span class="s1">self.cookiejar.set_cookie(</span>
+            <span class="s1">Cookie(</span><span class="s4">0</span><span class="s2">, </span><span class="s1">name</span><span class="s2">, </span><span class="s1">value</span><span class="s2">, None, False, </span><span class="s1">domain</span><span class="s2">, True, False, </span><span class="s1">path</span><span class="s2">,</span>
+                   <span class="s2">True, False, None, False, None, None, None</span><span class="s1">))</span>
+
+    <span class="s1">@property</span>
+    <span class="s2">def </span><span class="s1">cookiejar(self):</span>
+        <span class="s0">' Return the current cookiejar (:class:`mechanize.CookieJar`) or None '</span>
+        <span class="s2">try</span><span class="s1">:</span>
+            <span class="s2">return </span><span class="s1">self._ua_handlers[</span><span class="s3">&quot;_cookies&quot;</span><span class="s1">].cookiejar</span>
+        <span class="s2">except </span><span class="s1">Exception:</span>
+            <span class="s2">pass</span>
+
+    <span class="s2">def </span><span class="s1">set_header(self</span><span class="s2">, </span><span class="s1">header</span><span class="s2">, </span><span class="s1">value=</span><span class="s2">None</span><span class="s1">):</span>
+        <span class="s0">''' 
+        Convenience method to set a header value in `self.addheaders` 
+        so that the header is sent out with all requests automatically. 
+ 
+        :param header: The header name, e.g. User-Agent 
+        :param value: The header value. If set to None the header is removed. 
+        '''</span>
+        <span class="s1">found = </span><span class="s2">False</span>
+        <span class="s1">header = normalize_header_name(header)</span>
+        <span class="s1">q = header.lower()</span>
+        <span class="s1">remove = []</span>
+        <span class="s2">for </span><span class="s1">i</span><span class="s2">, </span><span class="s1">(k</span><span class="s2">, </span><span class="s1">v) </span><span class="s2">in </span><span class="s1">enumerate(tuple(self.addheaders)):</span>
+            <span class="s2">if </span><span class="s1">k.lower() == q:</span>
+                <span class="s2">if </span><span class="s1">value:</span>
+                    <span class="s1">self.addheaders[i] = (header</span><span class="s2">, </span><span class="s1">value)</span>
+                    <span class="s1">found = </span><span class="s2">True</span>
+                <span class="s2">else</span><span class="s1">:</span>
+                    <span class="s1">remove.append(i)</span>
+        <span class="s2">if not </span><span class="s1">found:</span>
+            <span class="s1">self.addheaders.append((header</span><span class="s2">, </span><span class="s1">value))</span>
+        <span class="s2">if </span><span class="s1">remove:</span>
+            <span class="s2">for </span><span class="s1">i </span><span class="s2">in </span><span class="s1">reversed(remove):</span>
+                <span class="s2">del </span><span class="s1">self.addheaders[i]</span>
+
+    <span class="s2">def </span><span class="s1">links(self</span><span class="s2">, </span><span class="s1">**kwds):</span>
+        <span class="s0">&quot;&quot;&quot;Return iterable over links (:class:`mechanize.Link` objects).&quot;&quot;&quot;</span>
+        <span class="s2">if not </span><span class="s1">self.viewing_html():</span>
+            <span class="s2">raise </span><span class="s1">BrowserStateError(</span><span class="s3">&quot;not viewing HTML&quot;</span><span class="s1">)</span>
+        <span class="s1">links = self._factory.links()</span>
+        <span class="s2">if </span><span class="s1">kwds:</span>
+            <span class="s2">return </span><span class="s1">self._filter_links(links</span><span class="s2">, </span><span class="s1">**kwds)</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s2">return </span><span class="s1">links</span>
+
+    <span class="s2">def </span><span class="s1">forms(self):</span>
+        <span class="s0">&quot;&quot;&quot;Return iterable over forms. 
+ 
+        The returned form objects implement the :class:`mechanize.HTMLForm` 
+        interface. 
+ 
+        &quot;&quot;&quot;</span>
+        <span class="s2">if not </span><span class="s1">self.viewing_html():</span>
+            <span class="s2">raise </span><span class="s1">BrowserStateError(</span><span class="s3">&quot;not viewing HTML&quot;</span><span class="s1">)</span>
+        <span class="s2">return </span><span class="s1">self._factory.forms()</span>
+
+    <span class="s2">def </span><span class="s1">global_form(self):</span>
+        <span class="s0">&quot;&quot;&quot;Return the global form object, or None if the factory implementation 
+        did not supply one. 
+ 
+        The &quot;global&quot; form object contains all controls that are not descendants 
+        of any FORM element. 
+ 
+        The returned form object implements the :class:`mechanize.HTMLForm` 
+        interface. 
+ 
+        This is a separate method since the global form is not regarded as part 
+        of the sequence of forms in the document -- mostly for 
+        backwards-compatibility. 
+ 
+        &quot;&quot;&quot;</span>
+        <span class="s2">if not </span><span class="s1">self.viewing_html():</span>
+            <span class="s2">raise </span><span class="s1">BrowserStateError(</span><span class="s3">&quot;not viewing HTML&quot;</span><span class="s1">)</span>
+        <span class="s2">return </span><span class="s1">self._factory.global_form</span>
+
+    <span class="s2">def </span><span class="s1">viewing_html(self):</span>
+        <span class="s0">&quot;&quot;&quot;Return whether the current response contains HTML data.&quot;&quot;&quot;</span>
+        <span class="s2">if </span><span class="s1">self._response </span><span class="s2">is None</span><span class="s1">:</span>
+            <span class="s2">raise </span><span class="s1">BrowserStateError(</span><span class="s3">&quot;not viewing any document&quot;</span><span class="s1">)</span>
+        <span class="s2">return </span><span class="s1">self._factory.is_html</span>
+
+    <span class="s2">def </span><span class="s1">encoding(self):</span>
+        <span class="s2">if </span><span class="s1">self._response </span><span class="s2">is None</span><span class="s1">:</span>
+            <span class="s2">raise </span><span class="s1">BrowserStateError(</span><span class="s3">&quot;not viewing any document&quot;</span><span class="s1">)</span>
+        <span class="s2">return </span><span class="s1">self._factory.encoding</span>
+
+    <span class="s2">def </span><span class="s1">title(self):</span>
+        <span class="s0">' Return title, or None if there is no title element in the document. '</span>
+        <span class="s2">if not </span><span class="s1">self.viewing_html():</span>
+            <span class="s2">raise </span><span class="s1">BrowserStateError(</span><span class="s3">&quot;not viewing HTML&quot;</span><span class="s1">)</span>
+        <span class="s2">return </span><span class="s1">self._factory.title</span>
+
+    <span class="s2">def </span><span class="s1">select_form(self</span><span class="s2">, </span><span class="s1">name=</span><span class="s2">None, </span><span class="s1">predicate=</span><span class="s2">None, </span><span class="s1">nr=</span><span class="s2">None, </span><span class="s1">**attrs):</span>
+        <span class="s0">&quot;&quot;&quot;Select an HTML form for input. 
+ 
+        This is a bit like giving a form the &quot;input focus&quot; in a browser. 
+ 
+        If a form is selected, the Browser object supports the HTMLForm 
+        interface, so you can call methods like :meth:`set_value()`, 
+        :meth:`set()`, and :meth:`click()`. 
+ 
+        Another way to select a form is to assign to the .form attribute.  The 
+        form assigned should be one of the objects returned by the 
+        :meth:`forms()` method. 
+ 
+        If no matching form is found, 
+        :class:`mechanize.FormNotFoundError` is raised. 
+ 
+        If `name` is specified, then the form must have the indicated name. 
+ 
+        If `predicate` is specified, then the form must match that function. 
+        The predicate function is passed the :class:`mechanize.HTMLForm` as its 
+        single argument, and should return a boolean value indicating whether 
+        the form matched. 
+ 
+        `nr`, if supplied, is the sequence number of the form (where 0 is the 
+        first).  Note that control 0 is the first form matching all the other 
+        arguments (if supplied); it is not necessarily the first control in the 
+        form.  The &quot;global form&quot; (consisting of all form controls not contained 
+        in any FORM element) is considered not to be part of this sequence and 
+        to have no name, so will not be matched unless both name and nr are 
+        None. 
+ 
+        You can also match on any HTML attribute of the `&lt;form&gt;` tag by passing 
+        in the attribute name and value as keyword arguments. To convert HTML 
+        attributes into syntactically valid python keyword arguments, the 
+        following simple rule is used. The python keyword argument name is 
+        converted to an HTML attribute name by: Replacing all underscores with 
+        hyphens and removing any trailing underscores. You can pass in strings, 
+        functions or regular expression objects as the values to match. For 
+        example: 
+ 
+        .. code-block:: python 
+ 
+            # Match form with the exact action specified 
+            br.select_form(action='http://foo.com/submit.php') 
+            # Match form with a class attribute that contains 'login' 
+            br.select_form(class_=lambda x: 'login' in x) 
+            # Match form with a data-form-type attribute that matches a regex 
+            br.select_form(data_form_type=re.compile(r'a|b')) 
+ 
+        &quot;&quot;&quot;</span>
+        <span class="s2">if not </span><span class="s1">self.viewing_html():</span>
+            <span class="s2">raise </span><span class="s1">BrowserStateError(</span><span class="s3">&quot;not viewing HTML&quot;</span><span class="s1">)</span>
+        <span class="s2">if </span><span class="s1">name </span><span class="s2">is None and </span><span class="s1">predicate </span><span class="s2">is None and </span><span class="s1">nr </span><span class="s2">is None and not </span><span class="s1">attrs:</span>
+            <span class="s2">raise </span><span class="s1">ValueError(</span>
+                <span class="s3">&quot;at least one argument must be supplied to specify form&quot;</span><span class="s1">)</span>
+
+        <span class="s1">global_form = self._factory.global_form</span>
+        <span class="s2">if </span><span class="s1">nr </span><span class="s2">is None and </span><span class="s1">name </span><span class="s2">is None and </span><span class="s1">predicate </span><span class="s2">is not None and </span><span class="s1">predicate(</span>
+                <span class="s1">global_form):</span>
+            <span class="s1">self.form = global_form</span>
+            <span class="s2">return</span>
+
+        <span class="s2">def </span><span class="s1">attr_selector(q):</span>
+            <span class="s2">if </span><span class="s1">is_string(q):</span>
+                <span class="s2">return lambda </span><span class="s1">x: x == q</span>
+            <span class="s2">if </span><span class="s1">callable(q):</span>
+                <span class="s2">return </span><span class="s1">q</span>
+            <span class="s2">return lambda </span><span class="s1">x: q.match(x) </span><span class="s2">is not None</span>
+        <span class="s1">attrsq = {aname.rstrip(</span><span class="s3">'_'</span><span class="s1">).replace(</span><span class="s3">'_'</span><span class="s2">, </span><span class="s3">'-'</span><span class="s1">): attr_selector(v)</span>
+                  <span class="s2">for </span><span class="s1">aname</span><span class="s2">, </span><span class="s1">v </span><span class="s2">in </span><span class="s1">iteritems(attrs)}</span>
+
+        <span class="s2">def </span><span class="s1">form_attrs_match(form_attrs):</span>
+            <span class="s2">for </span><span class="s1">aname</span><span class="s2">, </span><span class="s1">q </span><span class="s2">in </span><span class="s1">iteritems(attrsq):</span>
+                <span class="s1">val = form_attrs.get(aname)</span>
+                <span class="s2">if </span><span class="s1">val </span><span class="s2">is None or not </span><span class="s1">q(val):</span>
+                    <span class="s2">return False</span>
+            <span class="s2">return True</span>
+
+        <span class="s1">orig_nr = nr</span>
+        <span class="s2">for </span><span class="s1">form </span><span class="s2">in </span><span class="s1">self.forms():</span>
+            <span class="s2">if </span><span class="s1">name </span><span class="s2">is not None and </span><span class="s1">name != form.name:</span>
+                <span class="s2">continue</span>
+            <span class="s2">if </span><span class="s1">predicate </span><span class="s2">is not None and not </span><span class="s1">predicate(form):</span>
+                <span class="s2">continue</span>
+            <span class="s2">if </span><span class="s1">nr:</span>
+                <span class="s1">nr -= </span><span class="s4">1</span>
+                <span class="s2">continue</span>
+            <span class="s2">if </span><span class="s1">attrs </span><span class="s2">and not </span><span class="s1">form_attrs_match(form.attrs):</span>
+                <span class="s2">continue</span>
+            <span class="s1">self.form = form</span>
+            <span class="s2">break  </span><span class="s5"># success</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s5"># failure</span>
+            <span class="s1">description = []</span>
+            <span class="s2">if </span><span class="s1">name </span><span class="s2">is not None</span><span class="s1">:</span>
+                <span class="s1">description.append(</span><span class="s3">&quot;name '%s'&quot; </span><span class="s1">% name)</span>
+            <span class="s2">if </span><span class="s1">predicate </span><span class="s2">is not None</span><span class="s1">:</span>
+                <span class="s1">description.append(</span><span class="s3">&quot;predicate %s&quot; </span><span class="s1">% predicate)</span>
+            <span class="s2">if </span><span class="s1">orig_nr </span><span class="s2">is not None</span><span class="s1">:</span>
+                <span class="s1">description.append(</span><span class="s3">&quot;nr %d&quot; </span><span class="s1">% orig_nr)</span>
+            <span class="s2">if </span><span class="s1">attrs:</span>
+                <span class="s2">for </span><span class="s1">k</span><span class="s2">, </span><span class="s1">v </span><span class="s2">in </span><span class="s1">iteritems(attrs):</span>
+                    <span class="s1">description.append(</span><span class="s3">'%s = %r' </span><span class="s1">% (k</span><span class="s2">, </span><span class="s1">v))</span>
+            <span class="s1">description = </span><span class="s3">&quot;, &quot;</span><span class="s1">.join(description)</span>
+            <span class="s2">raise </span><span class="s1">FormNotFoundError(</span><span class="s3">&quot;no form matching &quot; </span><span class="s1">+ description)</span>
+
+    <span class="s2">def </span><span class="s1">click(self</span><span class="s2">, </span><span class="s1">*args</span><span class="s2">, </span><span class="s1">**kwds):</span>
+        <span class="s0">&quot;&quot;&quot;See :meth:`mechanize.HTMLForm.click()` for documentation.&quot;&quot;&quot;</span>
+        <span class="s2">if not </span><span class="s1">self.viewing_html():</span>
+            <span class="s2">raise </span><span class="s1">BrowserStateError(</span><span class="s3">&quot;not viewing HTML&quot;</span><span class="s1">)</span>
+        <span class="s1">request = self.form.click(*args</span><span class="s2">, </span><span class="s1">**kwds)</span>
+        <span class="s2">return </span><span class="s1">self._add_referer_header(request)</span>
+
+    <span class="s2">def </span><span class="s1">submit(self</span><span class="s2">, </span><span class="s1">*args</span><span class="s2">, </span><span class="s1">**kwds):</span>
+        <span class="s0">&quot;&quot;&quot;Submit current form. 
+ 
+        Arguments are as for :meth:`mechanize.HTMLForm.click()`. 
+ 
+        Return value is same as for :meth:`open()`. 
+        &quot;&quot;&quot;</span>
+        <span class="s2">return </span><span class="s1">self.open(self.click(*args</span><span class="s2">, </span><span class="s1">**kwds))</span>
+
+    <span class="s2">def </span><span class="s1">click_link(self</span><span class="s2">, </span><span class="s1">link=</span><span class="s2">None, </span><span class="s1">**kwds):</span>
+        <span class="s0">&quot;&quot;&quot;Find a link and return a Request object for it. 
+ 
+        Arguments are as for :meth:`find_link()`, except that a link may be 
+        supplied as the first argument. 
+ 
+        &quot;&quot;&quot;</span>
+        <span class="s2">if not </span><span class="s1">self.viewing_html():</span>
+            <span class="s2">raise </span><span class="s1">BrowserStateError(</span><span class="s3">&quot;not viewing HTML&quot;</span><span class="s1">)</span>
+        <span class="s2">if not </span><span class="s1">link:</span>
+            <span class="s1">link = self.find_link(**kwds)</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s2">if </span><span class="s1">kwds:</span>
+                <span class="s2">raise </span><span class="s1">ValueError(</span>
+                    <span class="s3">&quot;either pass a Link, or keyword arguments, not both&quot;</span><span class="s1">)</span>
+        <span class="s1">request = self.request_class(link.absolute_url)</span>
+        <span class="s2">return </span><span class="s1">self._add_referer_header(request)</span>
+
+    <span class="s2">def </span><span class="s1">follow_link(self</span><span class="s2">, </span><span class="s1">link=</span><span class="s2">None, </span><span class="s1">**kwds):</span>
+        <span class="s0">&quot;&quot;&quot;Find a link and :meth:`open()` it. 
+ 
+        Arguments are as for :meth:`click_link()`. 
+ 
+        Return value is same as for :meth:`open()`. 
+ 
+        &quot;&quot;&quot;</span>
+        <span class="s2">return </span><span class="s1">self.open(self.click_link(link</span><span class="s2">, </span><span class="s1">**kwds))</span>
+
+    <span class="s2">def </span><span class="s1">find_link(self</span><span class="s2">,</span>
+                  <span class="s1">text=</span><span class="s2">None,</span>
+                  <span class="s1">text_regex=</span><span class="s2">None,</span>
+                  <span class="s1">name=</span><span class="s2">None,</span>
+                  <span class="s1">name_regex=</span><span class="s2">None,</span>
+                  <span class="s1">url=</span><span class="s2">None,</span>
+                  <span class="s1">url_regex=</span><span class="s2">None,</span>
+                  <span class="s1">tag=</span><span class="s2">None,</span>
+                  <span class="s1">predicate=</span><span class="s2">None,</span>
+                  <span class="s1">nr=</span><span class="s4">0</span><span class="s1">):</span>
+        <span class="s0">&quot;&quot;&quot;Find a link in current page. 
+ 
+        Links are returned as :class:`mechanize.Link` objects. Examples: 
+ 
+        .. code-block:: python 
+ 
+            # Return third link that .search()-matches the regexp &quot;python&quot; (by 
+            # &quot;.search()-matches&quot;, I mean that the regular expression method 
+            # .search() is used, rather than .match()). 
+            find_link(text_regex=re.compile(&quot;python&quot;), nr=2) 
+ 
+            # Return first http link in the current page that points to 
+            # somewhere on python.org whose link text (after tags have been 
+            # removed) is exactly &quot;monty python&quot;. 
+            find_link(text=&quot;monty python&quot;, 
+                    url_regex=re.compile(&quot;http.*python.org&quot;)) 
+ 
+            # Return first link with exactly three HTML attributes. 
+            find_link(predicate=lambda link: len(link.attrs) == 3) 
+ 
+        Links include anchors `&lt;a&gt;`, image maps `&lt;area&gt;`, and frames 
+        `&lt;iframe&gt;`. 
+ 
+        All arguments must be passed by keyword, not position.  Zero or more 
+        arguments may be supplied.  In order to find a link, all arguments 
+        supplied must match. 
+ 
+        If a matching link is not found, :class:`mechanize.LinkNotFoundError` 
+        is raised. 
+ 
+        :param text: link text between link tags: e.g. &lt;a href=&quot;blah&quot;&gt;this 
+            bit&lt;/a&gt; with whitespace compressed. 
+        :param text_regex: link text between tag (as defined above) must match 
+            the regular expression object or regular expression string passed 
+            as this argument, if supplied 
+        :param name: as for text and text_regex, but matched 
+            against the name HTML attribute of the link tag 
+        :param url: as for text and text_regex, but matched against the 
+            URL of the link tag (note this matches against Link.url, which is a 
+            relative or absolute URL according to how it was written in the 
+            HTML) 
+        :param tag: element name of opening tag, e.g. &quot;a&quot; 
+        :param predicate: a function taking a Link object as its single 
+            argument, returning a boolean result, indicating whether the links 
+        :param nr: matches the nth link that matches all other 
+            criteria (default 0) 
+ 
+        &quot;&quot;&quot;</span>
+        <span class="s2">try</span><span class="s1">:</span>
+            <span class="s2">return </span><span class="s1">next(self._filter_links(</span>
+                <span class="s1">self._factory.links()</span><span class="s2">, </span><span class="s1">text</span><span class="s2">, </span><span class="s1">text_regex</span><span class="s2">, </span><span class="s1">name</span><span class="s2">, </span><span class="s1">name_regex</span><span class="s2">, </span><span class="s1">url</span><span class="s2">,</span>
+                <span class="s1">url_regex</span><span class="s2">, </span><span class="s1">tag</span><span class="s2">, </span><span class="s1">predicate</span><span class="s2">, </span><span class="s1">nr))</span>
+        <span class="s2">except </span><span class="s1">StopIteration:</span>
+            <span class="s2">raise </span><span class="s1">LinkNotFoundError()</span>
+
+    <span class="s2">def </span><span class="s1">__getattr__(self</span><span class="s2">, </span><span class="s1">name):</span>
+        <span class="s5"># pass through _form.HTMLForm methods and attributes</span>
+        <span class="s1">form = self.__dict__.get(</span><span class="s3">&quot;form&quot;</span><span class="s1">)</span>
+        <span class="s2">if </span><span class="s1">form </span><span class="s2">is None</span><span class="s1">:</span>
+            <span class="s2">raise </span><span class="s1">AttributeError(</span>
+                <span class="s3">&quot;%s instance has no attribute %s (perhaps you forgot to &quot;</span>
+                <span class="s3">&quot;.select_form()?)&quot; </span><span class="s1">% (self.__class__</span><span class="s2">, </span><span class="s1">name))</span>
+        <span class="s2">return </span><span class="s1">getattr(form</span><span class="s2">, </span><span class="s1">name)</span>
+
+    <span class="s2">def </span><span class="s1">__getitem__(self</span><span class="s2">, </span><span class="s1">name):</span>
+        <span class="s2">if </span><span class="s1">self.form </span><span class="s2">is None</span><span class="s1">:</span>
+            <span class="s2">raise </span><span class="s1">BrowserStateError(</span><span class="s3">'No form selected'</span><span class="s1">)</span>
+        <span class="s2">return </span><span class="s1">self.form[name]</span>
+
+    <span class="s2">def </span><span class="s1">__setitem__(self</span><span class="s2">, </span><span class="s1">name</span><span class="s2">, </span><span class="s1">val):</span>
+        <span class="s2">if </span><span class="s1">self.form </span><span class="s2">is None</span><span class="s1">:</span>
+            <span class="s2">raise </span><span class="s1">BrowserStateError(</span><span class="s3">'No form selected'</span><span class="s1">)</span>
+        <span class="s1">self.form[name] = val</span>
+
+    <span class="s2">def </span><span class="s1">_filter_links(self</span><span class="s2">,</span>
+                      <span class="s1">links</span><span class="s2">,</span>
+                      <span class="s1">text=</span><span class="s2">None,</span>
+                      <span class="s1">text_regex=</span><span class="s2">None,</span>
+                      <span class="s1">name=</span><span class="s2">None,</span>
+                      <span class="s1">name_regex=</span><span class="s2">None,</span>
+                      <span class="s1">url=</span><span class="s2">None,</span>
+                      <span class="s1">url_regex=</span><span class="s2">None,</span>
+                      <span class="s1">tag=</span><span class="s2">None,</span>
+                      <span class="s1">predicate=</span><span class="s2">None,</span>
+                      <span class="s1">nr=</span><span class="s4">0</span><span class="s1">):</span>
+        <span class="s2">if not </span><span class="s1">self.viewing_html():</span>
+            <span class="s2">raise </span><span class="s1">BrowserStateError(</span><span class="s3">&quot;not viewing HTML&quot;</span><span class="s1">)</span>
+
+        <span class="s1">orig_nr = nr</span>
+
+        <span class="s2">for </span><span class="s1">link </span><span class="s2">in </span><span class="s1">links:</span>
+            <span class="s2">if </span><span class="s1">url </span><span class="s2">is not None and </span><span class="s1">url != link.url:</span>
+                <span class="s2">continue</span>
+            <span class="s2">if </span><span class="s1">url_regex </span><span class="s2">is not None and not </span><span class="s1">re.search(url_regex</span><span class="s2">, </span><span class="s1">link.url):</span>
+                <span class="s2">continue</span>
+            <span class="s2">if </span><span class="s1">(text </span><span class="s2">is not None and </span><span class="s1">(link.text </span><span class="s2">is None or </span><span class="s1">text != link.text)):</span>
+                <span class="s2">continue</span>
+            <span class="s2">if </span><span class="s1">(</span>
+                    <span class="s1">text_regex </span><span class="s2">is not None and </span><span class="s1">(</span>
+                        <span class="s1">link.text </span><span class="s2">is None or not </span><span class="s1">re.search(</span>
+                            <span class="s1">text_regex</span><span class="s2">, </span><span class="s1">link.text))):</span>
+                <span class="s2">continue</span>
+            <span class="s2">if </span><span class="s1">name </span><span class="s2">is not None and </span><span class="s1">name != dict(link.attrs).get(</span><span class="s3">&quot;name&quot;</span><span class="s1">):</span>
+                <span class="s2">continue</span>
+            <span class="s2">if </span><span class="s1">name_regex </span><span class="s2">is not None</span><span class="s1">:</span>
+                <span class="s1">link_name = dict(link.attrs).get(</span><span class="s3">&quot;name&quot;</span><span class="s1">)</span>
+                <span class="s2">if </span><span class="s1">link_name </span><span class="s2">is None or not </span><span class="s1">re.search(name_regex</span><span class="s2">, </span><span class="s1">link_name):</span>
+                    <span class="s2">continue</span>
+            <span class="s2">if </span><span class="s1">tag </span><span class="s2">is not None and </span><span class="s1">tag != link.tag:</span>
+                <span class="s2">continue</span>
+            <span class="s2">if </span><span class="s1">predicate </span><span class="s2">is not None and not </span><span class="s1">predicate(link):</span>
+                <span class="s2">continue</span>
+            <span class="s2">if </span><span class="s1">nr:</span>
+                <span class="s1">nr -= </span><span class="s4">1</span>
+                <span class="s2">continue</span>
+            <span class="s2">yield </span><span class="s1">link</span>
+            <span class="s1">nr = orig_nr</span>
+</pre>
+</body>
+</html>

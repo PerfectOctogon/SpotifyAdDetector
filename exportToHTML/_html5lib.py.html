@@ -1,0 +1,489 @@
+<html>
+<head>
+<title>_html5lib.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #6a8759;}
+.s3 { color: #cc7832;}
+.s4 { color: #629755; font-style: italic;}
+.s5 { color: #6897bb;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+_html5lib.py</font>
+</center></td></tr></table>
+<pre><span class="s0"># Use of this source code is governed by the MIT license.</span>
+<span class="s1">__license__ = </span><span class="s2">&quot;MIT&quot;</span>
+
+<span class="s1">__all__ = [</span>
+    <span class="s2">'HTML5TreeBuilder'</span><span class="s3">,</span>
+    <span class="s1">]</span>
+
+<span class="s3">import </span><span class="s1">warnings</span>
+<span class="s3">import </span><span class="s1">re</span>
+<span class="s3">from </span><span class="s1">bs4.builder </span><span class="s3">import </span><span class="s1">(</span>
+    <span class="s1">PERMISSIVE</span><span class="s3">,</span>
+    <span class="s1">HTML</span><span class="s3">,</span>
+    <span class="s1">HTML_5</span><span class="s3">,</span>
+    <span class="s1">HTMLTreeBuilder</span><span class="s3">,</span>
+    <span class="s1">)</span>
+<span class="s3">from </span><span class="s1">bs4.element </span><span class="s3">import </span><span class="s1">(</span>
+    <span class="s1">NamespacedAttribute</span><span class="s3">,</span>
+    <span class="s1">nonwhitespace_re</span><span class="s3">,</span>
+<span class="s1">)</span>
+<span class="s3">import </span><span class="s1">html5lib</span>
+<span class="s3">from </span><span class="s1">html5lib.constants </span><span class="s3">import </span><span class="s1">(</span>
+    <span class="s1">namespaces</span><span class="s3">,</span>
+    <span class="s1">prefixes</span><span class="s3">,</span>
+    <span class="s1">)</span>
+<span class="s3">from </span><span class="s1">bs4.element </span><span class="s3">import </span><span class="s1">(</span>
+    <span class="s1">Comment</span><span class="s3">,</span>
+    <span class="s1">Doctype</span><span class="s3">,</span>
+    <span class="s1">NavigableString</span><span class="s3">,</span>
+    <span class="s1">Tag</span><span class="s3">,</span>
+    <span class="s1">)</span>
+
+<span class="s3">try</span><span class="s1">:</span>
+    <span class="s0"># Pre-0.99999999</span>
+    <span class="s3">from </span><span class="s1">html5lib.treebuilders </span><span class="s3">import </span><span class="s1">_base </span><span class="s3">as </span><span class="s1">treebuilder_base</span>
+    <span class="s1">new_html5lib = </span><span class="s3">False</span>
+<span class="s3">except </span><span class="s1">ImportError </span><span class="s3">as </span><span class="s1">e:</span>
+    <span class="s0"># 0.99999999 and up</span>
+    <span class="s3">from </span><span class="s1">html5lib.treebuilders </span><span class="s3">import </span><span class="s1">base </span><span class="s3">as </span><span class="s1">treebuilder_base</span>
+    <span class="s1">new_html5lib = </span><span class="s3">True</span>
+
+<span class="s3">class </span><span class="s1">HTML5TreeBuilder(HTMLTreeBuilder):</span>
+    <span class="s4">&quot;&quot;&quot;Use html5lib to build a tree. 
+ 
+    Note that this TreeBuilder does not support some features common 
+    to HTML TreeBuilders. Some of these features could theoretically 
+    be implemented, but at the very least it's quite difficult, 
+    because html5lib moves the parse tree around as it's being built. 
+ 
+    * This TreeBuilder doesn't use different subclasses of NavigableString 
+      based on the name of the tag in which the string was found. 
+ 
+    * You can't use a SoupStrainer to parse only part of a document. 
+    &quot;&quot;&quot;</span>
+
+    <span class="s1">NAME = </span><span class="s2">&quot;html5lib&quot;</span>
+
+    <span class="s1">features = [NAME</span><span class="s3">, </span><span class="s1">PERMISSIVE</span><span class="s3">, </span><span class="s1">HTML_5</span><span class="s3">, </span><span class="s1">HTML]</span>
+
+    <span class="s0"># html5lib can tell us which line number and position in the</span>
+    <span class="s0"># original file is the source of an element.</span>
+    <span class="s1">TRACKS_LINE_NUMBERS = </span><span class="s3">True</span>
+    
+    <span class="s3">def </span><span class="s1">prepare_markup(self</span><span class="s3">, </span><span class="s1">markup</span><span class="s3">, </span><span class="s1">user_specified_encoding</span><span class="s3">,</span>
+                       <span class="s1">document_declared_encoding=</span><span class="s3">None, </span><span class="s1">exclude_encodings=</span><span class="s3">None</span><span class="s1">):</span>
+        <span class="s0"># Store the user-specified encoding for use later on.</span>
+        <span class="s1">self.user_specified_encoding = user_specified_encoding</span>
+
+        <span class="s0"># document_declared_encoding and exclude_encodings aren't used</span>
+        <span class="s0"># ATM because the html5lib TreeBuilder doesn't use</span>
+        <span class="s0"># UnicodeDammit.</span>
+        <span class="s3">if </span><span class="s1">exclude_encodings:</span>
+            <span class="s1">warnings.warn(</span><span class="s2">&quot;You provided a value for exclude_encoding, but the html5lib tree builder doesn't support exclude_encoding.&quot;</span><span class="s1">)</span>
+        <span class="s3">yield </span><span class="s1">(markup</span><span class="s3">, None, None, False</span><span class="s1">)</span>
+
+    <span class="s0"># These methods are defined by Beautiful Soup.</span>
+    <span class="s3">def </span><span class="s1">feed(self</span><span class="s3">, </span><span class="s1">markup):</span>
+        <span class="s3">if </span><span class="s1">self.soup.parse_only </span><span class="s3">is not None</span><span class="s1">:</span>
+            <span class="s1">warnings.warn(</span><span class="s2">&quot;You provided a value for parse_only, but the html5lib tree builder doesn't support parse_only. The entire document will be parsed.&quot;</span><span class="s1">)</span>
+        <span class="s1">parser = html5lib.HTMLParser(tree=self.create_treebuilder)</span>
+        <span class="s1">self.underlying_builder.parser = parser</span>
+        <span class="s1">extra_kwargs = dict()</span>
+        <span class="s3">if not </span><span class="s1">isinstance(markup</span><span class="s3">, </span><span class="s1">str):</span>
+            <span class="s3">if </span><span class="s1">new_html5lib:</span>
+                <span class="s1">extra_kwargs[</span><span class="s2">'override_encoding'</span><span class="s1">] = self.user_specified_encoding</span>
+            <span class="s3">else</span><span class="s1">:</span>
+                <span class="s1">extra_kwargs[</span><span class="s2">'encoding'</span><span class="s1">] = self.user_specified_encoding</span>
+        <span class="s1">doc = parser.parse(markup</span><span class="s3">, </span><span class="s1">**extra_kwargs)</span>
+        
+        <span class="s0"># Set the character encoding detected by the tokenizer.</span>
+        <span class="s3">if </span><span class="s1">isinstance(markup</span><span class="s3">, </span><span class="s1">str):</span>
+            <span class="s0"># We need to special-case this because html5lib sets</span>
+            <span class="s0"># charEncoding to UTF-8 if it gets Unicode input.</span>
+            <span class="s1">doc.original_encoding = </span><span class="s3">None</span>
+        <span class="s3">else</span><span class="s1">:</span>
+            <span class="s1">original_encoding = parser.tokenizer.stream.charEncoding[</span><span class="s5">0</span><span class="s1">]</span>
+            <span class="s3">if not </span><span class="s1">isinstance(original_encoding</span><span class="s3">, </span><span class="s1">str):</span>
+                <span class="s0"># In 0.99999999 and up, the encoding is an html5lib</span>
+                <span class="s0"># Encoding object. We want to use a string for compatibility</span>
+                <span class="s0"># with other tree builders.</span>
+                <span class="s1">original_encoding = original_encoding.name</span>
+            <span class="s1">doc.original_encoding = original_encoding</span>
+        <span class="s1">self.underlying_builder.parser = </span><span class="s3">None</span>
+            
+    <span class="s3">def </span><span class="s1">create_treebuilder(self</span><span class="s3">, </span><span class="s1">namespaceHTMLElements):</span>
+        <span class="s1">self.underlying_builder = TreeBuilderForHtml5lib(</span>
+            <span class="s1">namespaceHTMLElements</span><span class="s3">, </span><span class="s1">self.soup</span><span class="s3">,</span>
+            <span class="s1">store_line_numbers=self.store_line_numbers</span>
+        <span class="s1">)</span>
+        <span class="s3">return </span><span class="s1">self.underlying_builder</span>
+
+    <span class="s3">def </span><span class="s1">test_fragment_to_document(self</span><span class="s3">, </span><span class="s1">fragment):</span>
+        <span class="s4">&quot;&quot;&quot;See `TreeBuilder`.&quot;&quot;&quot;</span>
+        <span class="s3">return </span><span class="s2">'&lt;html&gt;&lt;head&gt;&lt;/head&gt;&lt;body&gt;%s&lt;/body&gt;&lt;/html&gt;' </span><span class="s1">% fragment</span>
+
+
+<span class="s3">class </span><span class="s1">TreeBuilderForHtml5lib(treebuilder_base.TreeBuilder):</span>
+    
+    <span class="s3">def </span><span class="s1">__init__(self</span><span class="s3">, </span><span class="s1">namespaceHTMLElements</span><span class="s3">, </span><span class="s1">soup=</span><span class="s3">None,</span>
+                 <span class="s1">store_line_numbers=</span><span class="s3">True, </span><span class="s1">**kwargs):</span>
+        <span class="s3">if </span><span class="s1">soup:</span>
+            <span class="s1">self.soup = soup</span>
+        <span class="s3">else</span><span class="s1">:</span>
+            <span class="s3">from </span><span class="s1">bs4 </span><span class="s3">import </span><span class="s1">BeautifulSoup</span>
+            <span class="s0"># TODO: Why is the parser 'html.parser' here? To avoid an</span>
+            <span class="s0"># infinite loop?</span>
+            <span class="s1">self.soup = BeautifulSoup(</span>
+                <span class="s2">&quot;&quot;</span><span class="s3">, </span><span class="s2">&quot;html.parser&quot;</span><span class="s3">, </span><span class="s1">store_line_numbers=store_line_numbers</span><span class="s3">,</span>
+                <span class="s1">**kwargs</span>
+            <span class="s1">)</span>
+        <span class="s0"># TODO: What are **kwargs exactly? Should they be passed in</span>
+        <span class="s0"># here in addition to/instead of being passed to the BeautifulSoup</span>
+        <span class="s0"># constructor?</span>
+        <span class="s1">super(TreeBuilderForHtml5lib</span><span class="s3">, </span><span class="s1">self).__init__(namespaceHTMLElements)</span>
+
+        <span class="s0"># This will be set later to an html5lib.html5parser.HTMLParser</span>
+        <span class="s0"># object, which we can use to track the current line number.</span>
+        <span class="s1">self.parser = </span><span class="s3">None</span>
+        <span class="s1">self.store_line_numbers = store_line_numbers</span>
+        
+    <span class="s3">def </span><span class="s1">documentClass(self):</span>
+        <span class="s1">self.soup.reset()</span>
+        <span class="s3">return </span><span class="s1">Element(self.soup</span><span class="s3">, </span><span class="s1">self.soup</span><span class="s3">, None</span><span class="s1">)</span>
+
+    <span class="s3">def </span><span class="s1">insertDoctype(self</span><span class="s3">, </span><span class="s1">token):</span>
+        <span class="s1">name = token[</span><span class="s2">&quot;name&quot;</span><span class="s1">]</span>
+        <span class="s1">publicId = token[</span><span class="s2">&quot;publicId&quot;</span><span class="s1">]</span>
+        <span class="s1">systemId = token[</span><span class="s2">&quot;systemId&quot;</span><span class="s1">]</span>
+
+        <span class="s1">doctype = Doctype.for_name_and_ids(name</span><span class="s3">, </span><span class="s1">publicId</span><span class="s3">, </span><span class="s1">systemId)</span>
+        <span class="s1">self.soup.object_was_parsed(doctype)</span>
+
+    <span class="s3">def </span><span class="s1">elementClass(self</span><span class="s3">, </span><span class="s1">name</span><span class="s3">, </span><span class="s1">namespace):</span>
+        <span class="s1">kwargs = {}</span>
+        <span class="s3">if </span><span class="s1">self.parser </span><span class="s3">and </span><span class="s1">self.store_line_numbers:</span>
+            <span class="s0"># This represents the point immediately after the end of the</span>
+            <span class="s0"># tag. We don't know when the tag started, but we do know</span>
+            <span class="s0"># where it ended -- the character just before this one.</span>
+            <span class="s1">sourceline</span><span class="s3">, </span><span class="s1">sourcepos = self.parser.tokenizer.stream.position()</span>
+            <span class="s1">kwargs[</span><span class="s2">'sourceline'</span><span class="s1">] = sourceline</span>
+            <span class="s1">kwargs[</span><span class="s2">'sourcepos'</span><span class="s1">] = sourcepos-</span><span class="s5">1</span>
+        <span class="s1">tag = self.soup.new_tag(name</span><span class="s3">, </span><span class="s1">namespace</span><span class="s3">, </span><span class="s1">**kwargs)</span>
+
+        <span class="s3">return </span><span class="s1">Element(tag</span><span class="s3">, </span><span class="s1">self.soup</span><span class="s3">, </span><span class="s1">namespace)</span>
+
+    <span class="s3">def </span><span class="s1">commentClass(self</span><span class="s3">, </span><span class="s1">data):</span>
+        <span class="s3">return </span><span class="s1">TextNode(Comment(data)</span><span class="s3">, </span><span class="s1">self.soup)</span>
+
+    <span class="s3">def </span><span class="s1">fragmentClass(self):</span>
+        <span class="s3">from </span><span class="s1">bs4 </span><span class="s3">import </span><span class="s1">BeautifulSoup</span>
+        <span class="s0"># TODO: Why is the parser 'html.parser' here? To avoid an</span>
+        <span class="s0"># infinite loop?</span>
+        <span class="s1">self.soup = BeautifulSoup(</span><span class="s2">&quot;&quot;</span><span class="s3">, </span><span class="s2">&quot;html.parser&quot;</span><span class="s1">)</span>
+        <span class="s1">self.soup.name = </span><span class="s2">&quot;[document_fragment]&quot;</span>
+        <span class="s3">return </span><span class="s1">Element(self.soup</span><span class="s3">, </span><span class="s1">self.soup</span><span class="s3">, None</span><span class="s1">)</span>
+
+    <span class="s3">def </span><span class="s1">appendChild(self</span><span class="s3">, </span><span class="s1">node):</span>
+        <span class="s0"># XXX This code is not covered by the BS4 tests.</span>
+        <span class="s1">self.soup.append(node.element)</span>
+
+    <span class="s3">def </span><span class="s1">getDocument(self):</span>
+        <span class="s3">return </span><span class="s1">self.soup</span>
+
+    <span class="s3">def </span><span class="s1">getFragment(self):</span>
+        <span class="s3">return </span><span class="s1">treebuilder_base.TreeBuilder.getFragment(self).element</span>
+
+    <span class="s3">def </span><span class="s1">testSerializer(self</span><span class="s3">, </span><span class="s1">element):</span>
+        <span class="s3">from </span><span class="s1">bs4 </span><span class="s3">import </span><span class="s1">BeautifulSoup</span>
+        <span class="s1">rv = []</span>
+        <span class="s1">doctype_re = re.compile(</span><span class="s2">r'^(.*?)(?: PUBLIC &quot;(.*?)&quot;(?: &quot;(.*?)&quot;)?| SYSTEM &quot;(.*?)&quot;)?$'</span><span class="s1">)</span>
+
+        <span class="s3">def </span><span class="s1">serializeElement(element</span><span class="s3">, </span><span class="s1">indent=</span><span class="s5">0</span><span class="s1">):</span>
+            <span class="s3">if </span><span class="s1">isinstance(element</span><span class="s3">, </span><span class="s1">BeautifulSoup):</span>
+                <span class="s3">pass</span>
+            <span class="s3">if </span><span class="s1">isinstance(element</span><span class="s3">, </span><span class="s1">Doctype):</span>
+                <span class="s1">m = doctype_re.match(element)</span>
+                <span class="s3">if </span><span class="s1">m:</span>
+                    <span class="s1">name = m.group(</span><span class="s5">1</span><span class="s1">)</span>
+                    <span class="s3">if </span><span class="s1">m.lastindex &gt; </span><span class="s5">1</span><span class="s1">:</span>
+                        <span class="s1">publicId = m.group(</span><span class="s5">2</span><span class="s1">) </span><span class="s3">or </span><span class="s2">&quot;&quot;</span>
+                        <span class="s1">systemId = m.group(</span><span class="s5">3</span><span class="s1">) </span><span class="s3">or </span><span class="s1">m.group(</span><span class="s5">4</span><span class="s1">) </span><span class="s3">or </span><span class="s2">&quot;&quot;</span>
+                        <span class="s1">rv.append(</span><span class="s2">&quot;&quot;&quot;|%s&lt;!DOCTYPE %s &quot;%s&quot; &quot;%s&quot;&gt;&quot;&quot;&quot; </span><span class="s1">%</span>
+                                  <span class="s1">(</span><span class="s2">' ' </span><span class="s1">* indent</span><span class="s3">, </span><span class="s1">name</span><span class="s3">, </span><span class="s1">publicId</span><span class="s3">, </span><span class="s1">systemId))</span>
+                    <span class="s3">else</span><span class="s1">:</span>
+                        <span class="s1">rv.append(</span><span class="s2">&quot;|%s&lt;!DOCTYPE %s&gt;&quot; </span><span class="s1">% (</span><span class="s2">' ' </span><span class="s1">* indent</span><span class="s3">, </span><span class="s1">name))</span>
+                <span class="s3">else</span><span class="s1">:</span>
+                    <span class="s1">rv.append(</span><span class="s2">&quot;|%s&lt;!DOCTYPE &gt;&quot; </span><span class="s1">% (</span><span class="s2">' ' </span><span class="s1">* indent</span><span class="s3">,</span><span class="s1">))</span>
+            <span class="s3">elif </span><span class="s1">isinstance(element</span><span class="s3">, </span><span class="s1">Comment):</span>
+                <span class="s1">rv.append(</span><span class="s2">&quot;|%s&lt;!-- %s --&gt;&quot; </span><span class="s1">% (</span><span class="s2">' ' </span><span class="s1">* indent</span><span class="s3">, </span><span class="s1">element))</span>
+            <span class="s3">elif </span><span class="s1">isinstance(element</span><span class="s3">, </span><span class="s1">NavigableString):</span>
+                <span class="s1">rv.append(</span><span class="s2">&quot;|%s</span><span class="s3">\&quot;</span><span class="s2">%s</span><span class="s3">\&quot;</span><span class="s2">&quot; </span><span class="s1">% (</span><span class="s2">' ' </span><span class="s1">* indent</span><span class="s3">, </span><span class="s1">element))</span>
+            <span class="s3">else</span><span class="s1">:</span>
+                <span class="s3">if </span><span class="s1">element.namespace:</span>
+                    <span class="s1">name = </span><span class="s2">&quot;%s %s&quot; </span><span class="s1">% (prefixes[element.namespace]</span><span class="s3">,</span>
+                                      <span class="s1">element.name)</span>
+                <span class="s3">else</span><span class="s1">:</span>
+                    <span class="s1">name = element.name</span>
+                <span class="s1">rv.append(</span><span class="s2">&quot;|%s&lt;%s&gt;&quot; </span><span class="s1">% (</span><span class="s2">' ' </span><span class="s1">* indent</span><span class="s3">, </span><span class="s1">name))</span>
+                <span class="s3">if </span><span class="s1">element.attrs:</span>
+                    <span class="s1">attributes = []</span>
+                    <span class="s3">for </span><span class="s1">name</span><span class="s3">, </span><span class="s1">value </span><span class="s3">in </span><span class="s1">list(element.attrs.items()):</span>
+                        <span class="s3">if </span><span class="s1">isinstance(name</span><span class="s3">, </span><span class="s1">NamespacedAttribute):</span>
+                            <span class="s1">name = </span><span class="s2">&quot;%s %s&quot; </span><span class="s1">% (prefixes[name.namespace]</span><span class="s3">, </span><span class="s1">name.name)</span>
+                        <span class="s3">if </span><span class="s1">isinstance(value</span><span class="s3">, </span><span class="s1">list):</span>
+                            <span class="s1">value = </span><span class="s2">&quot; &quot;</span><span class="s1">.join(value)</span>
+                        <span class="s1">attributes.append((name</span><span class="s3">, </span><span class="s1">value))</span>
+
+                    <span class="s3">for </span><span class="s1">name</span><span class="s3">, </span><span class="s1">value </span><span class="s3">in </span><span class="s1">sorted(attributes):</span>
+                        <span class="s1">rv.append(</span><span class="s2">'|%s%s=&quot;%s&quot;' </span><span class="s1">% (</span><span class="s2">' ' </span><span class="s1">* (indent + </span><span class="s5">2</span><span class="s1">)</span><span class="s3">, </span><span class="s1">name</span><span class="s3">, </span><span class="s1">value))</span>
+                <span class="s1">indent += </span><span class="s5">2</span>
+                <span class="s3">for </span><span class="s1">child </span><span class="s3">in </span><span class="s1">element.children:</span>
+                    <span class="s1">serializeElement(child</span><span class="s3">, </span><span class="s1">indent)</span>
+        <span class="s1">serializeElement(element</span><span class="s3">, </span><span class="s5">0</span><span class="s1">)</span>
+
+        <span class="s3">return </span><span class="s2">&quot;</span><span class="s3">\n</span><span class="s2">&quot;</span><span class="s1">.join(rv)</span>
+
+<span class="s3">class </span><span class="s1">AttrList(object):</span>
+    <span class="s3">def </span><span class="s1">__init__(self</span><span class="s3">, </span><span class="s1">element):</span>
+        <span class="s1">self.element = element</span>
+        <span class="s1">self.attrs = dict(self.element.attrs)</span>
+    <span class="s3">def </span><span class="s1">__iter__(self):</span>
+        <span class="s3">return </span><span class="s1">list(self.attrs.items()).__iter__()</span>
+    <span class="s3">def </span><span class="s1">__setitem__(self</span><span class="s3">, </span><span class="s1">name</span><span class="s3">, </span><span class="s1">value):</span>
+        <span class="s0"># If this attribute is a multi-valued attribute for this element,</span>
+        <span class="s0"># turn its value into a list.</span>
+        <span class="s1">list_attr = self.element.cdata_list_attributes</span>
+        <span class="s3">if </span><span class="s1">(name </span><span class="s3">in </span><span class="s1">list_attr[</span><span class="s2">'*'</span><span class="s1">]</span>
+            <span class="s3">or </span><span class="s1">(self.element.name </span><span class="s3">in </span><span class="s1">list_attr</span>
+                <span class="s3">and </span><span class="s1">name </span><span class="s3">in </span><span class="s1">list_attr[self.element.name])):</span>
+            <span class="s0"># A node that is being cloned may have already undergone</span>
+            <span class="s0"># this procedure.</span>
+            <span class="s3">if not </span><span class="s1">isinstance(value</span><span class="s3">, </span><span class="s1">list):</span>
+                <span class="s1">value = nonwhitespace_re.findall(value)</span>
+        <span class="s1">self.element[name] = value</span>
+    <span class="s3">def </span><span class="s1">items(self):</span>
+        <span class="s3">return </span><span class="s1">list(self.attrs.items())</span>
+    <span class="s3">def </span><span class="s1">keys(self):</span>
+        <span class="s3">return </span><span class="s1">list(self.attrs.keys())</span>
+    <span class="s3">def </span><span class="s1">__len__(self):</span>
+        <span class="s3">return </span><span class="s1">len(self.attrs)</span>
+    <span class="s3">def </span><span class="s1">__getitem__(self</span><span class="s3">, </span><span class="s1">name):</span>
+        <span class="s3">return </span><span class="s1">self.attrs[name]</span>
+    <span class="s3">def </span><span class="s1">__contains__(self</span><span class="s3">, </span><span class="s1">name):</span>
+        <span class="s3">return </span><span class="s1">name </span><span class="s3">in </span><span class="s1">list(self.attrs.keys())</span>
+
+
+<span class="s3">class </span><span class="s1">Element(treebuilder_base.Node):</span>
+    <span class="s3">def </span><span class="s1">__init__(self</span><span class="s3">, </span><span class="s1">element</span><span class="s3">, </span><span class="s1">soup</span><span class="s3">, </span><span class="s1">namespace):</span>
+        <span class="s1">treebuilder_base.Node.__init__(self</span><span class="s3">, </span><span class="s1">element.name)</span>
+        <span class="s1">self.element = element</span>
+        <span class="s1">self.soup = soup</span>
+        <span class="s1">self.namespace = namespace</span>
+
+    <span class="s3">def </span><span class="s1">appendChild(self</span><span class="s3">, </span><span class="s1">node):</span>
+        <span class="s1">string_child = child = </span><span class="s3">None</span>
+        <span class="s3">if </span><span class="s1">isinstance(node</span><span class="s3">, </span><span class="s1">str):</span>
+            <span class="s0"># Some other piece of code decided to pass in a string</span>
+            <span class="s0"># instead of creating a TextElement object to contain the</span>
+            <span class="s0"># string.</span>
+            <span class="s1">string_child = child = node</span>
+        <span class="s3">elif </span><span class="s1">isinstance(node</span><span class="s3">, </span><span class="s1">Tag):</span>
+            <span class="s0"># Some other piece of code decided to pass in a Tag</span>
+            <span class="s0"># instead of creating an Element object to contain the</span>
+            <span class="s0"># Tag.</span>
+            <span class="s1">child = node</span>
+        <span class="s3">elif </span><span class="s1">node.element.__class__ == NavigableString:</span>
+            <span class="s1">string_child = child = node.element</span>
+            <span class="s1">node.parent = self</span>
+        <span class="s3">else</span><span class="s1">:</span>
+            <span class="s1">child = node.element</span>
+            <span class="s1">node.parent = self</span>
+
+        <span class="s3">if not </span><span class="s1">isinstance(child</span><span class="s3">, </span><span class="s1">str) </span><span class="s3">and </span><span class="s1">child.parent </span><span class="s3">is not None</span><span class="s1">:</span>
+            <span class="s1">node.element.extract()</span>
+
+        <span class="s3">if </span><span class="s1">(string_child </span><span class="s3">is not None and </span><span class="s1">self.element.contents</span>
+            <span class="s3">and </span><span class="s1">self.element.contents[-</span><span class="s5">1</span><span class="s1">].__class__ == NavigableString):</span>
+            <span class="s0"># We are appending a string onto another string.</span>
+            <span class="s0"># TODO This has O(n^2) performance, for input like</span>
+            <span class="s0"># &quot;a&lt;/a&gt;a&lt;/a&gt;a&lt;/a&gt;...&quot;</span>
+            <span class="s1">old_element = self.element.contents[-</span><span class="s5">1</span><span class="s1">]</span>
+            <span class="s1">new_element = self.soup.new_string(old_element + string_child)</span>
+            <span class="s1">old_element.replace_with(new_element)</span>
+            <span class="s1">self.soup._most_recent_element = new_element</span>
+        <span class="s3">else</span><span class="s1">:</span>
+            <span class="s3">if </span><span class="s1">isinstance(node</span><span class="s3">, </span><span class="s1">str):</span>
+                <span class="s0"># Create a brand new NavigableString from this string.</span>
+                <span class="s1">child = self.soup.new_string(node)</span>
+
+            <span class="s0"># Tell Beautiful Soup to act as if it parsed this element</span>
+            <span class="s0"># immediately after the parent's last descendant. (Or</span>
+            <span class="s0"># immediately after the parent, if it has no children.)</span>
+            <span class="s3">if </span><span class="s1">self.element.contents:</span>
+                <span class="s1">most_recent_element = self.element._last_descendant(</span><span class="s3">False</span><span class="s1">)</span>
+            <span class="s3">elif </span><span class="s1">self.element.next_element </span><span class="s3">is not None</span><span class="s1">:</span>
+                <span class="s0"># Something from further ahead in the parse tree is</span>
+                <span class="s0"># being inserted into this earlier element. This is</span>
+                <span class="s0"># very annoying because it means an expensive search</span>
+                <span class="s0"># for the last element in the tree.</span>
+                <span class="s1">most_recent_element = self.soup._last_descendant()</span>
+            <span class="s3">else</span><span class="s1">:</span>
+                <span class="s1">most_recent_element = self.element</span>
+
+            <span class="s1">self.soup.object_was_parsed(</span>
+                <span class="s1">child</span><span class="s3">, </span><span class="s1">parent=self.element</span><span class="s3">,</span>
+                <span class="s1">most_recent_element=most_recent_element)</span>
+
+    <span class="s3">def </span><span class="s1">getAttributes(self):</span>
+        <span class="s3">if </span><span class="s1">isinstance(self.element</span><span class="s3">, </span><span class="s1">Comment):</span>
+            <span class="s3">return </span><span class="s1">{}</span>
+        <span class="s3">return </span><span class="s1">AttrList(self.element)</span>
+
+    <span class="s3">def </span><span class="s1">setAttributes(self</span><span class="s3">, </span><span class="s1">attributes):</span>
+        <span class="s3">if </span><span class="s1">attributes </span><span class="s3">is not None and </span><span class="s1">len(attributes) &gt; </span><span class="s5">0</span><span class="s1">:</span>
+            <span class="s1">converted_attributes = []</span>
+            <span class="s3">for </span><span class="s1">name</span><span class="s3">, </span><span class="s1">value </span><span class="s3">in </span><span class="s1">list(attributes.items()):</span>
+                <span class="s3">if </span><span class="s1">isinstance(name</span><span class="s3">, </span><span class="s1">tuple):</span>
+                    <span class="s1">new_name = NamespacedAttribute(*name)</span>
+                    <span class="s3">del </span><span class="s1">attributes[name]</span>
+                    <span class="s1">attributes[new_name] = value</span>
+
+            <span class="s1">self.soup.builder._replace_cdata_list_attribute_values(</span>
+                <span class="s1">self.name</span><span class="s3">, </span><span class="s1">attributes)</span>
+            <span class="s3">for </span><span class="s1">name</span><span class="s3">, </span><span class="s1">value </span><span class="s3">in </span><span class="s1">list(attributes.items()):</span>
+                <span class="s1">self.element[name] = value</span>
+
+            <span class="s0"># The attributes may contain variables that need substitution.</span>
+            <span class="s0"># Call set_up_substitutions manually.</span>
+            <span class="s0">#</span>
+            <span class="s0"># The Tag constructor called this method when the Tag was created,</span>
+            <span class="s0"># but we just set/changed the attributes, so call it again.</span>
+            <span class="s1">self.soup.builder.set_up_substitutions(self.element)</span>
+    <span class="s1">attributes = property(getAttributes</span><span class="s3">, </span><span class="s1">setAttributes)</span>
+
+    <span class="s3">def </span><span class="s1">insertText(self</span><span class="s3">, </span><span class="s1">data</span><span class="s3">, </span><span class="s1">insertBefore=</span><span class="s3">None</span><span class="s1">):</span>
+        <span class="s1">text = TextNode(self.soup.new_string(data)</span><span class="s3">, </span><span class="s1">self.soup)</span>
+        <span class="s3">if </span><span class="s1">insertBefore:</span>
+            <span class="s1">self.insertBefore(text</span><span class="s3">, </span><span class="s1">insertBefore)</span>
+        <span class="s3">else</span><span class="s1">:</span>
+            <span class="s1">self.appendChild(text)</span>
+
+    <span class="s3">def </span><span class="s1">insertBefore(self</span><span class="s3">, </span><span class="s1">node</span><span class="s3">, </span><span class="s1">refNode):</span>
+        <span class="s1">index = self.element.index(refNode.element)</span>
+        <span class="s3">if </span><span class="s1">(node.element.__class__ == NavigableString </span><span class="s3">and </span><span class="s1">self.element.contents</span>
+            <span class="s3">and </span><span class="s1">self.element.contents[index-</span><span class="s5">1</span><span class="s1">].__class__ == NavigableString):</span>
+            <span class="s0"># (See comments in appendChild)</span>
+            <span class="s1">old_node = self.element.contents[index-</span><span class="s5">1</span><span class="s1">]</span>
+            <span class="s1">new_str = self.soup.new_string(old_node + node.element)</span>
+            <span class="s1">old_node.replace_with(new_str)</span>
+        <span class="s3">else</span><span class="s1">:</span>
+            <span class="s1">self.element.insert(index</span><span class="s3">, </span><span class="s1">node.element)</span>
+            <span class="s1">node.parent = self</span>
+
+    <span class="s3">def </span><span class="s1">removeChild(self</span><span class="s3">, </span><span class="s1">node):</span>
+        <span class="s1">node.element.extract()</span>
+
+    <span class="s3">def </span><span class="s1">reparentChildren(self</span><span class="s3">, </span><span class="s1">new_parent):</span>
+        <span class="s4">&quot;&quot;&quot;Move all of this tag's children into another tag.&quot;&quot;&quot;</span>
+        <span class="s0"># print(&quot;MOVE&quot;, self.element.contents)</span>
+        <span class="s0"># print(&quot;FROM&quot;, self.element)</span>
+        <span class="s0"># print(&quot;TO&quot;, new_parent.element)</span>
+
+        <span class="s1">element = self.element</span>
+        <span class="s1">new_parent_element = new_parent.element</span>
+        <span class="s0"># Determine what this tag's next_element will be once all the children</span>
+        <span class="s0"># are removed.</span>
+        <span class="s1">final_next_element = element.next_sibling</span>
+
+        <span class="s1">new_parents_last_descendant = new_parent_element._last_descendant(</span><span class="s3">False, False</span><span class="s1">)</span>
+        <span class="s3">if </span><span class="s1">len(new_parent_element.contents) &gt; </span><span class="s5">0</span><span class="s1">:</span>
+            <span class="s0"># The new parent already contains children. We will be</span>
+            <span class="s0"># appending this tag's children to the end.</span>
+            <span class="s1">new_parents_last_child = new_parent_element.contents[-</span><span class="s5">1</span><span class="s1">]</span>
+            <span class="s1">new_parents_last_descendant_next_element = new_parents_last_descendant.next_element</span>
+        <span class="s3">else</span><span class="s1">:</span>
+            <span class="s0"># The new parent contains no children.</span>
+            <span class="s1">new_parents_last_child = </span><span class="s3">None</span>
+            <span class="s1">new_parents_last_descendant_next_element = new_parent_element.next_element</span>
+
+        <span class="s1">to_append = element.contents</span>
+        <span class="s3">if </span><span class="s1">len(to_append) &gt; </span><span class="s5">0</span><span class="s1">:</span>
+            <span class="s0"># Set the first child's previous_element and previous_sibling</span>
+            <span class="s0"># to elements within the new parent</span>
+            <span class="s1">first_child = to_append[</span><span class="s5">0</span><span class="s1">]</span>
+            <span class="s3">if </span><span class="s1">new_parents_last_descendant </span><span class="s3">is not None</span><span class="s1">:</span>
+                <span class="s1">first_child.previous_element = new_parents_last_descendant</span>
+            <span class="s3">else</span><span class="s1">:</span>
+                <span class="s1">first_child.previous_element = new_parent_element</span>
+            <span class="s1">first_child.previous_sibling = new_parents_last_child</span>
+            <span class="s3">if </span><span class="s1">new_parents_last_descendant </span><span class="s3">is not None</span><span class="s1">:</span>
+                <span class="s1">new_parents_last_descendant.next_element = first_child</span>
+            <span class="s3">else</span><span class="s1">:</span>
+                <span class="s1">new_parent_element.next_element = first_child</span>
+            <span class="s3">if </span><span class="s1">new_parents_last_child </span><span class="s3">is not None</span><span class="s1">:</span>
+                <span class="s1">new_parents_last_child.next_sibling = first_child</span>
+
+            <span class="s0"># Find the very last element being moved. It is now the</span>
+            <span class="s0"># parent's last descendant. It has no .next_sibling and</span>
+            <span class="s0"># its .next_element is whatever the previous last</span>
+            <span class="s0"># descendant had.</span>
+            <span class="s1">last_childs_last_descendant = to_append[-</span><span class="s5">1</span><span class="s1">]._last_descendant(</span><span class="s3">False, True</span><span class="s1">)</span>
+
+            <span class="s1">last_childs_last_descendant.next_element = new_parents_last_descendant_next_element</span>
+            <span class="s3">if </span><span class="s1">new_parents_last_descendant_next_element </span><span class="s3">is not None</span><span class="s1">:</span>
+                <span class="s0"># TODO: This code has no test coverage and I'm not sure</span>
+                <span class="s0"># how to get html5lib to go through this path, but it's</span>
+                <span class="s0"># just the other side of the previous line.</span>
+                <span class="s1">new_parents_last_descendant_next_element.previous_element = last_childs_last_descendant</span>
+            <span class="s1">last_childs_last_descendant.next_sibling = </span><span class="s3">None</span>
+
+        <span class="s3">for </span><span class="s1">child </span><span class="s3">in </span><span class="s1">to_append:</span>
+            <span class="s1">child.parent = new_parent_element</span>
+            <span class="s1">new_parent_element.contents.append(child)</span>
+
+        <span class="s0"># Now that this element has no children, change its .next_element.</span>
+        <span class="s1">element.contents = []</span>
+        <span class="s1">element.next_element = final_next_element</span>
+
+        <span class="s0"># print(&quot;DONE WITH MOVE&quot;)</span>
+        <span class="s0"># print(&quot;FROM&quot;, self.element)</span>
+        <span class="s0"># print(&quot;TO&quot;, new_parent_element)</span>
+
+    <span class="s3">def </span><span class="s1">cloneNode(self):</span>
+        <span class="s1">tag = self.soup.new_tag(self.element.name</span><span class="s3">, </span><span class="s1">self.namespace)</span>
+        <span class="s1">node = Element(tag</span><span class="s3">, </span><span class="s1">self.soup</span><span class="s3">, </span><span class="s1">self.namespace)</span>
+        <span class="s3">for </span><span class="s1">key</span><span class="s3">,</span><span class="s1">value </span><span class="s3">in </span><span class="s1">self.attributes:</span>
+            <span class="s1">node.attributes[key] = value</span>
+        <span class="s3">return </span><span class="s1">node</span>
+
+    <span class="s3">def </span><span class="s1">hasContent(self):</span>
+        <span class="s3">return </span><span class="s1">self.element.contents</span>
+
+    <span class="s3">def </span><span class="s1">getNameTuple(self):</span>
+        <span class="s3">if </span><span class="s1">self.namespace == </span><span class="s3">None</span><span class="s1">:</span>
+            <span class="s3">return </span><span class="s1">namespaces[</span><span class="s2">&quot;html&quot;</span><span class="s1">]</span><span class="s3">, </span><span class="s1">self.name</span>
+        <span class="s3">else</span><span class="s1">:</span>
+            <span class="s3">return </span><span class="s1">self.namespace</span><span class="s3">, </span><span class="s1">self.name</span>
+
+    <span class="s1">nameTuple = property(getNameTuple)</span>
+
+<span class="s3">class </span><span class="s1">TextNode(Element):</span>
+    <span class="s3">def </span><span class="s1">__init__(self</span><span class="s3">, </span><span class="s1">element</span><span class="s3">, </span><span class="s1">soup):</span>
+        <span class="s1">treebuilder_base.Node.__init__(self</span><span class="s3">, None</span><span class="s1">)</span>
+        <span class="s1">self.element = element</span>
+        <span class="s1">self.soup = soup</span>
+
+    <span class="s3">def </span><span class="s1">cloneNode(self):</span>
+        <span class="s3">raise </span><span class="s1">NotImplementedError</span>
+</pre>
+</body>
+</html>

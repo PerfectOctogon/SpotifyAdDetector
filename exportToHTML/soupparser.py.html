@@ -1,0 +1,336 @@
+<html>
+<head>
+<title>soupparser.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #629755; font-style: italic;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #6a8759;}
+.s3 { color: #cc7832;}
+.s4 { color: #808080;}
+.s5 { color: #6897bb;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+soupparser.py</font>
+</center></td></tr></table>
+<pre><span class="s0">&quot;&quot;&quot;External interface to the BeautifulSoup HTML parser. 
+&quot;&quot;&quot;</span>
+
+<span class="s1">__all__ = [</span><span class="s2">&quot;fromstring&quot;</span><span class="s3">, </span><span class="s2">&quot;parse&quot;</span><span class="s3">, </span><span class="s2">&quot;convert_tree&quot;</span><span class="s1">]</span>
+
+<span class="s3">import </span><span class="s1">re</span>
+<span class="s3">from </span><span class="s1">lxml </span><span class="s3">import </span><span class="s1">etree</span><span class="s3">, </span><span class="s1">html</span>
+
+<span class="s3">try</span><span class="s1">:</span>
+    <span class="s3">from </span><span class="s1">bs4 </span><span class="s3">import </span><span class="s1">(</span>
+        <span class="s1">BeautifulSoup</span><span class="s3">, </span><span class="s1">Tag</span><span class="s3">, </span><span class="s1">Comment</span><span class="s3">, </span><span class="s1">ProcessingInstruction</span><span class="s3">, </span><span class="s1">NavigableString</span><span class="s3">,</span>
+        <span class="s1">Declaration</span><span class="s3">, </span><span class="s1">Doctype)</span>
+    <span class="s1">_DECLARATION_OR_DOCTYPE = (Declaration</span><span class="s3">, </span><span class="s1">Doctype)</span>
+<span class="s3">except </span><span class="s1">ImportError:</span>
+    <span class="s3">from </span><span class="s1">BeautifulSoup </span><span class="s3">import </span><span class="s1">(</span>
+        <span class="s1">BeautifulSoup</span><span class="s3">, </span><span class="s1">Tag</span><span class="s3">, </span><span class="s1">Comment</span><span class="s3">, </span><span class="s1">ProcessingInstruction</span><span class="s3">, </span><span class="s1">NavigableString</span><span class="s3">,</span>
+        <span class="s1">Declaration)</span>
+    <span class="s1">_DECLARATION_OR_DOCTYPE = Declaration</span>
+
+
+<span class="s3">def </span><span class="s1">fromstring(data</span><span class="s3">, </span><span class="s1">beautifulsoup=</span><span class="s3">None, </span><span class="s1">makeelement=</span><span class="s3">None, </span><span class="s1">**bsargs):</span>
+    <span class="s0">&quot;&quot;&quot;Parse a string of HTML data into an Element tree using the 
+    BeautifulSoup parser. 
+ 
+    Returns the root ``&lt;html&gt;`` Element of the tree. 
+ 
+    You can pass a different BeautifulSoup parser through the 
+    `beautifulsoup` keyword, and a diffent Element factory function 
+    through the `makeelement` keyword.  By default, the standard 
+    ``BeautifulSoup`` class and the default factory of `lxml.html` are 
+    used. 
+    &quot;&quot;&quot;</span>
+    <span class="s3">return </span><span class="s1">_parse(data</span><span class="s3">, </span><span class="s1">beautifulsoup</span><span class="s3">, </span><span class="s1">makeelement</span><span class="s3">, </span><span class="s1">**bsargs)</span>
+
+
+<span class="s3">def </span><span class="s1">parse(file</span><span class="s3">, </span><span class="s1">beautifulsoup=</span><span class="s3">None, </span><span class="s1">makeelement=</span><span class="s3">None, </span><span class="s1">**bsargs):</span>
+    <span class="s0">&quot;&quot;&quot;Parse a file into an ElemenTree using the BeautifulSoup parser. 
+ 
+    You can pass a different BeautifulSoup parser through the 
+    `beautifulsoup` keyword, and a diffent Element factory function 
+    through the `makeelement` keyword.  By default, the standard 
+    ``BeautifulSoup`` class and the default factory of `lxml.html` are 
+    used. 
+    &quot;&quot;&quot;</span>
+    <span class="s3">if not </span><span class="s1">hasattr(file</span><span class="s3">, </span><span class="s2">'read'</span><span class="s1">):</span>
+        <span class="s1">file = open(file)</span>
+    <span class="s1">root = _parse(file</span><span class="s3">, </span><span class="s1">beautifulsoup</span><span class="s3">, </span><span class="s1">makeelement</span><span class="s3">, </span><span class="s1">**bsargs)</span>
+    <span class="s3">return </span><span class="s1">etree.ElementTree(root)</span>
+
+
+<span class="s3">def </span><span class="s1">convert_tree(beautiful_soup_tree</span><span class="s3">, </span><span class="s1">makeelement=</span><span class="s3">None</span><span class="s1">):</span>
+    <span class="s0">&quot;&quot;&quot;Convert a BeautifulSoup tree to a list of Element trees. 
+ 
+    Returns a list instead of a single root Element to support 
+    HTML-like soup with more than one root element. 
+ 
+    You can pass a different Element factory through the `makeelement` 
+    keyword. 
+    &quot;&quot;&quot;</span>
+    <span class="s1">root = _convert_tree(beautiful_soup_tree</span><span class="s3">, </span><span class="s1">makeelement)</span>
+    <span class="s1">children = root.getchildren()</span>
+    <span class="s3">for </span><span class="s1">child </span><span class="s3">in </span><span class="s1">children:</span>
+        <span class="s1">root.remove(child)</span>
+    <span class="s3">return </span><span class="s1">children</span>
+
+
+<span class="s4"># helpers</span>
+
+<span class="s3">def </span><span class="s1">_parse(source</span><span class="s3">, </span><span class="s1">beautifulsoup</span><span class="s3">, </span><span class="s1">makeelement</span><span class="s3">, </span><span class="s1">**bsargs):</span>
+    <span class="s3">if </span><span class="s1">beautifulsoup </span><span class="s3">is None</span><span class="s1">:</span>
+        <span class="s1">beautifulsoup = BeautifulSoup</span>
+    <span class="s3">if </span><span class="s1">hasattr(beautifulsoup</span><span class="s3">, </span><span class="s2">&quot;HTML_ENTITIES&quot;</span><span class="s1">):  </span><span class="s4"># bs3</span>
+        <span class="s3">if </span><span class="s2">'convertEntities' </span><span class="s3">not in </span><span class="s1">bsargs:</span>
+            <span class="s1">bsargs[</span><span class="s2">'convertEntities'</span><span class="s1">] = </span><span class="s2">'html'</span>
+    <span class="s3">if </span><span class="s1">hasattr(beautifulsoup</span><span class="s3">, </span><span class="s2">&quot;DEFAULT_BUILDER_FEATURES&quot;</span><span class="s1">):  </span><span class="s4"># bs4</span>
+        <span class="s3">if </span><span class="s2">'features' </span><span class="s3">not in </span><span class="s1">bsargs:</span>
+            <span class="s1">bsargs[</span><span class="s2">'features'</span><span class="s1">] = </span><span class="s2">'html.parser'  </span><span class="s4"># use Python html parser</span>
+    <span class="s1">tree = beautifulsoup(source</span><span class="s3">, </span><span class="s1">**bsargs)</span>
+    <span class="s1">root = _convert_tree(tree</span><span class="s3">, </span><span class="s1">makeelement)</span>
+    <span class="s4"># from ET: wrap the document in a html root element, if necessary</span>
+    <span class="s3">if </span><span class="s1">len(root) == </span><span class="s5">1 </span><span class="s3">and </span><span class="s1">root[</span><span class="s5">0</span><span class="s1">].tag == </span><span class="s2">&quot;html&quot;</span><span class="s1">:</span>
+        <span class="s3">return </span><span class="s1">root[</span><span class="s5">0</span><span class="s1">]</span>
+    <span class="s1">root.tag = </span><span class="s2">&quot;html&quot;</span>
+    <span class="s3">return </span><span class="s1">root</span>
+
+
+<span class="s1">_parse_doctype_declaration = re.compile(</span>
+    <span class="s2">r'(?:\s|[&lt;!])*DOCTYPE\s*HTML'</span>
+    <span class="s2">r'(?:\s+PUBLIC)?(?:\s+(\'[^\']*\'|&quot;[^&quot;]*&quot;))?'</span>
+    <span class="s2">r'(?:\s+(\'[^\']*\'|&quot;[^&quot;]*&quot;))?'</span><span class="s3">,</span>
+    <span class="s1">re.IGNORECASE).match</span>
+
+
+<span class="s3">class </span><span class="s1">_PseudoTag:</span>
+    <span class="s4"># Minimal imitation of BeautifulSoup.Tag</span>
+    <span class="s3">def </span><span class="s1">__init__(self</span><span class="s3">, </span><span class="s1">contents):</span>
+        <span class="s1">self.name = </span><span class="s2">'html'</span>
+        <span class="s1">self.attrs = []</span>
+        <span class="s1">self.contents = contents</span>
+
+    <span class="s3">def </span><span class="s1">__iter__(self):</span>
+        <span class="s3">return </span><span class="s1">self.contents.__iter__()</span>
+
+
+<span class="s3">def </span><span class="s1">_convert_tree(beautiful_soup_tree</span><span class="s3">, </span><span class="s1">makeelement):</span>
+    <span class="s3">if </span><span class="s1">makeelement </span><span class="s3">is None</span><span class="s1">:</span>
+        <span class="s1">makeelement = html.html_parser.makeelement</span>
+
+    <span class="s4"># Split the tree into three parts:</span>
+    <span class="s4"># i) everything before the root element: document type</span>
+    <span class="s4"># declaration, comments, processing instructions, whitespace</span>
+    <span class="s4"># ii) the root(s),</span>
+    <span class="s4"># iii) everything after the root: comments, processing</span>
+    <span class="s4"># instructions, whitespace</span>
+    <span class="s1">first_element_idx = last_element_idx = </span><span class="s3">None</span>
+    <span class="s1">html_root = declaration = </span><span class="s3">None</span>
+    <span class="s3">for </span><span class="s1">i</span><span class="s3">, </span><span class="s1">e </span><span class="s3">in </span><span class="s1">enumerate(beautiful_soup_tree):</span>
+        <span class="s3">if </span><span class="s1">isinstance(e</span><span class="s3">, </span><span class="s1">Tag):</span>
+            <span class="s3">if </span><span class="s1">first_element_idx </span><span class="s3">is None</span><span class="s1">:</span>
+                <span class="s1">first_element_idx = i</span>
+            <span class="s1">last_element_idx = i</span>
+            <span class="s3">if </span><span class="s1">html_root </span><span class="s3">is None and </span><span class="s1">e.name </span><span class="s3">and </span><span class="s1">e.name.lower() == </span><span class="s2">'html'</span><span class="s1">:</span>
+                <span class="s1">html_root = e</span>
+        <span class="s3">elif </span><span class="s1">declaration </span><span class="s3">is None and </span><span class="s1">isinstance(e</span><span class="s3">, </span><span class="s1">_DECLARATION_OR_DOCTYPE):</span>
+            <span class="s1">declaration = e</span>
+
+    <span class="s4"># For a nice, well-formatted document, the variable roots below is</span>
+    <span class="s4"># a list consisting of a single &lt;html&gt; element. However, the document</span>
+    <span class="s4"># may be a soup like '&lt;meta&gt;&lt;head&gt;&lt;title&gt;Hello&lt;/head&gt;&lt;body&gt;Hi</span>
+    <span class="s4"># all&lt;\p&gt;'. In this example roots is a list containing meta, head</span>
+    <span class="s4"># and body elements.</span>
+    <span class="s3">if </span><span class="s1">first_element_idx </span><span class="s3">is None</span><span class="s1">:</span>
+        <span class="s1">pre_root = post_root = []</span>
+        <span class="s1">roots = beautiful_soup_tree.contents</span>
+    <span class="s3">else</span><span class="s1">:</span>
+        <span class="s1">pre_root = beautiful_soup_tree.contents[:first_element_idx]</span>
+        <span class="s1">roots = beautiful_soup_tree.contents[first_element_idx:last_element_idx+</span><span class="s5">1</span><span class="s1">]</span>
+        <span class="s1">post_root = beautiful_soup_tree.contents[last_element_idx+</span><span class="s5">1</span><span class="s1">:]</span>
+
+    <span class="s4"># Reorganize so that there is one &lt;html&gt; root...</span>
+    <span class="s3">if </span><span class="s1">html_root </span><span class="s3">is not None</span><span class="s1">:</span>
+        <span class="s4"># ... use existing one if possible, ...</span>
+        <span class="s1">i = roots.index(html_root)</span>
+        <span class="s1">html_root.contents = roots[:i] + html_root.contents + roots[i+</span><span class="s5">1</span><span class="s1">:]</span>
+    <span class="s3">else</span><span class="s1">:</span>
+        <span class="s4"># ... otherwise create a new one.</span>
+        <span class="s1">html_root = _PseudoTag(roots)</span>
+
+    <span class="s1">convert_node = _init_node_converters(makeelement)</span>
+
+    <span class="s4"># Process pre_root</span>
+    <span class="s1">res_root = convert_node(html_root)</span>
+    <span class="s1">prev = res_root</span>
+    <span class="s3">for </span><span class="s1">e </span><span class="s3">in </span><span class="s1">reversed(pre_root):</span>
+        <span class="s1">converted = convert_node(e)</span>
+        <span class="s3">if </span><span class="s1">converted </span><span class="s3">is not None</span><span class="s1">:</span>
+            <span class="s1">prev.addprevious(converted)</span>
+            <span class="s1">prev = converted</span>
+
+    <span class="s4"># ditto for post_root</span>
+    <span class="s1">prev = res_root</span>
+    <span class="s3">for </span><span class="s1">e </span><span class="s3">in </span><span class="s1">post_root:</span>
+        <span class="s1">converted = convert_node(e)</span>
+        <span class="s3">if </span><span class="s1">converted </span><span class="s3">is not None</span><span class="s1">:</span>
+            <span class="s1">prev.addnext(converted)</span>
+            <span class="s1">prev = converted</span>
+
+    <span class="s3">if </span><span class="s1">declaration </span><span class="s3">is not None</span><span class="s1">:</span>
+        <span class="s3">try</span><span class="s1">:</span>
+            <span class="s4"># bs4 provides full Doctype string</span>
+            <span class="s1">doctype_string = declaration.output_ready()</span>
+        <span class="s3">except </span><span class="s1">AttributeError:</span>
+            <span class="s1">doctype_string = declaration.string</span>
+
+        <span class="s1">match = _parse_doctype_declaration(doctype_string)</span>
+        <span class="s3">if not </span><span class="s1">match:</span>
+            <span class="s4"># Something is wrong if we end up in here. Since soupparser should</span>
+            <span class="s4"># tolerate errors, do not raise Exception, just let it pass.</span>
+            <span class="s3">pass</span>
+        <span class="s3">else</span><span class="s1">:</span>
+            <span class="s1">external_id</span><span class="s3">, </span><span class="s1">sys_uri = match.groups()</span>
+            <span class="s1">docinfo = res_root.getroottree().docinfo</span>
+            <span class="s4"># strip quotes and update DOCTYPE values (any of None, '', '...')</span>
+            <span class="s1">docinfo.public_id = external_id </span><span class="s3">and </span><span class="s1">external_id[</span><span class="s5">1</span><span class="s1">:-</span><span class="s5">1</span><span class="s1">]</span>
+            <span class="s1">docinfo.system_url = sys_uri </span><span class="s3">and </span><span class="s1">sys_uri[</span><span class="s5">1</span><span class="s1">:-</span><span class="s5">1</span><span class="s1">]</span>
+
+    <span class="s3">return </span><span class="s1">res_root</span>
+
+
+<span class="s3">def </span><span class="s1">_init_node_converters(makeelement):</span>
+    <span class="s1">converters = {}</span>
+    <span class="s1">ordered_node_types = []</span>
+
+    <span class="s3">def </span><span class="s1">converter(*types):</span>
+        <span class="s3">def </span><span class="s1">add(handler):</span>
+            <span class="s3">for </span><span class="s1">t </span><span class="s3">in </span><span class="s1">types:</span>
+                <span class="s1">converters[t] = handler</span>
+                <span class="s1">ordered_node_types.append(t)</span>
+            <span class="s3">return </span><span class="s1">handler</span>
+        <span class="s3">return </span><span class="s1">add</span>
+
+    <span class="s3">def </span><span class="s1">find_best_converter(node):</span>
+        <span class="s3">for </span><span class="s1">t </span><span class="s3">in </span><span class="s1">ordered_node_types:</span>
+            <span class="s3">if </span><span class="s1">isinstance(node</span><span class="s3">, </span><span class="s1">t):</span>
+                <span class="s3">return </span><span class="s1">converters[t]</span>
+        <span class="s3">return None</span>
+
+    <span class="s3">def </span><span class="s1">convert_node(bs_node</span><span class="s3">, </span><span class="s1">parent=</span><span class="s3">None</span><span class="s1">):</span>
+        <span class="s4"># duplicated in convert_tag() below</span>
+        <span class="s3">try</span><span class="s1">:</span>
+            <span class="s1">handler = converters[type(bs_node)]</span>
+        <span class="s3">except </span><span class="s1">KeyError:</span>
+            <span class="s1">handler = converters[type(bs_node)] = find_best_converter(bs_node)</span>
+        <span class="s3">if </span><span class="s1">handler </span><span class="s3">is None</span><span class="s1">:</span>
+            <span class="s3">return None</span>
+        <span class="s3">return </span><span class="s1">handler(bs_node</span><span class="s3">, </span><span class="s1">parent)</span>
+
+    <span class="s3">def </span><span class="s1">map_attrs(bs_attrs):</span>
+        <span class="s3">if </span><span class="s1">isinstance(bs_attrs</span><span class="s3">, </span><span class="s1">dict):  </span><span class="s4"># bs4</span>
+            <span class="s1">attribs = {}</span>
+            <span class="s3">for </span><span class="s1">k</span><span class="s3">, </span><span class="s1">v </span><span class="s3">in </span><span class="s1">bs_attrs.items():</span>
+                <span class="s3">if </span><span class="s1">isinstance(v</span><span class="s3">, </span><span class="s1">list):</span>
+                    <span class="s1">v = </span><span class="s2">&quot; &quot;</span><span class="s1">.join(v)</span>
+                <span class="s1">attribs[k] = unescape(v)</span>
+        <span class="s3">else</span><span class="s1">:</span>
+            <span class="s1">attribs = dict((k</span><span class="s3">, </span><span class="s1">unescape(v)) </span><span class="s3">for </span><span class="s1">k</span><span class="s3">, </span><span class="s1">v </span><span class="s3">in </span><span class="s1">bs_attrs)</span>
+        <span class="s3">return </span><span class="s1">attribs</span>
+
+    <span class="s3">def </span><span class="s1">append_text(parent</span><span class="s3">, </span><span class="s1">text):</span>
+        <span class="s3">if </span><span class="s1">len(parent) == </span><span class="s5">0</span><span class="s1">:</span>
+            <span class="s1">parent.text = (parent.text </span><span class="s3">or </span><span class="s2">''</span><span class="s1">) + text</span>
+        <span class="s3">else</span><span class="s1">:</span>
+            <span class="s1">parent[-</span><span class="s5">1</span><span class="s1">].tail = (parent[-</span><span class="s5">1</span><span class="s1">].tail </span><span class="s3">or </span><span class="s2">''</span><span class="s1">) + text</span>
+
+    <span class="s4"># converters are tried in order of their definition</span>
+
+    <span class="s1">@converter(Tag</span><span class="s3">, </span><span class="s1">_PseudoTag)</span>
+    <span class="s3">def </span><span class="s1">convert_tag(bs_node</span><span class="s3">, </span><span class="s1">parent):</span>
+        <span class="s1">attrs = bs_node.attrs</span>
+        <span class="s3">if </span><span class="s1">parent </span><span class="s3">is not None</span><span class="s1">:</span>
+            <span class="s1">attribs = map_attrs(attrs) </span><span class="s3">if </span><span class="s1">attrs </span><span class="s3">else None</span>
+            <span class="s1">res = etree.SubElement(parent</span><span class="s3">, </span><span class="s1">bs_node.name</span><span class="s3">, </span><span class="s1">attrib=attribs)</span>
+        <span class="s3">else</span><span class="s1">:</span>
+            <span class="s1">attribs = map_attrs(attrs) </span><span class="s3">if </span><span class="s1">attrs </span><span class="s3">else </span><span class="s1">{}</span>
+            <span class="s1">res = makeelement(bs_node.name</span><span class="s3">, </span><span class="s1">attrib=attribs)</span>
+
+        <span class="s3">for </span><span class="s1">child </span><span class="s3">in </span><span class="s1">bs_node:</span>
+            <span class="s4"># avoid double recursion by inlining convert_node(), see above</span>
+            <span class="s3">try</span><span class="s1">:</span>
+                <span class="s1">handler = converters[type(child)]</span>
+            <span class="s3">except </span><span class="s1">KeyError:</span>
+                <span class="s3">pass</span>
+            <span class="s3">else</span><span class="s1">:</span>
+                <span class="s3">if </span><span class="s1">handler </span><span class="s3">is not None</span><span class="s1">:</span>
+                    <span class="s1">handler(child</span><span class="s3">, </span><span class="s1">res)</span>
+                <span class="s3">continue</span>
+            <span class="s1">convert_node(child</span><span class="s3">, </span><span class="s1">res)</span>
+        <span class="s3">return </span><span class="s1">res</span>
+
+    <span class="s1">@converter(Comment)</span>
+    <span class="s3">def </span><span class="s1">convert_comment(bs_node</span><span class="s3">, </span><span class="s1">parent):</span>
+        <span class="s1">res = html.HtmlComment(bs_node)</span>
+        <span class="s3">if </span><span class="s1">parent </span><span class="s3">is not None</span><span class="s1">:</span>
+            <span class="s1">parent.append(res)</span>
+        <span class="s3">return </span><span class="s1">res</span>
+
+    <span class="s1">@converter(ProcessingInstruction)</span>
+    <span class="s3">def </span><span class="s1">convert_pi(bs_node</span><span class="s3">, </span><span class="s1">parent):</span>
+        <span class="s3">if </span><span class="s1">bs_node.endswith(</span><span class="s2">'?'</span><span class="s1">):</span>
+            <span class="s4"># The PI is of XML style (&lt;?as df?&gt;) but BeautifulSoup</span>
+            <span class="s4"># interpreted it as being SGML style (&lt;?as df&gt;). Fix.</span>
+            <span class="s1">bs_node = bs_node[:-</span><span class="s5">1</span><span class="s1">]</span>
+        <span class="s1">res = etree.ProcessingInstruction(*bs_node.split(</span><span class="s2">' '</span><span class="s3">, </span><span class="s5">1</span><span class="s1">))</span>
+        <span class="s3">if </span><span class="s1">parent </span><span class="s3">is not None</span><span class="s1">:</span>
+            <span class="s1">parent.append(res)</span>
+        <span class="s3">return </span><span class="s1">res</span>
+
+    <span class="s1">@converter(NavigableString)</span>
+    <span class="s3">def </span><span class="s1">convert_text(bs_node</span><span class="s3">, </span><span class="s1">parent):</span>
+        <span class="s3">if </span><span class="s1">parent </span><span class="s3">is not None</span><span class="s1">:</span>
+            <span class="s1">append_text(parent</span><span class="s3">, </span><span class="s1">unescape(bs_node))</span>
+        <span class="s3">return None</span>
+
+    <span class="s3">return </span><span class="s1">convert_node</span>
+
+
+<span class="s4"># copied from ET's ElementSoup</span>
+
+<span class="s3">try</span><span class="s1">:</span>
+    <span class="s3">from </span><span class="s1">html.entities </span><span class="s3">import </span><span class="s1">name2codepoint  </span><span class="s4"># Python 3</span>
+<span class="s3">except </span><span class="s1">ImportError:</span>
+    <span class="s3">from </span><span class="s1">htmlentitydefs </span><span class="s3">import </span><span class="s1">name2codepoint</span>
+
+
+<span class="s1">handle_entities = re.compile(</span><span class="s2">r&quot;&amp;(\w+);&quot;</span><span class="s1">).sub</span>
+
+
+<span class="s3">try</span><span class="s1">:</span>
+    <span class="s1">unichr</span>
+<span class="s3">except </span><span class="s1">NameError:</span>
+    <span class="s4"># Python 3</span>
+    <span class="s1">unichr = chr</span>
+
+
+<span class="s3">def </span><span class="s1">unescape(string):</span>
+    <span class="s3">if not </span><span class="s1">string:</span>
+        <span class="s3">return </span><span class="s2">''</span>
+    <span class="s4"># work around oddities in BeautifulSoup's entity handling</span>
+    <span class="s3">def </span><span class="s1">unescape_entity(m):</span>
+        <span class="s3">try</span><span class="s1">:</span>
+            <span class="s3">return </span><span class="s1">unichr(name2codepoint[m.group(</span><span class="s5">1</span><span class="s1">)])</span>
+        <span class="s3">except </span><span class="s1">KeyError:</span>
+            <span class="s3">return </span><span class="s1">m.group(</span><span class="s5">0</span><span class="s1">)  </span><span class="s4"># use as is</span>
+    <span class="s3">return </span><span class="s1">handle_entities(unescape_entity</span><span class="s3">, </span><span class="s1">string)</span>
+</pre>
+</body>
+</html>

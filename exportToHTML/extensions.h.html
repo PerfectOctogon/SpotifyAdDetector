@@ -1,0 +1,282 @@
+<html>
+<head>
+<title>extensions.h</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+extensions.h</font>
+</center></td></tr></table>
+<pre><span class="s0">/* 
+ * Summary: interface for the extension support 
+ * Description: This provide the API needed for simple and module 
+ *              extension support. 
+ * 
+ * Copy: See Copyright for the status of this software. 
+ * 
+ * Author: Daniel Veillard 
+ */</span>
+
+<span class="s2">#ifndef </span><span class="s1">__XML_XSLT_EXTENSION_H__</span>
+<span class="s2">#define </span><span class="s1">__XML_XSLT_EXTENSION_H__</span>
+
+<span class="s2">#include </span><span class="s1">&lt;libxml/xpath.h&gt;</span>
+<span class="s2">#include </span><span class="s3">&quot;xsltexports.h&quot;</span>
+<span class="s2">#include </span><span class="s3">&quot;xsltInternals.h&quot;</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s2">extern </span><span class="s3">&quot;C&quot; </span><span class="s1">{</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * Extension Modules API. 
+ */</span>
+
+<span class="s0">/** 
+ * xsltInitGlobals: 
+ * 
+ * Initialize the global variables for extensions 
+ * 
+ */</span>
+
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltInitGlobals                 (</span><span class="s2">void</span><span class="s1">);</span>
+
+<span class="s0">/** 
+ * xsltStyleExtInitFunction: 
+ * @ctxt:  an XSLT stylesheet 
+ * @URI:  the namespace URI for the extension 
+ * 
+ * A function called at initialization time of an XSLT extension module. 
+ * 
+ * Returns a pointer to the module specific data for this transformation. 
+ */</span>
+<span class="s2">typedef void </span><span class="s1">* (*xsltStyleExtInitFunction)	(xsltStylesheetPtr style,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *URI);</span>
+
+<span class="s0">/** 
+ * xsltStyleExtShutdownFunction: 
+ * @ctxt:  an XSLT stylesheet 
+ * @URI:  the namespace URI for the extension 
+ * @data:  the data associated to this module 
+ * 
+ * A function called at shutdown time of an XSLT extension module. 
+ */</span>
+<span class="s2">typedef void </span><span class="s1">(*xsltStyleExtShutdownFunction)	(xsltStylesheetPtr style,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *URI,</span>
+						 <span class="s2">void </span><span class="s1">*data);</span>
+
+<span class="s0">/** 
+ * xsltExtInitFunction: 
+ * @ctxt:  an XSLT transformation context 
+ * @URI:  the namespace URI for the extension 
+ * 
+ * A function called at initialization time of an XSLT extension module. 
+ * 
+ * Returns a pointer to the module specific data for this transformation. 
+ */</span>
+<span class="s2">typedef void </span><span class="s1">* (*xsltExtInitFunction)	(xsltTransformContextPtr ctxt,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *URI);</span>
+
+<span class="s0">/** 
+ * xsltExtShutdownFunction: 
+ * @ctxt:  an XSLT transformation context 
+ * @URI:  the namespace URI for the extension 
+ * @data:  the data associated to this module 
+ * 
+ * A function called at shutdown time of an XSLT extension module. 
+ */</span>
+<span class="s2">typedef void </span><span class="s1">(*xsltExtShutdownFunction) (xsltTransformContextPtr ctxt,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *URI,</span>
+					 <span class="s2">void </span><span class="s1">*data);</span>
+
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltRegisterExtModule	(</span><span class="s2">const </span><span class="s1">xmlChar *URI,</span>
+					 <span class="s1">xsltExtInitFunction initFunc,</span>
+					 <span class="s1">xsltExtShutdownFunction shutdownFunc);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltRegisterExtModuleFull</span>
+					<span class="s1">(</span><span class="s2">const </span><span class="s1">xmlChar * URI,</span>
+					 <span class="s1">xsltExtInitFunction initFunc,</span>
+					 <span class="s1">xsltExtShutdownFunction shutdownFunc,</span>
+					 <span class="s1">xsltStyleExtInitFunction styleInitFunc,</span>
+					 <span class="s1">xsltStyleExtShutdownFunction styleShutdownFunc);</span>
+
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltUnregisterExtModule	(</span><span class="s2">const </span><span class="s1">xmlChar * URI);</span>
+
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">* XSLTCALL</span>
+		<span class="s1">xsltGetExtData		(xsltTransformContextPtr ctxt,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *URI);</span>
+
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">* XSLTCALL</span>
+		<span class="s1">xsltStyleGetExtData	(xsltStylesheetPtr style,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *URI);</span>
+<span class="s2">#ifdef </span><span class="s1">XSLT_REFACTORED</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">* XSLTCALL</span>
+		<span class="s1">xsltStyleStylesheetLevelGetExtData(</span>
+					 <span class="s1">xsltStylesheetPtr style,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar * URI);</span>
+<span class="s2">#endif</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltShutdownCtxtExts	(xsltTransformContextPtr ctxt);</span>
+
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltShutdownExts	(xsltStylesheetPtr style);</span>
+
+<span class="s1">XSLTPUBFUN xsltTransformContextPtr XSLTCALL</span>
+		<span class="s1">xsltXPathGetTransformContext</span>
+					<span class="s1">(xmlXPathParserContextPtr ctxt);</span>
+
+<span class="s0">/* 
+ * extension functions 
+*/</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltRegisterExtModuleFunction</span>
+					<span class="s1">(</span><span class="s2">const </span><span class="s1">xmlChar *name,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *URI,</span>
+					 <span class="s1">xmlXPathFunction function);</span>
+<span class="s1">XSLTPUBFUN xmlXPathFunction XSLTCALL</span>
+	<span class="s1">xsltExtModuleFunctionLookup	(</span><span class="s2">const </span><span class="s1">xmlChar *name,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *URI);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltUnregisterExtModuleFunction</span>
+					<span class="s1">(</span><span class="s2">const </span><span class="s1">xmlChar *name,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *URI);</span>
+
+<span class="s0">/* 
+ * extension elements 
+ */</span>
+<span class="s2">typedef </span><span class="s1">xsltElemPreCompPtr (*xsltPreComputeFunction)</span>
+					<span class="s1">(xsltStylesheetPtr style,</span>
+					 <span class="s1">xmlNodePtr inst,</span>
+					 <span class="s1">xsltTransformFunction function);</span>
+
+<span class="s1">XSLTPUBFUN xsltElemPreCompPtr XSLTCALL</span>
+		<span class="s1">xsltNewElemPreComp	(xsltStylesheetPtr style,</span>
+					 <span class="s1">xmlNodePtr inst,</span>
+					 <span class="s1">xsltTransformFunction function);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltInitElemPreComp	(xsltElemPreCompPtr comp,</span>
+					 <span class="s1">xsltStylesheetPtr style,</span>
+					 <span class="s1">xmlNodePtr inst,</span>
+					 <span class="s1">xsltTransformFunction function,</span>
+					 <span class="s1">xsltElemPreCompDeallocator freeFunc);</span>
+
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltRegisterExtModuleElement</span>
+					<span class="s1">(</span><span class="s2">const </span><span class="s1">xmlChar *name,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *URI,</span>
+					 <span class="s1">xsltPreComputeFunction precomp,</span>
+					 <span class="s1">xsltTransformFunction transform);</span>
+<span class="s1">XSLTPUBFUN xsltTransformFunction XSLTCALL</span>
+		<span class="s1">xsltExtElementLookup	(xsltTransformContextPtr ctxt,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *URI);</span>
+<span class="s1">XSLTPUBFUN xsltTransformFunction XSLTCALL</span>
+		<span class="s1">xsltExtModuleElementLookup</span>
+					<span class="s1">(</span><span class="s2">const </span><span class="s1">xmlChar *name,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *URI);</span>
+<span class="s1">XSLTPUBFUN xsltPreComputeFunction XSLTCALL</span>
+		<span class="s1">xsltExtModuleElementPreComputeLookup</span>
+					<span class="s1">(</span><span class="s2">const </span><span class="s1">xmlChar *name,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *URI);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltUnregisterExtModuleElement</span>
+					<span class="s1">(</span><span class="s2">const </span><span class="s1">xmlChar *name,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *URI);</span>
+
+<span class="s0">/* 
+ * top-level elements 
+ */</span>
+<span class="s2">typedef void </span><span class="s1">(*xsltTopLevelFunction)	(xsltStylesheetPtr style,</span>
+					 <span class="s1">xmlNodePtr inst);</span>
+
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltRegisterExtModuleTopLevel</span>
+					<span class="s1">(</span><span class="s2">const </span><span class="s1">xmlChar *name,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *URI,</span>
+					 <span class="s1">xsltTopLevelFunction function);</span>
+<span class="s1">XSLTPUBFUN xsltTopLevelFunction XSLTCALL</span>
+		<span class="s1">xsltExtModuleTopLevelLookup</span>
+					<span class="s1">(</span><span class="s2">const </span><span class="s1">xmlChar *name,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *URI);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltUnregisterExtModuleTopLevel</span>
+					<span class="s1">(</span><span class="s2">const </span><span class="s1">xmlChar *name,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *URI);</span>
+
+
+<span class="s0">/* These 2 functions are deprecated for use within modules. */</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltRegisterExtFunction	(xsltTransformContextPtr ctxt,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *URI,</span>
+					 <span class="s1">xmlXPathFunction function);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltRegisterExtElement	(xsltTransformContextPtr ctxt,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *URI,</span>
+					 <span class="s1">xsltTransformFunction function);</span>
+
+<span class="s0">/* 
+ * Extension Prefix handling API. 
+ * Those are used by the XSLT (pre)processor. 
+ */</span>
+
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltRegisterExtPrefix	(xsltStylesheetPtr style,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *prefix,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *URI);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltCheckExtPrefix	(xsltStylesheetPtr style,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *URI);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltCheckExtURI		(xsltStylesheetPtr style,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *URI);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltInitCtxtExts	(xsltTransformContextPtr ctxt);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltFreeCtxtExts	(xsltTransformContextPtr ctxt);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltFreeExts		(xsltStylesheetPtr style);</span>
+
+<span class="s1">XSLTPUBFUN xsltElemPreCompPtr XSLTCALL</span>
+		<span class="s1">xsltPreComputeExtModuleElement</span>
+					<span class="s1">(xsltStylesheetPtr style,</span>
+					 <span class="s1">xmlNodePtr inst);</span>
+<span class="s0">/* 
+ * Extension Infos access. 
+ * Used by exslt initialisation 
+ */</span>
+
+<span class="s1">XSLTPUBFUN xmlHashTablePtr XSLTCALL</span>
+		<span class="s1">xsltGetExtInfo		(xsltStylesheetPtr style,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *URI);</span>
+
+<span class="s0">/** 
+ * Test module http://xmlsoft.org/XSLT/ 
+ */</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltRegisterTestModule	(</span><span class="s2">void</span><span class="s1">);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">void </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltDebugDumpExtensions	(FILE * output);</span>
+
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s1">}</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#endif </span><span class="s0">/* __XML_XSLT_EXTENSION_H__ */</span>
+
+</pre>
+</body>
+</html>

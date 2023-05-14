@@ -1,0 +1,97 @@
+<html>
+<head>
+<title>templates.h</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+templates.h</font>
+</center></td></tr></table>
+<pre><span class="s0">/* 
+ * Summary: interface for the template processing 
+ * Description: This set of routine encapsulates XPath calls 
+ *              and Attribute Value Templates evaluation. 
+ * 
+ * Copy: See Copyright for the status of this software. 
+ * 
+ * Author: Daniel Veillard 
+ */</span>
+
+<span class="s2">#ifndef </span><span class="s1">__XML_XSLT_TEMPLATES_H__</span>
+<span class="s2">#define </span><span class="s1">__XML_XSLT_TEMPLATES_H__</span>
+
+<span class="s2">#include </span><span class="s1">&lt;libxml/xpath.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/xpathInternals.h&gt;</span>
+<span class="s2">#include </span><span class="s3">&quot;xsltexports.h&quot;</span>
+<span class="s2">#include </span><span class="s3">&quot;xsltInternals.h&quot;</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s2">extern </span><span class="s3">&quot;C&quot; </span><span class="s1">{</span>
+<span class="s2">#endif</span>
+
+<span class="s1">XSLTPUBFUN </span><span class="s2">int </span><span class="s1">XSLTCALL</span>
+		<span class="s1">xsltEvalXPathPredicate		(xsltTransformContextPtr ctxt,</span>
+						 <span class="s1">xmlXPathCompExprPtr comp,</span>
+		                                 <span class="s1">xmlNsPtr *nsList,</span>
+						 <span class="s2">int </span><span class="s1">nsNr);</span>
+<span class="s1">XSLTPUBFUN xmlChar * XSLTCALL</span>
+		<span class="s1">xsltEvalTemplateString		(xsltTransformContextPtr ctxt,</span>
+						 <span class="s1">xmlNodePtr contextNode,</span>
+						 <span class="s1">xmlNodePtr inst);</span>
+<span class="s1">XSLTPUBFUN xmlChar * XSLTCALL</span>
+		<span class="s1">xsltEvalAttrValueTemplate	(xsltTransformContextPtr ctxt,</span>
+						 <span class="s1">xmlNodePtr node,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *ns);</span>
+<span class="s1">XSLTPUBFUN </span><span class="s2">const </span><span class="s1">xmlChar * XSLTCALL</span>
+		<span class="s1">xsltEvalStaticAttrValueTemplate	(xsltStylesheetPtr style,</span>
+						 <span class="s1">xmlNodePtr node,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *name,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar *ns,</span>
+						 <span class="s2">int </span><span class="s1">*found);</span>
+
+<span class="s0">/* TODO: this is obviously broken ... the namespaces should be passed too ! */</span>
+<span class="s1">XSLTPUBFUN xmlChar * XSLTCALL</span>
+		<span class="s1">xsltEvalXPathString		(xsltTransformContextPtr ctxt,</span>
+						 <span class="s1">xmlXPathCompExprPtr comp);</span>
+<span class="s1">XSLTPUBFUN xmlChar * XSLTCALL</span>
+		<span class="s1">xsltEvalXPathStringNs		(xsltTransformContextPtr ctxt,</span>
+						 <span class="s1">xmlXPathCompExprPtr comp,</span>
+						 <span class="s2">int </span><span class="s1">nsNr,</span>
+						 <span class="s1">xmlNsPtr *nsList);</span>
+
+<span class="s1">XSLTPUBFUN xmlNodePtr * XSLTCALL</span>
+		<span class="s1">xsltTemplateProcess		(xsltTransformContextPtr ctxt,</span>
+						 <span class="s1">xmlNodePtr node);</span>
+<span class="s1">XSLTPUBFUN xmlAttrPtr XSLTCALL</span>
+		<span class="s1">xsltAttrListTemplateProcess	(xsltTransformContextPtr ctxt,</span>
+						 <span class="s1">xmlNodePtr target,</span>
+						 <span class="s1">xmlAttrPtr cur);</span>
+<span class="s1">XSLTPUBFUN xmlAttrPtr XSLTCALL</span>
+		<span class="s1">xsltAttrTemplateProcess		(xsltTransformContextPtr ctxt,</span>
+						 <span class="s1">xmlNodePtr target,</span>
+						 <span class="s1">xmlAttrPtr attr);</span>
+<span class="s1">XSLTPUBFUN xmlChar * XSLTCALL</span>
+		<span class="s1">xsltAttrTemplateValueProcess	(xsltTransformContextPtr ctxt,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar* attr);</span>
+<span class="s1">XSLTPUBFUN xmlChar * XSLTCALL</span>
+		<span class="s1">xsltAttrTemplateValueProcessNode(xsltTransformContextPtr ctxt,</span>
+						 <span class="s2">const </span><span class="s1">xmlChar* str,</span>
+						 <span class="s1">xmlNodePtr node);</span>
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s1">}</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#endif </span><span class="s0">/* __XML_XSLT_TEMPLATES_H__ */</span>
+
+</pre>
+</body>
+</html>

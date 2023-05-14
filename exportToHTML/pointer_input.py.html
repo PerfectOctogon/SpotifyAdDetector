@@ -1,0 +1,84 @@
+<html>
+<head>
+<title>pointer_input.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6897bb;}
+.s4 { color: #6a8759;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+pointer_input.py</font>
+</center></td></tr></table>
+<pre><span class="s0"># Licensed to the Software Freedom Conservancy (SFC) under one</span>
+<span class="s0"># or more contributor license agreements.  See the NOTICE file</span>
+<span class="s0"># distributed with this work for additional information</span>
+<span class="s0"># regarding copyright ownership.  The SFC licenses this file</span>
+<span class="s0"># to you under the Apache License, Version 2.0 (the</span>
+<span class="s0"># &quot;License&quot;); you may not use this file except in compliance</span>
+<span class="s0"># with the License.  You may obtain a copy of the License at</span>
+<span class="s0">#</span>
+<span class="s0">#   http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="s0">#</span>
+<span class="s0"># Unless required by applicable law or agreed to in writing,</span>
+<span class="s0"># software distributed under the License is distributed on an</span>
+<span class="s0"># &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY</span>
+<span class="s0"># KIND, either express or implied.  See the License for the</span>
+<span class="s0"># specific language governing permissions and limitations</span>
+<span class="s0"># under the License.</span>
+<span class="s2">from </span><span class="s1">.input_device </span><span class="s2">import </span><span class="s1">InputDevice</span>
+<span class="s2">from </span><span class="s1">.interaction </span><span class="s2">import </span><span class="s1">POINTER</span><span class="s2">, </span><span class="s1">POINTER_KINDS</span>
+
+<span class="s2">from </span><span class="s1">selenium.common.exceptions </span><span class="s2">import </span><span class="s1">InvalidArgumentException</span>
+<span class="s2">from </span><span class="s1">selenium.webdriver.remote.webelement </span><span class="s2">import </span><span class="s1">WebElement</span>
+
+
+<span class="s2">class </span><span class="s1">PointerInput(InputDevice):</span>
+
+    <span class="s1">DEFAULT_MOVE_DURATION = </span><span class="s3">250</span>
+
+    <span class="s2">def </span><span class="s1">__init__(self</span><span class="s2">, </span><span class="s1">kind</span><span class="s2">, </span><span class="s1">name):</span>
+        <span class="s1">super(PointerInput</span><span class="s2">, </span><span class="s1">self).__init__()</span>
+        <span class="s2">if </span><span class="s1">(kind </span><span class="s2">not in </span><span class="s1">POINTER_KINDS):</span>
+            <span class="s2">raise </span><span class="s1">InvalidArgumentException(</span><span class="s4">&quot;Invalid PointerInput kind '%s'&quot; </span><span class="s1">% kind)</span>
+        <span class="s1">self.type = POINTER</span>
+        <span class="s1">self.kind = kind</span>
+        <span class="s1">self.name = name</span>
+
+    <span class="s2">def </span><span class="s1">create_pointer_move(self</span><span class="s2">, </span><span class="s1">duration=DEFAULT_MOVE_DURATION</span><span class="s2">, </span><span class="s1">x=</span><span class="s2">None, </span><span class="s1">y=</span><span class="s2">None, </span><span class="s1">origin=</span><span class="s2">None</span><span class="s1">):</span>
+        <span class="s1">action = dict(type=</span><span class="s4">&quot;pointerMove&quot;</span><span class="s2">, </span><span class="s1">duration=duration)</span>
+        <span class="s1">action[</span><span class="s4">&quot;x&quot;</span><span class="s1">] = x</span>
+        <span class="s1">action[</span><span class="s4">&quot;y&quot;</span><span class="s1">] = y</span>
+        <span class="s2">if </span><span class="s1">isinstance(origin</span><span class="s2">, </span><span class="s1">WebElement):</span>
+            <span class="s1">action[</span><span class="s4">&quot;origin&quot;</span><span class="s1">] = {</span><span class="s4">&quot;element-6066-11e4-a52e-4f735466cecf&quot;</span><span class="s1">: origin.id}</span>
+        <span class="s2">elif </span><span class="s1">origin </span><span class="s2">is not None</span><span class="s1">:</span>
+            <span class="s1">action[</span><span class="s4">&quot;origin&quot;</span><span class="s1">] = origin</span>
+
+        <span class="s1">self.add_action(action)</span>
+
+    <span class="s2">def </span><span class="s1">create_pointer_down(self</span><span class="s2">, </span><span class="s1">button):</span>
+        <span class="s1">self.add_action({</span><span class="s4">&quot;type&quot;</span><span class="s1">: </span><span class="s4">&quot;pointerDown&quot;</span><span class="s2">, </span><span class="s4">&quot;duration&quot;</span><span class="s1">: </span><span class="s3">0</span><span class="s2">, </span><span class="s4">&quot;button&quot;</span><span class="s1">: button})</span>
+
+    <span class="s2">def </span><span class="s1">create_pointer_up(self</span><span class="s2">, </span><span class="s1">button):</span>
+        <span class="s1">self.add_action({</span><span class="s4">&quot;type&quot;</span><span class="s1">: </span><span class="s4">&quot;pointerUp&quot;</span><span class="s2">, </span><span class="s4">&quot;duration&quot;</span><span class="s1">: </span><span class="s3">0</span><span class="s2">, </span><span class="s4">&quot;button&quot;</span><span class="s1">: button})</span>
+
+    <span class="s2">def </span><span class="s1">create_pointer_cancel(self):</span>
+        <span class="s1">self.add_action({</span><span class="s4">&quot;type&quot;</span><span class="s1">: </span><span class="s4">&quot;pointerCancel&quot;</span><span class="s1">})</span>
+
+    <span class="s2">def </span><span class="s1">create_pause(self</span><span class="s2">, </span><span class="s1">pause_duration):</span>
+        <span class="s1">self.add_action({</span><span class="s4">&quot;type&quot;</span><span class="s1">: </span><span class="s4">&quot;pause&quot;</span><span class="s2">, </span><span class="s4">&quot;duration&quot;</span><span class="s1">: int(pause_duration * </span><span class="s3">1000</span><span class="s1">)})</span>
+
+    <span class="s2">def </span><span class="s1">encode(self):</span>
+        <span class="s2">return </span><span class="s1">{</span><span class="s4">&quot;type&quot;</span><span class="s1">: self.type</span><span class="s2">,</span>
+                <span class="s4">&quot;parameters&quot;</span><span class="s1">: {</span><span class="s4">&quot;pointerType&quot;</span><span class="s1">: self.kind}</span><span class="s2">,</span>
+                <span class="s4">&quot;id&quot;</span><span class="s1">: self.name</span><span class="s2">,</span>
+                <span class="s4">&quot;actions&quot;</span><span class="s1">: [acts </span><span class="s2">for </span><span class="s1">acts </span><span class="s2">in </span><span class="s1">self.actions]}</span>
+</pre>
+</body>
+</html>

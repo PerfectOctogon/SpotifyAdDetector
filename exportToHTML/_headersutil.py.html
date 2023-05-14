@@ -1,0 +1,302 @@
+<html>
+<head>
+<title>_headersutil.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #629755; font-style: italic;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6897bb;}
+.s4 { color: #6a8759;}
+.s5 { color: #808080;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+_headersutil.py</font>
+</center></td></tr></table>
+<pre><span class="s0">&quot;&quot;&quot;Utility functions for HTTP header value parsing and construction. 
+ 
+Copyright 1997-1998, Gisle Aas 
+Copyright 2002-2006, John J. Lee 
+ 
+This code is free software; you can redistribute it and/or modify it 
+under the terms of the BSD or ZPL 2.1 licenses (see the file 
+LICENSE included with the distribution). 
+ 
+&quot;&quot;&quot;</span>
+
+<span class="s2">from </span><span class="s1">__future__ </span><span class="s2">import </span><span class="s1">absolute_import</span>
+
+<span class="s2">import </span><span class="s1">os</span>
+<span class="s2">import </span><span class="s1">re</span>
+
+<span class="s2">from </span><span class="s1">. </span><span class="s2">import </span><span class="s1">_rfc3986</span>
+<span class="s2">from </span><span class="s1">._util </span><span class="s2">import </span><span class="s1">http2time</span>
+<span class="s2">from </span><span class="s1">.polyglot </span><span class="s2">import </span><span class="s1">is_string</span>
+
+
+<span class="s2">def </span><span class="s1">is_html_file_extension(url</span><span class="s2">, </span><span class="s1">allow_xhtml):</span>
+    <span class="s2">if </span><span class="s1">url </span><span class="s2">is None</span><span class="s1">:</span>
+        <span class="s2">return False</span>
+    <span class="s1">ext = os.path.splitext(_rfc3986.urlsplit(url)[</span><span class="s3">2</span><span class="s1">])[</span><span class="s3">1</span><span class="s1">]</span>
+    <span class="s1">html_exts = [</span><span class="s4">&quot;.htm&quot;</span><span class="s2">, </span><span class="s4">&quot;.html&quot;</span><span class="s1">]</span>
+    <span class="s2">if </span><span class="s1">allow_xhtml:</span>
+        <span class="s1">html_exts += [</span><span class="s4">&quot;.xhtml&quot;</span><span class="s1">]</span>
+    <span class="s2">return </span><span class="s1">ext </span><span class="s2">in </span><span class="s1">html_exts</span>
+
+
+<span class="s2">def </span><span class="s1">is_html(ct_headers</span><span class="s2">, </span><span class="s1">url=</span><span class="s2">None, </span><span class="s1">allow_xhtml=</span><span class="s2">False</span><span class="s1">):</span>
+    <span class="s0">&quot;&quot;&quot; 
+    ct_headers: Sequence of Content-Type headers 
+    url: Response URL 
+ 
+    &quot;&quot;&quot;</span>
+    <span class="s2">if not </span><span class="s1">ct_headers:</span>
+        <span class="s2">return </span><span class="s1">is_html_file_extension(url</span><span class="s2">, </span><span class="s1">allow_xhtml)</span>
+    <span class="s1">headers = split_header_words(ct_headers)</span>
+    <span class="s2">if </span><span class="s1">len(headers) &lt; </span><span class="s3">1</span><span class="s1">:</span>
+        <span class="s2">return </span><span class="s1">is_html_file_extension(url</span><span class="s2">, </span><span class="s1">allow_xhtml)</span>
+    <span class="s1">first_header = headers[</span><span class="s3">0</span><span class="s1">]</span>
+    <span class="s1">first_parameter = first_header[</span><span class="s3">0</span><span class="s1">]</span>
+    <span class="s1">ct = first_parameter[</span><span class="s3">0</span><span class="s1">]</span>
+    <span class="s1">html_types = [</span><span class="s4">&quot;text/html&quot;</span><span class="s1">]</span>
+    <span class="s2">if </span><span class="s1">allow_xhtml:</span>
+        <span class="s1">html_types += [</span>
+            <span class="s4">&quot;text/xhtml&quot;</span><span class="s2">,</span>
+            <span class="s4">&quot;text/xml&quot;</span><span class="s2">,</span>
+            <span class="s4">&quot;application/xml&quot;</span><span class="s2">,</span>
+            <span class="s4">&quot;application/xhtml+xml&quot;</span><span class="s2">,</span>
+        <span class="s1">]</span>
+    <span class="s2">return </span><span class="s1">ct </span><span class="s2">in </span><span class="s1">html_types</span>
+
+
+<span class="s2">def </span><span class="s1">unmatched(match):</span>
+    <span class="s0">&quot;&quot;&quot;Return unmatched part of re.Match object.&quot;&quot;&quot;</span>
+    <span class="s1">start</span><span class="s2">, </span><span class="s1">end = match.span(</span><span class="s3">0</span><span class="s1">)</span>
+    <span class="s2">return </span><span class="s1">match.string[:start] + match.string[end:]</span>
+
+
+<span class="s1">token_re = re.compile(</span><span class="s4">r&quot;^\s*([^=\s;,]+)&quot;</span><span class="s1">)</span>
+<span class="s1">quoted_value_re = re.compile(</span><span class="s4">r&quot;^\s*=\s*\&quot;([^\&quot;\\]*(?:\\.[^\&quot;\\]*)*)\&quot;&quot;</span><span class="s1">)</span>
+<span class="s1">value_re = re.compile(</span><span class="s4">r&quot;^\s*=\s*([^\s;,]*)&quot;</span><span class="s1">)</span>
+<span class="s1">escape_re = re.compile(</span><span class="s4">r&quot;\\(.)&quot;</span><span class="s1">)</span>
+
+
+<span class="s2">def </span><span class="s1">split_header_words(header_values):</span>
+    <span class="s0">r&quot;&quot;&quot;Parse header values into a list of lists containing key,value pairs. 
+ 
+    The function knows how to deal with &quot;,&quot;, &quot;;&quot; and &quot;=&quot; as well as quoted 
+    values after &quot;=&quot;.  A list of space separated tokens are parsed as if they 
+    were separated by &quot;;&quot;. 
+ 
+    If the header_values passed as argument contains multiple values, then they 
+    are treated as if they were a single value separated by comma &quot;,&quot;. 
+ 
+    This means that this function is useful for parsing header fields that 
+    follow this syntax (BNF as from the HTTP/1.1 specification, but we relax 
+    the requirement for tokens). 
+ 
+      headers           = #header 
+      header            = (token | parameter) *( [&quot;;&quot;] (token | parameter)) 
+ 
+      token             = 1*&lt;any CHAR except CTLs or separators&gt; 
+      separators        = &quot;(&quot; | &quot;)&quot; | &quot;&lt;&quot; | &quot;&gt;&quot; | &quot;@&quot; 
+                        | &quot;,&quot; | &quot;;&quot; | &quot;:&quot; | &quot;\&quot; | &lt;&quot;&gt; 
+                        | &quot;/&quot; | &quot;[&quot; | &quot;]&quot; | &quot;?&quot; | &quot;=&quot; 
+                        | &quot;{&quot; | &quot;}&quot; | SP | HT 
+ 
+      quoted-string     = ( &lt;&quot;&gt; *(qdtext | quoted-pair ) &lt;&quot;&gt; ) 
+      qdtext            = &lt;any TEXT except &lt;&quot;&gt;&gt; 
+      quoted-pair       = &quot;\&quot; CHAR 
+ 
+      parameter         = attribute &quot;=&quot; value 
+      attribute         = token 
+      value             = token | quoted-string 
+ 
+    Each header is represented by a list of key/value pairs.  The value for a 
+    simple token (not part of a parameter) is None.  Syntactically incorrect 
+    headers will not necessarily be parsed as you would want. 
+ 
+    This is easier to describe with some examples: 
+ 
+    &gt;&gt;&gt; split_header_words(['foo=&quot;bar&quot;; port=&quot;80,81&quot;; discard, bar=baz']) 
+    [[('foo', 'bar'), ('port', '80,81'), ('discard', None)], [('bar', 'baz')]] 
+    &gt;&gt;&gt; split_header_words(['text/html; charset=&quot;iso-8859-1&quot;']) 
+    [[('text/html', None), ('charset', 'iso-8859-1')]] 
+    &gt;&gt;&gt; split_header_words([r'Basic realm=&quot;\&quot;foo\bar\&quot;&quot;']) 
+    [[('Basic', None), ('realm', '&quot;foobar&quot;')]] 
+ 
+    &quot;&quot;&quot;</span>
+    <span class="s2">assert not </span><span class="s1">is_string(header_values)</span>
+    <span class="s1">result = []</span>
+    <span class="s2">for </span><span class="s1">text </span><span class="s2">in </span><span class="s1">header_values:</span>
+        <span class="s1">orig_text = text</span>
+        <span class="s1">pairs = []</span>
+        <span class="s2">while </span><span class="s1">text:</span>
+            <span class="s1">m = token_re.search(text)</span>
+            <span class="s2">if </span><span class="s1">m:</span>
+                <span class="s1">text = unmatched(m)</span>
+                <span class="s1">name = m.group(</span><span class="s3">1</span><span class="s1">)</span>
+                <span class="s1">m = quoted_value_re.search(text)</span>
+                <span class="s2">if </span><span class="s1">m:  </span><span class="s5"># quoted value</span>
+                    <span class="s1">text = unmatched(m)</span>
+                    <span class="s1">value = m.group(</span><span class="s3">1</span><span class="s1">)</span>
+                    <span class="s1">value = escape_re.sub(</span><span class="s4">r&quot;\1&quot;</span><span class="s2">, </span><span class="s1">value)</span>
+                <span class="s2">else</span><span class="s1">:</span>
+                    <span class="s1">m = value_re.search(text)</span>
+                    <span class="s2">if </span><span class="s1">m:  </span><span class="s5"># unquoted value</span>
+                        <span class="s1">text = unmatched(m)</span>
+                        <span class="s1">value = m.group(</span><span class="s3">1</span><span class="s1">)</span>
+                        <span class="s1">value = value.rstrip()</span>
+                    <span class="s2">else</span><span class="s1">:</span>
+                        <span class="s5"># no value, a lone token</span>
+                        <span class="s1">value = </span><span class="s2">None</span>
+                <span class="s1">pairs.append((name</span><span class="s2">, </span><span class="s1">value))</span>
+            <span class="s2">elif </span><span class="s1">text.lstrip().startswith(</span><span class="s4">&quot;,&quot;</span><span class="s1">):</span>
+                <span class="s5"># concatenated headers, as per RFC 2616 section 4.2</span>
+                <span class="s1">text = text.lstrip()[</span><span class="s3">1</span><span class="s1">:]</span>
+                <span class="s2">if </span><span class="s1">pairs:</span>
+                    <span class="s1">result.append(pairs)</span>
+                <span class="s1">pairs = []</span>
+            <span class="s2">else</span><span class="s1">:</span>
+                <span class="s5"># skip junk</span>
+                <span class="s1">non_junk</span><span class="s2">, </span><span class="s1">nr_junk_chars = re.subn(</span><span class="s4">r&quot;^[=\s;]*&quot;</span><span class="s2">, </span><span class="s4">&quot;&quot;</span><span class="s2">, </span><span class="s1">text)</span>
+                <span class="s2">assert </span><span class="s1">nr_junk_chars &gt; </span><span class="s3">0</span><span class="s2">, </span><span class="s1">(</span>
+                    <span class="s4">&quot;split_header_words bug: '%s', '%s', %s&quot; </span><span class="s1">%</span>
+                    <span class="s1">(orig_text</span><span class="s2">, </span><span class="s1">text</span><span class="s2">, </span><span class="s1">pairs))</span>
+                <span class="s1">text = non_junk</span>
+        <span class="s2">if </span><span class="s1">pairs:</span>
+            <span class="s1">result.append(pairs)</span>
+    <span class="s2">return </span><span class="s1">result</span>
+
+
+<span class="s1">join_escape_re = re.compile(</span><span class="s4">r&quot;([\&quot;\\])&quot;</span><span class="s1">)</span>
+
+
+<span class="s2">def </span><span class="s1">join_header_words(lists):</span>
+    <span class="s0">&quot;&quot;&quot;Do the inverse of the conversion done by split_header_words. 
+ 
+    Takes a list of lists of (key, value) pairs and produces a single header 
+    value.  Attribute values are quoted if needed. 
+ 
+    &gt;&gt;&gt; join_header_words([[(&quot;text/plain&quot;, None), (&quot;charset&quot;, &quot;iso-8859/1&quot;)]]) 
+    'text/plain; charset=&quot;iso-8859/1&quot;' 
+    &gt;&gt;&gt; join_header_words([[(\ 
+            &quot;text/plain&quot;, None)], [(&quot;charset&quot;, &quot;iso-8859/1&quot;)]]) 
+    'text/plain, charset=&quot;iso-8859/1&quot;' 
+ 
+    &quot;&quot;&quot;</span>
+    <span class="s1">headers = []</span>
+    <span class="s2">for </span><span class="s1">pairs </span><span class="s2">in </span><span class="s1">lists:</span>
+        <span class="s1">attr = []</span>
+        <span class="s2">for </span><span class="s1">k</span><span class="s2">, </span><span class="s1">v </span><span class="s2">in </span><span class="s1">pairs:</span>
+            <span class="s2">if </span><span class="s1">v </span><span class="s2">is not None</span><span class="s1">:</span>
+                <span class="s2">if not </span><span class="s1">re.search(</span><span class="s4">r&quot;^\w+$&quot;</span><span class="s2">, </span><span class="s1">v):</span>
+                    <span class="s1">v = join_escape_re.sub(</span><span class="s4">r&quot;\\\1&quot;</span><span class="s2">, </span><span class="s1">v)  </span><span class="s5"># escape &quot; and \</span>
+                    <span class="s1">v = </span><span class="s4">'&quot;%s&quot;' </span><span class="s1">% v</span>
+                <span class="s2">if </span><span class="s1">k </span><span class="s2">is None</span><span class="s1">:  </span><span class="s5"># Netscape cookies may have no name</span>
+                    <span class="s1">k = v</span>
+                <span class="s2">else</span><span class="s1">:</span>
+                    <span class="s1">k = </span><span class="s4">&quot;%s=%s&quot; </span><span class="s1">% (k</span><span class="s2">, </span><span class="s1">v)</span>
+            <span class="s1">attr.append(k)</span>
+        <span class="s2">if </span><span class="s1">attr:</span>
+            <span class="s1">headers.append(</span><span class="s4">&quot;; &quot;</span><span class="s1">.join(attr))</span>
+    <span class="s2">return </span><span class="s4">&quot;, &quot;</span><span class="s1">.join(headers)</span>
+
+
+<span class="s2">def </span><span class="s1">strip_quotes(text):</span>
+    <span class="s2">if </span><span class="s1">text.startswith(</span><span class="s4">'&quot;'</span><span class="s1">):</span>
+        <span class="s1">text = text[</span><span class="s3">1</span><span class="s1">:]</span>
+    <span class="s2">if </span><span class="s1">text.endswith(</span><span class="s4">'&quot;'</span><span class="s1">):</span>
+        <span class="s1">text = text[:-</span><span class="s3">1</span><span class="s1">]</span>
+    <span class="s2">return </span><span class="s1">text</span>
+
+
+<span class="s2">def </span><span class="s1">parse_ns_headers(ns_headers):</span>
+    <span class="s0">&quot;&quot;&quot;Ad-hoc parser for Netscape protocol cookie-attributes. 
+ 
+    The old Netscape cookie format for Set-Cookie can for instance contain 
+    an unquoted &quot;,&quot; in the expires field, so we have to use this ad-hoc 
+    parser instead of split_header_words. 
+ 
+    XXX This may not make the best possible effort to parse all the crap 
+    that Netscape Cookie headers contain.  Ronald Tschalar's HTTPClient 
+    parser is probably better, so could do worse than following that if 
+    this ever gives any trouble. 
+ 
+    Currently, this is also used for parsing RFC 2109 cookies. 
+ 
+    &quot;&quot;&quot;</span>
+    <span class="s1">known_attrs = (</span>
+        <span class="s4">&quot;expires&quot;</span><span class="s2">,</span>
+        <span class="s4">&quot;domain&quot;</span><span class="s2">,</span>
+        <span class="s4">&quot;path&quot;</span><span class="s2">,</span>
+        <span class="s4">&quot;secure&quot;</span><span class="s2">,</span>
+        <span class="s5"># RFC 2109 attrs (may turn up in Netscape cookies, too)</span>
+        <span class="s4">&quot;version&quot;</span><span class="s2">,</span>
+        <span class="s4">&quot;port&quot;</span><span class="s2">,</span>
+        <span class="s4">&quot;max-age&quot;</span><span class="s1">)</span>
+
+    <span class="s1">result = []</span>
+    <span class="s2">for </span><span class="s1">ns_header </span><span class="s2">in </span><span class="s1">ns_headers:</span>
+        <span class="s1">pairs = []</span>
+        <span class="s1">version_set = </span><span class="s2">False</span>
+        <span class="s1">params = re.split(</span><span class="s4">r&quot;;\s*&quot;</span><span class="s2">, </span><span class="s1">ns_header)</span>
+        <span class="s2">for </span><span class="s1">ii </span><span class="s2">in </span><span class="s1">range(len(params)):</span>
+            <span class="s1">param = params[ii]</span>
+            <span class="s1">param = param.rstrip()</span>
+            <span class="s2">if </span><span class="s1">param == </span><span class="s4">&quot;&quot;</span><span class="s1">:</span>
+                <span class="s2">continue</span>
+            <span class="s2">if </span><span class="s4">&quot;=&quot; </span><span class="s2">not in </span><span class="s1">param:</span>
+                <span class="s1">k</span><span class="s2">, </span><span class="s1">v = param</span><span class="s2">, None</span>
+            <span class="s2">else</span><span class="s1">:</span>
+                <span class="s1">k</span><span class="s2">, </span><span class="s1">v = re.split(</span><span class="s4">r&quot;\s*=\s*&quot;</span><span class="s2">, </span><span class="s1">param</span><span class="s2">, </span><span class="s3">1</span><span class="s1">)</span>
+                <span class="s1">k = k.lstrip()</span>
+            <span class="s2">if </span><span class="s1">ii != </span><span class="s3">0</span><span class="s1">:</span>
+                <span class="s1">lc = k.lower()</span>
+                <span class="s2">if </span><span class="s1">lc </span><span class="s2">in </span><span class="s1">known_attrs:</span>
+                    <span class="s1">k = lc</span>
+                <span class="s2">if </span><span class="s1">k == </span><span class="s4">&quot;version&quot;</span><span class="s1">:</span>
+                    <span class="s5"># This is an RFC 2109 cookie.</span>
+                    <span class="s1">v = strip_quotes(v)</span>
+                    <span class="s1">version_set = </span><span class="s2">True</span>
+                <span class="s2">if </span><span class="s1">k == </span><span class="s4">&quot;expires&quot;</span><span class="s1">:</span>
+                    <span class="s5"># convert expires date to seconds since epoch</span>
+                    <span class="s1">v = http2time(strip_quotes(v))  </span><span class="s5"># None if invalid</span>
+            <span class="s1">pairs.append((k</span><span class="s2">, </span><span class="s1">v))</span>
+
+        <span class="s2">if </span><span class="s1">pairs:</span>
+            <span class="s2">if not </span><span class="s1">version_set:</span>
+                <span class="s1">pairs.append((</span><span class="s4">&quot;version&quot;</span><span class="s2">, </span><span class="s4">&quot;0&quot;</span><span class="s1">))</span>
+            <span class="s1">result.append(pairs)</span>
+
+    <span class="s2">return </span><span class="s1">result</span>
+
+
+<span class="s1">uppercase_headers = {</span><span class="s4">'WWW'</span><span class="s2">, </span><span class="s4">'TE'</span><span class="s1">}</span>
+
+
+<span class="s2">def </span><span class="s1">normalize_header_name(name):</span>
+    <span class="s1">parts = [x.capitalize() </span><span class="s2">for </span><span class="s1">x </span><span class="s2">in </span><span class="s1">name.split(</span><span class="s4">'-'</span><span class="s1">)]</span>
+    <span class="s1">q = parts[</span><span class="s3">0</span><span class="s1">].upper()</span>
+    <span class="s2">if </span><span class="s1">q </span><span class="s2">in </span><span class="s1">uppercase_headers:</span>
+        <span class="s1">parts[</span><span class="s3">0</span><span class="s1">] = q</span>
+    <span class="s2">if </span><span class="s1">len(parts) == </span><span class="s3">3 </span><span class="s2">and </span><span class="s1">parts[</span><span class="s3">1</span><span class="s1">] == </span><span class="s4">'Websocket'</span><span class="s1">:</span>
+        <span class="s1">parts[</span><span class="s3">1</span><span class="s1">] = </span><span class="s4">'WebSocket'</span>
+    <span class="s2">return </span><span class="s4">'-'</span><span class="s1">.join(parts)</span>
+
+
+<span class="s2">def </span><span class="s1">_test():</span>
+    <span class="s2">import </span><span class="s1">doctest</span>
+    <span class="s2">from </span><span class="s1">. </span><span class="s2">import </span><span class="s1">_headersutil</span>
+    <span class="s2">return </span><span class="s1">doctest.testmod(_headersutil)</span>
+
+
+<span class="s2">if </span><span class="s1">__name__ == </span><span class="s4">&quot;__main__&quot;</span><span class="s1">:</span>
+    <span class="s1">_test()</span>
+</pre>
+</body>
+</html>

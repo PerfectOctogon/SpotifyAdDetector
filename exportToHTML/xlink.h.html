@@ -1,0 +1,210 @@
+<html>
+<head>
+<title>xlink.h</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+.s4 { color: #6897bb;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+xlink.h</font>
+</center></td></tr></table>
+<pre><span class="s0">/* 
+ * Summary: unfinished XLink detection module 
+ * Description: unfinished XLink detection module 
+ * 
+ * Copy: See Copyright for the status of this software. 
+ * 
+ * Author: Daniel Veillard 
+ */</span>
+
+<span class="s2">#ifndef </span><span class="s1">__XML_XLINK_H__</span>
+<span class="s2">#define </span><span class="s1">__XML_XLINK_H__</span>
+
+<span class="s2">#include </span><span class="s1">&lt;libxml/xmlversion.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/tree.h&gt;</span>
+
+<span class="s2">#ifdef </span><span class="s1">LIBXML_XPTR_ENABLED</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s2">extern </span><span class="s3">&quot;C&quot; </span><span class="s1">{</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * Various defines for the various Link properties. 
+ * 
+ * NOTE: the link detection layer will try to resolve QName expansion 
+ *       of namespaces. If &quot;foo&quot; is the prefix for &quot;http://foo.com/&quot; 
+ *       then the link detection layer will expand role=&quot;foo:myrole&quot; 
+ *       to &quot;http://foo.com/:myrole&quot;. 
+ * NOTE: the link detection layer will expand URI-Refences found on 
+ *       href attributes by using the base mechanism if found. 
+ */</span>
+<span class="s2">typedef </span><span class="s1">xmlChar *xlinkHRef;</span>
+<span class="s2">typedef </span><span class="s1">xmlChar *xlinkRole;</span>
+<span class="s2">typedef </span><span class="s1">xmlChar *xlinkTitle;</span>
+
+<span class="s2">typedef enum </span><span class="s1">{</span>
+    <span class="s1">XLINK_TYPE_NONE = </span><span class="s4">0</span><span class="s1">,</span>
+    <span class="s1">XLINK_TYPE_SIMPLE,</span>
+    <span class="s1">XLINK_TYPE_EXTENDED,</span>
+    <span class="s1">XLINK_TYPE_EXTENDED_SET</span>
+<span class="s1">} xlinkType;</span>
+
+<span class="s2">typedef enum </span><span class="s1">{</span>
+    <span class="s1">XLINK_SHOW_NONE = </span><span class="s4">0</span><span class="s1">,</span>
+    <span class="s1">XLINK_SHOW_NEW,</span>
+    <span class="s1">XLINK_SHOW_EMBED,</span>
+    <span class="s1">XLINK_SHOW_REPLACE</span>
+<span class="s1">} xlinkShow;</span>
+
+<span class="s2">typedef enum </span><span class="s1">{</span>
+    <span class="s1">XLINK_ACTUATE_NONE = </span><span class="s4">0</span><span class="s1">,</span>
+    <span class="s1">XLINK_ACTUATE_AUTO,</span>
+    <span class="s1">XLINK_ACTUATE_ONREQUEST</span>
+<span class="s1">} xlinkActuate;</span>
+
+<span class="s0">/** 
+ * xlinkNodeDetectFunc: 
+ * @ctx:  user data pointer 
+ * @node:  the node to check 
+ * 
+ * This is the prototype for the link detection routine. 
+ * It calls the default link detection callbacks upon link detection. 
+ */</span>
+<span class="s2">typedef void </span><span class="s1">(*xlinkNodeDetectFunc) (</span><span class="s2">void </span><span class="s1">*ctx, xmlNodePtr node);</span>
+
+<span class="s0">/* 
+ * The link detection module interact with the upper layers using 
+ * a set of callback registered at parsing time. 
+ */</span>
+
+<span class="s0">/** 
+ * xlinkSimpleLinkFunk: 
+ * @ctx:  user data pointer 
+ * @node:  the node carrying the link 
+ * @href:  the target of the link 
+ * @role:  the role string 
+ * @title:  the link title 
+ * 
+ * This is the prototype for a simple link detection callback. 
+ */</span>
+<span class="s2">typedef void</span>
+<span class="s1">(*xlinkSimpleLinkFunk)	(</span><span class="s2">void </span><span class="s1">*ctx,</span>
+			 <span class="s1">xmlNodePtr node,</span>
+			 <span class="s2">const </span><span class="s1">xlinkHRef href,</span>
+			 <span class="s2">const </span><span class="s1">xlinkRole role,</span>
+			 <span class="s2">const </span><span class="s1">xlinkTitle title);</span>
+
+<span class="s0">/** 
+ * xlinkExtendedLinkFunk: 
+ * @ctx:  user data pointer 
+ * @node:  the node carrying the link 
+ * @nbLocators: the number of locators detected on the link 
+ * @hrefs:  pointer to the array of locator hrefs 
+ * @roles:  pointer to the array of locator roles 
+ * @nbArcs: the number of arcs detected on the link 
+ * @from:  pointer to the array of source roles found on the arcs 
+ * @to:  pointer to the array of target roles found on the arcs 
+ * @show:  array of values for the show attributes found on the arcs 
+ * @actuate:  array of values for the actuate attributes found on the arcs 
+ * @nbTitles: the number of titles detected on the link 
+ * @title:  array of titles detected on the link 
+ * @langs:  array of xml:lang values for the titles 
+ * 
+ * This is the prototype for a extended link detection callback. 
+ */</span>
+<span class="s2">typedef void</span>
+<span class="s1">(*xlinkExtendedLinkFunk)(</span><span class="s2">void </span><span class="s1">*ctx,</span>
+			 <span class="s1">xmlNodePtr node,</span>
+			 <span class="s2">int </span><span class="s1">nbLocators,</span>
+			 <span class="s2">const </span><span class="s1">xlinkHRef *hrefs,</span>
+			 <span class="s2">const </span><span class="s1">xlinkRole *roles,</span>
+			 <span class="s2">int </span><span class="s1">nbArcs,</span>
+			 <span class="s2">const </span><span class="s1">xlinkRole *from,</span>
+			 <span class="s2">const </span><span class="s1">xlinkRole *to,</span>
+			 <span class="s1">xlinkShow *show,</span>
+			 <span class="s1">xlinkActuate *actuate,</span>
+			 <span class="s2">int </span><span class="s1">nbTitles,</span>
+			 <span class="s2">const </span><span class="s1">xlinkTitle *titles,</span>
+			 <span class="s2">const </span><span class="s1">xmlChar **langs);</span>
+
+<span class="s0">/** 
+ * xlinkExtendedLinkSetFunk: 
+ * @ctx:  user data pointer 
+ * @node:  the node carrying the link 
+ * @nbLocators: the number of locators detected on the link 
+ * @hrefs:  pointer to the array of locator hrefs 
+ * @roles:  pointer to the array of locator roles 
+ * @nbTitles: the number of titles detected on the link 
+ * @title:  array of titles detected on the link 
+ * @langs:  array of xml:lang values for the titles 
+ * 
+ * This is the prototype for a extended link set detection callback. 
+ */</span>
+<span class="s2">typedef void</span>
+<span class="s1">(*xlinkExtendedLinkSetFunk)	(</span><span class="s2">void </span><span class="s1">*ctx,</span>
+				 <span class="s1">xmlNodePtr node,</span>
+				 <span class="s2">int </span><span class="s1">nbLocators,</span>
+				 <span class="s2">const </span><span class="s1">xlinkHRef *hrefs,</span>
+				 <span class="s2">const </span><span class="s1">xlinkRole *roles,</span>
+				 <span class="s2">int </span><span class="s1">nbTitles,</span>
+				 <span class="s2">const </span><span class="s1">xlinkTitle *titles,</span>
+				 <span class="s2">const </span><span class="s1">xmlChar **langs);</span>
+
+<span class="s0">/** 
+ * This is the structure containing a set of Links detection callbacks. 
+ * 
+ * There is no default xlink callbacks, if one want to get link 
+ * recognition activated, those call backs must be provided before parsing. 
+ */</span>
+<span class="s2">typedef struct </span><span class="s1">_xlinkHandler xlinkHandler;</span>
+<span class="s2">typedef </span><span class="s1">xlinkHandler *xlinkHandlerPtr;</span>
+<span class="s2">struct </span><span class="s1">_xlinkHandler {</span>
+    <span class="s1">xlinkSimpleLinkFunk simple;</span>
+    <span class="s1">xlinkExtendedLinkFunk extended;</span>
+    <span class="s1">xlinkExtendedLinkSetFunk set;</span>
+<span class="s1">};</span>
+
+<span class="s0">/* 
+ * The default detection routine, can be overridden, they call the default 
+ * detection callbacks. 
+ */</span>
+
+<span class="s1">XMLPUBFUN xlinkNodeDetectFunc XMLCALL</span>
+		<span class="s1">xlinkGetDefaultDetect	(</span><span class="s2">void</span><span class="s1">);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xlinkSetDefaultDetect	(xlinkNodeDetectFunc func);</span>
+
+<span class="s0">/* 
+ * Routines to set/get the default handlers. 
+ */</span>
+<span class="s1">XMLPUBFUN xlinkHandlerPtr XMLCALL</span>
+		<span class="s1">xlinkGetDefaultHandler	(</span><span class="s2">void</span><span class="s1">);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xlinkSetDefaultHandler	(xlinkHandlerPtr handler);</span>
+
+<span class="s0">/* 
+ * Link detection module itself. 
+ */</span>
+<span class="s1">XMLPUBFUN xlinkType XMLCALL</span>
+		<span class="s1">xlinkIsLink		(xmlDocPtr doc,</span>
+					 <span class="s1">xmlNodePtr node);</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s1">}</span>
+<span class="s2">#endif</span>
+
+<span class="s2">#endif </span><span class="s0">/* LIBXML_XPTR_ENABLED */</span>
+
+<span class="s2">#endif </span><span class="s0">/* __XML_XLINK_H__ */</span>
+</pre>
+</body>
+</html>

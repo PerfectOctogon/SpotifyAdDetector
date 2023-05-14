@@ -1,0 +1,203 @@
+<html>
+<head>
+<title>catalog.h</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #6a8759;}
+.s4 { color: #6897bb;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+catalog.h</font>
+</center></td></tr></table>
+<pre><span class="s0">/** 
+ * Summary: interfaces to the Catalog handling system 
+ * Description: the catalog module implements the support for 
+ * XML Catalogs and SGML catalogs 
+ * 
+ * SGML Open Technical Resolution TR9401:1997. 
+ * http://www.jclark.com/sp/catalog.htm 
+ * 
+ * XML Catalogs Working Draft 06 August 2001 
+ * http://www.oasis-open.org/committees/entity/spec-2001-08-06.html 
+ * 
+ * Copy: See Copyright for the status of this software. 
+ * 
+ * Author: Daniel Veillard 
+ */</span>
+
+<span class="s2">#ifndef </span><span class="s1">__XML_CATALOG_H__</span>
+<span class="s2">#define </span><span class="s1">__XML_CATALOG_H__</span>
+
+<span class="s2">#include </span><span class="s1">&lt;stdio.h&gt;</span>
+
+<span class="s2">#include </span><span class="s1">&lt;libxml/xmlversion.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/xmlstring.h&gt;</span>
+<span class="s2">#include </span><span class="s1">&lt;libxml/tree.h&gt;</span>
+
+<span class="s2">#ifdef </span><span class="s1">LIBXML_CATALOG_ENABLED</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s2">extern </span><span class="s3">&quot;C&quot; </span><span class="s1">{</span>
+<span class="s2">#endif</span>
+
+<span class="s0">/** 
+ * XML_CATALOGS_NAMESPACE: 
+ * 
+ * The namespace for the XML Catalogs elements. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_CATALOGS_NAMESPACE					\</span>
+    <span class="s1">(</span><span class="s2">const </span><span class="s1">xmlChar *) </span><span class="s3">&quot;urn:oasis:names:tc:entity:xmlns:xml:catalog&quot;</span>
+<span class="s0">/** 
+ * XML_CATALOG_PI: 
+ * 
+ * The specific XML Catalog Processing Instuction name. 
+ */</span>
+<span class="s2">#define </span><span class="s1">XML_CATALOG_PI						\</span>
+    <span class="s1">(</span><span class="s2">const </span><span class="s1">xmlChar *) </span><span class="s3">&quot;oasis-xml-catalog&quot;</span>
+
+<span class="s0">/* 
+ * The API is voluntarily limited to general cataloging. 
+ */</span>
+<span class="s2">typedef enum </span><span class="s1">{</span>
+    <span class="s1">XML_CATA_PREFER_NONE = </span><span class="s4">0</span><span class="s1">,</span>
+    <span class="s1">XML_CATA_PREFER_PUBLIC = </span><span class="s4">1</span><span class="s1">,</span>
+    <span class="s1">XML_CATA_PREFER_SYSTEM</span>
+<span class="s1">} xmlCatalogPrefer;</span>
+
+<span class="s2">typedef enum </span><span class="s1">{</span>
+    <span class="s1">XML_CATA_ALLOW_NONE = </span><span class="s4">0</span><span class="s1">,</span>
+    <span class="s1">XML_CATA_ALLOW_GLOBAL = </span><span class="s4">1</span><span class="s1">,</span>
+    <span class="s1">XML_CATA_ALLOW_DOCUMENT = </span><span class="s4">2</span><span class="s1">,</span>
+    <span class="s1">XML_CATA_ALLOW_ALL = </span><span class="s4">3</span>
+<span class="s1">} xmlCatalogAllow;</span>
+
+<span class="s2">typedef struct </span><span class="s1">_xmlCatalog xmlCatalog;</span>
+<span class="s2">typedef </span><span class="s1">xmlCatalog *xmlCatalogPtr;</span>
+
+<span class="s0">/* 
+ * Operations on a given catalog. 
+ */</span>
+<span class="s1">XMLPUBFUN xmlCatalogPtr XMLCALL</span>
+		<span class="s1">xmlNewCatalog		(</span><span class="s2">int </span><span class="s1">sgml);</span>
+<span class="s1">XMLPUBFUN xmlCatalogPtr XMLCALL</span>
+		<span class="s1">xmlLoadACatalog		(</span><span class="s2">const char </span><span class="s1">*filename);</span>
+<span class="s1">XMLPUBFUN xmlCatalogPtr XMLCALL</span>
+		<span class="s1">xmlLoadSGMLSuperCatalog	(</span><span class="s2">const char </span><span class="s1">*filename);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlConvertSGMLCatalog	(xmlCatalogPtr catal);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlACatalogAdd		(xmlCatalogPtr catal,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *type,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *orig,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *replace);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlACatalogRemove	(xmlCatalogPtr catal,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *value);</span>
+<span class="s1">XMLPUBFUN xmlChar * XMLCALL</span>
+		<span class="s1">xmlACatalogResolve	(xmlCatalogPtr catal,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *pubID,</span>
+	                                 <span class="s2">const </span><span class="s1">xmlChar *sysID);</span>
+<span class="s1">XMLPUBFUN xmlChar * XMLCALL</span>
+		<span class="s1">xmlACatalogResolveSystem(xmlCatalogPtr catal,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *sysID);</span>
+<span class="s1">XMLPUBFUN xmlChar * XMLCALL</span>
+		<span class="s1">xmlACatalogResolvePublic(xmlCatalogPtr catal,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *pubID);</span>
+<span class="s1">XMLPUBFUN xmlChar * XMLCALL</span>
+		<span class="s1">xmlACatalogResolveURI	(xmlCatalogPtr catal,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *URI);</span>
+<span class="s2">#ifdef </span><span class="s1">LIBXML_OUTPUT_ENABLED</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlACatalogDump		(xmlCatalogPtr catal,</span>
+					 <span class="s1">FILE *out);</span>
+<span class="s2">#endif </span><span class="s0">/* LIBXML_OUTPUT_ENABLED */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlFreeCatalog		(xmlCatalogPtr catal);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlCatalogIsEmpty	(xmlCatalogPtr catal);</span>
+
+<span class="s0">/* 
+ * Global operations. 
+ */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlInitializeCatalog	(</span><span class="s2">void</span><span class="s1">);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlLoadCatalog		(</span><span class="s2">const char </span><span class="s1">*filename);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlLoadCatalogs		(</span><span class="s2">const char </span><span class="s1">*paths);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlCatalogCleanup	(</span><span class="s2">void</span><span class="s1">);</span>
+<span class="s2">#ifdef </span><span class="s1">LIBXML_OUTPUT_ENABLED</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlCatalogDump		(FILE *out);</span>
+<span class="s2">#endif </span><span class="s0">/* LIBXML_OUTPUT_ENABLED */</span>
+<span class="s1">XMLPUBFUN xmlChar * XMLCALL</span>
+		<span class="s1">xmlCatalogResolve	(</span><span class="s2">const </span><span class="s1">xmlChar *pubID,</span>
+	                                 <span class="s2">const </span><span class="s1">xmlChar *sysID);</span>
+<span class="s1">XMLPUBFUN xmlChar * XMLCALL</span>
+		<span class="s1">xmlCatalogResolveSystem	(</span><span class="s2">const </span><span class="s1">xmlChar *sysID);</span>
+<span class="s1">XMLPUBFUN xmlChar * XMLCALL</span>
+		<span class="s1">xmlCatalogResolvePublic	(</span><span class="s2">const </span><span class="s1">xmlChar *pubID);</span>
+<span class="s1">XMLPUBFUN xmlChar * XMLCALL</span>
+		<span class="s1">xmlCatalogResolveURI	(</span><span class="s2">const </span><span class="s1">xmlChar *URI);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlCatalogAdd		(</span><span class="s2">const </span><span class="s1">xmlChar *type,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *orig,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *replace);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlCatalogRemove	(</span><span class="s2">const </span><span class="s1">xmlChar *value);</span>
+<span class="s1">XMLPUBFUN xmlDocPtr XMLCALL</span>
+		<span class="s1">xmlParseCatalogFile	(</span><span class="s2">const char </span><span class="s1">*filename);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlCatalogConvert	(</span><span class="s2">void</span><span class="s1">);</span>
+
+<span class="s0">/* 
+ * Strictly minimal interfaces for per-document catalogs used 
+ * by the parser. 
+ */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlCatalogFreeLocal	(</span><span class="s2">void </span><span class="s1">*catalogs);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">* XMLCALL</span>
+		<span class="s1">xmlCatalogAddLocal	(</span><span class="s2">void </span><span class="s1">*catalogs,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *URL);</span>
+<span class="s1">XMLPUBFUN xmlChar * XMLCALL</span>
+		<span class="s1">xmlCatalogLocalResolve	(</span><span class="s2">void </span><span class="s1">*catalogs,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *pubID,</span>
+	                                 <span class="s2">const </span><span class="s1">xmlChar *sysID);</span>
+<span class="s1">XMLPUBFUN xmlChar * XMLCALL</span>
+		<span class="s1">xmlCatalogLocalResolveURI(</span><span class="s2">void </span><span class="s1">*catalogs,</span>
+					 <span class="s2">const </span><span class="s1">xmlChar *URI);</span>
+<span class="s0">/* 
+ * Preference settings. 
+ */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">int </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlCatalogSetDebug	(</span><span class="s2">int </span><span class="s1">level);</span>
+<span class="s1">XMLPUBFUN xmlCatalogPrefer XMLCALL</span>
+		<span class="s1">xmlCatalogSetDefaultPrefer(xmlCatalogPrefer prefer);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">void </span><span class="s1">XMLCALL</span>
+		<span class="s1">xmlCatalogSetDefaults	(xmlCatalogAllow allow);</span>
+<span class="s1">XMLPUBFUN xmlCatalogAllow XMLCALL</span>
+		<span class="s1">xmlCatalogGetDefaults	(</span><span class="s2">void</span><span class="s1">);</span>
+
+
+<span class="s0">/* DEPRECATED interfaces */</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">const </span><span class="s1">xmlChar * XMLCALL</span>
+		<span class="s1">xmlCatalogGetSystem	(</span><span class="s2">const </span><span class="s1">xmlChar *sysID);</span>
+<span class="s1">XMLPUBFUN </span><span class="s2">const </span><span class="s1">xmlChar * XMLCALL</span>
+		<span class="s1">xmlCatalogGetPublic	(</span><span class="s2">const </span><span class="s1">xmlChar *pubID);</span>
+
+<span class="s2">#ifdef </span><span class="s1">__cplusplus</span>
+<span class="s1">}</span>
+<span class="s2">#endif</span>
+<span class="s2">#endif </span><span class="s0">/* LIBXML_CATALOG_ENABLED */</span>
+<span class="s2">#endif </span><span class="s0">/* __XML_CATALOG_H__ */</span>
+</pre>
+</body>
+</html>

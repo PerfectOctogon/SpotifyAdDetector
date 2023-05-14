@@ -1,0 +1,194 @@
+<html>
+<head>
+<title>command.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #808080;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #cc7832;}
+.s3 { color: #629755; font-style: italic;}
+.s4 { color: #6a8759;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+command.py</font>
+</center></td></tr></table>
+<pre><span class="s0"># Licensed to the Software Freedom Conservancy (SFC) under one</span>
+<span class="s0"># or more contributor license agreements.  See the NOTICE file</span>
+<span class="s0"># distributed with this work for additional information</span>
+<span class="s0"># regarding copyright ownership.  The SFC licenses this file</span>
+<span class="s0"># to you under the Apache License, Version 2.0 (the</span>
+<span class="s0"># &quot;License&quot;); you may not use this file except in compliance</span>
+<span class="s0"># with the License.  You may obtain a copy of the License at</span>
+<span class="s0">#</span>
+<span class="s0">#   http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="s0">#</span>
+<span class="s0"># Unless required by applicable law or agreed to in writing,</span>
+<span class="s0"># software distributed under the License is distributed on an</span>
+<span class="s0"># &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY</span>
+<span class="s0"># KIND, either express or implied.  See the License for the</span>
+<span class="s0"># specific language governing permissions and limitations</span>
+<span class="s0"># under the License.</span>
+
+
+<span class="s2">class </span><span class="s1">Command(object):</span>
+    <span class="s3">&quot;&quot;&quot; 
+    Defines constants for the standard WebDriver commands. 
+ 
+    While these constants have no meaning in and of themselves, they are 
+    used to marshal commands through a service that implements WebDriver's 
+    remote wire protocol: 
+ 
+        https://github.com/SeleniumHQ/selenium/wiki/JsonWireProtocol 
+ 
+    &quot;&quot;&quot;</span>
+
+    <span class="s0"># Keep in sync with org.openqa.selenium.remote.DriverCommand</span>
+
+    <span class="s1">STATUS = </span><span class="s4">&quot;status&quot;</span>
+    <span class="s1">NEW_SESSION = </span><span class="s4">&quot;newSession&quot;</span>
+    <span class="s1">GET_ALL_SESSIONS = </span><span class="s4">&quot;getAllSessions&quot;</span>
+    <span class="s1">DELETE_SESSION = </span><span class="s4">&quot;deleteSession&quot;</span>
+    <span class="s1">CLOSE = </span><span class="s4">&quot;close&quot;</span>
+    <span class="s1">QUIT = </span><span class="s4">&quot;quit&quot;</span>
+    <span class="s1">GET = </span><span class="s4">&quot;get&quot;</span>
+    <span class="s1">GO_BACK = </span><span class="s4">&quot;goBack&quot;</span>
+    <span class="s1">GO_FORWARD = </span><span class="s4">&quot;goForward&quot;</span>
+    <span class="s1">REFRESH = </span><span class="s4">&quot;refresh&quot;</span>
+    <span class="s1">ADD_COOKIE = </span><span class="s4">&quot;addCookie&quot;</span>
+    <span class="s1">GET_COOKIE = </span><span class="s4">&quot;getCookie&quot;</span>
+    <span class="s1">GET_ALL_COOKIES = </span><span class="s4">&quot;getCookies&quot;</span>
+    <span class="s1">DELETE_COOKIE = </span><span class="s4">&quot;deleteCookie&quot;</span>
+    <span class="s1">DELETE_ALL_COOKIES = </span><span class="s4">&quot;deleteAllCookies&quot;</span>
+    <span class="s1">FIND_ELEMENT = </span><span class="s4">&quot;findElement&quot;</span>
+    <span class="s1">FIND_ELEMENTS = </span><span class="s4">&quot;findElements&quot;</span>
+    <span class="s1">FIND_CHILD_ELEMENT = </span><span class="s4">&quot;findChildElement&quot;</span>
+    <span class="s1">FIND_CHILD_ELEMENTS = </span><span class="s4">&quot;findChildElements&quot;</span>
+    <span class="s1">CLEAR_ELEMENT = </span><span class="s4">&quot;clearElement&quot;</span>
+    <span class="s1">CLICK_ELEMENT = </span><span class="s4">&quot;clickElement&quot;</span>
+    <span class="s1">SEND_KEYS_TO_ELEMENT = </span><span class="s4">&quot;sendKeysToElement&quot;</span>
+    <span class="s1">SEND_KEYS_TO_ACTIVE_ELEMENT = </span><span class="s4">&quot;sendKeysToActiveElement&quot;</span>
+    <span class="s1">SUBMIT_ELEMENT = </span><span class="s4">&quot;submitElement&quot;</span>
+    <span class="s1">UPLOAD_FILE = </span><span class="s4">&quot;uploadFile&quot;</span>
+    <span class="s1">GET_CURRENT_WINDOW_HANDLE = </span><span class="s4">&quot;getCurrentWindowHandle&quot;</span>
+    <span class="s1">W3C_GET_CURRENT_WINDOW_HANDLE = </span><span class="s4">&quot;w3cGetCurrentWindowHandle&quot;</span>
+    <span class="s1">GET_WINDOW_HANDLES = </span><span class="s4">&quot;getWindowHandles&quot;</span>
+    <span class="s1">W3C_GET_WINDOW_HANDLES = </span><span class="s4">&quot;w3cGetWindowHandles&quot;</span>
+    <span class="s1">GET_WINDOW_SIZE = </span><span class="s4">&quot;getWindowSize&quot;</span>
+    <span class="s1">W3C_GET_WINDOW_SIZE = </span><span class="s4">&quot;w3cGetWindowSize&quot;</span>
+    <span class="s1">W3C_GET_WINDOW_POSITION = </span><span class="s4">&quot;w3cGetWindowPosition&quot;</span>
+    <span class="s1">GET_WINDOW_POSITION = </span><span class="s4">&quot;getWindowPosition&quot;</span>
+    <span class="s1">SET_WINDOW_SIZE = </span><span class="s4">&quot;setWindowSize&quot;</span>
+    <span class="s1">W3C_SET_WINDOW_SIZE = </span><span class="s4">&quot;w3cSetWindowSize&quot;</span>
+    <span class="s1">SET_WINDOW_RECT = </span><span class="s4">&quot;setWindowRect&quot;</span>
+    <span class="s1">GET_WINDOW_RECT = </span><span class="s4">&quot;getWindowRect&quot;</span>
+    <span class="s1">SET_WINDOW_POSITION = </span><span class="s4">&quot;setWindowPosition&quot;</span>
+    <span class="s1">W3C_SET_WINDOW_POSITION = </span><span class="s4">&quot;w3cSetWindowPosition&quot;</span>
+    <span class="s1">SWITCH_TO_WINDOW = </span><span class="s4">&quot;switchToWindow&quot;</span>
+    <span class="s1">SWITCH_TO_FRAME = </span><span class="s4">&quot;switchToFrame&quot;</span>
+    <span class="s1">SWITCH_TO_PARENT_FRAME = </span><span class="s4">&quot;switchToParentFrame&quot;</span>
+    <span class="s1">GET_ACTIVE_ELEMENT = </span><span class="s4">&quot;getActiveElement&quot;</span>
+    <span class="s1">W3C_GET_ACTIVE_ELEMENT = </span><span class="s4">&quot;w3cGetActiveElement&quot;</span>
+    <span class="s1">GET_CURRENT_URL = </span><span class="s4">&quot;getCurrentUrl&quot;</span>
+    <span class="s1">GET_PAGE_SOURCE = </span><span class="s4">&quot;getPageSource&quot;</span>
+    <span class="s1">GET_TITLE = </span><span class="s4">&quot;getTitle&quot;</span>
+    <span class="s1">EXECUTE_SCRIPT = </span><span class="s4">&quot;executeScript&quot;</span>
+    <span class="s1">W3C_EXECUTE_SCRIPT = </span><span class="s4">&quot;w3cExecuteScript&quot;</span>
+    <span class="s1">W3C_EXECUTE_SCRIPT_ASYNC = </span><span class="s4">&quot;w3cExecuteScriptAsync&quot;</span>
+    <span class="s1">GET_ELEMENT_TEXT = </span><span class="s4">&quot;getElementText&quot;</span>
+    <span class="s1">GET_ELEMENT_VALUE = </span><span class="s4">&quot;getElementValue&quot;</span>
+    <span class="s1">GET_ELEMENT_TAG_NAME = </span><span class="s4">&quot;getElementTagName&quot;</span>
+    <span class="s1">SET_ELEMENT_SELECTED = </span><span class="s4">&quot;setElementSelected&quot;</span>
+    <span class="s1">IS_ELEMENT_SELECTED = </span><span class="s4">&quot;isElementSelected&quot;</span>
+    <span class="s1">IS_ELEMENT_ENABLED = </span><span class="s4">&quot;isElementEnabled&quot;</span>
+    <span class="s1">IS_ELEMENT_DISPLAYED = </span><span class="s4">&quot;isElementDisplayed&quot;</span>
+    <span class="s1">GET_ELEMENT_LOCATION = </span><span class="s4">&quot;getElementLocation&quot;</span>
+    <span class="s1">GET_ELEMENT_LOCATION_ONCE_SCROLLED_INTO_VIEW = </span><span class="s4">&quot;getElementLocationOnceScrolledIntoView&quot;</span>
+    <span class="s1">GET_ELEMENT_SIZE = </span><span class="s4">&quot;getElementSize&quot;</span>
+    <span class="s1">GET_ELEMENT_RECT = </span><span class="s4">&quot;getElementRect&quot;</span>
+    <span class="s1">GET_ELEMENT_ATTRIBUTE = </span><span class="s4">&quot;getElementAttribute&quot;</span>
+    <span class="s1">GET_ELEMENT_PROPERTY = </span><span class="s4">&quot;getElementProperty&quot;</span>
+    <span class="s1">GET_ELEMENT_VALUE_OF_CSS_PROPERTY = </span><span class="s4">&quot;getElementValueOfCssProperty&quot;</span>
+    <span class="s1">SCREENSHOT = </span><span class="s4">&quot;screenshot&quot;</span>
+    <span class="s1">ELEMENT_SCREENSHOT = </span><span class="s4">&quot;elementScreenshot&quot;</span>
+    <span class="s1">IMPLICIT_WAIT = </span><span class="s4">&quot;implicitlyWait&quot;</span>
+    <span class="s1">EXECUTE_ASYNC_SCRIPT = </span><span class="s4">&quot;executeAsyncScript&quot;</span>
+    <span class="s1">SET_SCRIPT_TIMEOUT = </span><span class="s4">&quot;setScriptTimeout&quot;</span>
+    <span class="s1">SET_TIMEOUTS = </span><span class="s4">&quot;setTimeouts&quot;</span>
+    <span class="s1">MAXIMIZE_WINDOW = </span><span class="s4">&quot;windowMaximize&quot;</span>
+    <span class="s1">W3C_MAXIMIZE_WINDOW = </span><span class="s4">&quot;w3cMaximizeWindow&quot;</span>
+    <span class="s1">GET_LOG = </span><span class="s4">&quot;getLog&quot;</span>
+    <span class="s1">GET_AVAILABLE_LOG_TYPES = </span><span class="s4">&quot;getAvailableLogTypes&quot;</span>
+    <span class="s1">FULLSCREEN_WINDOW = </span><span class="s4">&quot;fullscreenWindow&quot;</span>
+    <span class="s1">MINIMIZE_WINDOW = </span><span class="s4">&quot;minimizeWindow&quot;</span>
+
+    <span class="s0"># Alerts</span>
+    <span class="s1">DISMISS_ALERT = </span><span class="s4">&quot;dismissAlert&quot;</span>
+    <span class="s1">W3C_DISMISS_ALERT = </span><span class="s4">&quot;w3cDismissAlert&quot;</span>
+    <span class="s1">ACCEPT_ALERT = </span><span class="s4">&quot;acceptAlert&quot;</span>
+    <span class="s1">W3C_ACCEPT_ALERT = </span><span class="s4">&quot;w3cAcceptAlert&quot;</span>
+    <span class="s1">SET_ALERT_VALUE = </span><span class="s4">&quot;setAlertValue&quot;</span>
+    <span class="s1">W3C_SET_ALERT_VALUE = </span><span class="s4">&quot;w3cSetAlertValue&quot;</span>
+    <span class="s1">GET_ALERT_TEXT = </span><span class="s4">&quot;getAlertText&quot;</span>
+    <span class="s1">W3C_GET_ALERT_TEXT = </span><span class="s4">&quot;w3cGetAlertText&quot;</span>
+    <span class="s1">SET_ALERT_CREDENTIALS = </span><span class="s4">&quot;setAlertCredentials&quot;</span>
+
+    <span class="s0"># Advanced user interactions</span>
+    <span class="s1">W3C_ACTIONS = </span><span class="s4">&quot;actions&quot;</span>
+    <span class="s1">W3C_CLEAR_ACTIONS = </span><span class="s4">&quot;clearActionState&quot;</span>
+    <span class="s1">CLICK = </span><span class="s4">&quot;mouseClick&quot;</span>
+    <span class="s1">DOUBLE_CLICK = </span><span class="s4">&quot;mouseDoubleClick&quot;</span>
+    <span class="s1">MOUSE_DOWN = </span><span class="s4">&quot;mouseButtonDown&quot;</span>
+    <span class="s1">MOUSE_UP = </span><span class="s4">&quot;mouseButtonUp&quot;</span>
+    <span class="s1">MOVE_TO = </span><span class="s4">&quot;mouseMoveTo&quot;</span>
+
+    <span class="s0"># Screen Orientation</span>
+    <span class="s1">SET_SCREEN_ORIENTATION = </span><span class="s4">&quot;setScreenOrientation&quot;</span>
+    <span class="s1">GET_SCREEN_ORIENTATION = </span><span class="s4">&quot;getScreenOrientation&quot;</span>
+
+    <span class="s0"># Touch Actions</span>
+    <span class="s1">SINGLE_TAP = </span><span class="s4">&quot;touchSingleTap&quot;</span>
+    <span class="s1">TOUCH_DOWN = </span><span class="s4">&quot;touchDown&quot;</span>
+    <span class="s1">TOUCH_UP = </span><span class="s4">&quot;touchUp&quot;</span>
+    <span class="s1">TOUCH_MOVE = </span><span class="s4">&quot;touchMove&quot;</span>
+    <span class="s1">TOUCH_SCROLL = </span><span class="s4">&quot;touchScroll&quot;</span>
+    <span class="s1">DOUBLE_TAP = </span><span class="s4">&quot;touchDoubleTap&quot;</span>
+    <span class="s1">LONG_PRESS = </span><span class="s4">&quot;touchLongPress&quot;</span>
+    <span class="s1">FLICK = </span><span class="s4">&quot;touchFlick&quot;</span>
+
+    <span class="s0"># HTML 5</span>
+    <span class="s1">EXECUTE_SQL = </span><span class="s4">&quot;executeSql&quot;</span>
+
+    <span class="s1">GET_LOCATION = </span><span class="s4">&quot;getLocation&quot;</span>
+    <span class="s1">SET_LOCATION = </span><span class="s4">&quot;setLocation&quot;</span>
+
+    <span class="s1">GET_APP_CACHE = </span><span class="s4">&quot;getAppCache&quot;</span>
+    <span class="s1">GET_APP_CACHE_STATUS = </span><span class="s4">&quot;getAppCacheStatus&quot;</span>
+    <span class="s1">CLEAR_APP_CACHE = </span><span class="s4">&quot;clearAppCache&quot;</span>
+
+    <span class="s1">GET_LOCAL_STORAGE_ITEM = </span><span class="s4">&quot;getLocalStorageItem&quot;</span>
+    <span class="s1">REMOVE_LOCAL_STORAGE_ITEM = </span><span class="s4">&quot;removeLocalStorageItem&quot;</span>
+    <span class="s1">GET_LOCAL_STORAGE_KEYS = </span><span class="s4">&quot;getLocalStorageKeys&quot;</span>
+    <span class="s1">SET_LOCAL_STORAGE_ITEM = </span><span class="s4">&quot;setLocalStorageItem&quot;</span>
+    <span class="s1">CLEAR_LOCAL_STORAGE = </span><span class="s4">&quot;clearLocalStorage&quot;</span>
+    <span class="s1">GET_LOCAL_STORAGE_SIZE = </span><span class="s4">&quot;getLocalStorageSize&quot;</span>
+
+    <span class="s1">GET_SESSION_STORAGE_ITEM = </span><span class="s4">&quot;getSessionStorageItem&quot;</span>
+    <span class="s1">REMOVE_SESSION_STORAGE_ITEM = </span><span class="s4">&quot;removeSessionStorageItem&quot;</span>
+    <span class="s1">GET_SESSION_STORAGE_KEYS = </span><span class="s4">&quot;getSessionStorageKeys&quot;</span>
+    <span class="s1">SET_SESSION_STORAGE_ITEM = </span><span class="s4">&quot;setSessionStorageItem&quot;</span>
+    <span class="s1">CLEAR_SESSION_STORAGE = </span><span class="s4">&quot;clearSessionStorage&quot;</span>
+    <span class="s1">GET_SESSION_STORAGE_SIZE = </span><span class="s4">&quot;getSessionStorageSize&quot;</span>
+
+    <span class="s0"># Mobile</span>
+    <span class="s1">GET_NETWORK_CONNECTION = </span><span class="s4">&quot;getNetworkConnection&quot;</span>
+    <span class="s1">SET_NETWORK_CONNECTION = </span><span class="s4">&quot;setNetworkConnection&quot;</span>
+    <span class="s1">CURRENT_CONTEXT_HANDLE = </span><span class="s4">&quot;getCurrentContextHandle&quot;</span>
+    <span class="s1">CONTEXT_HANDLES = </span><span class="s4">&quot;getContextHandles&quot;</span>
+    <span class="s1">SWITCH_TO_CONTEXT = </span><span class="s4">&quot;switchToContext&quot;</span>
+</pre>
+</body>
+</html>
